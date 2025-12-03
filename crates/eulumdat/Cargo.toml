@@ -1,0 +1,24 @@
+[package]
+name = "eulumdat"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Eulumdat (LDT) and IES photometric file parser, writer, and validator for Rust"
+keywords = ["lighting", "photometry", "ldt", "ies", "eulumdat"]
+categories = ["parser-implementations", "science"]
+readme = "README.md"
+homepage = "https://github.com/holg/eulumdat-rs"
+documentation = "https://docs.rs/eulumdat"
+
+[features]
+default = []
+serde = ["dep:serde"]
+
+[dependencies]
+anyhow.workspace = true
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+approx.workspace = true

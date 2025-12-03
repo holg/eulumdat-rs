@@ -1,0 +1,1188 @@
+/* Eulumdat Editor Styles */
+
+/* ============================================
+   LIGHT THEME (default)
+   ============================================ */
+:root,
+.theme-light {
+    /* Base colors */
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary-color: #64748b;
+    --success-color: #22c55e;
+    --warning-color: #f59e0b;
+    --error-color: #ef4444;
+
+    /* Background and surface */
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff;
+    --border: #e2e8f0;
+
+    /* Text colors */
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+
+    /* Tab colors */
+    --tab-active: #2563eb;
+    --tab-inactive: #94a3b8;
+
+    /* Diagram colors - consistent across all visualizations */
+    --diagram-bg: #ffffff;
+    --diagram-surface: #fafafa;
+    --diagram-legend-bg: rgba(255, 255, 255, 0.95);
+    --diagram-grid: #e0e0e0;
+    --diagram-grid-minor: #f0f0f0;
+    --diagram-axis: #c0c0c0;
+    --diagram-text: #333333;
+    --diagram-text-secondary: #666666;
+    --diagram-text-muted: #999999;
+
+    /* C-plane line colors */
+    --diagram-c0: #ef4444;    /* Red - C0/C180 */
+    --diagram-c90: #3b82f6;   /* Blue - C90/C270 */
+    --diagram-c45: #22c55e;   /* Green - C45/C225 */
+    --diagram-c135: #f97316;  /* Orange - C135/C315 */
+
+    /* C-plane fill colors (semi-transparent) */
+    --diagram-c0-fill: rgba(239, 68, 68, 0.15);
+    --diagram-c90-fill: rgba(59, 130, 246, 0.2);
+    --diagram-c45-fill: rgba(34, 197, 94, 0.15);
+    --diagram-c135-fill: rgba(249, 115, 22, 0.15);
+
+    /* Zone colors (BUG/LCS) */
+    --diagram-forward: #22c55e;  /* Green */
+    --diagram-back: #3b82f6;     /* Blue */
+    --diagram-uplight: #ef4444;  /* Red */
+
+    /* Rating colors */
+    --rating-good: #22c55e;
+    --rating-ok: #eab308;
+    --rating-warn: #f97316;
+    --rating-bad: #ef4444;
+
+    /* Rating background colors */
+    --rating-bg-good: #dcfce7;
+    --rating-bg-ok: #fef9c3;
+    --rating-bg-warn: #ffedd5;
+    --rating-bg-bad: #fee2e2;
+
+    /* Zone fill colors */
+    --zone-fill-good: #ecfdf5;
+    --zone-fill-warn: #fef3c7;
+    --zone-fill-danger: #fee2e2;
+}
+
+/* ============================================
+   DARK THEME
+   ============================================ */
+.theme-dark {
+    /* Base colors */
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --secondary-color: #94a3b8;
+    --success-color: #4ade80;
+    --warning-color: #fbbf24;
+    --error-color: #f87171;
+
+    /* Background and surface */
+    --background: #0f172a;
+    --surface: #1e293b;
+    --surface-elevated: #334155;
+    --border: #334155;
+
+    /* Text colors */
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+
+    /* Tab colors */
+    --tab-active: #3b82f6;
+    --tab-inactive: #64748b;
+
+    /* Diagram colors - consistent across all visualizations */
+    --diagram-bg: #1a1a2e;
+    --diagram-surface: #16213e;
+    --diagram-legend-bg: rgba(22, 33, 62, 0.95);
+    --diagram-grid: #404060;
+    --diagram-grid-minor: #2a2a4a;
+    --diagram-axis: #606080;
+    --diagram-text: #e0e0e0;
+    --diagram-text-secondary: #bebebe;
+    --diagram-text-muted: #808080;
+
+    /* C-plane line colors (brighter for dark mode) */
+    --diagram-c0: #f87171;    /* Red - C0/C180 */
+    --diagram-c90: #60a5fa;   /* Blue - C90/C270 */
+    --diagram-c45: #4ade80;   /* Green - C45/C225 */
+    --diagram-c135: #fb923c;  /* Orange - C135/C315 */
+
+    /* C-plane fill colors (semi-transparent, brighter for dark mode) */
+    --diagram-c0-fill: rgba(248, 113, 113, 0.2);
+    --diagram-c90-fill: rgba(96, 165, 250, 0.25);
+    --diagram-c45-fill: rgba(74, 222, 128, 0.2);
+    --diagram-c135-fill: rgba(251, 146, 60, 0.2);
+
+    /* Zone colors (BUG/LCS - matching reference SVG) */
+    --diagram-forward: #62c58a;  /* Green */
+    --diagram-back: #42b4ff;     /* Blue */
+    --diagram-uplight: #f87171;  /* Red */
+
+    /* Rating colors */
+    --rating-good: #4ade80;
+    --rating-ok: #facc15;
+    --rating-warn: #fb923c;
+    --rating-bad: #f87171;
+
+    /* Rating background colors (darker versions for dark mode) */
+    --rating-bg-good: #166534;
+    --rating-bg-ok: #854d0e;
+    --rating-bg-warn: #9a3412;
+    --rating-bg-bad: #991b1b;
+
+    /* Zone fill colors (darker versions for dark mode) */
+    --zone-fill-good: #14532d;
+    --zone-fill-warn: #78350f;
+    --zone-fill-danger: #7f1d1d;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    font-size: 1.1rem;
+    padding: 0.5rem 0.75rem;
+    min-width: auto;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0;
+}
+
+/* Global input styling for theme support */
+input, select, textarea {
+    background: var(--surface);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.app {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app > * {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.app > header {
+    padding-top: 1rem;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Buttons */
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--background);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+/* Main Layout - single column, full width */
+.main-content {
+    display: block;
+    max-width: 100%;
+}
+
+/* Panels */
+.panel {
+    background: var(--surface);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+}
+
+.panel-body {
+    padding: 1rem;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+}
+
+.tab {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--tab-inactive);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.tab.active {
+    color: var(--tab-active);
+    border-bottom-color: var(--tab-active);
+    font-weight: 500;
+}
+
+.tab-content {
+    padding: 1rem;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-group input:read-only {
+    background: var(--background);
+    color: var(--text-secondary);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+/* Info Display */
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.info-item {
+    padding: 0.5rem;
+    background: var(--background);
+    border-radius: 4px;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.info-value {
+    font-weight: 500;
+}
+
+/* Data Table */
+.data-table-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.data-table-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.data-table-container {
+    overflow: auto;
+    max-height: 500px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.data-table {
+    width: max-content;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 0.2rem 0.3rem;
+    border: 1px solid var(--border);
+    text-align: right;
+}
+
+.data-table th {
+    background: var(--background);
+    font-weight: 500;
+}
+
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.data-table .angle-header {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    min-width: 40px;
+}
+
+.data-table .c-angle-header {
+    min-width: 45px;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.data-table .g-angle-header {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--background);
+    font-family: 'SF Mono', Monaco, monospace;
+    min-width: 40px;
+}
+
+.data-table td {
+    padding: 0;
+}
+
+.data-table .intensity-input {
+    width: 45px;
+    text-align: right;
+    border: none;
+    background: transparent;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.3rem;
+    color: var(--text-primary);
+}
+
+.data-table .intensity-input:focus {
+    background: var(--surface-elevated);
+    outline: none;
+}
+
+.data-table tr:hover td {
+    background: var(--background);
+}
+
+.data-table tr:hover .intensity-input {
+    background: var(--background);
+}
+
+/* Diagram Toggle */
+.diagram-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--background);
+    padding: 2px;
+    border-radius: 6px;
+}
+
+.btn-toggle {
+    padding: 0.25rem 0.75rem;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-toggle:hover {
+    color: var(--text-primary);
+}
+
+.btn-toggle.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Polar Diagram */
+.polar-diagram {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--surface);
+    border-radius: 8px;
+}
+
+.polar-diagram svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Cartesian Diagram */
+.cartesian-diagram {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 8px;
+}
+
+.cartesian-diagram svg {
+    width: 100%;
+    height: auto;
+}
+
+/* Validation Messages */
+.validation-panel {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.validation-item {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.validation-item.warning {
+    background: var(--rating-bg-ok);
+    color: var(--text-primary);
+}
+
+.validation-item.error {
+    background: var(--rating-bg-bad);
+    color: var(--text-primary);
+}
+
+.validation-item.success {
+    background: var(--rating-bg-good);
+    color: var(--text-primary);
+}
+
+.validation-code {
+    font-weight: 600;
+    font-family: monospace;
+}
+
+/* Lamp Sets */
+.lamp-set-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.lamp-set-tab {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.lamp-set-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Direct Ratios */
+.ratios-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+}
+
+.ratio-item {
+    text-align: center;
+}
+
+.ratio-item label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.ratio-item input {
+    width: 100%;
+    text-align: center;
+    padding: 0.25rem;
+    font-size: 0.8rem;
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.drop-zone.active {
+    border-color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.drop-zone p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* File Info */
+.file-info {
+    padding: 0.5rem 1rem;
+    background: var(--background);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.file-info strong {
+    color: var(--primary-color);
+}
+
+/* Utilities */
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: var(--text-secondary);
+}
+
+.mt-1 {
+    margin-top: 0.5rem;
+}
+
+.mb-1 {
+    margin-bottom: 0.5rem;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Intensity Tab Layout */
+.intensity-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.intensity-diagram-section {
+    background: var(--background);
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.diagram-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.diagram-title {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.diagram-container {
+    display: flex;
+    justify-content: center;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.intensity-table-section {
+    background: var(--background);
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.table-info {
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* 2D Diagram Tab */
+.diagram-2d-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.diagram-container-large {
+    display: flex;
+    justify-content: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Full-width diagram container */
+.diagram-fullwidth {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 500px;
+    background: var(--background);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.diagram-fullwidth .polar-diagram,
+.diagram-fullwidth .cartesian-diagram {
+    width: 100%;
+    max-width: 700px;
+}
+
+.diagram-fullwidth .polar-diagram svg,
+.diagram-fullwidth .cartesian-diagram svg {
+    width: 100%;
+    height: auto;
+}
+
+/* Zoomable diagram with overlay controls */
+.diagram-zoomable {
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+}
+
+.diagram-zoomable:active {
+    cursor: grabbing;
+}
+
+.diagram-zoomable .polar-diagram,
+.diagram-zoomable .cartesian-diagram {
+    transition: transform 0.1s ease-out;
+    transform-origin: center center;
+}
+
+/* Diagram controls header */
+.diagram-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.zoom-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Diagram Zoom Component */
+.diagram-zoom-container {
+    position: relative;
+    width: 100%;
+    min-height: 550px;
+    overflow: hidden;
+    background: var(--background);
+    border-radius: 8px;
+    cursor: grab;
+}
+
+.diagram-zoom-container:active {
+    cursor: grabbing;
+}
+
+.diagram-zoom-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform-origin: center center;
+    transition: none;
+}
+
+.diagram-zoom-overlay {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 6px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.zoom-level {
+    font-weight: 500;
+    min-width: 40px;
+    text-align: center;
+}
+
+.zoom-reset-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-primary);
+    transition: background 0.15s;
+}
+
+.zoom-reset-btn:hover {
+    background: var(--background);
+}
+
+/* Heatmap Tab */
+.heatmap-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.intensity-heatmap {
+    width: 100%;
+    max-width: 750px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.intensity-heatmap svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.intensity-heatmap .no-data {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+/* BUG Rating Tab */
+.bug-rating-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.bug-rating-container {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+}
+
+.bug-rating-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.bug-rating-header h3 {
+    font-size: 1.1rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.bug-rating-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.rating-inputs {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.rating-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.rating-input-group label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.rating-input-group input {
+    width: 45px;
+    padding: 0.35rem 0.5rem;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    transition: border-color 0.2s;
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.rating-input-group input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.rating-input-group input::-webkit-inner-spin-button,
+.rating-input-group input::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
+.bug-rating-value {
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 2px solid;
+}
+
+.bug-rating-svg-container {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--diagram-bg);
+    border-radius: 8px;
+    padding: 0.5rem;
+}
+
+.bug-rating-svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* LCS View Layout - diagram on left, tables on right in single SVG */
+.bug-rating-content.lcs-layout {
+    width: 100%;
+}
+
+.bug-rating-content.lcs-layout .lcs-svg {
+    width: 100%;
+    max-width: 510px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* BUG Rating content layout */
+.bug-rating-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.bug-rating-diagram {
+    flex: 1 1 300px;
+    min-width: 280px;
+}
+
+.bug-rating-diagram svg {
+    width: 100%;
+    height: auto;
+}
+
+.bug-rating-tables {
+    flex: 1 1 250px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.bug-rating-footer {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* 3D Diagram Tab */
+.diagram-3d-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.diagram-3d-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    background: var(--background);
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+}
+
+.diagram-3d-placeholder .placeholder-content {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.diagram-3d-placeholder svg {
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.diagram-3d-placeholder h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.diagram-3d-placeholder p {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.diagram-3d-placeholder .hint {
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* Validation Tab */
+.validation-tab {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .validation-tab {
+        grid-template-columns: 1fr;
+    }
+}
+
+.validation-section,
+.summary-section {
+    background: var(--background);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.validation-section h3,
+.summary-section h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.info-grid-wide {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .info-grid-wide {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Butterfly Diagram */
+.butterfly-diagram {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.butterfly-diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* 3D Canvas Container */
+.butterfly-3d-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.butterfly-3d-canvas {
+    width: 100%;
+    height: 600px;
+    display: block;
+    cursor: grab;
+}
+
+.butterfly-3d-canvas:active {
+    cursor: grabbing;
+}
+
+.butterfly-3d-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.butterfly-3d-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.butterfly-3d-controls button {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.butterfly-3d-controls button:hover {
+    background: var(--background);
+}

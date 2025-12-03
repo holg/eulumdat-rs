@@ -1,0 +1,68 @@
+[package]
+name = "eulumdat-wasm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WebAssembly Eulumdat (LDT/IES) Editor - Browser-based photometric file editor"
+
+[[bin]]
+name = "eulumdat-wasm"
+path = "src/main.rs"
+
+[dependencies]
+# Core library
+eulumdat.workspace = true
+gloo.workspace = true
+gloo-file.workspace = true
+js-sys.workspace = true
+
+# Web framework
+yew.workspace = true
+
+# WASM bindings
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+
+# Utilities
+base64.workspace = true
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "File",
+    "FileList",
+    "FileReader",
+    "Blob",
+    "BlobPropertyBag",
+    "Url",
+    "DragEvent",
+    "DataTransfer",
+    "HtmlInputElement",
+    "HtmlSelectElement",
+    "HtmlTextAreaElement",
+    "HtmlAnchorElement",
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "MouseEvent",
+    "WheelEvent",
+    "DomRect",
+    "console",
+    "Navigator",
+    "Clipboard",
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "WebGlRenderingContext",
+    "WebGl2RenderingContext",
+    "WebGlProgram",
+    "WebGlShader",
+    "WebGlBuffer",
+    "WebGlUniformLocation",
+    "Performance",
+]
+
+[dev-dependencies]
+wasm-bindgen-test.workspace = true

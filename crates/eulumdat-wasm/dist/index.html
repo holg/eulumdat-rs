@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eulumdat Editor - LDT/IES Photometric File Editor</title>
+    <link rel="stylesheet" href="/styles-e83e0de13113867f.css" integrity="sha384-YVJKm8B5oTNouKxKUlQY27FaOMURmp/3q/EBQjRRMWhrAi0uFu7NS01j/Z4OAnjt"/>
+<link rel="modulepreload" href="/eulumdat-wasm-7475cdafece759dc.js" crossorigin="anonymous" integrity="sha384-bUHnbd3f2smYuuErE0Q3X/Sl12pBiXpM26+Y1MjzwdHOsU59b9En9EtLG+E/PkAR"><link rel="preload" href="/eulumdat-wasm-7475cdafece759dc_bg.wasm" crossorigin="anonymous" integrity="sha384-MCsp1YrTfRsaX0J9FAOgBtRZYo8HadcL6VK9TDcZDwWWYuuJA3VQJRw/rMOcGX1C" as="fetch" type="application/wasm"></head>
+<body>
+    <noscript>This application requires JavaScript to run.</noscript>
+
+<script type="module">
+import init, * as bindings from '/eulumdat-wasm-7475cdafece759dc.js';
+const wasm = await init({ module_or_path: '/eulumdat-wasm-7475cdafece759dc_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+</html>

@@ -1,0 +1,20 @@
+[package]
+name = "eulumdat-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line tool for EULUMDAT (LDT) and IES photometric files"
+readme = "README.md"
+keywords = ["eulumdat", "ldt", "ies", "photometry", "lighting"]
+categories = ["command-line-utilities", "science"]
+
+[[bin]]
+name = "eulumdat"
+path = "src/main.rs"
+
+[dependencies]
+eulumdat.workspace = true
+clap.workspace = true
+anyhow.workspace = true
