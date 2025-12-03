@@ -1,0 +1,23 @@
+[package]
+name = "eulumdat"
+version = "0.1.0"
+edition = "2021"
+authors = ["Holger Trahe <trahe@mac.com>"]
+license = "MIT OR Apache-2.0"
+description = "Eulumdat (LDT) and IES photometric file parser, writer, and validator for Rust"
+repository = "https://github.com/holg/gldf-rs"
+keywords = ["lighting", "photometry", "ldt", "ies", "eulumdat"]
+categories = ["parser-implementations", "science"]
+
+[workspace]
+
+[dependencies]
+thiserror = "1.0"
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[dev-dependencies]
+approx = "0.5"
+
+[features]
+default = []
+serde = ["dep:serde"]
