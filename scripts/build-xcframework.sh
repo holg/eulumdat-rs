@@ -77,16 +77,10 @@ echo -e "${YELLOW}Step 5: Creating module maps...${NC}"
 create_module_map() {
     local DIR=$1
     mkdir -p "$DIR/Headers"
-    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdat_ffiFFI.h" "$DIR/Headers/"
 
-    # Module name matches FRAMEWORK_NAME which matches UniFFI-generated Swift imports
-    cat > "$DIR/Headers/module.modulemap" << EOF
-framework module ${FRAMEWORK_NAME} {
-    umbrella header "eulumdat_ffiFFI.h"
-    export *
-    module * { export * }
-}
-EOF
+    # Copy UniFFI-generated header and modulemap
+    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdat_ffiFFI.h" "$DIR/Headers/"
+    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdat_ffiFFI.modulemap" "$DIR/Headers/module.modulemap"
 }
 
 # Setup framework directories

@@ -178,3 +178,15 @@ jobs:
         with:
           packages-dir: dist/
           skip-existing: true
+      - name: Upload wheels to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          append_body: true
+          body: |
+
+            ## Python Package
+
+            ```bash
+            pip install eulumdat
+            ```
