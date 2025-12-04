@@ -1,0 +1,26 @@
+{
+  "": {
+    "swift-dependencies": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/master.swiftdeps"
+  },
+  "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/EulumdatApp/ContentView.swift": {
+    "dependencies": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/ContentView.d",
+    "object": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/ContentView.swift.o",
+    "swiftmodule": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/ContentView~partial.swiftmodule",
+    "swift-dependencies": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/ContentView.swiftdeps",
+    "diagnostics": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/ContentView.dia"
+  },
+  "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/EulumdatApp/EulumdatApp.swift": {
+    "dependencies": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/EulumdatApp.d",
+    "object": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/EulumdatApp.swift.o",
+    "swiftmodule": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/EulumdatApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/EulumdatApp.swiftdeps",
+    "diagnostics": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/EulumdatApp.dia"
+  },
+  "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/EulumdatApp/SVGView.swift": {
+    "dependencies": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/SVGView.d",
+    "object": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/SVGView.swift.o",
+    "swiftmodule": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/SVGView~partial.swiftmodule",
+    "swift-dependencies": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/SVGView.swiftdeps",
+    "diagnostics": "/Users/htr/Documents/develeop/rust/eulumdat-rs/EulumdatApp/.build/arm64-apple-macosx/debug/EulumdatApp.build/SVGView.dia"
+  }
+}

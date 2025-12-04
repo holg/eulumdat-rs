@@ -1,1 +1,5 @@
 target
+EulumdatApp/.build
+swift/.build
+swift/.swiftpm
+swift/eulumdat_ffiFFI.xcframework

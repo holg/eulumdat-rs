@@ -1,5 +1,5 @@
 import XCTest
-@testable import Eulumdat
+@testable import EulumdatKit
 
 final class EulumdatTests: XCTestCase {
 
