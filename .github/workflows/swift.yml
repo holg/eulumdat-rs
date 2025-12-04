@@ -1,0 +1,87 @@
+# Swift package build workflow
+# Builds XCFramework and tests Swift package on tag
+name: Swift
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'swift-v*'
+  workflow_dispatch:
+
+jobs:
+  build-xcframework:
+    name: Build XCFramework
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: |
+            aarch64-apple-ios
+            aarch64-apple-ios-sim
+            x86_64-apple-ios
+            aarch64-apple-darwin
+            x86_64-apple-darwin
+
+      - name: Build XCFramework
+        run: ./scripts/build-xcframework.sh
+
+      - name: Run Swift tests
+        run: swift test
+
+      - name: Upload XCFramework
+        uses: actions/upload-artifact@v4
+        with:
+          name: EulumdatFFI.xcframework
+          path: swift/EulumdatFFI.xcframework
+
+      - name: Upload Swift sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-sources
+          path: swift/Sources/Eulumdat/*.swift
+
+  release:
+    name: Release Swift Package
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-xcframework
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download XCFramework
+        uses: actions/download-artifact@v4
+        with:
+          name: EulumdatFFI.xcframework
+          path: swift/EulumdatFFI.xcframework
+
+      - name: Download Swift sources
+        uses: actions/download-artifact@v4
+        with:
+          name: swift-sources
+          path: swift/Sources/Eulumdat
+
+      - name: Create XCFramework zip
+        run: |
+          cd swift
+          zip -r EulumdatFFI.xcframework.zip EulumdatFFI.xcframework
+
+      - name: Add to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            swift/EulumdatFFI.xcframework.zip
+          append_body: true
+          body: |
+
+            ## Swift Package
+
+            Add to your `Package.swift`:
+            ```swift
+            .package(url: "https://github.com/holg/eulumdat-rs", from: "${{ github.ref_name }}")
+            ```

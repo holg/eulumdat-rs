@@ -151,8 +151,16 @@ fn cmd_info(file: &PathBuf, verbose: bool) -> Result<()> {
     println!("=== Photometric Data ===");
     println!("Type:           {:?}", ldt.type_indicator);
     println!("Symmetry:       {:?}", ldt.symmetry);
-    println!("C-planes:       {} ({}° spacing)", ldt.c_angles.len(), ldt.c_plane_distance);
-    println!("Gamma angles:   {} ({}° spacing)", ldt.g_angles.len(), ldt.g_plane_distance);
+    println!(
+        "C-planes:       {} ({}° spacing)",
+        ldt.c_angles.len(),
+        ldt.c_plane_distance
+    );
+    println!(
+        "Gamma angles:   {} ({}° spacing)",
+        ldt.g_angles.len(),
+        ldt.g_plane_distance
+    );
     println!();
     println!("=== Lamp Data ===");
     for (i, lamp) in ldt.lamp_sets.iter().enumerate() {
@@ -213,7 +221,10 @@ fn cmd_validate(file: &PathBuf, strict: bool) -> Result<()> {
 
     if strict {
         ldt.validate_strict().map_err(|errors| {
-            let msgs: Vec<_> = errors.iter().map(|e| format!("[{}] {}", e.code, e.message)).collect();
+            let msgs: Vec<_> = errors
+                .iter()
+                .map(|e| format!("[{}] {}", e.code, e.message))
+                .collect();
             anyhow::anyhow!("Strict validation failed:\n{}", msgs.join("\n"))
         })?;
     }
@@ -294,7 +305,11 @@ fn cmd_diagram(
 
     if let Some(out_path) = output {
         std::fs::write(out_path, &svg).context("Failed to write SVG file")?;
-        println!("Generated {:?} diagram: {}", diagram_type, out_path.display());
+        println!(
+            "Generated {:?} diagram: {}",
+            diagram_type,
+            out_path.display()
+        );
     } else {
         println!("{svg}");
     }
@@ -311,12 +326,15 @@ fn cmd_bug(file: &PathBuf, svg: Option<&PathBuf>, dark: bool) -> Result<()> {
     println!("Rating: {}", bug.rating);
     println!();
     println!("=== Zone Lumens ===");
-    println!("Backlight:  BL={:.1}  BM={:.1}  BH={:.1}  BVH={:.1}",
-        bug.zones.bl, bug.zones.bm, bug.zones.bh, bug.zones.bvh);
-    println!("Forward:    FL={:.1}  FM={:.1}  FH={:.1}  FVH={:.1}",
-        bug.zones.fl, bug.zones.fm, bug.zones.fh, bug.zones.fvh);
-    println!("Uplight:    UL={:.1}  UH={:.1}",
-        bug.zones.ul, bug.zones.uh);
+    println!(
+        "Backlight:  BL={:.1}  BM={:.1}  BH={:.1}  BVH={:.1}",
+        bug.zones.bl, bug.zones.bm, bug.zones.bh, bug.zones.bvh
+    );
+    println!(
+        "Forward:    FL={:.1}  FM={:.1}  FH={:.1}  FVH={:.1}",
+        bug.zones.fl, bug.zones.fm, bug.zones.fh, bug.zones.fvh
+    );
+    println!("Uplight:    UL={:.1}  UH={:.1}", bug.zones.ul, bug.zones.uh);
 
     if let Some(out_path) = svg {
         let theme = if dark {

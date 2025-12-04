@@ -15,6 +15,6 @@ name = "eulumdat"
 path = "src/main.rs"
 
 [dependencies]
-eulumdat.workspace = true
-clap.workspace = true
 anyhow.workspace = true
+clap.workspace = true
+eulumdat.workspace = true

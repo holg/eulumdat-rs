@@ -1,0 +1,960 @@
+//! Python bindings for the eulumdat photometric file library.
+//!
+//! This module provides PyO3-based Python bindings for parsing, writing,
+//! and analyzing EULUMDAT (LDT) and IES photometric files.
+
+use pyo3::exceptions::{PyIOError, PyValueError};
+use pyo3::prelude::*;
+
+use ::eulumdat as core;
+use core::{
+    diagram::{
+        ButterflyDiagram as CoreButterflyDiagram, CartesianDiagram as CoreCartesianDiagram,
+        HeatmapDiagram as CoreHeatmapDiagram, PolarDiagram as CorePolarDiagram,
+        SvgTheme as CoreSvgTheme,
+    },
+    BugDiagram as CoreBugDiagram, IesExporter, IesParser,
+};
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+/// Type indicator for the luminaire.
+#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum TypeIndicator {
+    /// Point source with symmetry about the vertical axis (Ityp = 1)
+    PointSourceSymmetric = 1,
+    /// Linear luminaire (Ityp = 2)
+    Linear = 2,
+    /// Point source with any other symmetry (Ityp = 3)
+    PointSourceOther = 3,
+}
+
+#[pymethods]
+impl TypeIndicator {
+    /// Create from integer value (1-3).
+    #[staticmethod]
+    fn from_int(value: i32) -> PyResult<Self> {
+        match value {
+            1 => Ok(Self::PointSourceSymmetric),
+            2 => Ok(Self::Linear),
+            3 => Ok(Self::PointSourceOther),
+            _ => Err(PyValueError::new_err(format!(
+                "Invalid type indicator: {} (must be 1-3)",
+                value
+            ))),
+        }
+    }
+
+    /// Convert to integer value.
+    fn as_int(&self) -> i32 {
+        *self as i32
+    }
+
+    fn __repr__(&self) -> String {
+        match self {
+            Self::PointSourceSymmetric => "TypeIndicator.PointSourceSymmetric".to_string(),
+            Self::Linear => "TypeIndicator.Linear".to_string(),
+            Self::PointSourceOther => "TypeIndicator.PointSourceOther".to_string(),
+        }
+    }
+}
+
+impl From<core::TypeIndicator> for TypeIndicator {
+    fn from(t: core::TypeIndicator) -> Self {
+        match t {
+            core::TypeIndicator::PointSourceSymmetric => Self::PointSourceSymmetric,
+            core::TypeIndicator::Linear => Self::Linear,
+            core::TypeIndicator::PointSourceOther => Self::PointSourceOther,
+        }
+    }
+}
+
+impl From<TypeIndicator> for core::TypeIndicator {
+    fn from(t: TypeIndicator) -> Self {
+        match t {
+            TypeIndicator::PointSourceSymmetric => Self::PointSourceSymmetric,
+            TypeIndicator::Linear => Self::Linear,
+            TypeIndicator::PointSourceOther => Self::PointSourceOther,
+        }
+    }
+}
+
+/// Symmetry indicator for the luminaire.
+#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Symmetry {
+    /// No symmetry (Isym = 0) - full 360° data required
+    None = 0,
+    /// Symmetry about the vertical axis (Isym = 1) - only 1 C-plane needed
+    VerticalAxis = 1,
+    /// Symmetry to plane C0-C180 (Isym = 2) - half the C-planes needed
+    PlaneC0C180 = 2,
+    /// Symmetry to plane C90-C270 (Isym = 3) - half the C-planes needed
+    PlaneC90C270 = 3,
+    /// Symmetry to both planes (Isym = 4) - quarter C-planes needed
+    BothPlanes = 4,
+}
+
+#[pymethods]
+impl Symmetry {
+    /// Create from integer value (0-4).
+    #[staticmethod]
+    fn from_int(value: i32) -> PyResult<Self> {
+        match value {
+            0 => Ok(Self::None),
+            1 => Ok(Self::VerticalAxis),
+            2 => Ok(Self::PlaneC0C180),
+            3 => Ok(Self::PlaneC90C270),
+            4 => Ok(Self::BothPlanes),
+            _ => Err(PyValueError::new_err(format!(
+                "Invalid symmetry: {} (must be 0-4)",
+                value
+            ))),
+        }
+    }
+
+    /// Convert to integer value.
+    fn as_int(&self) -> i32 {
+        *self as i32
+    }
+
+    /// Get human-readable description.
+    fn description(&self) -> &'static str {
+        match self {
+            Self::None => "no symmetry",
+            Self::VerticalAxis => "symmetry about the vertical axis",
+            Self::PlaneC0C180 => "symmetry to plane C0-C180",
+            Self::PlaneC90C270 => "symmetry to plane C90-C270",
+            Self::BothPlanes => "symmetry to plane C0-C180 and to plane C90-C270",
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        match self {
+            Self::None => "Symmetry.None".to_string(),
+            Self::VerticalAxis => "Symmetry.VerticalAxis".to_string(),
+            Self::PlaneC0C180 => "Symmetry.PlaneC0C180".to_string(),
+            Self::PlaneC90C270 => "Symmetry.PlaneC90C270".to_string(),
+            Self::BothPlanes => "Symmetry.BothPlanes".to_string(),
+        }
+    }
+}
+
+impl From<core::Symmetry> for Symmetry {
+    fn from(s: core::Symmetry) -> Self {
+        match s {
+            core::Symmetry::None => Self::None,
+            core::Symmetry::VerticalAxis => Self::VerticalAxis,
+            core::Symmetry::PlaneC0C180 => Self::PlaneC0C180,
+            core::Symmetry::PlaneC90C270 => Self::PlaneC90C270,
+            core::Symmetry::BothPlanes => Self::BothPlanes,
+        }
+    }
+}
+
+impl From<Symmetry> for core::Symmetry {
+    fn from(s: Symmetry) -> Self {
+        match s {
+            Symmetry::None => Self::None,
+            Symmetry::VerticalAxis => Self::VerticalAxis,
+            Symmetry::PlaneC0C180 => Self::PlaneC0C180,
+            Symmetry::PlaneC90C270 => Self::PlaneC90C270,
+            Symmetry::BothPlanes => Self::BothPlanes,
+        }
+    }
+}
+
+/// SVG theme for diagram rendering.
+#[pyclass(eq, eq_int)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SvgTheme {
+    /// Light theme with white background
+    Light = 0,
+    /// Dark theme with dark background
+    Dark = 1,
+    /// CSS variables for dynamic theming
+    CssVariables = 2,
+}
+
+#[pymethods]
+impl SvgTheme {
+    fn __repr__(&self) -> String {
+        match self {
+            Self::Light => "SvgTheme.Light".to_string(),
+            Self::Dark => "SvgTheme.Dark".to_string(),
+            Self::CssVariables => "SvgTheme.CssVariables".to_string(),
+        }
+    }
+}
+
+impl SvgTheme {
+    fn to_core(self) -> CoreSvgTheme {
+        match self {
+            Self::Light => CoreSvgTheme::light(),
+            Self::Dark => CoreSvgTheme::dark(),
+            Self::CssVariables => CoreSvgTheme::css_variables(),
+        }
+    }
+}
+
+// ============================================================================
+// Core Types
+// ============================================================================
+
+/// Lamp set configuration.
+#[pyclass]
+#[derive(Clone)]
+pub struct LampSet {
+    /// Number of lamps in this set.
+    #[pyo3(get, set)]
+    pub num_lamps: i32,
+    /// Type of lamps (description string).
+    #[pyo3(get, set)]
+    pub lamp_type: String,
+    /// Total luminous flux of this lamp set in lumens.
+    #[pyo3(get, set)]
+    pub total_luminous_flux: f64,
+    /// Color appearance / color temperature.
+    #[pyo3(get, set)]
+    pub color_appearance: String,
+    /// Color rendering group / CRI.
+    #[pyo3(get, set)]
+    pub color_rendering_group: String,
+    /// Wattage including ballast in watts.
+    #[pyo3(get, set)]
+    pub wattage_with_ballast: f64,
+}
+
+#[pymethods]
+impl LampSet {
+    #[new]
+    #[pyo3(signature = (num_lamps=1, lamp_type="".to_string(), total_luminous_flux=0.0, color_appearance="".to_string(), color_rendering_group="".to_string(), wattage_with_ballast=0.0))]
+    fn new(
+        num_lamps: i32,
+        lamp_type: String,
+        total_luminous_flux: f64,
+        color_appearance: String,
+        color_rendering_group: String,
+        wattage_with_ballast: f64,
+    ) -> Self {
+        Self {
+            num_lamps,
+            lamp_type,
+            total_luminous_flux,
+            color_appearance,
+            color_rendering_group,
+            wattage_with_ballast,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "LampSet(num_lamps={}, lamp_type='{}', flux={:.1} lm, wattage={:.1} W)",
+            self.num_lamps, self.lamp_type, self.total_luminous_flux, self.wattage_with_ballast
+        )
+    }
+}
+
+impl From<&core::LampSet> for LampSet {
+    fn from(ls: &core::LampSet) -> Self {
+        Self {
+            num_lamps: ls.num_lamps,
+            lamp_type: ls.lamp_type.clone(),
+            total_luminous_flux: ls.total_luminous_flux,
+            color_appearance: ls.color_appearance.clone(),
+            color_rendering_group: ls.color_rendering_group.clone(),
+            wattage_with_ballast: ls.wattage_with_ballast,
+        }
+    }
+}
+
+impl From<&LampSet> for core::LampSet {
+    fn from(ls: &LampSet) -> Self {
+        Self {
+            num_lamps: ls.num_lamps,
+            lamp_type: ls.lamp_type.clone(),
+            total_luminous_flux: ls.total_luminous_flux,
+            color_appearance: ls.color_appearance.clone(),
+            color_rendering_group: ls.color_rendering_group.clone(),
+            wattage_with_ballast: ls.wattage_with_ballast,
+        }
+    }
+}
+
+/// Validation warning from the EULUMDAT specification.
+#[pyclass]
+#[derive(Clone)]
+pub struct ValidationWarning {
+    /// Warning code (e.g., "W001").
+    #[pyo3(get)]
+    pub code: String,
+    /// Warning message.
+    #[pyo3(get)]
+    pub message: String,
+}
+
+#[pymethods]
+impl ValidationWarning {
+    fn __repr__(&self) -> String {
+        format!("[{}] {}", self.code, self.message)
+    }
+}
+
+// ============================================================================
+// Main Eulumdat Type
+// ============================================================================
+
+/// Main EULUMDAT data structure.
+///
+/// This class contains all data from an EULUMDAT (LDT) file.
+#[pyclass]
+pub struct Eulumdat {
+    inner: core::Eulumdat,
+}
+
+#[pymethods]
+impl Eulumdat {
+    /// Create a new empty Eulumdat structure.
+    #[new]
+    fn new() -> Self {
+        Self {
+            inner: core::Eulumdat::new(),
+        }
+    }
+
+    /// Parse from a string containing LDT data.
+    #[staticmethod]
+    fn parse(content: &str) -> PyResult<Self> {
+        core::Eulumdat::parse(content)
+            .map(|inner| Self { inner })
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    /// Load from a file path.
+    #[staticmethod]
+    fn from_file(path: &str) -> PyResult<Self> {
+        core::Eulumdat::from_file(path)
+            .map(|inner| Self { inner })
+            .map_err(|e| PyIOError::new_err(e.to_string()))
+    }
+
+    /// Parse from IES format string.
+    #[staticmethod]
+    fn parse_ies(content: &str) -> PyResult<Self> {
+        IesParser::parse(content)
+            .map(|inner| Self { inner })
+            .map_err(|e| PyValueError::new_err(e.to_string()))
+    }
+
+    /// Load from an IES file path.
+    #[staticmethod]
+    fn from_ies_file(path: &str) -> PyResult<Self> {
+        IesParser::parse_file(path)
+            .map(|inner| Self { inner })
+            .map_err(|e| PyIOError::new_err(e.to_string()))
+    }
+
+    /// Convert to LDT format string.
+    fn to_ldt(&self) -> String {
+        self.inner.to_ldt()
+    }
+
+    /// Export to IES format string.
+    fn to_ies(&self) -> String {
+        IesExporter::export(&self.inner)
+    }
+
+    /// Save to a file path.
+    fn save(&self, path: &str) -> PyResult<()> {
+        self.inner
+            .save(path)
+            .map_err(|e| PyIOError::new_err(e.to_string()))
+    }
+
+    /// Validate the data and return any warnings.
+    fn validate(&self) -> Vec<ValidationWarning> {
+        self.inner
+            .validate()
+            .into_iter()
+            .map(|w| ValidationWarning {
+                code: w.code.to_string(),
+                message: w.message,
+            })
+            .collect()
+    }
+
+    // === Identification ===
+
+    /// Identification string.
+    #[getter]
+    fn identification(&self) -> &str {
+        &self.inner.identification
+    }
+
+    #[setter]
+    fn set_identification(&mut self, value: String) {
+        self.inner.identification = value;
+    }
+
+    // === Type and Symmetry ===
+
+    /// Type indicator.
+    #[getter]
+    fn type_indicator(&self) -> TypeIndicator {
+        self.inner.type_indicator.into()
+    }
+
+    #[setter]
+    fn set_type_indicator(&mut self, value: TypeIndicator) {
+        self.inner.type_indicator = value.into();
+    }
+
+    /// Symmetry indicator.
+    #[getter]
+    fn symmetry(&self) -> Symmetry {
+        self.inner.symmetry.into()
+    }
+
+    #[setter]
+    fn set_symmetry(&mut self, value: Symmetry) {
+        self.inner.symmetry = value.into();
+    }
+
+    // === Grid Definition ===
+
+    /// Number of C-planes.
+    #[getter]
+    fn num_c_planes(&self) -> usize {
+        self.inner.num_c_planes
+    }
+
+    #[setter]
+    fn set_num_c_planes(&mut self, value: usize) {
+        self.inner.num_c_planes = value;
+    }
+
+    /// Distance between C-planes in degrees.
+    #[getter]
+    fn c_plane_distance(&self) -> f64 {
+        self.inner.c_plane_distance
+    }
+
+    #[setter]
+    fn set_c_plane_distance(&mut self, value: f64) {
+        self.inner.c_plane_distance = value;
+    }
+
+    /// Number of gamma angles.
+    #[getter]
+    fn num_g_planes(&self) -> usize {
+        self.inner.num_g_planes
+    }
+
+    #[setter]
+    fn set_num_g_planes(&mut self, value: usize) {
+        self.inner.num_g_planes = value;
+    }
+
+    /// Distance between gamma angles in degrees.
+    #[getter]
+    fn g_plane_distance(&self) -> f64 {
+        self.inner.g_plane_distance
+    }
+
+    #[setter]
+    fn set_g_plane_distance(&mut self, value: f64) {
+        self.inner.g_plane_distance = value;
+    }
+
+    // === Metadata ===
+
+    /// Measurement report number.
+    #[getter]
+    fn measurement_report_number(&self) -> &str {
+        &self.inner.measurement_report_number
+    }
+
+    #[setter]
+    fn set_measurement_report_number(&mut self, value: String) {
+        self.inner.measurement_report_number = value;
+    }
+
+    /// Luminaire name.
+    #[getter]
+    fn luminaire_name(&self) -> &str {
+        &self.inner.luminaire_name
+    }
+
+    #[setter]
+    fn set_luminaire_name(&mut self, value: String) {
+        self.inner.luminaire_name = value;
+    }
+
+    /// Luminaire number.
+    #[getter]
+    fn luminaire_number(&self) -> &str {
+        &self.inner.luminaire_number
+    }
+
+    #[setter]
+    fn set_luminaire_number(&mut self, value: String) {
+        self.inner.luminaire_number = value;
+    }
+
+    /// File name.
+    #[getter]
+    fn file_name(&self) -> &str {
+        &self.inner.file_name
+    }
+
+    #[setter]
+    fn set_file_name(&mut self, value: String) {
+        self.inner.file_name = value;
+    }
+
+    /// Date/user field.
+    #[getter]
+    fn date_user(&self) -> &str {
+        &self.inner.date_user
+    }
+
+    #[setter]
+    fn set_date_user(&mut self, value: String) {
+        self.inner.date_user = value;
+    }
+
+    // === Physical Dimensions (in mm) ===
+
+    /// Length/diameter of luminaire (mm).
+    #[getter]
+    fn length(&self) -> f64 {
+        self.inner.length
+    }
+
+    #[setter]
+    fn set_length(&mut self, value: f64) {
+        self.inner.length = value;
+    }
+
+    /// Width of luminaire (mm), 0 for circular.
+    #[getter]
+    fn width(&self) -> f64 {
+        self.inner.width
+    }
+
+    #[setter]
+    fn set_width(&mut self, value: f64) {
+        self.inner.width = value;
+    }
+
+    /// Height of luminaire (mm).
+    #[getter]
+    fn height(&self) -> f64 {
+        self.inner.height
+    }
+
+    #[setter]
+    fn set_height(&mut self, value: f64) {
+        self.inner.height = value;
+    }
+
+    /// Length/diameter of luminous area (mm).
+    #[getter]
+    fn luminous_area_length(&self) -> f64 {
+        self.inner.luminous_area_length
+    }
+
+    #[setter]
+    fn set_luminous_area_length(&mut self, value: f64) {
+        self.inner.luminous_area_length = value;
+    }
+
+    /// Width of luminous area (mm), 0 for circular.
+    #[getter]
+    fn luminous_area_width(&self) -> f64 {
+        self.inner.luminous_area_width
+    }
+
+    #[setter]
+    fn set_luminous_area_width(&mut self, value: f64) {
+        self.inner.luminous_area_width = value;
+    }
+
+    /// Height of luminous area at C0 plane (mm).
+    #[getter]
+    fn height_c0(&self) -> f64 {
+        self.inner.height_c0
+    }
+
+    #[setter]
+    fn set_height_c0(&mut self, value: f64) {
+        self.inner.height_c0 = value;
+    }
+
+    /// Height of luminous area at C90 plane (mm).
+    #[getter]
+    fn height_c90(&self) -> f64 {
+        self.inner.height_c90
+    }
+
+    #[setter]
+    fn set_height_c90(&mut self, value: f64) {
+        self.inner.height_c90 = value;
+    }
+
+    /// Height of luminous area at C180 plane (mm).
+    #[getter]
+    fn height_c180(&self) -> f64 {
+        self.inner.height_c180
+    }
+
+    #[setter]
+    fn set_height_c180(&mut self, value: f64) {
+        self.inner.height_c180 = value;
+    }
+
+    /// Height of luminous area at C270 plane (mm).
+    #[getter]
+    fn height_c270(&self) -> f64 {
+        self.inner.height_c270
+    }
+
+    #[setter]
+    fn set_height_c270(&mut self, value: f64) {
+        self.inner.height_c270 = value;
+    }
+
+    // === Optical Properties ===
+
+    /// Downward flux fraction (DFF) in percent.
+    #[getter]
+    fn downward_flux_fraction(&self) -> f64 {
+        self.inner.downward_flux_fraction
+    }
+
+    #[setter]
+    fn set_downward_flux_fraction(&mut self, value: f64) {
+        self.inner.downward_flux_fraction = value;
+    }
+
+    /// Light output ratio of luminaire (LORL) in percent.
+    #[getter]
+    fn light_output_ratio(&self) -> f64 {
+        self.inner.light_output_ratio
+    }
+
+    #[setter]
+    fn set_light_output_ratio(&mut self, value: f64) {
+        self.inner.light_output_ratio = value;
+    }
+
+    /// Conversion factor for luminous intensities.
+    #[getter]
+    fn conversion_factor(&self) -> f64 {
+        self.inner.conversion_factor
+    }
+
+    #[setter]
+    fn set_conversion_factor(&mut self, value: f64) {
+        self.inner.conversion_factor = value;
+    }
+
+    /// Tilt angle during measurement in degrees.
+    #[getter]
+    fn tilt_angle(&self) -> f64 {
+        self.inner.tilt_angle
+    }
+
+    #[setter]
+    fn set_tilt_angle(&mut self, value: f64) {
+        self.inner.tilt_angle = value;
+    }
+
+    // === Lamp Configuration ===
+
+    /// Lamp sets.
+    #[getter]
+    fn lamp_sets(&self) -> Vec<LampSet> {
+        self.inner.lamp_sets.iter().map(LampSet::from).collect()
+    }
+
+    #[setter]
+    fn set_lamp_sets(&mut self, value: Vec<LampSet>) {
+        self.inner.lamp_sets = value.iter().map(core::LampSet::from).collect();
+    }
+
+    // === Utilization Factors ===
+
+    /// Direct ratios for room indices.
+    #[getter]
+    fn direct_ratios(&self) -> Vec<f64> {
+        self.inner.direct_ratios.to_vec()
+    }
+
+    #[setter]
+    fn set_direct_ratios(&mut self, value: Vec<f64>) -> PyResult<()> {
+        if value.len() != 10 {
+            return Err(PyValueError::new_err(
+                "direct_ratios must have exactly 10 values",
+            ));
+        }
+        self.inner.direct_ratios.copy_from_slice(&value);
+        Ok(())
+    }
+
+    // === Photometric Data ===
+
+    /// C-plane angles in degrees.
+    #[getter]
+    fn c_angles(&self) -> Vec<f64> {
+        self.inner.c_angles.clone()
+    }
+
+    #[setter]
+    fn set_c_angles(&mut self, value: Vec<f64>) {
+        self.inner.c_angles = value;
+    }
+
+    /// G-plane (gamma) angles in degrees.
+    #[getter]
+    fn g_angles(&self) -> Vec<f64> {
+        self.inner.g_angles.clone()
+    }
+
+    #[setter]
+    fn set_g_angles(&mut self, value: Vec<f64>) {
+        self.inner.g_angles = value;
+    }
+
+    /// Luminous intensity distribution in cd/klm.
+    /// Indexed as intensities[c_plane_index][g_plane_index].
+    #[getter]
+    fn intensities(&self) -> Vec<Vec<f64>> {
+        self.inner.intensities.clone()
+    }
+
+    #[setter]
+    fn set_intensities(&mut self, value: Vec<Vec<f64>>) {
+        self.inner.intensities = value;
+    }
+
+    // === Computed Properties ===
+
+    /// Get the actual number of C-planes based on symmetry.
+    fn actual_c_planes(&self) -> usize {
+        self.inner.actual_c_planes()
+    }
+
+    /// Get total luminous flux from all lamp sets.
+    fn total_luminous_flux(&self) -> f64 {
+        self.inner.total_luminous_flux()
+    }
+
+    /// Get total wattage from all lamp sets.
+    fn total_wattage(&self) -> f64 {
+        self.inner.total_wattage()
+    }
+
+    /// Get luminous efficacy in lm/W.
+    fn luminous_efficacy(&self) -> f64 {
+        self.inner.luminous_efficacy()
+    }
+
+    /// Get the maximum intensity value.
+    fn max_intensity(&self) -> f64 {
+        self.inner.max_intensity()
+    }
+
+    /// Get the minimum intensity value.
+    fn min_intensity(&self) -> f64 {
+        self.inner.min_intensity()
+    }
+
+    /// Get the average intensity value.
+    fn avg_intensity(&self) -> f64 {
+        self.inner.avg_intensity()
+    }
+
+    /// Get intensity at a specific C and G angle index.
+    fn get_intensity(&self, c_index: usize, g_index: usize) -> Option<f64> {
+        self.inner.get_intensity(c_index, g_index)
+    }
+
+    // === Diagram Generation ===
+
+    /// Generate a polar diagram SVG.
+    #[pyo3(signature = (width=500.0, height=500.0, theme=SvgTheme::Light))]
+    fn polar_svg(&self, width: f64, height: f64, theme: SvgTheme) -> String {
+        let diagram = CorePolarDiagram::from_eulumdat(&self.inner);
+        diagram.to_svg(width, height, &theme.to_core())
+    }
+
+    /// Generate a butterfly diagram SVG.
+    #[pyo3(signature = (width=500.0, height=400.0, rotation=60.0, theme=SvgTheme::Light))]
+    fn butterfly_svg(&self, width: f64, height: f64, rotation: f64, theme: SvgTheme) -> String {
+        let diagram = CoreButterflyDiagram::from_eulumdat(&self.inner, width, height, rotation);
+        diagram.to_svg(width, height, &theme.to_core())
+    }
+
+    /// Generate a cartesian diagram SVG.
+    #[pyo3(signature = (width=600.0, height=400.0, max_curves=8, theme=SvgTheme::Light))]
+    fn cartesian_svg(&self, width: f64, height: f64, max_curves: usize, theme: SvgTheme) -> String {
+        let diagram = CoreCartesianDiagram::from_eulumdat(&self.inner, width, height, max_curves);
+        diagram.to_svg(width, height, &theme.to_core())
+    }
+
+    /// Generate a heatmap diagram SVG.
+    #[pyo3(signature = (width=700.0, height=500.0, theme=SvgTheme::Light))]
+    fn heatmap_svg(&self, width: f64, height: f64, theme: SvgTheme) -> String {
+        let diagram = CoreHeatmapDiagram::from_eulumdat(&self.inner, width, height);
+        diagram.to_svg(width, height, &theme.to_core())
+    }
+
+    /// Generate a BUG rating diagram SVG.
+    #[pyo3(signature = (width=400.0, height=350.0, theme=SvgTheme::Light))]
+    fn bug_svg(&self, width: f64, height: f64, theme: SvgTheme) -> String {
+        let diagram = CoreBugDiagram::from_eulumdat(&self.inner);
+        diagram.to_svg(width, height, &theme.to_core())
+    }
+
+    /// Generate a LCS (Luminaire Classification System) diagram SVG.
+    #[pyo3(signature = (width=510.0, height=315.0, theme=SvgTheme::Light))]
+    fn lcs_svg(&self, width: f64, height: f64, theme: SvgTheme) -> String {
+        let diagram = CoreBugDiagram::from_eulumdat(&self.inner);
+        diagram.to_lcs_svg(width, height, &theme.to_core())
+    }
+
+    /// Calculate BUG rating.
+    fn bug_rating(&self) -> BugRating {
+        let diagram = CoreBugDiagram::from_eulumdat(&self.inner);
+        BugRating {
+            b: diagram.rating.b,
+            u: diagram.rating.u,
+            g: diagram.rating.g,
+        }
+    }
+
+    /// Calculate zone lumens for BUG rating.
+    fn zone_lumens(&self) -> ZoneLumens {
+        let diagram = CoreBugDiagram::from_eulumdat(&self.inner);
+        ZoneLumens {
+            bl: diagram.zones.bl,
+            bm: diagram.zones.bm,
+            bh: diagram.zones.bh,
+            bvh: diagram.zones.bvh,
+            fl: diagram.zones.fl,
+            fm: diagram.zones.fm,
+            fh: diagram.zones.fh,
+            fvh: diagram.zones.fvh,
+            ul: diagram.zones.ul,
+            uh: diagram.zones.uh,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "Eulumdat(name='{}', symmetry={:?}, c_planes={}, g_angles={})",
+            self.inner.luminaire_name,
+            self.inner.symmetry,
+            self.inner.c_angles.len(),
+            self.inner.g_angles.len()
+        )
+    }
+}
+
+// ============================================================================
+// BUG Rating Types
+// ============================================================================
+
+/// BUG (Backlight-Uplight-Glare) rating per IESNA TM-15-11.
+#[pyclass]
+#[derive(Clone)]
+pub struct BugRating {
+    /// Backlight rating (0-5).
+    #[pyo3(get)]
+    pub b: u8,
+    /// Uplight rating (0-5).
+    #[pyo3(get)]
+    pub u: u8,
+    /// Glare rating (0-5).
+    #[pyo3(get)]
+    pub g: u8,
+}
+
+#[pymethods]
+impl BugRating {
+    fn __repr__(&self) -> String {
+        format!("B{} U{} G{}", self.b, self.u, self.g)
+    }
+
+    fn __str__(&self) -> String {
+        format!("B{} U{} G{}", self.b, self.u, self.g)
+    }
+}
+
+/// Zone lumens breakdown for BUG rating calculation.
+#[pyclass]
+#[derive(Clone)]
+pub struct ZoneLumens {
+    /// Backlight Low: 0-30°
+    #[pyo3(get)]
+    pub bl: f64,
+    /// Backlight Mid: 30-60°
+    #[pyo3(get)]
+    pub bm: f64,
+    /// Backlight High: 60-80°
+    #[pyo3(get)]
+    pub bh: f64,
+    /// Backlight Very High: 80-90°
+    #[pyo3(get)]
+    pub bvh: f64,
+    /// Forward Low: 0-30°
+    #[pyo3(get)]
+    pub fl: f64,
+    /// Forward Mid: 30-60°
+    #[pyo3(get)]
+    pub fm: f64,
+    /// Forward High: 60-80°
+    #[pyo3(get)]
+    pub fh: f64,
+    /// Forward Very High: 80-90°
+    #[pyo3(get)]
+    pub fvh: f64,
+    /// Uplight Low: 90-100°
+    #[pyo3(get)]
+    pub ul: f64,
+    /// Uplight High: 100-180°
+    #[pyo3(get)]
+    pub uh: f64,
+}
+
+#[pymethods]
+impl ZoneLumens {
+    fn __repr__(&self) -> String {
+        format!(
+            "ZoneLumens(BL={:.1}, BM={:.1}, BH={:.1}, BVH={:.1}, FL={:.1}, FM={:.1}, FH={:.1}, FVH={:.1}, UL={:.1}, UH={:.1})",
+            self.bl, self.bm, self.bh, self.bvh, self.fl, self.fm, self.fh, self.fvh, self.ul, self.uh
+        )
+    }
+}
+
+// ============================================================================
+// Module Definition
+// ============================================================================
+
+/// Python bindings for the eulumdat photometric file library.
+#[pymodule]
+fn eulumdat(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<Eulumdat>()?;
+    m.add_class::<TypeIndicator>()?;
+    m.add_class::<Symmetry>()?;
+    m.add_class::<SvgTheme>()?;
+    m.add_class::<LampSet>()?;
+    m.add_class::<ValidationWarning>()?;
+    m.add_class::<BugRating>()?;
+    m.add_class::<ZoneLumens>()?;
+    Ok(())
+}

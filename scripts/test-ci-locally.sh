@@ -21,9 +21,12 @@ else
     exit 1
 fi
 
+# Note: eulumdat-py is excluded because it's a Python extension that must be built with maturin
+EXCLUDE_PY="--exclude eulumdat-py"
+
 # Run clippy
 echo -e "${YELLOW}Step 2: Running clippy...${NC}"
-if cargo clippy --locked --workspace --all-targets -- -D warnings; then
+if cargo clippy --workspace $EXCLUDE_PY --all-targets -- -D warnings; then
     echo -e "${GREEN}✓ clippy passed${NC}\n"
 else
     echo -e "${RED}✗ clippy failed${NC}\n"
@@ -32,7 +35,7 @@ fi
 
 # Run cargo build
 echo -e "${YELLOW}Step 3: Running cargo build...${NC}"
-if cargo build --locked --workspace; then
+if cargo build --workspace $EXCLUDE_PY; then
     echo -e "${GREEN}✓ build passed${NC}\n"
 else
     echo -e "${RED}✗ build failed${NC}\n"
@@ -41,7 +44,7 @@ fi
 
 # Run cargo doc
 echo -e "${YELLOW}Step 4: Running cargo doc...${NC}"
-if RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --document-private-items; then
+if RUSTDOCFLAGS="-D warnings" cargo doc --workspace $EXCLUDE_PY --document-private-items; then
     echo -e "${GREEN}✓ doc generation passed${NC}\n"
 else
     echo -e "${RED}✗ doc generation failed${NC}\n"
@@ -97,7 +100,7 @@ fi
 
 # Run tests
 echo -e "${YELLOW}Step 6: Running tests...${NC}"
-if cargo test --locked --workspace -- --test-threads=1; then
+if cargo test --workspace $EXCLUDE_PY -- --test-threads=1; then
     echo -e "${GREEN}✓ tests passed${NC}\n"
 else
     echo -e "${RED}✗ tests failed${NC}\n"

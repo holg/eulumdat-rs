@@ -191,7 +191,10 @@ fn test_ies_export() {
     assert!(ies.contains("TILT=NONE"));
 
     // Check that intensity data is present (absolute candela: 386.8 cd/klm * 19.8 = 7658.65 cd)
-    assert!(ies.contains("7658"), "IES should contain absolute candela values");
+    assert!(
+        ies.contains("7658"),
+        "IES should contain absolute candela values"
+    );
 }
 
 #[test]

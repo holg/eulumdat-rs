@@ -1,155 +1,168 @@
-# eulumdat
+# eulumdat-rs
 
-A Rust library for parsing, writing, and validating Eulumdat (LDT) and IES photometric files.
+A Rust workspace for parsing, writing, and analyzing **EULUMDAT (LDT)** and **IES** photometric files.
+
+[![Crates.io](https://img.shields.io/crates/v/eulumdat.svg)](https://crates.io/crates/eulumdat)
+[![Documentation](https://docs.rs/eulumdat/badge.svg)](https://docs.rs/eulumdat)
+[![License](https://img.shields.io/crates/l/eulumdat.svg)](https://github.com/holg/eulumdat-rs#license)
+
+## Crates
+
+| Crate | Description |
+|-------|-------------|
+| [eulumdat](crates/eulumdat) | Core library for parsing, validation, and calculations |
+| [eulumdat-cli](crates/eulumdat-cli) | Command-line tool |
+| [eulumdat-py](crates/eulumdat-py) | Python bindings (PyO3) |
+| [eulumdat-ffi](crates/eulumdat-ffi) | FFI bindings (UniFFI) for Swift, Kotlin, etc. |
+| [eulumdat-wasm](crates/eulumdat-wasm) | WebAssembly editor |
 
 ## Features
 
-- **Parse LDT files** - Full support for Eulumdat format with European number format (comma decimal separator)
-- **Write LDT files** - Generate valid Eulumdat files
-- **Export to IES** - Convert to IESNA LM-63-2002 format
-- **Comprehensive validation** - 44 validation checks based on the official specification
-- **Symmetry handling** - Automatic data reduction/expansion for 5 symmetry types
-- **Photometric calculations** - Downward flux, beam angle, utilization factors
+- **Parse LDT/IES files** - Full EULUMDAT and IESNA LM-63 format support
+- **Write LDT files** - Roundtrip-tested output generation
+- **Export to IES** - Convert EULUMDAT to IES format
+- **Validation** - 44 validation constraints based on official specification
+- **Symmetry handling** - 5 symmetry types with automatic data expansion
+- **Photometric calculations** - Downward flux, beam angles, utilization factors
+- **BUG Rating** - IESNA TM-15-11 Backlight-Uplight-Glare calculations
+- **Diagram generation** - Polar, Butterfly, Cartesian, Heatmap with SVG export
 
 ## Installation
 
-Add to your `Cargo.toml`:
+### Rust Library
 
 ```toml
 [dependencies]
-eulumdat = "0.1"
+eulumdat = "0.2"
 ```
 
-## Usage
+### Command-Line Tool
 
-### Parsing LDT files
+```bash
+cargo install eulumdat-cli
+```
+
+### Python
+
+```bash
+pip install eulumdat
+```
+
+### Swift (SPM)
+
+```swift
+// Package.swift
+dependencies: [
+    .package(url: "https://github.com/holg/eulumdat-rs", from: "0.2.0")
+]
+```
+
+## Quick Start
+
+### Rust
 
 ```rust
-use eulumdat::Eulumdat;
+use eulumdat::{Eulumdat, BugDiagram, diagram::SvgTheme};
 
-// From file
+// Parse from file
 let ldt = Eulumdat::from_file("luminaire.ldt")?;
-
-// From string
-let ldt = Eulumdat::parse(content)?;
 
 // Access data
 println!("Luminaire: {}", ldt.luminaire_name);
-println!("Symmetry: {:?}", ldt.symmetry);
-println!("Total flux: {} lm", ldt.total_luminous_flux());
-```
+println!("Max intensity: {:.1} cd/klm", ldt.max_intensity());
 
-### Validation
-
-```rust
-use eulumdat::Eulumdat;
-
-let ldt = Eulumdat::from_file("luminaire.ldt")?;
-
-// Get warnings
-let warnings = ldt.validate();
-for warning in &warnings {
-    println!("Warning: {}", warning);
+// Validate
+for warning in ldt.validate() {
+    println!("[{}] {}", warning.code, warning.message);
 }
 
-// Strict validation (returns error if critical issues found)
-ldt.validate_strict()?;
+// Generate polar diagram SVG
+let polar = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldt);
+let svg = polar.to_svg(500.0, 500.0, &SvgTheme::light());
+
+// Calculate BUG rating
+let bug = BugDiagram::from_eulumdat(&ldt);
+println!("BUG Rating: {}", bug.rating);
 ```
 
-### Writing LDT files
+### Python
 
-```rust
-use eulumdat::Eulumdat;
+```python
+import eulumdat
 
-let ldt = Eulumdat::from_file("input.ldt")?;
-ldt.save("output.ldt")?;
+# Parse from file or string
+ldt = eulumdat.Eulumdat.from_file("luminaire.ldt")
 
-// Or get as string
-let content = ldt.to_ldt();
+# Access data
+print(f"Luminaire: {ldt.luminaire_name}")
+print(f"Max intensity: {ldt.max_intensity():.1f} cd/klm")
+
+# Generate SVG diagrams
+polar_svg = ldt.polar_svg(width=500, height=500)
+bug_svg = ldt.bug_svg()
+
+# Calculate BUG rating
+rating = ldt.bug_rating()
+print(f"BUG Rating: {rating}")
 ```
 
-### Export to IES
+### Swift
 
-```rust
-use eulumdat::{Eulumdat, IesExporter};
+```swift
+import Eulumdat
 
-let ldt = Eulumdat::from_file("luminaire.ldt")?;
-let ies = IesExporter::export(&ldt);
-std::fs::write("luminaire.ies", ies)?;
+// Parse LDT content
+let ldt = try parseLdt(content: ldtString)
+
+// Access data
+print("Luminaire: \(ldt.luminaireName)")
+print("Max intensity: \(ldt.maxIntensity) cd/klm")
+
+// Generate SVG diagrams
+let polarSvg = generatePolarSvg(ldt: ldt, width: 500, height: 500, theme: .light)
+let bugSvg = generateBugSvg(ldt: ldt, width: 400, height: 350, theme: .dark)
+
+// Calculate BUG rating
+let rating = calculateBugRating(ldt: ldt)
+print("BUG Rating: B\(rating.b) U\(rating.u) G\(rating.g)")
 ```
 
-### Photometric calculations
+### CLI
 
-```rust
-use eulumdat::{Eulumdat, PhotometricCalculations};
+```bash
+# Display file information
+eulumdat info luminaire.ldt
 
-let ldt = Eulumdat::from_file("luminaire.ldt")?;
+# Validate
+eulumdat validate luminaire.ldt
 
-// Beam and field angles
-let beam = PhotometricCalculations::beam_angle(&ldt);
-let field = PhotometricCalculations::field_angle(&ldt);
+# Convert LDT to IES
+eulumdat convert luminaire.ldt output.ies
 
-// Downward flux fraction at 90° (hemisphere)
-let dff = PhotometricCalculations::downward_flux(&ldt, 90.0);
+# Generate diagram
+eulumdat diagram luminaire.ldt -t polar -o polar.svg
 
-// Utilization factors
-let ratios = PhotometricCalculations::calculate_direct_ratios(&ldt, "1.00");
+# Calculate BUG rating
+eulumdat bug outdoor_luminaire.ldt --svg bug.svg
 ```
 
-### Symmetry handling
+## Diagram Types
 
-```rust
-use eulumdat::{Eulumdat, SymmetryHandler};
+| Type | Description |
+|------|-------------|
+| Polar | Classic intensity distribution (C0-C180, C90-C270 curves) |
+| Butterfly | 3D isometric projection |
+| Cartesian | Intensity vs gamma angle |
+| Heatmap | 2D intensity color map |
+| BUG | IESNA TM-15-11 zone visualization |
+| LCS | TM-15-07 Luminaire Classification System |
 
-let ldt = Eulumdat::from_file("luminaire.ldt")?;
+## References
 
-// Get intensity at any angle (handles symmetry automatically)
-let intensity = SymmetryHandler::get_intensity_at(&ldt, 45.0, 30.0);
-
-// Expand symmetric data to full distribution
-let full_data = SymmetryHandler::expand_to_full(&ldt);
-
-// Generate polar diagram points
-let points = SymmetryHandler::generate_polar_points(&ldt, 0);
-```
-
-## Symmetry Types
-
-| Type | Description | Data Reduction |
-|------|-------------|----------------|
-| 0 | No symmetry | None (full 360°) |
-| 1 | Vertical axis | 360x (1 C-plane) |
-| 2 | C0-C180 plane | 2x |
-| 3 | C90-C270 plane | 2x |
-| 4 | Both planes | 4x |
-
-## Validation Codes
-
-The library validates against 44 constraints. Warning codes:
-
-- `W001-W006`: Type, symmetry, grid dimension validation
-- `W007-W011`: String field length validation
-- `W012-W018`: Physical dimension validation
-- `W019-W022`: Optical property validation
-- `W023-W030`: Lamp set validation
-- `W031`: Direct ratio validation
-- `W032-W036`: Angle validation
-- `W037-W039`: Symmetry-specific plane requirements
-- `W040-W044`: Intensity data validation
-
-## Optional Features
-
-- `serde` - Enable serialization/deserialization support
-
-```toml
-[dependencies]
-eulumdat = { version = "0.1", features = ["serde"] }
-```
+- [EULUMDAT Format (Paul Bourke)](https://paulbourke.net/dataformats/ldt/)
+- [IESNA LM-63-2002](https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/iesna_lm-63_format.htm)
+- [IES TM-15-11 BUG Ratings](https://www.ies.org/wp-content/uploads/2017/03/TM-15-11BUGRatingsAddendum.pdf)
 
 ## License
 
 MIT OR Apache-2.0
-
-## Credits
-
-Ported from [QLumEdit](https://github.com/kstrug/QLumEdit) by Krzysztof Strugiński.

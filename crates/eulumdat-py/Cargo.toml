@@ -1,0 +1,15 @@
+[package]
+name = "eulumdat-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Python bindings for eulumdat photometric file parsing library"
+
+[lib]
+name = "eulumdat"
+crate-type = ["cdylib"]
+
+[dependencies]
+eulumdat = { path = "../eulumdat" }
+pyo3 = { version = "0.27", features = ["extension-module"] }

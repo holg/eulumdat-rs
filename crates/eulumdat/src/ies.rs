@@ -101,7 +101,7 @@ impl UnitType {
     /// Conversion factor to millimeters.
     pub fn to_mm_factor(&self) -> f64 {
         match self {
-            UnitType::Feet => 304.8,   // 1 foot = 304.8 mm
+            UnitType::Feet => 304.8,    // 1 foot = 304.8 mm
             UnitType::Meters => 1000.0, // 1 meter = 1000 mm
         }
     }
@@ -144,7 +144,7 @@ struct IesData {
     vertical_angles: Vec<f64>,
     /// Horizontal angles (C-planes)
     horizontal_angles: Vec<f64>,
-    /// Candela values [horizontal_index][vertical_index]
+    /// Candela values `[horizontal_index][vertical_index]`
     candela_values: Vec<Vec<f64>>,
 }
 
@@ -363,13 +363,13 @@ impl IesParser {
         let total_flux = ies.lumens_per_lamp * ies.num_lamps as f64;
         ldt.lamp_sets.push(LampSet {
             num_lamps: ies.num_lamps,
-            lamp_type: ies.keywords.get("LAMP").cloned().unwrap_or_else(|| "Unknown".to_string()),
-            total_luminous_flux: total_flux,
-            color_appearance: ies
+            lamp_type: ies
                 .keywords
-                .get("COLORTEMP")
+                .get("LAMP")
                 .cloned()
-                .unwrap_or_default(),
+                .unwrap_or_else(|| "Unknown".to_string()),
+            total_luminous_flux: total_flux,
+            color_appearance: ies.keywords.get("COLORTEMP").cloned().unwrap_or_default(),
             color_rendering_group: ies.keywords.get("CRI").cloned().unwrap_or_default(),
             wattage_with_ballast: ies.input_watts,
         });
@@ -385,7 +385,11 @@ impl IesParser {
         ldt.intensities = ies
             .candela_values
             .iter()
-            .map(|row| row.iter().map(|&v| v * cd_to_cdklm * ies.multiplier).collect())
+            .map(|row| {
+                row.iter()
+                    .map(|&v| v * cd_to_cdklm * ies.multiplier)
+                    .collect()
+            })
             .collect();
 
         // Photometric parameters

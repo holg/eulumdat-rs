@@ -44,14 +44,14 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-eulumdat = "0.1"
+eulumdat = "0.2"
 ```
 
 With serde support:
 
 ```toml
 [dependencies]
-eulumdat = { version = "0.1", features = ["serde"] }
+eulumdat = { version = "0.2", features = ["serde"] }
 ```
 
 ## Quick Start
