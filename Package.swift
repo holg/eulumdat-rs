@@ -18,12 +18,13 @@ let package = Package(
     targets: [
         .target(
             name: "Eulumdat",
-            dependencies: ["EulumdatFFI"],
+            dependencies: ["eulumdat_ffiFFI"],
             path: "swift/Sources/Eulumdat"
         ),
+        // Binary target name must match the module name in the XCFramework's modulemap
         .binaryTarget(
-            name: "EulumdatFFI",
-            path: "swift/EulumdatFFI.xcframework"
+            name: "eulumdat_ffiFFI",
+            path: "swift/eulumdat_ffiFFI.xcframework"
         ),
         .testTarget(
             name: "EulumdatTests",

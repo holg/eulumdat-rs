@@ -35,8 +35,8 @@ jobs:
       - name: Upload XCFramework
         uses: actions/upload-artifact@v4
         with:
-          name: EulumdatFFI.xcframework
-          path: swift/EulumdatFFI.xcframework
+          name: eulumdat_ffiFFI.xcframework
+          path: swift/eulumdat_ffiFFI.xcframework
 
       - name: Upload Swift sources
         uses: actions/upload-artifact@v4
@@ -57,8 +57,8 @@ jobs:
       - name: Download XCFramework
         uses: actions/download-artifact@v4
         with:
-          name: EulumdatFFI.xcframework
-          path: swift/EulumdatFFI.xcframework
+          name: eulumdat_ffiFFI.xcframework
+          path: swift/eulumdat_ffiFFI.xcframework
 
       - name: Download Swift sources
         uses: actions/download-artifact@v4
@@ -69,13 +69,13 @@ jobs:
       - name: Create XCFramework zip
         run: |
           cd swift
-          zip -r EulumdatFFI.xcframework.zip EulumdatFFI.xcframework
+          zip -r eulumdat_ffiFFI.xcframework.zip eulumdat_ffiFFI.xcframework
 
       - name: Add to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            swift/EulumdatFFI.xcframework.zip
+            swift/eulumdat_ffiFFI.xcframework.zip
           append_body: true
           body: |
 

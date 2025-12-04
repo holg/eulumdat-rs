@@ -8,7 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/target"
 SWIFT_DIR="$PROJECT_ROOT/swift"
-FRAMEWORK_NAME="EulumdatFFI"
+# Framework name must match the UniFFI-generated module name for Swift imports to work
+FRAMEWORK_NAME="eulumdat_ffiFFI"
 
 # Colors
 RED='\033[0;31m'
@@ -76,15 +77,12 @@ echo -e "${YELLOW}Step 5: Creating module maps...${NC}"
 create_module_map() {
     local DIR=$1
     mkdir -p "$DIR/Headers"
-    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdatFFI.h" "$DIR/Headers/" 2>/dev/null || \
-    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdat_ffiFFI.h" "$DIR/Headers/" 2>/dev/null || true
+    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdat_ffiFFI.h" "$DIR/Headers/"
 
-    # Find the header file name
-    HEADER_NAME=$(ls "$DIR/Headers/"*.h 2>/dev/null | head -1 | xargs basename)
-
+    # Module name matches FRAMEWORK_NAME which matches UniFFI-generated Swift imports
     cat > "$DIR/Headers/module.modulemap" << EOF
 framework module ${FRAMEWORK_NAME} {
-    umbrella header "${HEADER_NAME}"
+    umbrella header "eulumdat_ffiFFI.h"
     export *
     module * { export * }
 }
