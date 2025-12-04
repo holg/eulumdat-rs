@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build XCFramework for eulumdat-ffi
-# This script builds the Rust library for multiple Apple platforms and creates an XCFramework
+# Creates XCFramework from static libraries for iOS/macOS
 
 set -euo pipefail
 
@@ -8,8 +8,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/target"
 SWIFT_DIR="$PROJECT_ROOT/swift"
-# Framework name must match the UniFFI-generated module name for Swift imports to work
-FRAMEWORK_NAME="eulumdat_ffiFFI"
+FFI_CRATE="eulumdat-ffi"
+LIB_NAME="libeulumdat_ffi"
+XCFRAMEWORK_NAME="eulumdat_ffiFFI.xcframework"
+
+# Generated bindings output directory (contains .swift, .h, and .modulemap)
+GENERATED_DIR="$SWIFT_DIR/Sources/Eulumdat"
 
 # Colors
 RED='\033[0;31m'
@@ -17,111 +21,81 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+log_info() { echo -e "${YELLOW}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
 echo -e "${YELLOW}=== Building XCFramework for Eulumdat ===${NC}\n"
 
-# Ensure we have the required Rust targets
-echo -e "${YELLOW}Step 1: Installing Rust targets...${NC}"
-rustup target add aarch64-apple-ios
-rustup target add aarch64-apple-ios-sim
-rustup target add x86_64-apple-ios
-rustup target add aarch64-apple-darwin
-rustup target add x86_64-apple-darwin
-echo -e "${GREEN}✓ Rust targets installed${NC}\n"
+# 1. Install Rust targets
+log_info "Installing Rust targets..."
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-apple-darwin x86_64-apple-darwin
+log_success "Rust targets installed"
 
-# Build for all platforms
-echo -e "${YELLOW}Step 2: Building for all platforms...${NC}"
+# 2. Generate Swift bindings
+log_info "Generating UniFFI Swift bindings..."
+mkdir -p "$GENERATED_DIR"
 
-# iOS device (arm64)
-echo "  Building for iOS (arm64)..."
-cargo build --release --package eulumdat-ffi --target aarch64-apple-ios
+# First build for macOS to get the dylib for binding generation
+cargo build --release --package "$FFI_CRATE" --target aarch64-apple-darwin
 
-# iOS Simulator (arm64 + x86_64)
-echo "  Building for iOS Simulator (arm64)..."
-cargo build --release --package eulumdat-ffi --target aarch64-apple-ios-sim
-echo "  Building for iOS Simulator (x86_64)..."
-cargo build --release --package eulumdat-ffi --target x86_64-apple-ios
-
-# macOS (arm64 + x86_64)
-echo "  Building for macOS (arm64)..."
-cargo build --release --package eulumdat-ffi --target aarch64-apple-darwin
-echo "  Building for macOS (x86_64)..."
-cargo build --release --package eulumdat-ffi --target x86_64-apple-darwin
-
-echo -e "${GREEN}✓ All platforms built${NC}\n"
-
-# Generate Swift bindings
-echo -e "${YELLOW}Step 3: Generating Swift bindings...${NC}"
-cargo run --package eulumdat-ffi --bin uniffi-bindgen generate \
-    --library "$BUILD_DIR/aarch64-apple-darwin/release/libeulumdat_ffi.dylib" \
+cargo run --package "$FFI_CRATE" --bin uniffi-bindgen generate \
+    --library "$BUILD_DIR/aarch64-apple-darwin/release/${LIB_NAME}.dylib" \
     --language swift \
-    --out-dir "$SWIFT_DIR/Sources/Eulumdat"
-echo -e "${GREEN}✓ Swift bindings generated${NC}\n"
+    --out-dir "$GENERATED_DIR"
+log_success "Swift bindings generated"
 
-# Create fat libraries for simulator (arm64 + x86_64)
-echo -e "${YELLOW}Step 4: Creating fat libraries...${NC}"
-mkdir -p "$BUILD_DIR/ios-simulator-fat"
-lipo -create \
-    "$BUILD_DIR/aarch64-apple-ios-sim/release/libeulumdat_ffi.a" \
-    "$BUILD_DIR/x86_64-apple-ios/release/libeulumdat_ffi.a" \
-    -output "$BUILD_DIR/ios-simulator-fat/libeulumdat_ffi.a"
+# 3. Build for all targets
+TARGETS=(
+    "aarch64-apple-ios"
+    "aarch64-apple-ios-sim"
+    "x86_64-apple-ios"
+    "aarch64-apple-darwin"
+    "x86_64-apple-darwin"
+)
 
-mkdir -p "$BUILD_DIR/macos-fat"
-lipo -create \
-    "$BUILD_DIR/aarch64-apple-darwin/release/libeulumdat_ffi.a" \
-    "$BUILD_DIR/x86_64-apple-darwin/release/libeulumdat_ffi.a" \
-    -output "$BUILD_DIR/macos-fat/libeulumdat_ffi.a"
-echo -e "${GREEN}✓ Fat libraries created${NC}\n"
-
-# Create module maps
-echo -e "${YELLOW}Step 5: Creating module maps...${NC}"
-create_module_map() {
-    local DIR=$1
-    mkdir -p "$DIR/Headers"
-
-    # Copy UniFFI-generated header and modulemap
-    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdat_ffiFFI.h" "$DIR/Headers/"
-    cp "$SWIFT_DIR/Sources/Eulumdat/eulumdat_ffiFFI.modulemap" "$DIR/Headers/module.modulemap"
-}
-
-# Setup framework directories
-for PLATFORM in ios-device ios-simulator macos; do
-    FRAMEWORK_DIR="$BUILD_DIR/$PLATFORM/${FRAMEWORK_NAME}.framework"
-    mkdir -p "$FRAMEWORK_DIR"
-    create_module_map "$FRAMEWORK_DIR"
+for target in "${TARGETS[@]}"; do
+    log_info "Building for $target..."
+    cargo build --release --package "$FFI_CRATE" --target "$target"
 done
+log_success "All targets built"
 
-# Copy static libraries
-cp "$BUILD_DIR/aarch64-apple-ios/release/libeulumdat_ffi.a" \
-   "$BUILD_DIR/ios-device/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}"
-cp "$BUILD_DIR/ios-simulator-fat/libeulumdat_ffi.a" \
-   "$BUILD_DIR/ios-simulator/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}"
-cp "$BUILD_DIR/macos-fat/libeulumdat_ffi.a" \
-   "$BUILD_DIR/macos/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}"
+# 4. Create fat libraries
+log_info "Creating fat libraries..."
 
-echo -e "${GREEN}✓ Module maps created${NC}\n"
+mkdir -p "$BUILD_DIR/ios-sim-universal"
+lipo -create \
+    "$BUILD_DIR/aarch64-apple-ios-sim/release/${LIB_NAME}.a" \
+    "$BUILD_DIR/x86_64-apple-ios/release/${LIB_NAME}.a" \
+    -output "$BUILD_DIR/ios-sim-universal/${LIB_NAME}.a"
 
-# Create XCFramework
-echo -e "${YELLOW}Step 6: Creating XCFramework...${NC}"
-rm -rf "$SWIFT_DIR/${FRAMEWORK_NAME}.xcframework"
+mkdir -p "$BUILD_DIR/macos-universal"
+lipo -create \
+    "$BUILD_DIR/aarch64-apple-darwin/release/${LIB_NAME}.a" \
+    "$BUILD_DIR/x86_64-apple-darwin/release/${LIB_NAME}.a" \
+    -output "$BUILD_DIR/macos-universal/${LIB_NAME}.a"
+
+log_success "Fat libraries created"
+
+# 5. Create XCFramework
+log_info "Creating XCFramework..."
+
+rm -rf "$SWIFT_DIR/$XCFRAMEWORK_NAME"
+
 xcodebuild -create-xcframework \
-    -framework "$BUILD_DIR/ios-device/${FRAMEWORK_NAME}.framework" \
-    -framework "$BUILD_DIR/ios-simulator/${FRAMEWORK_NAME}.framework" \
-    -framework "$BUILD_DIR/macos/${FRAMEWORK_NAME}.framework" \
-    -output "$SWIFT_DIR/${FRAMEWORK_NAME}.xcframework"
-echo -e "${GREEN}✓ XCFramework created${NC}\n"
+    -library "$BUILD_DIR/aarch64-apple-ios/release/${LIB_NAME}.a" \
+    -headers "$GENERATED_DIR" \
+    -library "$BUILD_DIR/ios-sim-universal/${LIB_NAME}.a" \
+    -headers "$GENERATED_DIR" \
+    -library "$BUILD_DIR/macos-universal/${LIB_NAME}.a" \
+    -headers "$GENERATED_DIR" \
+    -output "$SWIFT_DIR/$XCFRAMEWORK_NAME"
 
-# Verify
-echo -e "${YELLOW}Step 7: Verifying...${NC}"
-if [ -d "$SWIFT_DIR/${FRAMEWORK_NAME}.xcframework" ]; then
-    echo -e "${GREEN}✓ XCFramework created at: $SWIFT_DIR/${FRAMEWORK_NAME}.xcframework${NC}"
-    echo ""
-    echo "Contents:"
-    ls -la "$SWIFT_DIR/${FRAMEWORK_NAME}.xcframework/"
-else
-    echo -e "${RED}✗ Failed to create XCFramework${NC}"
-    exit 1
-fi
+log_success "XCFramework created at $SWIFT_DIR/$XCFRAMEWORK_NAME"
+
+# 6. Verify
+echo ""
+log_info "XCFramework contents:"
+ls -la "$SWIFT_DIR/$XCFRAMEWORK_NAME/"
 
 echo -e "\n${GREEN}=== Build complete! ===${NC}"
-echo -e "Swift package is ready at: $PROJECT_ROOT"
-echo -e "Add to your project: .package(url: \"https://github.com/holg/eulumdat-rs\", from: \"0.2.0\")"
