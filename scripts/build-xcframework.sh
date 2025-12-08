@@ -46,10 +46,19 @@ cargo run --package "$FFI_CRATE" --bin uniffi-bindgen generate \
 
 # Patch the Swift file to unconditionally import the FFI module
 # (the canImport check doesn't work reliably with SwiftPM binary targets)
-# Only remove the specific canImport block around the import statement
-sed -i '' '/#if canImport(eulumdat_ffiFFI)/d' "$GENERATED_DIR/eulumdat_ffi.swift"
-# Remove only the #endif that immediately follows the import statement (line after import)
-sed -i '' '/^import eulumdat_ffiFFI$/{n;/#endif/d;}' "$GENERATED_DIR/eulumdat_ffi.swift"
+# Remove the 3-line block: #if canImport(...) / import ... / #endif
+# Using a simpler approach that works reliably across macOS versions
+SWIFT_FILE="$GENERATED_DIR/eulumdat_ffi.swift"
+if grep -q '#if canImport(eulumdat_ffiFFI)' "$SWIFT_FILE"; then
+    # Create a temp file and process line by line
+    awk '
+    /#if canImport\(eulumdat_ffiFFI\)/ { skip=1; next }
+    skip && /^import eulumdat_ffiFFI/ { print; skip=2; next }
+    skip==2 && /^#endif/ { skip=0; next }
+    { print }
+    ' "$SWIFT_FILE" > "${SWIFT_FILE}.tmp" && mv "${SWIFT_FILE}.tmp" "$SWIFT_FILE"
+    log_info "Patched Swift bindings to use unconditional import"
+fi
 
 log_success "Swift bindings generated"
 
