@@ -54,24 +54,24 @@ jobs:
           # Linux x86_64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: eulumdat-linux-x86_64
+            artifact: cli-linux-x86_64
           # Linux aarch64
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            artifact: eulumdat-linux-aarch64
+            artifact: cli-linux-aarch64
             cross: true
           # macOS x86_64
           - os: macos-13
             target: x86_64-apple-darwin
-            artifact: eulumdat-macos-x86_64
+            artifact: cli-macos-x86_64
           # macOS aarch64 (Apple Silicon)
           - os: macos-14
             target: aarch64-apple-darwin
-            artifact: eulumdat-macos-aarch64
+            artifact: cli-macos-aarch64
           # Windows x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: eulumdat-windows-x86_64
+            artifact: cli-windows-x86_64
             ext: .exe
 
     steps:
@@ -131,19 +131,19 @@ jobs:
           # Linux x86_64 (requires graphics libs)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: eulumdat-viewer-linux-x86_64
+            artifact: gui-linux-x86_64
           # macOS x86_64
           - os: macos-13
             target: x86_64-apple-darwin
-            artifact: eulumdat-viewer-macos-x86_64
+            artifact: gui-macos-x86_64
           # macOS aarch64 (Apple Silicon)
           - os: macos-14
             target: aarch64-apple-darwin
-            artifact: eulumdat-viewer-macos-aarch64
+            artifact: gui-macos-aarch64
           # Windows x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: eulumdat-viewer-windows-x86_64
+            artifact: gui-windows-x86_64
             ext: .exe
 
     steps:
@@ -173,7 +173,7 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir -p artifacts
-          cp target/${{ matrix.target }}/release/eulumdat-viewer artifacts/${{ matrix.artifact }}
+          cp target/${{ matrix.target }}/release/eulumdat-egui artifacts/${{ matrix.artifact }}
           chmod +x artifacts/${{ matrix.artifact }}
 
       - name: Prepare artifact (Windows)
@@ -181,7 +181,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts
-          Copy-Item "target/${{ matrix.target }}/release/eulumdat-viewer.exe" "artifacts/${{ matrix.artifact }}.exe"
+          Copy-Item "target/${{ matrix.target }}/release/eulumdat-egui.exe" "artifacts/${{ matrix.artifact }}.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -244,12 +244,12 @@ jobs:
       - name: Prepare artifact
         run: |
           mkdir -p artifacts
-          cp EulumdatAndroid/app/build/outputs/apk/debug/*.apk artifacts/eulumdat-android.apk
+          cp EulumdatAndroid/app/build/outputs/apk/debug/*.apk artifacts/android-eulumdat.apk
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: eulumdat-android
+          name: android-eulumdat
           path: artifacts/*.apk
 
   # Deploy to Google Play Store (optional, requires secrets)
@@ -376,3 +376,29 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+          body: |
+            ## Downloads
+
+            ### 🖥️ GUI Application (eulumdat-egui)
+            Cross-platform desktop viewer for LDT/IES files with diagrams and validation.
+            - `gui-linux-x86_64` - Linux (x86_64)
+            - `gui-macos-x86_64` - macOS Intel
+            - `gui-macos-aarch64` - macOS Apple Silicon
+            - `gui-windows-x86_64.exe` - Windows
+
+            ### ⌨️ CLI Tool (eulumdat-cli)
+            Command-line tool for parsing, converting, and validating photometric files.
+            - `cli-linux-x86_64` - Linux (x86_64)
+            - `cli-linux-aarch64` - Linux (ARM64)
+            - `cli-macos-x86_64` - macOS Intel
+            - `cli-macos-aarch64` - macOS Apple Silicon
+            - `cli-windows-x86_64.exe` - Windows
+
+            ### 📱 Android
+            - `android-eulumdat.apk` - Android app (arm64, armv7, x86_64)
+
+            ### 📦 Packages
+            - **PyPI**: `pip install eulumdat`
+            - **crates.io**: `cargo install eulumdat-cli` or `cargo install eulumdat-egui`
+
+            ---
