@@ -35,13 +35,14 @@ jobs:
           cargo build -p eulumdat --release
           cargo build -p eulumdat-cli --release
           cargo build -p eulumdat-egui --release
+          cargo build -p eulumdat-ffi --release
 
       - name: Run tests
-        run: cargo test -p eulumdat -p eulumdat-cli
+        run: cargo test -p eulumdat -p eulumdat-cli -p eulumdat-ffi
 
       # Publish crates in dependency order
-      # Note: eulumdat-py is published separately via maturin/PyPI
-      - name: Publish eulumdat (core)
+      # eulumdat must be published first as all others depend on it
+      - name: Publish eulumdat (core library)
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
@@ -50,14 +51,33 @@ jobs:
       - name: Wait for crates.io index update
         run: sleep 30
 
-      - name: Publish eulumdat-cli
+      - name: Publish eulumdat-ffi (FFI bindings for Swift/Kotlin)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish -p eulumdat-ffi --allow-dirty || echo "eulumdat-ffi already published or no changes"
+
+      - name: Publish eulumdat-cli (command-line tool)
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-cli --allow-dirty || echo "eulumdat-cli already published or no changes"
 
-      - name: Publish eulumdat-egui
+      - name: Publish eulumdat-egui (desktop GUI)
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-egui --allow-dirty || echo "eulumdat-egui already published or no changes"
+
+      - name: Publish eulumdat-wasm (WebAssembly app)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish -p eulumdat-wasm --allow-dirty || echo "eulumdat-wasm already published or no changes"
+
+      - name: Publish eulumdat-py (Python bindings source)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          # PyO3 crates need --no-verify due to Python linking requirements
+          cargo publish -p eulumdat-py --allow-dirty --no-verify || echo "eulumdat-py already published or no changes"
