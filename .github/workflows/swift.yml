@@ -29,6 +29,17 @@ jobs:
       - name: Build XCFramework
         run: ./scripts/build-xcframework.sh
 
+      - name: Debug - Show patched Swift file
+        run: |
+          echo "=== First 15 lines of eulumdat_ffi.swift ==="
+          head -15 swift/Sources/Eulumdat/eulumdat_ffi.swift
+          echo "=== Checking for #if canImport ==="
+          grep -n "#if canImport" swift/Sources/Eulumdat/eulumdat_ffi.swift || echo "No #if canImport found (good!)"
+
+      - name: Clean Swift build cache
+        working-directory: swift
+        run: swift package clean
+
       - name: Run Swift tests
         working-directory: swift
         run: swift test
