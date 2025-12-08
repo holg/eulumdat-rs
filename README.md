@@ -12,15 +12,26 @@ A Rust workspace for parsing, writing, and analyzing **EULUMDAT (LDT)** and **IE
 |-------|-------------|
 | [eulumdat](crates/eulumdat) | Core library for parsing, validation, and calculations |
 | [eulumdat-cli](crates/eulumdat-cli) | Command-line tool |
+| [eulumdat-egui](crates/eulumdat-egui) | Cross-platform desktop GUI (Windows, macOS, Linux) |
 | [eulumdat-py](crates/eulumdat-py) | Python bindings (PyO3) |
 | [eulumdat-ffi](crates/eulumdat-ffi) | FFI bindings (UniFFI) for Swift, Kotlin, etc. |
 | [eulumdat-wasm](crates/eulumdat-wasm) | WebAssembly editor |
+
+## Applications
+
+| Platform | Description |
+|----------|-------------|
+| **Desktop (egui)** | Cross-platform native app via `cargo install eulumdat-egui` |
+| **macOS/iOS** | Native SwiftUI app in [EulumdatApp](EulumdatApp/) |
+| **Android** | Native Jetpack Compose app in [EulumdatAndroid](EulumdatAndroid/) |
+| **Web** | Browser-based editor via WebAssembly |
 
 ## Features
 
 - **Parse LDT/IES files** - Full EULUMDAT and IESNA LM-63 format support
 - **Write LDT files** - Roundtrip-tested output generation
 - **Export to IES** - Convert EULUMDAT to IES format
+- **Batch conversion** - Efficient bulk processing of multiple files
 - **Validation** - 44 validation constraints based on official specification
 - **Symmetry handling** - 5 symmetry types with automatic data expansion
 - **Photometric calculations** - Downward flux, beam angles, utilization factors
@@ -40,6 +51,13 @@ eulumdat = "0.2"
 
 ```bash
 cargo install eulumdat-cli
+```
+
+### Desktop GUI
+
+```bash
+cargo install eulumdat-egui
+eulumdat-viewer  # Launch the GUI
 ```
 
 ### Python
@@ -104,6 +122,16 @@ bug_svg = ldt.bug_svg()
 # Calculate BUG rating
 rating = ldt.bug_rating()
 print(f"BUG Rating: {rating}")
+
+# Batch conversion (efficient bulk processing)
+from eulumdat import BatchInput, ConversionFormat, batch_convert
+
+inputs = [
+    BatchInput("file1.ldt", ldt_content1),
+    BatchInput("file2.ldt", ldt_content2),
+]
+outputs, stats = batch_convert(inputs, ConversionFormat.Ies)
+print(f"Converted {stats.successful}/{stats.total} files")
 ```
 
 ### Swift
@@ -144,7 +172,45 @@ eulumdat diagram luminaire.ldt -t polar -o polar.svg
 
 # Calculate BUG rating
 eulumdat bug outdoor_luminaire.ldt --svg bug.svg
+
+# Batch convert multiple files
+eulumdat batch input_folder/ -o output_folder/ -f ies
 ```
+
+### macOS / iOS
+
+Native SwiftUI app available in the [EulumdatApp](EulumdatApp/) directory.
+
+```bash
+# Build and run with Xcode
+cd EulumdatApp
+open EulumdatApp.xcodeproj
+```
+
+Features:
+- Universal app (macOS + iOS)
+- All diagram types with interactive viewing
+- QuickLook extension for .ldt files
+- Template library for quick testing
+- Export to SVG, IES, LDT
+- Intensity table with CSV copy and color toggle
+
+### Android
+
+Native Jetpack Compose app available in the [EulumdatAndroid](EulumdatAndroid/) directory.
+
+```bash
+# Build with Gradle
+cd EulumdatAndroid
+./gradlew assembleDebug
+```
+
+Features:
+- Material 3 design
+- All diagram types including interactive 3D view
+- Template library
+- File picker for .ldt/.ies files
+- Export functionality
 
 ## Diagram Types
 

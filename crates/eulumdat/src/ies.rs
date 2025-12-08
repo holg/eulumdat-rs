@@ -55,11 +55,20 @@ use crate::symmetry::SymmetryHandler;
 pub struct IesParser;
 
 /// Photometric measurement type.
+///
+/// ## Coordinate System Differences
+///
+/// - **Type C**: Vertical polar axis (0° = nadir, 180° = zenith). Standard for downlights, streetlights.
+/// - **Type B**: Horizontal polar axis (0H 0V = beam center). Used for floodlights, sports lighting.
+///   - ⚠️ **TODO**: Implement 90° coordinate rotation for Type B → Type C conversion
+///   - Required transformation matrix: R_x(90°) to align horizontal axis to vertical
+/// - **Type A**: Automotive coordinates. Rare in architectural lighting.
+///   - Currently parsed but may render incorrectly without coordinate mapping
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PhotometricType {
-    /// Type A - Automotive photometry
+    /// Type A - Automotive photometry (rare)
     TypeA = 3,
-    /// Type B - Adjustable luminaires
+    /// Type B - Adjustable luminaires (floodlights, theatrical)
     TypeB = 2,
     /// Type C - Architectural (most common)
     #[default]
@@ -360,9 +369,20 @@ impl IesParser {
         ldt.luminous_area_width = ldt.width;
 
         // Lamp set
-        let total_flux = ies.lumens_per_lamp * ies.num_lamps as f64;
+        // CRITICAL: Handle absolute photometry (LED fixtures)
+        // IES Standard: lumens_per_lamp = -1 signals absolute photometry
+        // Eulumdat Convention: num_lamps must be NEGATIVE to signal absolute photometry
+        // This is the "single most important fix for LED compatibility"
+        let (num_lamps, total_flux) = if ies.lumens_per_lamp < 0.0 {
+            // Absolute photometry: negative lamp count in LDT
+            (-1, ies.lumens_per_lamp.abs() * ies.num_lamps.abs() as f64)
+        } else {
+            // Relative photometry: positive lamp count
+            (ies.num_lamps, ies.lumens_per_lamp * ies.num_lamps as f64)
+        };
+
         ldt.lamp_sets.push(LampSet {
-            num_lamps: ies.num_lamps,
+            num_lamps,
             lamp_type: ies
                 .keywords
                 .get("LAMP")
@@ -465,9 +485,18 @@ impl IesExporter {
         //         number of horizontal angles, photometric type, units type, width, length, height
         let num_lamps = ldt.lamp_sets.iter().map(|ls| ls.num_lamps).sum::<i32>();
         let total_flux = ldt.total_luminous_flux();
-        let lumens_per_lamp = if num_lamps > 0 {
+
+        // CRITICAL: Absolute photometry handling for LED fixtures
+        // LDT Convention: negative num_lamps signals absolute photometry
+        // IES Standard: lumens_per_lamp = -1 signals absolute photometry
+        let lumens_per_lamp = if num_lamps < 0 {
+            // Absolute photometry: output -1 to signal absolute mode
+            -1.0
+        } else if num_lamps > 0 {
+            // Relative photometry: divide total flux by lamp count
             total_flux / num_lamps as f64
         } else {
+            // Fallback: treat as absolute
             total_flux
         };
 
@@ -484,9 +513,12 @@ impl IesExporter {
         let length = ldt.length / 1000.0;
         let height = ldt.height / 1000.0;
 
+        // For IES output, num_lamps should always be positive (1 for absolute mode)
+        let ies_num_lamps = num_lamps.abs().max(1);
+
         output.push_str(&format!(
             "{} {:.1} {:.6} {} {} {} {} {:.4} {:.4} {:.4}\n",
-            num_lamps.max(1),
+            ies_num_lamps,
             lumens_per_lamp,
             ldt.conversion_factor.max(1.0),
             v_angles.len(),
@@ -550,13 +582,20 @@ impl IesExporter {
                 // 0° to 180°
                 let expanded = SymmetryHandler::expand_to_full(ldt);
                 let h = SymmetryHandler::expand_c_angles(ldt);
-                let h_filtered: Vec<f64> = h.iter().filter(|&&a| a <= 180.0).copied().collect();
-                let i_filtered: Vec<Vec<f64>> =
-                    expanded.into_iter().take(h_filtered.len()).collect();
+                // Select only the angles and intensities from 0° to 180°
+                let mut h_filtered = Vec::new();
+                let mut i_filtered = Vec::new();
+                for (i, &angle) in h.iter().enumerate() {
+                    if angle <= 180.0 && i < expanded.len() {
+                        h_filtered.push(angle);
+                        i_filtered.push(expanded[i].clone());
+                    }
+                }
                 (h_filtered, i_filtered)
             }
             Symmetry::PlaneC90C270 => {
-                // 90° to 270° (or equivalent)
+                // Full 0° to 360° for C90-C270 symmetry
+                // IES format needs the complete distribution
                 let expanded = SymmetryHandler::expand_to_full(ldt);
                 let h = SymmetryHandler::expand_c_angles(ldt);
                 (h, expanded)

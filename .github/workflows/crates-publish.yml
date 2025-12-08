@@ -1,0 +1,63 @@
+# Crates.io publishing workflow for eulumdat crates
+# Publishes to crates.io on version tags
+name: Crates.io Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      # Install Linux dependencies for egui (needed to build eulumdat-egui)
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev libgtk-3-dev
+
+      - name: Verify crates build
+        run: |
+          cargo build -p eulumdat --release
+          cargo build -p eulumdat-cli --release
+          cargo build -p eulumdat-egui --release
+
+      - name: Run tests
+        run: cargo test -p eulumdat -p eulumdat-cli
+
+      # Publish crates in dependency order
+      # Note: eulumdat-py is published separately via maturin/PyPI
+      - name: Publish eulumdat (core)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish -p eulumdat --allow-dirty || echo "eulumdat already published or no changes"
+
+      - name: Wait for crates.io index update
+        run: sleep 30
+
+      - name: Publish eulumdat-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish -p eulumdat-cli --allow-dirty || echo "eulumdat-cli already published or no changes"
+
+      - name: Publish eulumdat-egui
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish -p eulumdat-egui --allow-dirty || echo "eulumdat-egui already published or no changes"

@@ -82,6 +82,11 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: cli-${{ matrix.target }}
+
       - name: Install cross
         if: matrix.cross
         run: cargo install cross --git https://github.com/cross-rs/cross
@@ -114,11 +119,233 @@ jobs:
           name: ${{ matrix.artifact }}
           path: artifacts/*
 
+  # Build GUI binaries for release (eulumdat-egui)
+  build-gui:
+    name: Build GUI (${{ matrix.target }})
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux x86_64 (requires graphics libs)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: eulumdat-viewer-linux-x86_64
+          # macOS x86_64
+          - os: macos-13
+            target: x86_64-apple-darwin
+            artifact: eulumdat-viewer-macos-x86_64
+          # macOS aarch64 (Apple Silicon)
+          - os: macos-14
+            target: aarch64-apple-darwin
+            artifact: eulumdat-viewer-macos-aarch64
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: eulumdat-viewer-windows-x86_64
+            ext: .exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: gui-${{ matrix.target }}
+
+      # Linux requires additional graphics dependencies for egui/eframe
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev libgtk-3-dev
+
+      - name: Build
+        run: cargo build --release --package eulumdat-egui --target ${{ matrix.target }}
+
+      - name: Prepare artifact (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p artifacts
+          cp target/${{ matrix.target }}/release/eulumdat-viewer artifacts/${{ matrix.artifact }}
+          chmod +x artifacts/${{ matrix.artifact }}
+
+      - name: Prepare artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts
+          Copy-Item "target/${{ matrix.target }}/release/eulumdat-viewer.exe" "artifacts/${{ matrix.artifact }}.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: artifacts/*
+
+  # Build Android APK for release
+  build-android:
+    name: Build Android APK
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('EulumdatAndroid/**/*.gradle*', 'EulumdatAndroid/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Build Rust libraries for Android
+        run: |
+          cd crates/eulumdat-ffi
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../../EulumdatAndroid/app/src/main/jniLibs build --release
+
+      - name: Build debug APK (for GitHub release)
+        run: |
+          cd EulumdatAndroid
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifacts
+          cp EulumdatAndroid/app/build/outputs/apk/debug/*.apk artifacts/eulumdat-android.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eulumdat-android
+          path: artifacts/*.apk
+
+  # Deploy to Google Play Store (optional, requires secrets)
+  deploy-playstore:
+    name: Deploy to Play Store
+    if: startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha')
+    needs: test
+    runs-on: ubuntu-latest
+    # Only run if Play Store secrets are configured
+    env:
+      HAS_PLAYSTORE_SECRETS: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+
+      - name: Set up JDK 17
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Rust
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - name: Cache Gradle
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('EulumdatAndroid/**/*.gradle*', 'EulumdatAndroid/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Cache cargo
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+
+      - name: Install cargo-ndk
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        run: cargo install cargo-ndk
+
+      - name: Build Rust libraries for Android
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        run: |
+          cd crates/eulumdat-ffi
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../../EulumdatAndroid/app/src/main/jniLibs build --release
+
+      - name: Decode keystore
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        run: echo "$ANDROID_KEYSTORE" | base64 -d > EulumdatAndroid/keystore.jks
+
+      - name: Build signed AAB (for Play Store)
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd EulumdatAndroid
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file=keystore.jks \
+            -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
+
+      - name: Deploy to Play Store
+        if: env.HAS_PLAYSTORE_SECRETS == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: eu.trahe.eulumdat
+          releaseFiles: EulumdatAndroid/app/build/outputs/bundle/release/*.aab
+          track: production
+          # Use 'internal' for testing, 'production' for public release
+          # track: internal
+
   # Create GitHub release with all binaries
   release:
     name: Create Release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: build-cli
+    needs: [build-cli, build-gui, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write

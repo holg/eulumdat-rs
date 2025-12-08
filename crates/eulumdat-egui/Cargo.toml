@@ -1,0 +1,38 @@
+[package]
+name = "eulumdat-egui"
+version = "0.2.1"
+edition = "2021"
+authors = ["Holger Trahe <trahe@mac.com>"]
+description = "Cross-platform GUI application for viewing EULUMDAT/LDT and IES photometric files"
+license = "MIT"
+repository = "https://github.com/holg/eulumdat-rs"
+
+[[bin]]
+name = "eulumdat-egui"
+path = "src/main.rs"
+
+[dependencies]
+eulumdat = { path = "../eulumdat" }
+
+# GUI
+eframe = "0.29"
+egui = "0.29"
+egui_extras = { version = "0.29", features = ["image"] }
+
+# File dialogs
+rfd = "0.15"
+
+# SVG rendering (pinned to avoid moxcms edition2024 requirement)
+resvg = "0.42"
+
+# Image handling
+image = { version = "0.25", default-features = false, features = ["png", "ico"] }
+
+# Error handling
+anyhow = "1.0"
+
+# Encoding for LDT files
+encoding_rs = "0.8"
+
+[target.'cfg(windows)'.dependencies]
+# Windows-specific if needed later

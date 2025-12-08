@@ -32,6 +32,7 @@ mod heatmap;
 mod polar;
 mod projection;
 mod svg;
+mod watchface;
 
 pub use butterfly::{ButterflyDiagram, ButterflyWing, CPlaneData};
 pub use cartesian::{CartesianCurve, CartesianDiagram, CartesianPoint};
@@ -40,6 +41,7 @@ pub use heatmap::{HeatmapCell, HeatmapDiagram};
 pub use polar::{PolarCurve, PolarDiagram, PolarPoint};
 pub use projection::IsometricProjection;
 pub use svg::SvgTheme;
+pub use watchface::WatchFaceStyle;
 
 /// Common 2D point used across diagram types
 #[derive(Debug, Clone, Copy, PartialEq)]

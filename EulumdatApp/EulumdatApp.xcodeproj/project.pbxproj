@@ -3,28 +3,110 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		213C0A882EE44458008B665C /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213C0A872EE44458008B665C /* QuickLook.framework */; };
+		213C0A942EE44458008B665C /* LdtPreview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 213C0A852EE44458008B665C /* LdtPreview.appex */; platformFilters = (macos, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		21618C1B2EE31CAE0023823F /* ValidationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21618C192EE31CAE0023823F /* ValidationView.swift */; };
+		21B842A62EE219F600502C5E /* Butterfly3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B842A52EE219F600502C5E /* Butterfly3DView.swift */; };
+		21B842AA2EE21A0400502C5E /* Templates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B842A92EE21A0400502C5E /* Templates.swift */; };
+		21B842DC2EE2230300502C5E /* BatchConvertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B842DB2EE2230300502C5E /* BatchConvertView.swift */; };
+		21B842E52EE2235B00502C5E /* road_luminaire.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842E22EE2235B00502C5E /* road_luminaire.ldt */; };
+		21B842E62EE2235B00502C5E /* floor_uplight.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842DF2EE2235B00502C5E /* floor_uplight.ldt */; };
+		21B842E72EE2235B00502C5E /* 0-2-0.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842DD2EE2235B00502C5E /* 0-2-0.ldt */; };
+		21B842E82EE2235B00502C5E /* 1-1-0.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842DE2EE2235B00502C5E /* 1-1-0.ldt */; };
+		21B842E92EE2235B00502C5E /* projector.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842E12EE2235B00502C5E /* projector.ldt */; };
+		21B842EA2EE2235B00502C5E /* fluorescent_luminaire.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842E02EE2235B00502C5E /* fluorescent_luminaire.ldt */; };
+		21F18DD02EE4AA810076746A /* EulumdatKit in Frameworks */ = {isa = PBXBuildFile; productRef = A3000001 /* EulumdatKit */; };
 		A1000001 /* EulumdatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001 /* EulumdatApp.swift */; };
 		A1000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* ContentView.swift */; };
 		A1000003 /* SVGView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003 /* SVGView.swift */; };
 		A1000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000004 /* Assets.xcassets */; };
 		A1000005 /* EulumdatKit in Frameworks */ = {isa = PBXBuildFile; productRef = A3000001 /* EulumdatKit */; };
+		B1000001 /* EulumdatAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000001 /* EulumdatAppUITests.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		213C0A922EE44458008B665C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A8000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 213C0A842EE44458008B665C;
+			remoteInfo = LdtPreview;
+		};
+		B3000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A8000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A600000F;
+			remoteInfo = EulumdatApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		213C0A952EE44458008B665C /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				213C0A942EE44458008B665C /* LdtPreview.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		213C0A852EE44458008B665C /* LdtPreview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LdtPreview.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		213C0A872EE44458008B665C /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
+		21618C192EE31CAE0023823F /* ValidationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationView.swift; sourceTree = "<group>"; };
+		21B842A52EE219F600502C5E /* Butterfly3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Butterfly3DView.swift; sourceTree = "<group>"; };
+		21B842A92EE21A0400502C5E /* Templates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Templates.swift; sourceTree = "<group>"; };
+		21B842DB2EE2230300502C5E /* BatchConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchConvertView.swift; sourceTree = "<group>"; };
+		21B842DD2EE2235B00502C5E /* 0-2-0.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "0-2-0.ldt"; sourceTree = "<group>"; };
+		21B842DE2EE2235B00502C5E /* 1-1-0.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "1-1-0.ldt"; sourceTree = "<group>"; };
+		21B842DF2EE2235B00502C5E /* floor_uplight.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = floor_uplight.ldt; sourceTree = "<group>"; };
+		21B842E02EE2235B00502C5E /* fluorescent_luminaire.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = fluorescent_luminaire.ldt; sourceTree = "<group>"; };
+		21B842E12EE2235B00502C5E /* projector.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = projector.ldt; sourceTree = "<group>"; };
+		21B842E22EE2235B00502C5E /* road_luminaire.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = road_luminaire.ldt; sourceTree = "<group>"; };
 		A2000001 /* EulumdatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EulumdatApp.swift; sourceTree = "<group>"; };
 		A2000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2000003 /* SVGView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGView.swift; sourceTree = "<group>"; };
 		A2000004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A2000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A2000006 /* EulumdatApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EulumdatApp.entitlements; sourceTree = "<group>"; };
-		A2000010 /* EulumdatApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EulumdatApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2000010 /* Eulumdat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Eulumdat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2000001 /* EulumdatAppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EulumdatAppUITests.swift; sourceTree = "<group>"; };
+		B2000010 /* EulumdatAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EulumdatAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		213C0A982EE44458008B665C /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 213C0A842EE44458008B665C /* LdtPreview */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		213C0A892EE44458008B665C /* LdtPreview */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (213C0A982EE44458008B665C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = LdtPreview; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		213C0A822EE44458008B665C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				21F18DD02EE4AA810076746A /* EulumdatKit in Frameworks */,
+				213C0A882EE44458008B665C /* QuickLook.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A400000D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -33,13 +115,52 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B400000D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		213C0A862EE44458008B665C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				213C0A872EE44458008B665C /* QuickLook.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		21B842E32EE2235B00502C5E /* Templates */ = {
+			isa = PBXGroup;
+			children = (
+				21B842DD2EE2235B00502C5E /* 0-2-0.ldt */,
+				21B842DE2EE2235B00502C5E /* 1-1-0.ldt */,
+				21B842DF2EE2235B00502C5E /* floor_uplight.ldt */,
+				21B842E02EE2235B00502C5E /* fluorescent_luminaire.ldt */,
+				21B842E12EE2235B00502C5E /* projector.ldt */,
+				21B842E22EE2235B00502C5E /* road_luminaire.ldt */,
+			);
+			path = Templates;
+			sourceTree = "<group>";
+		};
+		21B842E42EE2235B00502C5E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				21B842E32EE2235B00502C5E /* Templates */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		A5000001 = {
 			isa = PBXGroup;
 			children = (
 				A5000002 /* EulumdatApp */,
+				B5000002 /* EulumdatAppUITests */,
+				213C0A892EE44458008B665C /* LdtPreview */,
+				213C0A862EE44458008B665C /* Frameworks */,
 				A5000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -49,10 +170,15 @@
 			children = (
 				A2000001 /* EulumdatApp.swift */,
 				A2000002 /* ContentView.swift */,
+				21B842A52EE219F600502C5E /* Butterfly3DView.swift */,
 				A2000003 /* SVGView.swift */,
+				21B842A92EE21A0400502C5E /* Templates.swift */,
+				21618C192EE31CAE0023823F /* ValidationView.swift */,
+				21B842DB2EE2230300502C5E /* BatchConvertView.swift */,
 				A2000004 /* Assets.xcassets */,
 				A2000005 /* Info.plist */,
 				A2000006 /* EulumdatApp.entitlements */,
+				21B842E42EE2235B00502C5E /* Resources */,
 			);
 			path = EulumdatApp;
 			sourceTree = "<group>";
@@ -60,14 +186,47 @@
 		A5000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A2000010 /* EulumdatApp.app */,
+				A2000010 /* Eulumdat.app */,
+				B2000010 /* EulumdatAppUITests.xctest */,
+				213C0A852EE44458008B665C /* LdtPreview.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B5000002 /* EulumdatAppUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B2000001 /* EulumdatAppUITests.swift */,
+			);
+			path = EulumdatAppUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		213C0A842EE44458008B665C /* LdtPreview */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 213C0A992EE44458008B665C /* Build configuration list for PBXNativeTarget "LdtPreview" */;
+			buildPhases = (
+				213C0A812EE44458008B665C /* Sources */,
+				213C0A822EE44458008B665C /* Frameworks */,
+				213C0A832EE44458008B665C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				213C0A892EE44458008B665C /* LdtPreview */,
+			);
+			name = LdtPreview;
+			packageProductDependencies = (
+				A3000001 /* EulumdatKit */,
+			);
+			productName = LdtPreview;
+			productReference = 213C0A852EE44458008B665C /* LdtPreview.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A600000F /* EulumdatApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A7000003 /* Build configuration list for PBXNativeTarget "EulumdatApp" */;
@@ -75,18 +234,38 @@
 				A400000C /* Sources */,
 				A400000D /* Frameworks */,
 				A400000E /* Resources */,
+				213C0A952EE44458008B665C /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				213C0A932EE44458008B665C /* PBXTargetDependency */,
 			);
 			name = EulumdatApp;
 			packageProductDependencies = (
 				A3000001 /* EulumdatKit */,
 			);
 			productName = EulumdatApp;
-			productReference = A2000010 /* EulumdatApp.app */;
+			productReference = A2000010 /* Eulumdat.app */;
 			productType = "com.apple.product-type.application";
+		};
+		B600000F /* EulumdatAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B7000003 /* Build configuration list for PBXNativeTarget "EulumdatAppUITests" */;
+			buildPhases = (
+				B400000C /* Sources */,
+				B400000D /* Frameworks */,
+				B400000E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B3000002 /* PBXTargetDependency */,
+			);
+			name = EulumdatAppUITests;
+			productName = EulumdatAppUITests;
+			productReference = B2000010 /* EulumdatAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -95,11 +274,18 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					213C0A842EE44458008B665C = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 					A600000F = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					B600000F = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = A600000F;
 					};
 				};
 			};
@@ -110,6 +296,7 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = A5000001;
 			packageReferences = (
@@ -120,22 +307,51 @@
 			projectRoot = "";
 			targets = (
 				A600000F /* EulumdatApp */,
+				B600000F /* EulumdatAppUITests */,
+				213C0A842EE44458008B665C /* LdtPreview */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		213C0A832EE44458008B665C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A400000E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				A1000004 /* Assets.xcassets in Resources */,
+				21B842E52EE2235B00502C5E /* road_luminaire.ldt in Resources */,
+				21B842E62EE2235B00502C5E /* floor_uplight.ldt in Resources */,
+				21B842E72EE2235B00502C5E /* 0-2-0.ldt in Resources */,
+				21B842E82EE2235B00502C5E /* 1-1-0.ldt in Resources */,
+				21B842E92EE2235B00502C5E /* projector.ldt in Resources */,
+				21B842EA2EE2235B00502C5E /* fluorescent_luminaire.ldt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B400000E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		213C0A812EE44458008B665C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A400000C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -143,12 +359,112 @@
 				A1000001 /* EulumdatApp.swift in Sources */,
 				A1000002 /* ContentView.swift in Sources */,
 				A1000003 /* SVGView.swift in Sources */,
+				21618C1B2EE31CAE0023823F /* ValidationView.swift in Sources */,
+				21B842A62EE219F600502C5E /* Butterfly3DView.swift in Sources */,
+				21B842AA2EE21A0400502C5E /* Templates.swift in Sources */,
+				21B842DC2EE2230300502C5E /* BatchConvertView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B400000C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1000001 /* EulumdatAppUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		213C0A932EE44458008B665C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 213C0A842EE44458008B665C /* LdtPreview */;
+			targetProxy = 213C0A922EE44458008B665C /* PBXContainerItemProxy */;
+		};
+		B3000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A600000F /* EulumdatApp */;
+			targetProxy = B3000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		213C0A962EE44458008B665C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LdtPreview/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LdtPreview;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		213C0A972EE44458008B665C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LdtPreview/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LdtPreview;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		A9000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -271,17 +587,18 @@
 				CODE_SIGN_ENTITLEMENTS = EulumdatApp/EulumdatApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EulumdatApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Eulumdat Viewer";
+				INFOPLIST_KEY_CFBundleDisplayName = Eulumdat;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 Holger Trahe. All rights reserved.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -290,9 +607,9 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.eulumdat.viewer;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 0.2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
+				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -309,17 +626,18 @@
 				CODE_SIGN_ENTITLEMENTS = EulumdatApp/EulumdatApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EulumdatApp/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Eulumdat Viewer";
+				INFOPLIST_KEY_CFBundleDisplayName = Eulumdat;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 Holger Trahe. All rights reserved.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -328,9 +646,9 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.eulumdat.viewer;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				MARKETING_VERSION = 0.2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
+				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -339,9 +657,60 @@
 			};
 			name = Release;
 		};
+		B9000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.EulumdatAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EulumdatApp;
+			};
+			name = Debug;
+		};
+		B9000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.EulumdatAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EulumdatApp;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		213C0A992EE44458008B665C /* Build configuration list for PBXNativeTarget "LdtPreview" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				213C0A962EE44458008B665C /* Debug */,
+				213C0A972EE44458008B665C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A7000001 /* Build configuration list for PBXProject "EulumdatApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -356,6 +725,15 @@
 			buildConfigurations = (
 				A9000003 /* Debug */,
 				A9000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B7000003 /* Build configuration list for PBXNativeTarget "EulumdatAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B9000003 /* Debug */,
+				B9000004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -125,20 +125,14 @@ impl SymmetryHandler {
                     .collect()
             }
             Symmetry::PlaneC0C180 => {
-                let mut angles = eulumdat.c_angles.clone();
-                // Mirror angles from 180° to 360°
-                for &angle in eulumdat.c_angles.iter().rev().skip(1) {
-                    angles.push(360.0 - angle);
-                }
-                angles
+                // For C0-C180 symmetry, all C-angles are already stored in the file
+                // No expansion needed, just return them
+                eulumdat.c_angles.clone()
             }
             Symmetry::PlaneC90C270 => {
-                let mut angles = eulumdat.c_angles.clone();
-                // Mirror angles
-                for &angle in eulumdat.c_angles.iter().rev().skip(1) {
-                    angles.push(360.0 - angle);
-                }
-                angles
+                // For C90-C270 symmetry, all C-angles are already stored in the file
+                // No expansion needed, just return them
+                eulumdat.c_angles.clone()
             }
             Symmetry::BothPlanes => {
                 let mut angles = Vec::new();

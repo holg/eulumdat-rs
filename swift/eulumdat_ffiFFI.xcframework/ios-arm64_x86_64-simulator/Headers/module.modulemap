@@ -1,4 +1,0 @@
-module eulumdat_ffiFFI {
-    header "eulumdat_ffiFFI.h"
-    export *
-}

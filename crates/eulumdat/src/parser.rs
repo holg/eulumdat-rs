@@ -126,7 +126,7 @@ impl Parser {
         let num_lamp_sets = Self::parse_int(next_line(&mut idx)?, n_line)? as usize;
 
         // Lines 26a-26f: For each lamp set (repeated n times)
-        for i in 0..num_lamp_sets {
+        for _ in 0..num_lamp_sets {
             let mut lamp_set = LampSet::default();
 
             // 26a: Number of lamps
@@ -150,12 +150,8 @@ impl Parser {
             let wb_line = idx;
             lamp_set.wattage_with_ballast = Self::parse_float(next_line(&mut idx)?, wb_line)?;
 
+            // Store all lamp sets (some files have more than 20)
             ldt.lamp_sets.push(lamp_set);
-
-            // Safety check for maximum lamp sets
-            if i >= 19 {
-                break;
-            }
         }
 
         // Lines 27a-27j: Direct ratios for 10 room indices

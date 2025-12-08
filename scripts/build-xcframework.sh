@@ -43,6 +43,14 @@ cargo run --package "$FFI_CRATE" --bin uniffi-bindgen generate \
     --library "$BUILD_DIR/aarch64-apple-darwin/release/${LIB_NAME}.dylib" \
     --language swift \
     --out-dir "$GENERATED_DIR"
+
+# Patch the Swift file to unconditionally import the FFI module
+# (the canImport check doesn't work reliably with SwiftPM binary targets)
+# Only remove the specific canImport block around the import statement
+sed -i '' '/#if canImport(eulumdat_ffiFFI)/d' "$GENERATED_DIR/eulumdat_ffi.swift"
+# Remove only the #endif that immediately follows the import statement (line after import)
+sed -i '' '/^import eulumdat_ffiFFI$/{n;/#endif/d;}' "$GENERATED_DIR/eulumdat_ffi.swift"
+
 log_success "Swift bindings generated"
 
 # 3. Build for all targets
@@ -82,14 +90,25 @@ log_info "Creating XCFramework..."
 
 rm -rf "$SWIFT_DIR/$XCFRAMEWORK_NAME"
 
+# Create a temporary headers directory with only .h and .modulemap files
+HEADERS_TEMP="$BUILD_DIR/headers-temp"
+rm -rf "$HEADERS_TEMP"
+mkdir -p "$HEADERS_TEMP"
+cp "$GENERATED_DIR/eulumdat_ffiFFI.h" "$HEADERS_TEMP/"
+# Rename modulemap to standard module.modulemap
+cp "$GENERATED_DIR/eulumdat_ffiFFI.modulemap" "$HEADERS_TEMP/module.modulemap"
+
 xcodebuild -create-xcframework \
     -library "$BUILD_DIR/aarch64-apple-ios/release/${LIB_NAME}.a" \
-    -headers "$GENERATED_DIR" \
+    -headers "$HEADERS_TEMP" \
     -library "$BUILD_DIR/ios-sim-universal/${LIB_NAME}.a" \
-    -headers "$GENERATED_DIR" \
+    -headers "$HEADERS_TEMP" \
     -library "$BUILD_DIR/macos-universal/${LIB_NAME}.a" \
-    -headers "$GENERATED_DIR" \
+    -headers "$HEADERS_TEMP" \
     -output "$SWIFT_DIR/$XCFRAMEWORK_NAME"
+
+# Clean up temp headers
+rm -rf "$HEADERS_TEMP"
 
 log_success "XCFramework created at $SWIFT_DIR/$XCFRAMEWORK_NAME"
 

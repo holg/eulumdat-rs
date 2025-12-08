@@ -140,4 +140,32 @@ final class EulumdatTests: XCTestCase {
 
         XCTAssertTrue(svg.contains("<svg"))
     }
+
+    func testLcsSVG() throws {
+        let ldt = try parseLdt(content: testLDT)
+        let svg = generateLcsSvg(ldt: ldt, width: 500, height: 500, theme: .light)
+
+        XCTAssertTrue(svg.contains("<svg"))
+        XCTAssertTrue(svg.contains("</svg>"))
+    }
+
+    func testExportLdt() throws {
+        let ldt = try parseLdt(content: testLDT)
+        let exported = exportLdt(ldt: ldt)
+
+        // The exported LDT should be parseable and contain key data
+        XCTAssertFalse(exported.isEmpty)
+        XCTAssertTrue(exported.contains("RUCO Licht GmbH"))
+        XCTAssertTrue(exported.contains("Test"))
+    }
+
+    func testExportIes() throws {
+        let ldt = try parseLdt(content: testLDT)
+        let ies = exportIes(ldt: ldt)
+
+        // IES format should have standard header
+        XCTAssertFalse(ies.isEmpty)
+        XCTAssertTrue(ies.contains("IESNA"))
+        XCTAssertTrue(ies.contains("TILT=NONE"))
+    }
 }

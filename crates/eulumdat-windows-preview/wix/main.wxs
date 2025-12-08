@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<!--
+  Eulumdat Windows Preview Handler Installer
+
+  Installs the preview handler DLL and registers it with Windows Shell
+  for .ldt and .ies file preview in File Explorer.
+-->
+
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<!-- Preview Handler CLSID -->
+<?define PreviewHandlerCLSID = "{E5A2E9B4-3F7C-4D5B-8A6E-1C9D0F2E3B4A}" ?>
+<!-- Windows Preview Handler GUID (constant for all preview handlers) -->
+<?define PreviewHandlerGUID = "{8895b1c6-b41f-4c1c-a562-0d564250836f}" ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='Eulumdat Preview Handler'
+        UpgradeCode='7B8C9D0E-F1A2-3B4C-5D6E-7F8091A2B3C4'
+        Manufacturer='Holger Trahe'
+        Language='1033'
+        Codepage='1252'
+        Version='0.2.0'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Description='Windows Preview Handler for EULUMDAT/LDT and IES photometric files'
+            Manufacturer='Holger Trahe'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perMachine'
+            SummaryCodepage='1252'
+            />
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='Eulumdat Preview Handler Installation'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='APPLICATIONFOLDER' Name='Eulumdat'>
+                    <Component Id='License' Guid='*'>
+                        <File Id='LicenseFile' DiskId='1' Source='wix\License.rtf' KeyPath='yes'/>
+                    </Component>
+
+                    <Component Id='PreviewDll' Guid='A1B2C3D4-5678-90AB-CDEF-123456789ABC'>
+                        <File Id='DllFile'
+                              Name='eulumdat_windows_preview.dll'
+                              DiskId='1'
+                              Source='D:\cargo-targets\release\eulumdat_windows_preview.dll'
+                              KeyPath='yes'/>
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <!-- COM Registration for Preview Handler CLSID -->
+        <Component Id='ComRegistration' Guid='B2C3D4E5-6789-0ABC-DEF1-23456789ABCD' Directory='APPLICATIONFOLDER'>
+            <!-- HKCR\CLSID\{...} -->
+            <RegistryKey Root='HKCR' Key='CLSID\$(var.PreviewHandlerCLSID)'>
+                <RegistryValue Type='string' Value='Eulumdat Preview Handler'/>
+                <RegistryValue Name='AppID' Type='string' Value='$(var.PreviewHandlerCLSID)'/>
+                <RegistryValue Name='DisableLowILProcessIsolation' Type='integer' Value='1'/>
+            </RegistryKey>
+            <!-- HKCR\CLSID\{...}\InprocServer32 -->
+            <RegistryKey Root='HKCR' Key='CLSID\$(var.PreviewHandlerCLSID)\InprocServer32'>
+                <RegistryValue Type='string' Value='[APPLICATIONFOLDER]eulumdat_windows_preview.dll'/>
+                <RegistryValue Name='ThreadingModel' Type='string' Value='Apartment'/>
+            </RegistryKey>
+        </Component>
+
+        <!-- .ldt file extension registration -->
+        <Component Id='LdtExtension' Guid='C3D4E5F6-789A-BCDE-F012-3456789ABCDE' Directory='APPLICATIONFOLDER'>
+            <RegistryKey Root='HKCR' Key='.ldt'>
+                <RegistryValue Type='string' Value='LDT.EulumdatFile'/>
+                <RegistryValue Name='Content Type' Type='string' Value='application/x-eulumdat'/>
+            </RegistryKey>
+            <!-- Preview Handler for .ldt -->
+            <RegistryKey Root='HKCR' Key='.ldt\ShellEx\$(var.PreviewHandlerGUID)'>
+                <RegistryValue Type='string' Value='$(var.PreviewHandlerCLSID)'/>
+            </RegistryKey>
+        </Component>
+
+        <!-- .ies file extension registration -->
+        <Component Id='IesExtension' Guid='D4E5F6A7-89AB-CDEF-0123-456789ABCDEF' Directory='APPLICATIONFOLDER'>
+            <RegistryKey Root='HKCR' Key='.ies'>
+                <RegistryValue Type='string' Value='IES.PhotometricFile'/>
+                <RegistryValue Name='Content Type' Type='string' Value='application/x-ies'/>
+            </RegistryKey>
+            <!-- Preview Handler for .ies -->
+            <RegistryKey Root='HKCR' Key='.ies\ShellEx\$(var.PreviewHandlerGUID)'>
+                <RegistryValue Type='string' Value='$(var.PreviewHandlerCLSID)'/>
+            </RegistryKey>
+        </Component>
+
+        <!-- Register in Windows Preview Handlers list -->
+        <Component Id='PreviewHandlersList' Guid='E5F6A7B8-9ABC-DEF0-1234-56789ABCDEF0' Directory='APPLICATIONFOLDER'>
+            <RegistryKey Root='HKLM' Key='SOFTWARE\Microsoft\Windows\CurrentVersion\PreviewHandlers'>
+                <RegistryValue Name='$(var.PreviewHandlerCLSID)' Type='string' Value='Eulumdat Preview Handler'/>
+            </RegistryKey>
+        </Component>
+
+        <Feature Id='Preview' Title='Preview Handler'
+            Description='Installs the Windows Preview Handler for .ldt and .ies files. Shows polar diagrams in File Explorer preview pane (Alt+P).'
+            Level='1' ConfigurableDirectory='APPLICATIONFOLDER' AllowAdvertise='no' Absent='disallow'>
+            <ComponentRef Id='License'/>
+            <ComponentRef Id='PreviewDll'/>
+            <ComponentRef Id='ComRegistration'/>
+            <ComponentRef Id='LdtExtension'/>
+            <ComponentRef Id='IesExtension'/>
+            <ComponentRef Id='PreviewHandlersList'/>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+        <Property Id='ARPHELPLINK' Value='https://github.com/holg/eulumdat-rs'/>
+
+        <UI>
+            <UIRef Id='WixUI_InstallDir'/>
+            <Property Id='WIXUI_INSTALLDIR' Value='APPLICATIONFOLDER'/>
+        </UI>
+
+        <WixVariable Id='WixUILicenseRtf' Value='wix\License.rtf'/>
+
+    </Product>
+</Wix>

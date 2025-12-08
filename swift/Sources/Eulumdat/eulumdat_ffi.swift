@@ -7,9 +7,7 @@ import Foundation
 // Depending on the consumer's build setup, the low-level FFI code
 // might be in a separate module, or it might be compiled inline into
 // this module. This is a bit of light hackery to work with both.
-#if canImport(eulumdat_ffiFFI)
 import eulumdat_ffiFFI
-#endif
 
 fileprivate extension RustBuffer {
     // Allocate a new buffer, copying the contents of a `UInt8` array.
@@ -523,6 +521,259 @@ fileprivate struct FfiConverterString: FfiConverter {
         writeInt(&buf, len)
         writeBytes(&buf, value.utf8)
     }
+}
+
+
+/**
+ * Statistics for batch conversion
+ */
+public struct BatchConversionStats {
+    public var totalFiles: UInt32
+    public var successful: UInt32
+    public var failed: UInt32
+    public var results: [ConversionResult]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(totalFiles: UInt32, successful: UInt32, failed: UInt32, results: [ConversionResult]) {
+        self.totalFiles = totalFiles
+        self.successful = successful
+        self.failed = failed
+        self.results = results
+    }
+}
+
+
+
+extension BatchConversionStats: Equatable, Hashable {
+    public static func ==(lhs: BatchConversionStats, rhs: BatchConversionStats) -> Bool {
+        if lhs.totalFiles != rhs.totalFiles {
+            return false
+        }
+        if lhs.successful != rhs.successful {
+            return false
+        }
+        if lhs.failed != rhs.failed {
+            return false
+        }
+        if lhs.results != rhs.results {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(totalFiles)
+        hasher.combine(successful)
+        hasher.combine(failed)
+        hasher.combine(results)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBatchConversionStats: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BatchConversionStats {
+        return
+            try BatchConversionStats(
+                totalFiles: FfiConverterUInt32.read(from: &buf), 
+                successful: FfiConverterUInt32.read(from: &buf), 
+                failed: FfiConverterUInt32.read(from: &buf), 
+                results: FfiConverterSequenceTypeConversionResult.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: BatchConversionStats, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.totalFiles, into: &buf)
+        FfiConverterUInt32.write(value.successful, into: &buf)
+        FfiConverterUInt32.write(value.failed, into: &buf)
+        FfiConverterSequenceTypeConversionResult.write(value.results, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchConversionStats_lift(_ buf: RustBuffer) throws -> BatchConversionStats {
+    return try FfiConverterTypeBatchConversionStats.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchConversionStats_lower(_ value: BatchConversionStats) -> RustBuffer {
+    return FfiConverterTypeBatchConversionStats.lower(value)
+}
+
+
+/**
+ * Input file for batch conversion
+ */
+public struct BatchInputFile {
+    public var name: String
+    public var content: String
+    /**
+     * Optional input format (auto-detected if None)
+     */
+    public var format: InputFormat?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(name: String, content: String, 
+        /**
+         * Optional input format (auto-detected if None)
+         */format: InputFormat?) {
+        self.name = name
+        self.content = content
+        self.format = format
+    }
+}
+
+
+
+extension BatchInputFile: Equatable, Hashable {
+    public static func ==(lhs: BatchInputFile, rhs: BatchInputFile) -> Bool {
+        if lhs.name != rhs.name {
+            return false
+        }
+        if lhs.content != rhs.content {
+            return false
+        }
+        if lhs.format != rhs.format {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+        hasher.combine(content)
+        hasher.combine(format)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBatchInputFile: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BatchInputFile {
+        return
+            try BatchInputFile(
+                name: FfiConverterString.read(from: &buf), 
+                content: FfiConverterString.read(from: &buf), 
+                format: FfiConverterOptionTypeInputFormat.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: BatchInputFile, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.name, into: &buf)
+        FfiConverterString.write(value.content, into: &buf)
+        FfiConverterOptionTypeInputFormat.write(value.format, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchInputFile_lift(_ buf: RustBuffer) throws -> BatchInputFile {
+    return try FfiConverterTypeBatchInputFile.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchInputFile_lower(_ value: BatchInputFile) -> RustBuffer {
+    return FfiConverterTypeBatchInputFile.lower(value)
+}
+
+
+/**
+ * Output file from batch conversion
+ */
+public struct BatchOutputFile {
+    public var inputName: String
+    public var outputName: String
+    public var content: String?
+    public var error: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(inputName: String, outputName: String, content: String?, error: String?) {
+        self.inputName = inputName
+        self.outputName = outputName
+        self.content = content
+        self.error = error
+    }
+}
+
+
+
+extension BatchOutputFile: Equatable, Hashable {
+    public static func ==(lhs: BatchOutputFile, rhs: BatchOutputFile) -> Bool {
+        if lhs.inputName != rhs.inputName {
+            return false
+        }
+        if lhs.outputName != rhs.outputName {
+            return false
+        }
+        if lhs.content != rhs.content {
+            return false
+        }
+        if lhs.error != rhs.error {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(inputName)
+        hasher.combine(outputName)
+        hasher.combine(content)
+        hasher.combine(error)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBatchOutputFile: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BatchOutputFile {
+        return
+            try BatchOutputFile(
+                inputName: FfiConverterString.read(from: &buf), 
+                outputName: FfiConverterString.read(from: &buf), 
+                content: FfiConverterOptionString.read(from: &buf), 
+                error: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: BatchOutputFile, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.inputName, into: &buf)
+        FfiConverterString.write(value.outputName, into: &buf)
+        FfiConverterOptionString.write(value.content, into: &buf)
+        FfiConverterOptionString.write(value.error, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchOutputFile_lift(_ buf: RustBuffer) throws -> BatchOutputFile {
+    return try FfiConverterTypeBatchOutputFile.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBatchOutputFile_lower(_ value: BatchOutputFile) -> RustBuffer {
+    return FfiConverterTypeBatchOutputFile.lower(value)
 }
 
 
@@ -1307,6 +1558,91 @@ public func FfiConverterTypeColor_lift(_ buf: RustBuffer) throws -> Color {
 #endif
 public func FfiConverterTypeColor_lower(_ value: Color) -> RustBuffer {
     return FfiConverterTypeColor.lower(value)
+}
+
+
+/**
+ * Result of converting a single file
+ */
+public struct ConversionResult {
+    public var inputPath: String
+    public var outputPath: String
+    public var success: Bool
+    public var errorMessage: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(inputPath: String, outputPath: String, success: Bool, errorMessage: String?) {
+        self.inputPath = inputPath
+        self.outputPath = outputPath
+        self.success = success
+        self.errorMessage = errorMessage
+    }
+}
+
+
+
+extension ConversionResult: Equatable, Hashable {
+    public static func ==(lhs: ConversionResult, rhs: ConversionResult) -> Bool {
+        if lhs.inputPath != rhs.inputPath {
+            return false
+        }
+        if lhs.outputPath != rhs.outputPath {
+            return false
+        }
+        if lhs.success != rhs.success {
+            return false
+        }
+        if lhs.errorMessage != rhs.errorMessage {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(inputPath)
+        hasher.combine(outputPath)
+        hasher.combine(success)
+        hasher.combine(errorMessage)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeConversionResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ConversionResult {
+        return
+            try ConversionResult(
+                inputPath: FfiConverterString.read(from: &buf), 
+                outputPath: FfiConverterString.read(from: &buf), 
+                success: FfiConverterBool.read(from: &buf), 
+                errorMessage: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ConversionResult, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.inputPath, into: &buf)
+        FfiConverterString.write(value.outputPath, into: &buf)
+        FfiConverterBool.write(value.success, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConversionResult_lift(_ buf: RustBuffer) throws -> ConversionResult {
+    return try FfiConverterTypeConversionResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConversionResult_lower(_ value: ConversionResult) -> RustBuffer {
+    return FfiConverterTypeConversionResult.lower(value)
 }
 
 
@@ -2459,6 +2795,361 @@ public func FfiConverterTypePolarPoint_lower(_ value: PolarPoint) -> RustBuffer 
 
 
 /**
+ * A validation error (fatal issue)
+ */
+public struct ValidationError {
+    /**
+     * Error code for programmatic handling
+     */
+    public var code: String
+    /**
+     * Human-readable error message
+     */
+    public var message: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Error code for programmatic handling
+         */code: String, 
+        /**
+         * Human-readable error message
+         */message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+
+
+extension ValidationError: Equatable, Hashable {
+    public static func ==(lhs: ValidationError, rhs: ValidationError) -> Bool {
+        if lhs.code != rhs.code {
+            return false
+        }
+        if lhs.message != rhs.message {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(code)
+        hasher.combine(message)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeValidationError: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ValidationError {
+        return
+            try ValidationError(
+                code: FfiConverterString.read(from: &buf), 
+                message: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ValidationError, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.code, into: &buf)
+        FfiConverterString.write(value.message, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeValidationError_lift(_ buf: RustBuffer) throws -> ValidationError {
+    return try FfiConverterTypeValidationError.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeValidationError_lower(_ value: ValidationError) -> RustBuffer {
+    return FfiConverterTypeValidationError.lower(value)
+}
+
+
+/**
+ * A validation warning (non-fatal issue)
+ */
+public struct ValidationWarning {
+    /**
+     * Warning code for programmatic handling
+     */
+    public var code: String
+    /**
+     * Human-readable warning message
+     */
+    public var message: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Warning code for programmatic handling
+         */code: String, 
+        /**
+         * Human-readable warning message
+         */message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+
+
+extension ValidationWarning: Equatable, Hashable {
+    public static func ==(lhs: ValidationWarning, rhs: ValidationWarning) -> Bool {
+        if lhs.code != rhs.code {
+            return false
+        }
+        if lhs.message != rhs.message {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(code)
+        hasher.combine(message)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeValidationWarning: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ValidationWarning {
+        return
+            try ValidationWarning(
+                code: FfiConverterString.read(from: &buf), 
+                message: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ValidationWarning, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.code, into: &buf)
+        FfiConverterString.write(value.message, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeValidationWarning_lift(_ buf: RustBuffer) throws -> ValidationWarning {
+    return try FfiConverterTypeValidationWarning.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeValidationWarning_lower(_ value: ValidationWarning) -> RustBuffer {
+    return FfiConverterTypeValidationWarning.lower(value)
+}
+
+
+/**
+ * Custom watch face style configuration
+ */
+public struct WatchFaceStyleCustom {
+    /**
+     * Background color (use "transparent" for PNG with alpha)
+     */
+    public var background: String
+    /**
+     * Grid/hour marker color
+     */
+    public var gridColor: String
+    /**
+     * Main curve color (C0-C180)
+     */
+    public var curvePrimary: String
+    /**
+     * Secondary curve color (C90-C270)
+     */
+    public var curveSecondary: String
+    /**
+     * Fill opacity for curves (0.0-1.0)
+     */
+    public var fillOpacity: Double
+    /**
+     * Whether to show hour markers (12, 3, 6, 9)
+     */
+    public var showHourMarkers: Bool
+    /**
+     * Whether to show minute tick marks
+     */
+    public var showMinuteTicks: Bool
+    /**
+     * Whether to show the secondary (C90-C270) curve
+     */
+    public var showSecondaryCurve: Bool
+    /**
+     * Stroke width for curves
+     */
+    public var curveStrokeWidth: Double
+    /**
+     * Grid line width
+     */
+    public var gridStrokeWidth: Double
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Background color (use "transparent" for PNG with alpha)
+         */background: String, 
+        /**
+         * Grid/hour marker color
+         */gridColor: String, 
+        /**
+         * Main curve color (C0-C180)
+         */curvePrimary: String, 
+        /**
+         * Secondary curve color (C90-C270)
+         */curveSecondary: String, 
+        /**
+         * Fill opacity for curves (0.0-1.0)
+         */fillOpacity: Double, 
+        /**
+         * Whether to show hour markers (12, 3, 6, 9)
+         */showHourMarkers: Bool, 
+        /**
+         * Whether to show minute tick marks
+         */showMinuteTicks: Bool, 
+        /**
+         * Whether to show the secondary (C90-C270) curve
+         */showSecondaryCurve: Bool, 
+        /**
+         * Stroke width for curves
+         */curveStrokeWidth: Double, 
+        /**
+         * Grid line width
+         */gridStrokeWidth: Double) {
+        self.background = background
+        self.gridColor = gridColor
+        self.curvePrimary = curvePrimary
+        self.curveSecondary = curveSecondary
+        self.fillOpacity = fillOpacity
+        self.showHourMarkers = showHourMarkers
+        self.showMinuteTicks = showMinuteTicks
+        self.showSecondaryCurve = showSecondaryCurve
+        self.curveStrokeWidth = curveStrokeWidth
+        self.gridStrokeWidth = gridStrokeWidth
+    }
+}
+
+
+
+extension WatchFaceStyleCustom: Equatable, Hashable {
+    public static func ==(lhs: WatchFaceStyleCustom, rhs: WatchFaceStyleCustom) -> Bool {
+        if lhs.background != rhs.background {
+            return false
+        }
+        if lhs.gridColor != rhs.gridColor {
+            return false
+        }
+        if lhs.curvePrimary != rhs.curvePrimary {
+            return false
+        }
+        if lhs.curveSecondary != rhs.curveSecondary {
+            return false
+        }
+        if lhs.fillOpacity != rhs.fillOpacity {
+            return false
+        }
+        if lhs.showHourMarkers != rhs.showHourMarkers {
+            return false
+        }
+        if lhs.showMinuteTicks != rhs.showMinuteTicks {
+            return false
+        }
+        if lhs.showSecondaryCurve != rhs.showSecondaryCurve {
+            return false
+        }
+        if lhs.curveStrokeWidth != rhs.curveStrokeWidth {
+            return false
+        }
+        if lhs.gridStrokeWidth != rhs.gridStrokeWidth {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(background)
+        hasher.combine(gridColor)
+        hasher.combine(curvePrimary)
+        hasher.combine(curveSecondary)
+        hasher.combine(fillOpacity)
+        hasher.combine(showHourMarkers)
+        hasher.combine(showMinuteTicks)
+        hasher.combine(showSecondaryCurve)
+        hasher.combine(curveStrokeWidth)
+        hasher.combine(gridStrokeWidth)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWatchFaceStyleCustom: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WatchFaceStyleCustom {
+        return
+            try WatchFaceStyleCustom(
+                background: FfiConverterString.read(from: &buf), 
+                gridColor: FfiConverterString.read(from: &buf), 
+                curvePrimary: FfiConverterString.read(from: &buf), 
+                curveSecondary: FfiConverterString.read(from: &buf), 
+                fillOpacity: FfiConverterDouble.read(from: &buf), 
+                showHourMarkers: FfiConverterBool.read(from: &buf), 
+                showMinuteTicks: FfiConverterBool.read(from: &buf), 
+                showSecondaryCurve: FfiConverterBool.read(from: &buf), 
+                curveStrokeWidth: FfiConverterDouble.read(from: &buf), 
+                gridStrokeWidth: FfiConverterDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: WatchFaceStyleCustom, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.background, into: &buf)
+        FfiConverterString.write(value.gridColor, into: &buf)
+        FfiConverterString.write(value.curvePrimary, into: &buf)
+        FfiConverterString.write(value.curveSecondary, into: &buf)
+        FfiConverterDouble.write(value.fillOpacity, into: &buf)
+        FfiConverterBool.write(value.showHourMarkers, into: &buf)
+        FfiConverterBool.write(value.showMinuteTicks, into: &buf)
+        FfiConverterBool.write(value.showSecondaryCurve, into: &buf)
+        FfiConverterDouble.write(value.curveStrokeWidth, into: &buf)
+        FfiConverterDouble.write(value.gridStrokeWidth, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWatchFaceStyleCustom_lift(_ buf: RustBuffer) throws -> WatchFaceStyleCustom {
+    return try FfiConverterTypeWatchFaceStyleCustom.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWatchFaceStyleCustom_lower(_ value: WatchFaceStyleCustom) -> RustBuffer {
+    return FfiConverterTypeWatchFaceStyleCustom.lower(value)
+}
+
+
+/**
  * Zone lumens data for BUG rating
  */
 public struct ZoneLumens {
@@ -2590,7 +3281,77 @@ public func FfiConverterTypeZoneLumens_lower(_ value: ZoneLumens) -> RustBuffer 
     return FfiConverterTypeZoneLumens.lower(value)
 }
 
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+/**
+ * Output format for batch conversion
+ */
 
+public enum ConversionFormat {
+    
+    case ies
+    case ldt
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeConversionFormat: FfiConverterRustBuffer {
+    typealias SwiftType = ConversionFormat
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ConversionFormat {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .ies
+        
+        case 2: return .ldt
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: ConversionFormat, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .ies:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .ldt:
+            writeInt(&buf, Int32(2))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConversionFormat_lift(_ buf: RustBuffer) throws -> ConversionFormat {
+    return try FfiConverterTypeConversionFormat.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeConversionFormat_lower(_ value: ConversionFormat) -> RustBuffer {
+    return FfiConverterTypeConversionFormat.lower(value)
+}
+
+
+
+extension ConversionFormat: Equatable, Hashable {}
+
+
+
+
+/**
+ * Error type for FFI
+ */
 public enum EulumdatError {
 
     
@@ -2664,6 +3425,73 @@ extension EulumdatError: Foundation.LocalizedError {
         String(reflecting: self)
     }
 }
+
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+/**
+ * Input file format
+ */
+
+public enum InputFormat {
+    
+    case ldt
+    case ies
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeInputFormat: FfiConverterRustBuffer {
+    typealias SwiftType = InputFormat
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> InputFormat {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .ldt
+        
+        case 2: return .ies
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: InputFormat, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .ldt:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .ies:
+            writeInt(&buf, Int32(2))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeInputFormat_lift(_ buf: RustBuffer) throws -> InputFormat {
+    return try FfiConverterTypeInputFormat.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeInputFormat_lower(_ value: InputFormat) -> RustBuffer {
+    return FfiConverterTypeInputFormat.lower(value)
+}
+
+
+
+extension InputFormat: Equatable, Hashable {}
+
+
 
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
@@ -2892,6 +3720,157 @@ extension TypeIndicator: Equatable, Hashable {}
 
 
 
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+/**
+ * Watch face style preset
+ */
+
+public enum WatchFaceStyleType {
+    
+    /**
+     * Dark style with cyan curves (default)
+     */
+    case dark
+    /**
+     * Light style with blue curves
+     */
+    case light
+    /**
+     * Minimal style - curves only, less grid
+     */
+    case minimal
+    /**
+     * Complication style - optimized for 120x120
+     */
+    case complication
+    /**
+     * California style - warm amber tones
+     */
+    case california
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeWatchFaceStyleType: FfiConverterRustBuffer {
+    typealias SwiftType = WatchFaceStyleType
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> WatchFaceStyleType {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .dark
+        
+        case 2: return .light
+        
+        case 3: return .minimal
+        
+        case 4: return .complication
+        
+        case 5: return .california
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: WatchFaceStyleType, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .dark:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .light:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .minimal:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .complication:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .california:
+            writeInt(&buf, Int32(5))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWatchFaceStyleType_lift(_ buf: RustBuffer) throws -> WatchFaceStyleType {
+    return try FfiConverterTypeWatchFaceStyleType.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeWatchFaceStyleType_lower(_ value: WatchFaceStyleType) -> RustBuffer {
+    return FfiConverterTypeWatchFaceStyleType.lower(value)
+}
+
+
+
+extension WatchFaceStyleType: Equatable, Hashable {}
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
+    typealias SwiftType = String?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterString.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterString.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeInputFormat: FfiConverterRustBuffer {
+    typealias SwiftType = InputFormat?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeInputFormat.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeInputFormat.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
@@ -2912,6 +3891,56 @@ fileprivate struct FfiConverterSequenceDouble: FfiConverterRustBuffer {
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterDouble.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeBatchInputFile: FfiConverterRustBuffer {
+    typealias SwiftType = [BatchInputFile]
+
+    public static func write(_ value: [BatchInputFile], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeBatchInputFile.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [BatchInputFile] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [BatchInputFile]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeBatchInputFile.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeBatchOutputFile: FfiConverterRustBuffer {
+    typealias SwiftType = [BatchOutputFile]
+
+    public static func write(_ value: [BatchOutputFile], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeBatchOutputFile.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [BatchOutputFile] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [BatchOutputFile]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeBatchOutputFile.read(from: &buf))
         }
         return seq
     }
@@ -3012,6 +4041,31 @@ fileprivate struct FfiConverterSequenceTypeCartesianPoint: FfiConverterRustBuffe
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeCartesianPoint.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeConversionResult: FfiConverterRustBuffer {
+    typealias SwiftType = [ConversionResult]
+
+    public static func write(_ value: [ConversionResult], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeConversionResult.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [ConversionResult] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [ConversionResult]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeConversionResult.read(from: &buf))
         }
         return seq
     }
@@ -3145,6 +4199,56 @@ fileprivate struct FfiConverterSequenceTypePolarPoint: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeValidationError: FfiConverterRustBuffer {
+    typealias SwiftType = [ValidationError]
+
+    public static func write(_ value: [ValidationError], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeValidationError.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [ValidationError] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [ValidationError]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeValidationError.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeValidationWarning: FfiConverterRustBuffer {
+    typealias SwiftType = [ValidationWarning]
+
+    public static func write(_ value: [ValidationWarning], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeValidationWarning.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [ValidationWarning] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [ValidationWarning]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeValidationWarning.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceSequenceDouble: FfiConverterRustBuffer {
     typealias SwiftType = [[Double]]
 
@@ -3192,11 +4296,75 @@ fileprivate struct FfiConverterSequenceSequenceTypePoint2D: FfiConverterRustBuff
     }
 }
 /**
+ * Batch convert and return the converted contents
+ *
+ * This is a thin FFI wrapper around eulumdat::batch::batch_convert()
+ */
+public func batchConvertContents(files: [BatchInputFile], format: ConversionFormat) -> [BatchOutputFile] {
+    return try!  FfiConverterSequenceTypeBatchOutputFile.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_batch_convert_contents(
+        FfiConverterSequenceTypeBatchInputFile.lower(files),
+        FfiConverterTypeConversionFormat.lower(format),$0
+    )
+})
+}
+/**
+ * Batch convert multiple LDT contents to IES format
+ * Returns a list of (original_name, ies_content or error)
+ */
+public func batchConvertToIes(files: [BatchInputFile]) -> BatchConversionStats {
+    return try!  FfiConverterTypeBatchConversionStats.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_batch_convert_to_ies(
+        FfiConverterSequenceTypeBatchInputFile.lower(files),$0
+    )
+})
+}
+/**
  * Calculate BUG rating from Eulumdat data
  */
 public func calculateBugRating(ldt: Eulumdat) -> BugRatingData {
     return try!  FfiConverterTypeBugRatingData.lift(try! rustCall() {
     uniffi_eulumdat_ffi_fn_func_calculate_bug_rating(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Convert a single LDT file to IES format
+ */
+public func convertLdtToIes(ldtContent: String)throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_func_convert_ldt_to_ies(
+        FfiConverterString.lower(ldtContent),$0
+    )
+})
+}
+/**
+ * Convert a single LDT file content to another LDT (normalize/clean)
+ */
+public func convertLdtToLdt(ldtContent: String)throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_func_convert_ldt_to_ldt(
+        FfiConverterString.lower(ldtContent),$0
+    )
+})
+}
+/**
+ * Export Eulumdat data to IES format string
+ */
+public func exportIes(ldt: Eulumdat) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_export_ies(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Export Eulumdat data to LDT format string
+ */
+public func exportLdt(ldt: Eulumdat) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_export_ldt(
         FfiConverterTypeEulumdat.lower(ldt),$0
     )
 })
@@ -3279,6 +4447,17 @@ public func generateCartesianSvg(ldt: Eulumdat, width: Double, height: Double, m
 })
 }
 /**
+ * Generate complication SVG (120x120 max for accessoryCircular)
+ */
+public func generateComplicationSvg(ldt: Eulumdat, size: UInt32) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_complication_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterUInt32.lower(size),$0
+    )
+})
+}
+/**
  * Generate heatmap diagram data
  */
 public func generateHeatmapDiagram(ldt: Eulumdat, width: Double, height: Double) -> HeatmapDiagramData {
@@ -3317,6 +4496,25 @@ public func generateLcsSvg(ldt: Eulumdat, width: Double, height: Double, theme: 
 })
 }
 /**
+ * Generate Photos face SVG (for Apple Watch Photos face background)
+ *
+ * # Arguments
+ * * `ldt` - The luminaire data
+ * * `width` - Width in pixels (e.g., 396 for 45mm)
+ * * `height` - Height in pixels (e.g., 484 for 45mm)
+ * * `style` - Watch face style preset
+ */
+public func generatePhotosFaceSvg(ldt: Eulumdat, width: UInt32, height: UInt32, style: WatchFaceStyleType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_photos_face_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterUInt32.lower(width),
+        FfiConverterUInt32.lower(height),
+        FfiConverterTypeWatchFaceStyleType.lower(style),$0
+    )
+})
+}
+/**
  * Generate polar diagram data
  */
 public func generatePolarDiagram(ldt: Eulumdat) -> PolarDiagramData {
@@ -3340,6 +4538,58 @@ public func generatePolarSvg(ldt: Eulumdat, width: Double, height: Double, theme
 })
 }
 /**
+ * Generate watch face SVG with a preset style
+ *
+ * Creates a circular SVG suitable for Apple Watch faces.
+ * The polar grid doubles as watch hour/minute markers.
+ *
+ * # Arguments
+ * * `ldt` - The luminaire data
+ * * `size` - Width and height in pixels (e.g., 396 for 45mm watch)
+ * * `style` - Watch face style preset
+ */
+public func generateWatchFaceSvg(ldt: Eulumdat, size: UInt32, style: WatchFaceStyleType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_watch_face_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterUInt32.lower(size),
+        FfiConverterTypeWatchFaceStyleType.lower(style),$0
+    )
+})
+}
+/**
+ * Generate watch face SVG with a custom style
+ */
+public func generateWatchFaceSvgCustom(ldt: Eulumdat, size: UInt32, style: WatchFaceStyleCustom) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_watch_face_svg_custom(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterUInt32.lower(size),
+        FfiConverterTypeWatchFaceStyleCustom.lower(style),$0
+    )
+})
+}
+/**
+ * Get detailed validation errors (for UI display)
+ */
+public func getValidationErrors(ldt: Eulumdat) -> [ValidationError] {
+    return try!  FfiConverterSequenceTypeValidationError.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_get_validation_errors(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Parse IES content and return an Eulumdat object
+ */
+public func parseIes(content: String)throws  -> Eulumdat {
+    return try  FfiConverterTypeEulumdat.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_func_parse_ies(
+        FfiConverterString.lower(content),$0
+    )
+})
+}
+/**
  * Parse LDT content and return an Eulumdat object
  */
 public func parseLdt(content: String)throws  -> Eulumdat {
@@ -3348,6 +4598,25 @@ public func parseLdt(content: String)throws  -> Eulumdat {
         FfiConverterString.lower(content),$0
     )
 })
+}
+/**
+ * Validate Eulumdat data and return warnings
+ */
+public func validateLdt(ldt: Eulumdat) -> [ValidationWarning] {
+    return try!  FfiConverterSequenceTypeValidationWarning.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_validate_ldt(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Validate Eulumdat data strictly, returning errors if invalid
+ */
+public func validateLdtStrict(ldt: Eulumdat)throws  {try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_func_validate_ldt_strict(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+}
 }
 
 private enum InitializationResult {
@@ -3365,7 +4634,25 @@ private var initializationResult: InitializationResult = {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_batch_convert_contents() != 46496) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_batch_convert_to_ies() != 246) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_calculate_bug_rating() != 58767) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_convert_ldt_to_ies() != 51119) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_convert_ldt_to_ldt() != 22350) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_export_ies() != 11095) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_export_ldt() != 19768) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_bug_diagram() != 34423) {
@@ -3386,6 +4673,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg() != 18468) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_complication_svg() != 12814) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_heatmap_diagram() != 2153) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -3395,13 +4685,34 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_lcs_svg() != 35133) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_photos_face_svg() != 40674) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_polar_diagram() != 46629) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg() != 39828) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_watch_face_svg() != 47412) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_watch_face_svg_custom() != 197) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_get_validation_errors() != 28281) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_parse_ies() != 60498) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_parse_ldt() != 27501) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_validate_ldt() != 34444) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_validate_ldt_strict() != 21146) {
         return InitializationResult.apiChecksumMismatch
     }
 

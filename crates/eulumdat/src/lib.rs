@@ -166,6 +166,7 @@
 //! - [IESNA LM-63-2002 Standard](https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/iesna_lm-63_format.htm)
 //! - [IES TM-15-11 BUG Ratings](https://www.ies.org/wp-content/uploads/2017/03/TM-15-11BUGRatingsAddendum.pdf)
 
+pub mod batch;
 pub mod bug_rating;
 mod calculations;
 pub mod diagram;
@@ -177,10 +178,11 @@ mod symmetry;
 mod validation;
 mod writer;
 
+pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 pub use bug_rating::{BugDiagram, BugRating, ZoneLumens};
 pub use calculations::PhotometricCalculations;
 pub use error::{Error, Result};
 pub use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
 pub use ies::{IesExporter, IesParser, PhotometricType, UnitType};
 pub use symmetry::SymmetryHandler;
-pub use validation::{ValidationError, ValidationWarning};
+pub use validation::{validate, validate_strict, ValidationError, ValidationWarning};

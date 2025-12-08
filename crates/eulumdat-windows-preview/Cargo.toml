@@ -1,0 +1,50 @@
+[package]
+name = "eulumdat-windows-preview"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Windows Preview Handler for EULUMDAT (LDT) and IES photometric files"
+
+[lib]
+crate-type = ["cdylib"]
+
+# Windows COM interfaces - works on both x64 and ARM64
+[target.'cfg(windows)'.dependencies]
+
+# For encoding LDT files (Windows-1252)
+encoding_rs = "0.8"
+
+# Logging for debugging
+log = "0.4"
+
+# For rendering SVG to bitmap (pure Rust, works on all architectures)
+resvg = "0.44"
+windows = { version = "0.58", features = [
+    "implement",
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_LibraryLoader",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_PropertiesSystem",
+    "Win32_System_Ole",
+    "Win32_System_Registry",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }
+windows-core = "0.58"
+
+[dependencies]
+anyhow.workspace = true
+eulumdat.workspace = true
+
+[build-dependencies]
+embed-resource = "2.4"
+
+# Ensure we can build for both architectures
+# Build commands:
+#   x64:   cargo build --release --target x86_64-pc-windows-msvc
+#   ARM64: cargo build --release --target aarch64-pc-windows-msvc

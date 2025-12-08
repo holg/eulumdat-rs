@@ -19,7 +19,11 @@ let package = Package(
             dependencies: [
                 .product(name: "EulumdatKit", package: "swift"),
             ],
-            path: "EulumdatApp"
+            path: "EulumdatApp",
+            exclude: ["Assets.xcassets", "EulumdatApp.entitlements", "Info.plist"],
+            resources: [
+                .copy("Resources/Templates"),
+            ]
         ),
     ]
 )
