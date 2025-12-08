@@ -12,7 +12,7 @@ homepage = "https://github.com/holg/eulumdat-rs"
 
 [workspace.dependencies]
 # Internal crates
-eulumdat = { path = "crates/eulumdat" }
+eulumdat = { path = "crates/eulumdat", version = "0.2.1" }
 
 # Shared dependencies
 anyhow = "1.0"

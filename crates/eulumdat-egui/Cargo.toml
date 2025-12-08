@@ -6,13 +6,14 @@ authors = ["Holger Trahe <trahe@mac.com>"]
 description = "Cross-platform GUI application for viewing EULUMDAT/LDT and IES photometric files"
 license = "MIT"
 repository = "https://github.com/holg/eulumdat-rs"
+include = ["src/**/*", "assets/**/*", "build.rs", "Cargo.toml", "README.md"]
 
 [[bin]]
 name = "eulumdat-egui"
 path = "src/main.rs"
 
 [dependencies]
-eulumdat = { path = "../eulumdat" }
+eulumdat = { path = "../eulumdat", version = "0.2.1" }
 
 # GUI
 eframe = "0.29"

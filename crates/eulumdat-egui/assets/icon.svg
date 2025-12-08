@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <defs>
+    <radialGradient id="light" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" style="stop-color:#fef3c7"/>
+      <stop offset="50%" style="stop-color:#fbbf24"/>
+      <stop offset="100%" style="stop-color:#f59e0b"/>
+    </radialGradient>
+  </defs>
+  <!-- Background -->
+  <rect x="14" y="14" width="80" height="80" rx="8" fill="#1f2937"/>
+  <!-- Light bulb glow -->
+  <circle cx="54" cy="38" r="20" fill="url(#light)"/>
+  <!-- Light distribution curves -->
+  <path d="M34 38 Q54 78 74 38" fill="none" stroke="#fbbf24" stroke-width="2" opacity="0.7"/>
+  <path d="M28 38 Q54 88 80 38" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0.5"/>
+  <path d="M22 38 Q54 98 86 38" fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.3"/>
+  <!-- LDT/IES text -->
+  <text x="54" y="86" text-anchor="middle" fill="#9ca3af" font-family="Arial, sans-serif" font-size="10" font-weight="bold">LDT/IES</text>
+</svg>
