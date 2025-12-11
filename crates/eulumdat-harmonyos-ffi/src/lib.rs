@@ -8,6 +8,7 @@ use std::os::raw::c_char;
 use std::ptr;
 
 use eulumdat::{
+    bug_rating::BugDiagram,
     diagram::{ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram, SvgTheme},
     Eulumdat, Symmetry as CoreSymmetry, TypeIndicator as CoreTypeIndicator,
 };
@@ -473,6 +474,64 @@ pub unsafe extern "C" fn eulumdat_heatmap_svg(
     string_to_c(&svg)
 }
 
+/// Generate BUG (Backlight, Uplight, Glare) rating diagram SVG
+///
+/// # Safety
+/// - `handle` must be a valid pointer
+/// - `theme` must be 0 (light) or 1 (dark)
+/// - Caller must free the returned string with `eulumdat_string_free`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_bug_svg(
+    handle: *const EulumdatHandle,
+    width: f64,
+    height: f64,
+    theme: i32,
+) -> *mut c_char {
+    if handle.is_null() {
+        return ptr::null_mut();
+    }
+
+    let ldt = &(*handle).inner;
+    let svg_theme = if theme == 1 {
+        SvgTheme::dark()
+    } else {
+        SvgTheme::light()
+    };
+
+    let bug = BugDiagram::from_eulumdat(ldt);
+    let svg = bug.to_svg(width, height, &svg_theme);
+    string_to_c(&svg)
+}
+
+/// Generate LCS (Luminaire Classification System) diagram SVG
+///
+/// # Safety
+/// - `handle` must be a valid pointer
+/// - `theme` must be 0 (light) or 1 (dark)
+/// - Caller must free the returned string with `eulumdat_string_free`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_lcs_svg(
+    handle: *const EulumdatHandle,
+    width: f64,
+    height: f64,
+    theme: i32,
+) -> *mut c_char {
+    if handle.is_null() {
+        return ptr::null_mut();
+    }
+
+    let ldt = &(*handle).inner;
+    let svg_theme = if theme == 1 {
+        SvgTheme::dark()
+    } else {
+        SvgTheme::light()
+    };
+
+    let bug = BugDiagram::from_eulumdat(ldt);
+    let svg = bug.to_lcs_svg(width, height, &svg_theme);
+    string_to_c(&svg)
+}
+
 // ============================================================================
 // Export functions
 // ============================================================================
@@ -571,6 +630,51 @@ pub unsafe extern "C" fn eulumdat_validation_list_free(list: ValidationWarningLi
     }
 }
 
+/// Get validation errors (strict/fatal issues)
+///
+/// # Safety
+/// - `handle` must be a valid pointer
+/// - Caller must free with `eulumdat_validation_list_free`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_get_validation_errors(
+    handle: *const EulumdatHandle,
+) -> ValidationWarningList {
+    if handle.is_null() {
+        return ValidationWarningList {
+            data: ptr::null_mut(),
+            len: 0,
+        };
+    }
+
+    let ldt = &(*handle).inner;
+    let errors = match eulumdat::validate_strict(ldt) {
+        Ok(()) => vec![],
+        Err(errs) => errs,
+    };
+
+    if errors.is_empty() {
+        return ValidationWarningList {
+            data: ptr::null_mut(),
+            len: 0,
+        };
+    }
+
+    let mut error_list: Vec<ValidationWarningC> = errors
+        .iter()
+        .map(|e| ValidationWarningC {
+            code: string_to_c(e.code),
+            message: string_to_c(&e.message),
+            severity: 2, // Error
+        })
+        .collect();
+
+    let len = error_list.len();
+    let data = error_list.as_mut_ptr();
+    std::mem::forget(error_list);
+
+    ValidationWarningList { data, len }
+}
+
 // ============================================================================
 // Intensity sampling
 // ============================================================================
@@ -615,6 +719,97 @@ pub unsafe extern "C" fn eulumdat_sample_intensity_normalized(
         intensity / max
     } else {
         0.0
+    }
+}
+
+// ============================================================================
+// Raw data access
+// ============================================================================
+
+/// Float array for C-angles, G-angles, or intensities
+#[repr(C)]
+pub struct FloatArray {
+    pub data: *mut f64,
+    pub len: usize,
+}
+
+/// Get C-angles array
+///
+/// # Safety
+/// - `handle` must be a valid pointer
+/// - Caller must free with `eulumdat_float_array_free`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_get_c_angles(handle: *const EulumdatHandle) -> FloatArray {
+    if handle.is_null() {
+        return FloatArray {
+            data: ptr::null_mut(),
+            len: 0,
+        };
+    }
+
+    let ldt = &(*handle).inner;
+    let mut angles: Vec<f64> = ldt.c_angles.clone();
+    let len = angles.len();
+    let data = angles.as_mut_ptr();
+    std::mem::forget(angles);
+
+    FloatArray { data, len }
+}
+
+/// Get G-angles array
+///
+/// # Safety
+/// - `handle` must be a valid pointer
+/// - Caller must free with `eulumdat_float_array_free`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_get_g_angles(handle: *const EulumdatHandle) -> FloatArray {
+    if handle.is_null() {
+        return FloatArray {
+            data: ptr::null_mut(),
+            len: 0,
+        };
+    }
+
+    let ldt = &(*handle).inner;
+    let mut angles: Vec<f64> = ldt.g_angles.clone();
+    let len = angles.len();
+    let data = angles.as_mut_ptr();
+    std::mem::forget(angles);
+
+    FloatArray { data, len }
+}
+
+/// Get intensity at given C-index and G-index
+///
+/// # Safety
+/// - `handle` must be a valid pointer
+/// - `c_index` and `g_index` must be valid indices
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_get_intensity_at(
+    handle: *const EulumdatHandle,
+    c_index: usize,
+    g_index: usize,
+) -> f64 {
+    if handle.is_null() {
+        return 0.0;
+    }
+
+    let ldt = &(*handle).inner;
+    if c_index < ldt.intensities.len() && g_index < ldt.intensities[c_index].len() {
+        ldt.intensities[c_index][g_index]
+    } else {
+        0.0
+    }
+}
+
+/// Free a FloatArray
+///
+/// # Safety
+/// - Must be called with a valid FloatArray returned by `eulumdat_get_c_angles` or `eulumdat_get_g_angles`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_float_array_free(array: FloatArray) {
+    if !array.data.is_null() && array.len > 0 {
+        let _ = Vec::from_raw_parts(array.data, array.len, array.len);
     }
 }
 

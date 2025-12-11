@@ -89,6 +89,8 @@ char* eulumdat_polar_svg(const EulumdatHandle* handle, double width, double heig
 char* eulumdat_cartesian_svg(const EulumdatHandle* handle, double width, double height, uint32_t max_curves, int32_t theme);
 char* eulumdat_butterfly_svg(const EulumdatHandle* handle, double width, double height, double tilt_degrees, int32_t theme);
 char* eulumdat_heatmap_svg(const EulumdatHandle* handle, double width, double height, int32_t theme);
+char* eulumdat_bug_svg(const EulumdatHandle* handle, double width, double height, int32_t theme);
+char* eulumdat_lcs_svg(const EulumdatHandle* handle, double width, double height, int32_t theme);
 
 // Export
 char* eulumdat_export_ldt(const EulumdatHandle* handle);
@@ -96,11 +98,22 @@ char* eulumdat_export_ies(const EulumdatHandle* handle);
 
 // Validation
 ValidationWarningList eulumdat_validate(const EulumdatHandle* handle);
+ValidationWarningList eulumdat_get_validation_errors(const EulumdatHandle* handle);
 void eulumdat_validation_list_free(ValidationWarningList list);
 
 // Intensity sampling
 double eulumdat_sample_intensity(const EulumdatHandle* handle, double c_angle, double g_angle);
 double eulumdat_sample_intensity_normalized(const EulumdatHandle* handle, double c_angle, double g_angle);
+
+// Raw data access
+struct FloatArray {
+    double* data;
+    size_t len;
+};
+FloatArray eulumdat_get_c_angles(const EulumdatHandle* handle);
+FloatArray eulumdat_get_g_angles(const EulumdatHandle* handle);
+double eulumdat_get_intensity_at(const EulumdatHandle* handle, size_t c_index, size_t g_index);
+void eulumdat_float_array_free(FloatArray array);
 
 // Helpers
 char* eulumdat_symmetry_name(int32_t symmetry);
@@ -295,6 +308,51 @@ static napi_value GetInfo(napi_env env, napi_callback_info info) {
 }
 
 /**
+ * getLampSets(): LampSetInfo[]
+ * Get lamp set information from the loaded file.
+ */
+static napi_value GetLampSets(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    LampSetList cList = eulumdat_get_lamp_sets(g_handle);
+
+    napi_value result;
+    napi_create_array_with_length(env, cList.len, &result);
+
+    for (size_t i = 0; i < cList.len; i++) {
+        LampSetInfo* cLamp = &cList.data[i];
+
+        napi_value lamp;
+        napi_create_object(env, &lamp);
+
+        napi_value value;
+        napi_create_int32(env, cLamp->num_lamps, &value);
+        napi_set_named_property(env, lamp, "numLamps", value);
+
+        napi_set_named_property(env, lamp, "lampType", CreateStringValue(env, cLamp->lamp_type));
+
+        napi_create_double(env, cLamp->total_luminous_flux, &value);
+        napi_set_named_property(env, lamp, "totalLuminousFlux", value);
+
+        napi_set_named_property(env, lamp, "colorAppearance", CreateStringValue(env, cLamp->color_appearance));
+
+        napi_set_named_property(env, lamp, "colorRenderingGroup", CreateStringValue(env, cLamp->color_rendering_group));
+
+        napi_create_double(env, cLamp->wattage_with_ballast, &value);
+        napi_set_named_property(env, lamp, "wattageWithBallast", value);
+
+        napi_set_element(env, result, i, lamp);
+    }
+
+    eulumdat_lamp_set_list_free(cList);
+
+    return result;
+}
+
+/**
  * polarSvg(width: number, height: number, theme: number): string
  * Generate polar diagram SVG.
  */
@@ -410,6 +468,62 @@ static napi_value HeatmapSvg(napi_env env, napi_callback_info info) {
 }
 
 /**
+ * bugSvg(width: number, height: number, theme: number): string
+ * Generate BUG (Backlight, Uplight, Glare) rating diagram SVG.
+ */
+static napi_value BugSvg(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    size_t argc = 3;
+    napi_value argv[3];
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    double width = 400, height = 350;
+    int32_t theme = 0;
+
+    if (argc >= 1) napi_get_value_double(env, argv[0], &width);
+    if (argc >= 2) napi_get_value_double(env, argv[1], &height);
+    if (argc >= 3) napi_get_value_int32(env, argv[2], &theme);
+
+    char* svg = eulumdat_bug_svg(g_handle, width, height, theme);
+    napi_value result = CreateStringValue(env, svg);
+    eulumdat_string_free(svg);
+
+    return result;
+}
+
+/**
+ * lcsSvg(width: number, height: number, theme: number): string
+ * Generate LCS (Luminaire Classification System) diagram SVG.
+ */
+static napi_value LcsSvg(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    size_t argc = 3;
+    napi_value argv[3];
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    double width = 500, height = 400;
+    int32_t theme = 0;
+
+    if (argc >= 1) napi_get_value_double(env, argv[0], &width);
+    if (argc >= 2) napi_get_value_double(env, argv[1], &height);
+    if (argc >= 3) napi_get_value_int32(env, argv[2], &theme);
+
+    char* svg = eulumdat_lcs_svg(g_handle, width, height, theme);
+    napi_value result = CreateStringValue(env, svg);
+    eulumdat_string_free(svg);
+
+    return result;
+}
+
+/**
  * exportLdt(): string
  * Export to LDT format.
  */
@@ -480,6 +594,42 @@ static napi_value Validate(napi_env env, napi_callback_info info) {
 }
 
 /**
+ * getValidationErrors(): ValidationWarning[]
+ * Get validation errors (strict/fatal issues).
+ */
+static napi_value GetValidationErrors(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    ValidationWarningList cList = eulumdat_get_validation_errors(g_handle);
+
+    napi_value result;
+    napi_create_array_with_length(env, cList.len, &result);
+
+    for (size_t i = 0; i < cList.len; i++) {
+        ValidationWarningC* cError = &cList.data[i];
+
+        napi_value error;
+        napi_create_object(env, &error);
+
+        napi_set_named_property(env, error, "code", CreateStringValue(env, cError->code));
+        napi_set_named_property(env, error, "message", CreateStringValue(env, cError->message));
+
+        napi_value severity;
+        napi_create_int32(env, cError->severity, &severity);
+        napi_set_named_property(env, error, "severity", severity);
+
+        napi_set_element(env, result, i, error);
+    }
+
+    eulumdat_validation_list_free(cList);
+
+    return result;
+}
+
+/**
  * sampleIntensity(cAngle: number, gAngle: number): number
  * Sample intensity at given angles.
  */
@@ -498,6 +648,81 @@ static napi_value SampleIntensity(napi_env env, napi_callback_info info) {
     if (argc >= 2) napi_get_value_double(env, argv[1], &gAngle);
 
     double intensity = eulumdat_sample_intensity(g_handle, cAngle, gAngle);
+
+    napi_value result;
+    napi_create_double(env, intensity, &result);
+    return result;
+}
+
+/**
+ * getCAngles(): number[]
+ * Get array of C-plane angles from the loaded file.
+ */
+static napi_value GetCAngles(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    FloatArray cAngles = eulumdat_get_c_angles(g_handle);
+
+    napi_value result;
+    napi_create_array_with_length(env, cAngles.len, &result);
+
+    for (size_t i = 0; i < cAngles.len; i++) {
+        napi_value value;
+        napi_create_double(env, cAngles.data[i], &value);
+        napi_set_element(env, result, i, value);
+    }
+
+    eulumdat_float_array_free(cAngles);
+    return result;
+}
+
+/**
+ * getGAngles(): number[]
+ * Get array of gamma angles from the loaded file.
+ */
+static napi_value GetGAngles(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    FloatArray gAngles = eulumdat_get_g_angles(g_handle);
+
+    napi_value result;
+    napi_create_array_with_length(env, gAngles.len, &result);
+
+    for (size_t i = 0; i < gAngles.len; i++) {
+        napi_value value;
+        napi_create_double(env, gAngles.data[i], &value);
+        napi_set_element(env, result, i, value);
+    }
+
+    eulumdat_float_array_free(gAngles);
+    return result;
+}
+
+/**
+ * getIntensityAt(cIndex: number, gIndex: number): number
+ * Get intensity at given indices.
+ */
+static napi_value GetIntensityAt(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    size_t argc = 2;
+    napi_value argv[2];
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    int64_t cIndex = 0, gIndex = 0;
+    if (argc >= 1) napi_get_value_int64(env, argv[0], &cIndex);
+    if (argc >= 2) napi_get_value_int64(env, argv[1], &gIndex);
+
+    double intensity = eulumdat_get_intensity_at(g_handle, (size_t)cIndex, (size_t)gIndex);
 
     napi_value result;
     napi_create_double(env, intensity, &result);
@@ -553,14 +778,21 @@ static napi_value Init(napi_env env, napi_value exports) {
         { "parseIes", nullptr, ParseIes, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "isLoaded", nullptr, IsLoaded, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "getInfo", nullptr, GetInfo, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "getLampSets", nullptr, GetLampSets, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "polarSvg", nullptr, PolarSvg, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "cartesianSvg", nullptr, CartesianSvg, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "butterflySvg", nullptr, ButterflySvg, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "heatmapSvg", nullptr, HeatmapSvg, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "bugSvg", nullptr, BugSvg, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "lcsSvg", nullptr, LcsSvg, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "exportLdt", nullptr, ExportLdt, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "exportIes", nullptr, ExportIes, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "validate", nullptr, Validate, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "getValidationErrors", nullptr, GetValidationErrors, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "sampleIntensity", nullptr, SampleIntensity, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "getCAngles", nullptr, GetCAngles, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "getGAngles", nullptr, GetGAngles, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "getIntensityAt", nullptr, GetIntensityAt, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "symmetryName", nullptr, SymmetryName, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "typeIndicatorName", nullptr, TypeIndicatorName, nullptr, nullptr, nullptr, napi_default, nullptr },
     };

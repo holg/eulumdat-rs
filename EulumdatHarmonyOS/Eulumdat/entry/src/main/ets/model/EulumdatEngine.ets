@@ -31,6 +31,18 @@ export interface LuminaireInfo {
 }
 
 /**
+ * Lamp set information
+ */
+export interface LampSetInfo {
+  numLamps: number;
+  lampType: string;
+  totalLuminousFlux: number;
+  colorAppearance: string;
+  colorRenderingGroup: string;
+  wattageWithBallast: number;
+}
+
+/**
  * Validation warning from file validation
  */
 export interface ValidationWarning {
@@ -120,6 +132,13 @@ export class EulumdatEngine {
   }
 
   /**
+   * Get lamp set information from loaded file
+   */
+  public getLampSets(): LampSetInfo[] {
+    return eulumdat_napi.getLampSets();
+  }
+
+  /**
    * Generate polar diagram SVG
    *
    * @param width SVG width in pixels
@@ -170,6 +189,30 @@ export class EulumdatEngine {
   }
 
   /**
+   * Generate BUG (Backlight, Uplight, Glare) rating diagram SVG
+   *
+   * @param width SVG width in pixels
+   * @param height SVG height in pixels
+   * @param theme Light or Dark theme
+   * @returns SVG string
+   */
+  public bugSvg(width: number = 400, height: number = 350, theme: SvgTheme = SvgTheme.Light): string {
+    return eulumdat_napi.bugSvg(width, height, theme);
+  }
+
+  /**
+   * Generate LCS (Luminaire Classification System) diagram SVG
+   *
+   * @param width SVG width in pixels
+   * @param height SVG height in pixels
+   * @param theme Light or Dark theme
+   * @returns SVG string
+   */
+  public lcsSvg(width: number = 500, height: number = 400, theme: SvgTheme = SvgTheme.Light): string {
+    return eulumdat_napi.lcsSvg(width, height, theme);
+  }
+
+  /**
    * Export to LDT format
    */
   public exportLdt(): string {
@@ -184,10 +227,17 @@ export class EulumdatEngine {
   }
 
   /**
-   * Validate the loaded file
+   * Validate the loaded file (warnings)
    */
   public validate(): ValidationWarning[] {
     return eulumdat_napi.validate();
+  }
+
+  /**
+   * Get validation errors (strict/fatal issues)
+   */
+  public getValidationErrors(): ValidationWarning[] {
+    return eulumdat_napi.getValidationErrors();
   }
 
   /**
@@ -199,6 +249,31 @@ export class EulumdatEngine {
    */
   public sampleIntensity(cAngle: number, gAngle: number): number {
     return eulumdat_napi.sampleIntensity(cAngle, gAngle);
+  }
+
+  /**
+   * Get C-plane angles array from the loaded file
+   */
+  public getCAngles(): number[] {
+    return eulumdat_napi.getCAngles();
+  }
+
+  /**
+   * Get gamma angles array from the loaded file
+   */
+  public getGAngles(): number[] {
+    return eulumdat_napi.getGAngles();
+  }
+
+  /**
+   * Get intensity at given indices
+   *
+   * @param cIndex C-plane index
+   * @param gIndex Gamma angle index
+   * @returns Intensity in cd/klm
+   */
+  public getIntensityAt(cIndex: number, gIndex: number): number {
+    return eulumdat_napi.getIntensityAt(cIndex, gIndex);
   }
 
   /**

@@ -2,9 +2,9 @@
 # Build script for Eulumdat HarmonyOS (Cangjie) app
 #
 # This script:
-# 1. Builds the Rust FFI library
+# 1. Cross-compiles the Rust FFI library for HarmonyOS
 # 2. Copies it to libs/ directory
-# 3. Builds the Cangjie app
+# 3. Builds the Cangjie app (optional)
 # 4. Optionally runs the CLI test
 
 set -e  # Exit on error
@@ -44,25 +44,25 @@ info "Building Eulumdat HarmonyOS (Cangjie) app in $BUILD_MODE mode"
 echo
 
 # ============================================================================
-# Step 1: Build Rust FFI Library
+# Step 1: Build Rust FFI Library for HarmonyOS (cross-compile)
 # ============================================================================
 
-info "Step 1: Building Rust FFI library..."
+info "Step 1: Cross-compiling Rust FFI library for aarch64-unknown-linux-ohos..."
 
-cd "$FFI_CRATE"
+cd "$REPO_ROOT"
 
-if [[ "$BUILD_MODE" == "release" ]]; then
-    cargo build --release
-    RUST_LIB="$REPO_ROOT/target/release/libeulumdat_harmonyos_ffi.so"
-else
-    cargo build
-    RUST_LIB="$REPO_ROOT/target/debug/libeulumdat_harmonyos_ffi.so"
+# Ensure target is installed
+if ! rustup target list --installed | grep -q "aarch64-unknown-linux-ohos"; then
+    info "Installing aarch64-unknown-linux-ohos target..."
+    rustup target add aarch64-unknown-linux-ohos
 fi
 
-# Check if library exists
-if [[ ! -f "$RUST_LIB" ]]; then
-    # Try .dylib for macOS
-    RUST_LIB="${RUST_LIB%.so}.dylib"
+if [[ "$BUILD_MODE" == "release" ]]; then
+    cargo build --release -p eulumdat-harmonyos-ffi --target aarch64-unknown-linux-ohos
+    RUST_LIB="$REPO_ROOT/target/aarch64-unknown-linux-ohos/release/libeulumdat_harmonyos_ffi.so"
+else
+    cargo build -p eulumdat-harmonyos-ffi --target aarch64-unknown-linux-ohos
+    RUST_LIB="$REPO_ROOT/target/aarch64-unknown-linux-ohos/debug/libeulumdat_harmonyos_ffi.so"
 fi
 
 if [[ ! -f "$RUST_LIB" ]]; then
@@ -70,6 +70,7 @@ if [[ ! -f "$RUST_LIB" ]]; then
 fi
 
 info "✓ Rust library built: $RUST_LIB"
+file "$RUST_LIB"
 echo
 
 # ============================================================================
@@ -78,17 +79,22 @@ echo
 
 info "Step 2: Copying library to libs/..."
 
+# For DevEco Studio project
+DEVECO_LIBS_DIR="$SCRIPT_DIR/Eulumdat/entry/libs/arm64-v8a"
+mkdir -p "$DEVECO_LIBS_DIR"
+cp "$RUST_LIB" "$DEVECO_LIBS_DIR/"
+
+# Also copy to standalone CLI libs (for local testing with cjpm)
 LIBS_DIR="$SCRIPT_DIR/libs/arm64-v8a"
 mkdir -p "$LIBS_DIR"
-
 cp "$RUST_LIB" "$LIBS_DIR/"
 
-info "✓ Library copied to $LIBS_DIR/"
-ls -lh "$LIBS_DIR/"
+info "✓ Library copied to $DEVECO_LIBS_DIR/"
+ls -lh "$DEVECO_LIBS_DIR/"
 echo
 
 # ============================================================================
-# Step 3: Build Cangjie app
+# Step 3: Build Cangjie app (optional - requires cjpm)
 # ============================================================================
 
 info "Step 3: Building Cangjie app..."
@@ -100,13 +106,11 @@ if ! command -v cjpm &> /dev/null; then
     warn "cjpm not found in PATH"
     warn "Please install Cangjie toolchain from: https://cangjie-lang.cn/en/download"
     warn "Skipping Cangjie build"
-    exit 0
+else
+    # Build with cjpm
+    cjpm build || warn "cjpm build failed (may need native library for local testing)"
+    info "✓ Cangjie app built"
 fi
-
-# Build with cjpm
-cjpm build
-
-info "✓ Cangjie app built"
 echo
 
 # ============================================================================
@@ -133,5 +137,5 @@ fi
 info "Build complete!"
 echo
 info "Next steps:"
-info "  1. Test CLI: ./release/bin/eulumdat_harmonyos"
-info "  2. Or integrate with DevEco Studio for full HarmonyOS app"
+info "  1. Open EulumdatHarmonyOS/Eulumdat in DevEco Studio"
+info "  2. Build and run on HarmonyOS device/emulator"
