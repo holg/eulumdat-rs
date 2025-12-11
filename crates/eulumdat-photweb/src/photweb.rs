@@ -298,11 +298,13 @@ mod tests {
 
     #[test]
     fn test_from_eulumdat() {
-        let mut ldt = Eulumdat::default();
-        ldt.c_angles = vec![0.0, 90.0];
-        ldt.g_angles = vec![0.0, 90.0];
-        ldt.intensities = vec![vec![100.0, 50.0], vec![80.0, 40.0]];
-        ldt.symmetry = Symmetry::None;
+        let ldt = Eulumdat {
+            c_angles: vec![0.0, 90.0],
+            g_angles: vec![0.0, 90.0],
+            intensities: vec![vec![100.0, 50.0], vec![80.0, 40.0]],
+            symmetry: Symmetry::None,
+            ..Default::default()
+        };
 
         let web = PhotometricWeb::from(&ldt);
         assert_eq!(web.max_intensity(), 100.0);

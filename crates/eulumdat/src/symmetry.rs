@@ -345,16 +345,18 @@ mod tests {
 
     #[test]
     fn test_get_intensity_at_exact_angles() {
-        let mut ldt = Eulumdat::default();
-        ldt.symmetry = Symmetry::None;
-        ldt.c_angles = vec![0.0, 90.0, 180.0, 270.0];
-        ldt.g_angles = vec![0.0, 45.0, 90.0];
-        ldt.intensities = vec![
-            vec![100.0, 80.0, 50.0], // C0
-            vec![90.0, 70.0, 40.0],  // C90
-            vec![80.0, 60.0, 30.0],  // C180
-            vec![70.0, 50.0, 20.0],  // C270
-        ];
+        let ldt = Eulumdat {
+            symmetry: Symmetry::None,
+            c_angles: vec![0.0, 90.0, 180.0, 270.0],
+            g_angles: vec![0.0, 45.0, 90.0],
+            intensities: vec![
+                vec![100.0, 80.0, 50.0], // C0
+                vec![90.0, 70.0, 40.0],  // C90
+                vec![80.0, 60.0, 30.0],  // C180
+                vec![70.0, 50.0, 20.0],  // C270
+            ],
+            ..Default::default()
+        };
 
         // Test exact angles
         let i = SymmetryHandler::get_intensity_at(&ldt, 0.0, 0.0);
@@ -366,14 +368,16 @@ mod tests {
 
     #[test]
     fn test_get_intensity_at_interpolated() {
-        let mut ldt = Eulumdat::default();
-        ldt.symmetry = Symmetry::None;
-        ldt.c_angles = vec![0.0, 90.0];
-        ldt.g_angles = vec![0.0, 90.0];
-        ldt.intensities = vec![
-            vec![100.0, 0.0], // C0: 100 at nadir, 0 at horizontal
-            vec![100.0, 0.0], // C90: same
-        ];
+        let ldt = Eulumdat {
+            symmetry: Symmetry::None,
+            c_angles: vec![0.0, 90.0],
+            g_angles: vec![0.0, 90.0],
+            intensities: vec![
+                vec![100.0, 0.0], // C0: 100 at nadir, 0 at horizontal
+                vec![100.0, 0.0], // C90: same
+            ],
+            ..Default::default()
+        };
 
         // Interpolate at G=45 should give ~50 (midpoint)
         let i = SymmetryHandler::get_intensity_at(&ldt, 0.0, 45.0);
@@ -382,15 +386,17 @@ mod tests {
 
     #[test]
     fn test_sample_method() {
-        let mut ldt = Eulumdat::default();
-        ldt.symmetry = Symmetry::BothPlanes;
-        ldt.c_angles = vec![0.0, 45.0, 90.0];
-        ldt.g_angles = vec![0.0, 30.0, 60.0, 90.0];
-        ldt.intensities = vec![
-            vec![100.0, 90.0, 70.0, 40.0], // C0
-            vec![95.0, 85.0, 65.0, 35.0],  // C45
-            vec![90.0, 80.0, 60.0, 30.0],  // C90
-        ];
+        let ldt = Eulumdat {
+            symmetry: Symmetry::BothPlanes,
+            c_angles: vec![0.0, 45.0, 90.0],
+            g_angles: vec![0.0, 30.0, 60.0, 90.0],
+            intensities: vec![
+                vec![100.0, 90.0, 70.0, 40.0], // C0
+                vec![95.0, 85.0, 65.0, 35.0],  // C45
+                vec![90.0, 80.0, 60.0, 30.0],  // C90
+            ],
+            ..Default::default()
+        };
 
         // Test the sample() convenience method
         let i = ldt.sample(0.0, 0.0);
