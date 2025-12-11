@@ -74,7 +74,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --manifest-path crates/eulumdat-py/Cargo.toml -i python3.9 python3.10 python3.11 python3.12 python3.13
-          sccache: 'true'
+          sccache: 'false'
           manylinux: musllinux_1_2
       - name: Upload wheels
         uses: actions/upload-artifact@v4

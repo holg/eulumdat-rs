@@ -171,3 +171,6 @@ EulumdatHarmonyOS/.cjcache/
 *.hap
 *.har
 local.properties
+
+# Release artifacts (built locally for GitHub releases)
+release-artifacts/

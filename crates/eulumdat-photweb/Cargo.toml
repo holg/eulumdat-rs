@@ -13,12 +13,12 @@ documentation = "https://docs.rs/eulumdat-photweb"
 readme = "README.md"
 rust-version = "1.70"
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
 eulumdat = { path = "../eulumdat", version = "0.2.2" }
 
 [dev-dependencies]
 approx = "0.5"
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
