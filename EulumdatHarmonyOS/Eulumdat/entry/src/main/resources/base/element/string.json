@@ -2,19 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "Eulumdat - Photometric Data Viewer"
+      "value": "Photometric data viewer for LDT/IES files"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "View and analyze LDT/IES photometric data files"
+      "value": "Eulumdat - View and analyze photometric data"
     },
     {
       "name": "EntryAbility_label",
       "value": "Eulumdat"
-    },
-    {
-      "name": "permission_read_reason",
-      "value": "Access files to load photometric data"
     },
     {
       "name": "app_name",

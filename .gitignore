@@ -156,3 +156,18 @@ eulumdat-windows-*
 eulumdat-viewer-*
 eulumdat-android.apk
 .env.bak
+
+# HarmonyOS / OpenHarmony
+EulumdatHarmonyOS/Eulumdat/.hvigor/
+EulumdatHarmonyOS/Eulumdat/hvigor/
+EulumdatHarmonyOS/Eulumdat/oh_modules/
+EulumdatHarmonyOS/Eulumdat/entry/build/
+EulumdatHarmonyOS/Eulumdat/entry/libs/
+EulumdatHarmonyOS/Eulumdat/entry/.cxx/
+EulumdatHarmonyOS/Eulumdat/build/
+EulumdatHarmonyOS/libs/
+EulumdatHarmonyOS/.cjcache/
+**/oh-package-lock.json5
+*.hap
+*.har
+local.properties

@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-12-11
+
+### Added
+
+#### eulumdat (core library)
+- **`sample(c_angle, g_angle)`** - Bilinear interpolated intensity sampling at any C/G angle
+- **Symmetry-aware sampling** - Automatic expansion for all symmetry types
+
+#### eulumdat-photweb (NEW)
+- **PhotometricWeb** struct for advanced intensity sampling
+- `sample()` and `sample_normalized()` with bilinear interpolation
+- **LdcMesh** for 3D photometric solid mesh generation
+- Symmetry handling (None, VerticalAxis, PlaneC0C180, PlaneC90C270, BothPlanes)
+- Graphics-ready output (positions, normals, indices)
+
+#### eulumdat-wasm (Web App)
+- **IES file import support** - Upload and convert IES files directly in the browser
+
+#### EulumdatHarmonyOS (NEW)
+- **HarmonyOS/OpenHarmony port** with Cangjie language bindings
+- N-API FFI bridge for native Rust integration
+- Full ArkUI interface with all diagram types
+- eulumdat-harmonyos-ffi crate for C ABI exports
+
+#### macOS/iOS App
+- **Room3DView** - Photometric visualization in 3D room environment
+
+### Fixed
+- HarmonyOS app icon (was incorrectly using GeoDB icon)
+
+---
+
 ## [0.2.1] - 2025-12-08
 
 ### Added

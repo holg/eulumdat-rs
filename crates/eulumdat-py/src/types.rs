@@ -720,6 +720,39 @@ impl Eulumdat {
         self.inner.get_intensity(c_index, g_index)
     }
 
+    /// Sample intensity at any C and G angle using bilinear interpolation.
+    ///
+    /// This method handles symmetry automatically - you can query any angle
+    /// in the full 0-360° C range and 0-180° G range regardless of stored symmetry.
+    ///
+    /// Args:
+    ///     c_angle: C-plane angle in degrees (will be normalized to 0-360)
+    ///     g_angle: Gamma angle in degrees (will be clamped to 0-180)
+    ///
+    /// Returns:
+    ///     Intensity in cd/klm at the specified angle
+    fn sample(&self, c_angle: f64, g_angle: f64) -> f64 {
+        self.inner.sample(c_angle, g_angle)
+    }
+
+    /// Sample normalized intensity (0.0 to 1.0) at any C and G angle.
+    ///
+    /// Returns intensity relative to maximum intensity, useful for visualization.
+    ///
+    /// Args:
+    ///     c_angle: C-plane angle in degrees
+    ///     g_angle: Gamma angle in degrees
+    ///
+    /// Returns:
+    ///     Normalized intensity (0.0 to 1.0)
+    fn sample_normalized(&self, c_angle: f64, g_angle: f64) -> f64 {
+        let max = self.inner.max_intensity();
+        if max <= 0.0 {
+            return 0.0;
+        }
+        self.inner.sample(c_angle, g_angle) / max
+    }
+
     // === Diagram Generation ===
 
     /// Generate a polar diagram SVG.

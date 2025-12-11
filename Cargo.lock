@@ -1400,7 +1400,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "approx",
@@ -1409,7 +1409,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-cli"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -1419,7 +1419,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-egui"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "eframe",
@@ -1434,7 +1434,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ffi"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "eulumdat",
  "thiserror 1.0.69",
@@ -1443,14 +1443,14 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-harmonyos-ffi"
-version = "0.2.0"
+version = "0.2.2"
 dependencies = [
  "eulumdat",
 ]
 
 [[package]]
 name = "eulumdat-photweb"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "approx",
  "eulumdat",
@@ -1458,7 +1458,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-py"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "eulumdat",
  "pyo3",
@@ -1466,7 +1466,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "base64",
  "eulumdat",
@@ -1482,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-windows-preview"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "embed-resource",

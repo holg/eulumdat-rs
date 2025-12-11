@@ -1,170 +1,137 @@
 #!/usr/bin/env bash
+# Build script for Eulumdat HarmonyOS (Cangjie) app
 #
-# Eulumdat HarmonyOS Build Script
-#
-# This script builds the Rust FFI library and prepares it for HarmonyOS integration.
-#
-# Usage:
-#   ./build.sh [release|debug] [run]
-#
-# Examples:
-#   ./build.sh              # Build release
-#   ./build.sh debug        # Build debug
-#   ./build.sh release run  # Build and run CLI test
+# This script:
+# 1. Builds the Rust FFI library
+# 2. Copies it to libs/ directory
+# 3. Builds the Cangjie app
+# 4. Optionally runs the CLI test
 
-set -euo pipefail
+set -e  # Exit on error
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 FFI_CRATE="$REPO_ROOT/crates/eulumdat-harmonyos-ffi"
 
-# Default to release build
-BUILD_TYPE="${1:-release}"
-RUN_TEST="${2:-}"
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-echo "=== Eulumdat HarmonyOS Build ==="
-echo ""
-echo "Repository: $REPO_ROOT"
-echo "Build type: $BUILD_TYPE"
-echo ""
+info() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
 
-# ============================================================================
-# Step 1: Build Rust FFI library
-# ============================================================================
+warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
 
-echo "Step 1: Building Rust FFI library..."
-
-cd "$REPO_ROOT"
-
-if [ "$BUILD_TYPE" = "debug" ]; then
-    cargo build -p eulumdat-harmonyos-ffi
-    RUST_LIB="$REPO_ROOT/target/debug/libeulumdat_harmonyos_ffi"
-else
-    cargo build --release -p eulumdat-harmonyos-ffi
-    RUST_LIB="$REPO_ROOT/target/release/libeulumdat_harmonyos_ffi"
-fi
-
-# Detect platform and library extension
-case "$(uname -s)" in
-    Darwin)
-        RUST_LIB_EXT=".dylib"
-        TARGET_EXT=".so"  # HarmonyOS uses .so
-        ;;
-    Linux)
-        RUST_LIB_EXT=".so"
-        TARGET_EXT=".so"
-        ;;
-    MINGW*|CYGWIN*|MSYS*)
-        RUST_LIB_EXT=".dll"
-        TARGET_EXT=".dll"
-        ;;
-    *)
-        echo "Unknown platform: $(uname -s)"
-        exit 1
-        ;;
-esac
-
-RUST_LIB_FULL="${RUST_LIB}${RUST_LIB_EXT}"
-
-if [ ! -f "$RUST_LIB_FULL" ]; then
-    echo "ERROR: Library not found: $RUST_LIB_FULL"
+error() {
+    echo -e "${RED}[ERROR]${NC} $1"
     exit 1
+}
+
+# Parse arguments
+BUILD_MODE="${1:-release}"  # debug or release
+RUN_TEST="${2:-no}"         # run or no
+
+if [[ "$BUILD_MODE" != "debug" && "$BUILD_MODE" != "release" ]]; then
+    error "Usage: $0 [debug|release] [run|no]"
 fi
 
-echo "  Built: $RUST_LIB_FULL"
-echo ""
+info "Building Eulumdat HarmonyOS (Cangjie) app in $BUILD_MODE mode"
+echo
 
 # ============================================================================
-# Step 2: Copy to libs directory
+# Step 1: Build Rust FFI Library
 # ============================================================================
 
-echo "Step 2: Copying library to app..."
+info "Step 1: Building Rust FFI library..."
 
-# For standalone CLI testing
+cd "$FFI_CRATE"
+
+if [[ "$BUILD_MODE" == "release" ]]; then
+    cargo build --release
+    RUST_LIB="$REPO_ROOT/target/release/libeulumdat_harmonyos_ffi.so"
+else
+    cargo build
+    RUST_LIB="$REPO_ROOT/target/debug/libeulumdat_harmonyos_ffi.so"
+fi
+
+# Check if library exists
+if [[ ! -f "$RUST_LIB" ]]; then
+    # Try .dylib for macOS
+    RUST_LIB="${RUST_LIB%.so}.dylib"
+fi
+
+if [[ ! -f "$RUST_LIB" ]]; then
+    error "Rust library not found at $RUST_LIB"
+fi
+
+info "✓ Rust library built: $RUST_LIB"
+echo
+
+# ============================================================================
+# Step 2: Copy to libs/ directory
+# ============================================================================
+
+info "Step 2: Copying library to libs/..."
+
 LIBS_DIR="$SCRIPT_DIR/libs/arm64-v8a"
 mkdir -p "$LIBS_DIR"
-cp "$RUST_LIB_FULL" "$LIBS_DIR/libeulumdat_harmonyos_ffi${TARGET_EXT}"
 
-# For DevEco Studio project
-DEVECO_LIBS_DIR="$SCRIPT_DIR/Eulumdat/entry/libs/arm64-v8a"
-mkdir -p "$DEVECO_LIBS_DIR"
-cp "$RUST_LIB_FULL" "$DEVECO_LIBS_DIR/libeulumdat_harmonyos_ffi${TARGET_EXT}"
+cp "$RUST_LIB" "$LIBS_DIR/"
 
-echo "  Copied to: $LIBS_DIR"
-echo "  Copied to: $DEVECO_LIBS_DIR"
-echo ""
+info "✓ Library copied to $LIBS_DIR/"
+ls -lh "$LIBS_DIR/"
+echo
 
 # ============================================================================
-# Step 3: Copy Cangjie sources to DevEco project
+# Step 3: Build Cangjie app
 # ============================================================================
 
-echo "Step 3: Copying Cangjie sources to DevEco project..."
+info "Step 3: Building Cangjie app..."
 
-CANGJIE_SRC="$SCRIPT_DIR/src"
-DEVECO_CANGJIE="$SCRIPT_DIR/Eulumdat/entry/src/main/cangjie"
+cd "$SCRIPT_DIR"
 
-mkdir -p "$DEVECO_CANGJIE"
-cp -r "$CANGJIE_SRC/eulumdat" "$DEVECO_CANGJIE/"
-cp -r "$CANGJIE_SRC/ui" "$DEVECO_CANGJIE/" 2>/dev/null || true
-
-echo "  Copied Cangjie sources"
-echo ""
-
-# ============================================================================
-# Step 4: Build standalone CLI (optional)
-# ============================================================================
-
-if command -v cjpm &> /dev/null; then
-    echo "Step 4: Building Cangjie CLI..."
-
-    cd "$SCRIPT_DIR"
-
-    if [ "$BUILD_TYPE" = "debug" ]; then
-        cjpm build || echo "  Note: cjpm build failed (expected if not on HarmonyOS SDK)"
-    else
-        cjpm build --release || echo "  Note: cjpm build failed (expected if not on HarmonyOS SDK)"
-    fi
-
-    echo ""
-else
-    echo "Step 4: Skipping Cangjie CLI build (cjpm not found)"
-    echo "  Note: Install HarmonyOS SDK and cjpm for Cangjie development"
-    echo ""
+# Check if cjpm exists
+if ! command -v cjpm &> /dev/null; then
+    warn "cjpm not found in PATH"
+    warn "Please install Cangjie toolchain from: https://cangjie-lang.cn/en/download"
+    warn "Skipping Cangjie build"
+    exit 0
 fi
 
+# Build with cjpm
+cjpm build
+
+info "✓ Cangjie app built"
+echo
+
 # ============================================================================
-# Step 5: Run test (optional)
+# Step 4: Run test (optional)
 # ============================================================================
 
-if [ "$RUN_TEST" = "run" ]; then
-    echo "Step 5: Running CLI test..."
+if [[ "$RUN_TEST" == "run" ]]; then
+    info "Step 4: Running CLI test..."
+    echo
 
-    CLI_BIN="$SCRIPT_DIR/release/bin/eulumdat_harmonyos"
+    # Set library path for runtime
+    export LD_LIBRARY_PATH="$LIBS_DIR:$LD_LIBRARY_PATH"
+    export DYLD_LIBRARY_PATH="$LIBS_DIR:$DYLD_LIBRARY_PATH"
 
-    if [ -f "$CLI_BIN" ]; then
-        export LD_LIBRARY_PATH="$LIBS_DIR:${LD_LIBRARY_PATH:-}"
-        export DYLD_LIBRARY_PATH="$LIBS_DIR:${DYLD_LIBRARY_PATH:-}"
-
-        "$CLI_BIN"
+    # Run the binary
+    if [[ -f "$SCRIPT_DIR/release/bin/eulumdat_harmonyos" ]]; then
+        "$SCRIPT_DIR/release/bin/eulumdat_harmonyos"
     else
-        echo "  CLI binary not found: $CLI_BIN"
-        echo "  Note: Build with cjpm first"
+        warn "Binary not found at release/bin/eulumdat_harmonyos"
+        warn "This is expected if Cangjie toolchain is not installed"
     fi
-
-    echo ""
 fi
 
-# ============================================================================
-# Done
-# ============================================================================
-
-echo "=== Build Complete ==="
-echo ""
-echo "Next steps:"
-echo "  1. Open EulumdatHarmonyOS/Eulumdat in DevEco Studio"
-echo "  2. Build and run on HarmonyOS device/emulator"
-echo ""
-echo "For ARM64 cross-compilation (Linux/macOS to HarmonyOS):"
-echo "  rustup target add aarch64-linux-ohos"
-echo "  cargo build --release -p eulumdat-harmonyos-ffi --target aarch64-linux-ohos"
-echo ""
+info "Build complete!"
+echo
+info "Next steps:"
+info "  1. Test CLI: ./release/bin/eulumdat_harmonyos"
+info "  2. Or integrate with DevEco Studio for full HarmonyOS app"

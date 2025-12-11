@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Holger Trahe <trahe@mac.com>"]
 license = "MIT OR Apache-2.0"
@@ -12,7 +12,7 @@ homepage = "https://github.com/holg/eulumdat-rs"
 
 [workspace.dependencies]
 # Internal crates
-eulumdat = { path = "crates/eulumdat", version = "0.2.1" }
+eulumdat = { path = "crates/eulumdat", version = "0.2.2" }
 
 # Shared dependencies
 anyhow = "1.0"
