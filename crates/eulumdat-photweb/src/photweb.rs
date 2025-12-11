@@ -12,7 +12,7 @@ pub struct PhotometricWeb {
     c_angles: Vec<f64>,
     /// Gamma angles in degrees (0-180)
     g_angles: Vec<f64>,
-    /// Intensity values in cd/klm, indexed as [c_index][g_index]
+    /// Intensity values in cd/klm, indexed as `[c_index][g_index]`
     intensities: Vec<Vec<f64>>,
     /// Symmetry type
     symmetry: Symmetry,
