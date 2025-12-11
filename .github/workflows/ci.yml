@@ -309,26 +309,29 @@ jobs:
           cd crates/eulumdat-ffi
           cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../../EulumdatAndroid/app/src/main/jniLibs build --release
 
-      - name: Decode keystore
+      - name: Create .env for signing
         if: env.HAS_PLAYSTORE_SECRETS == 'true'
         env:
-          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-        run: echo "$ANDROID_KEYSTORE" | base64 -d > EulumdatAndroid/keystore.jks
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cat > EulumdatAndroid/app/.env << EOF
+          ANDROID_KEYSTORE_BASE64=$ANDROID_KEYSTORE_BASE64
+          KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD
+          KEY_ALIAS=eulumdat
+          KEY_PASSWORD=$KEY_PASSWORD
+          APPLICATION_ID=eu.trahe.eulumdat
+          VERSION_NAME=${{ github.ref_name }}
+          VERSION_CODE=${{ github.run_number }}
+          EOF
 
       - name: Build signed AAB (for Play Store)
         if: env.HAS_PLAYSTORE_SECRETS == 'true'
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd EulumdatAndroid
           chmod +x gradlew
-          ./gradlew bundleRelease --no-daemon \
-            -Pandroid.injected.signing.store.file=keystore.jks \
-            -Pandroid.injected.signing.store.password="$ANDROID_KEYSTORE_PASSWORD" \
-            -Pandroid.injected.signing.key.alias="$ANDROID_KEY_ALIAS" \
-            -Pandroid.injected.signing.key.password="$ANDROID_KEY_PASSWORD"
+          ./gradlew bundleRelease --no-daemon
 
       - name: Deploy to Play Store
         if: env.HAS_PLAYSTORE_SECRETS == 'true'

@@ -83,6 +83,7 @@ struct ContentView: View {
         case cartesian = "Cartesian"
         case butterfly = "Butterfly"
         case butterfly3D = "3D"
+        case room3D = "Room"
         case heatmap = "Heatmap"
         case bug = "BUG"
         case lcs = "LCS"
@@ -516,7 +517,7 @@ struct ContentView: View {
             return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
         case .cartesian:
             return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
-        case .butterfly, .butterfly3D:
+        case .butterfly, .butterfly3D, .room3D:
             return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
         case .heatmap:
             return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
@@ -1546,6 +1547,11 @@ struct DiagramTabView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .shadow(radius: 2)
                 .accessibilityIdentifier("Diagram3DView")
+        } else if selectedDiagram == .room3D {
+            Room3DView(ldt: ldt, isDarkTheme: $isDarkTheme)
+                .frame(width: size * zoomScale, height: size * 0.8 * zoomScale)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityIdentifier("DiagramRoom3DView")
         } else {
             let theme: SvgThemeType = isDarkTheme ? .dark : .light
             SVGView(svgString: generateSVG(type: selectedDiagram, ldt: ldt, size: size * zoomScale, theme: theme))
@@ -1563,7 +1569,7 @@ struct DiagramTabView: View {
             return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
         case .cartesian:
             return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
-        case .butterfly, .butterfly3D:
+        case .butterfly, .butterfly3D, .room3D:
             return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
         case .heatmap:
             return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
@@ -1578,7 +1584,7 @@ struct DiagramTabView: View {
         switch diagram {
         case .polar, .lcs: return 1.0
         case .bug: return 0.85
-        case .butterfly, .butterfly3D: return 0.8
+        case .butterfly, .butterfly3D, .room3D: return 0.8
         case .cartesian: return 0.75
         case .heatmap: return 0.7
         }
@@ -1819,114 +1825,130 @@ struct DiagramWindowView: View {
 
     var body: some View {
         if let ldt = model.ldt {
-            GeometryReader { geometry in
-                let availableWidth = geometry.size.width - 80
-                let availableHeight = geometry.size.height - 80
-                let ratio = aspectRatio(for: model.selectedDiagram)
-                let baseSize = min(availableWidth, availableHeight / ratio)
-
-                // Use ZoomableScrollContainer for pan and zoom support
-                ZStack {
-                    // Background
-                    (model.isDarkTheme ? Color.black : Color.white)
-                        .ignoresSafeArea()
-
-                    ZoomableScrollContainer(zoomScale: $zoomScale, onDoubleClick: {
-                        // Double-click does nothing in fullscreen window
-                    }) {
-                        if model.selectedDiagram == .butterfly3D {
-                            Butterfly3DView(ldt: ldt, isDarkTheme: $model.isDarkTheme)
-                                .frame(width: baseSize * zoomScale, height: baseSize * ratio * zoomScale)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .accessibilityIdentifier("WindowDiagram3D")
-                        } else {
-                            let theme: SvgThemeType = model.isDarkTheme ? .dark : .light
-                            SVGView(svgString: generateSVG(type: model.selectedDiagram, ldt: ldt, size: baseSize * zoomScale, theme: theme))
-                                .frame(width: baseSize * zoomScale, height: baseSize * ratio * zoomScale)
-                                .background(model.isDarkTheme ? Color.black : Color.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .shadow(radius: 4)
-                                .accessibilityIdentifier("WindowDiagramSVG")
+            // Room3D has its own controls, so render it without zoom container/overlays
+            if model.selectedDiagram == .room3D {
+                Room3DView(ldt: ldt, isDarkTheme: $model.isDarkTheme)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .accessibilityIdentifier("WindowDiagramRoom3D")
+                    .navigationTitle("Room - \(ldt.luminaireName)")
+                    .navigationSubtitle("Max: \(Int(ldt.maxIntensity)) cd/klm • Total: \(Int(ldt.totalLuminousFlux)) lm")
+                    .toolbar {
+                        ToolbarItem(placement: .primaryAction) {
+                            Toggle(isOn: $model.isDarkTheme) {
+                                Label("Dark Theme", systemImage: model.isDarkTheme ? "moon.fill" : "sun.max.fill")
+                            }
                         }
                     }
+            } else {
+                GeometryReader { geometry in
+                    let availableWidth = geometry.size.width - 80
+                    let availableHeight = geometry.size.height - 80
+                    let ratio = aspectRatio(for: model.selectedDiagram)
+                    let baseSize = min(availableWidth, availableHeight / ratio)
 
-                    // Zoom info overlay (top-right, non-interactive)
-                    VStack {
-                        HStack {
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("\(Int(baseSize * zoomScale))×\(Int(baseSize * ratio * zoomScale))px")
-                                    .font(.caption)
-                                    .monospacedDigit()
-                                Text("\(Int(zoomScale * 100))%")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                if zoomScale > 1.0 {
-                                    Text("⌘+drag to pan")
+                    // Use ZoomableScrollContainer for pan and zoom support
+                    ZStack {
+                        // Background
+                        (model.isDarkTheme ? Color.black : Color.white)
+                            .ignoresSafeArea()
+
+                        ZoomableScrollContainer(zoomScale: $zoomScale, onDoubleClick: {
+                            // Double-click does nothing in fullscreen window
+                        }) {
+                            if model.selectedDiagram == .butterfly3D {
+                                Butterfly3DView(ldt: ldt, isDarkTheme: $model.isDarkTheme)
+                                    .frame(width: baseSize * zoomScale, height: baseSize * ratio * zoomScale)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .accessibilityIdentifier("WindowDiagram3D")
+                            } else {
+                                let theme: SvgThemeType = model.isDarkTheme ? .dark : .light
+                                SVGView(svgString: generateSVG(type: model.selectedDiagram, ldt: ldt, size: baseSize * zoomScale, theme: theme))
+                                    .frame(width: baseSize * zoomScale, height: baseSize * ratio * zoomScale)
+                                    .background(model.isDarkTheme ? Color.black : Color.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .shadow(radius: 4)
+                                    .accessibilityIdentifier("WindowDiagramSVG")
+                            }
+                        }
+
+                        // Zoom info overlay (top-right, non-interactive)
+                        VStack {
+                            HStack {
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    Text("\(Int(baseSize * zoomScale))×\(Int(baseSize * ratio * zoomScale))px")
+                                        .font(.caption)
+                                        .monospacedDigit()
+                                    Text("\(Int(zoomScale * 100))%")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
+                                    if zoomScale > 1.0 {
+                                        Text("⌘+drag to pan")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
-                            }
-                            .padding(8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                            .padding(8)
-                        }
-                        Spacer()
-                    }
-                    .allowsHitTesting(false)
-
-                    // Zoom controls (bottom center)
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 12) {
-                            Button {
-                                zoomScale = max(zoomScale - 0.25, 0.5)
-                            } label: {
-                                Image(systemName: "minus.magnifyingglass")
-                                    .font(.title2)
-                            }
-                            .keyboardShortcut("-", modifiers: .command)
-
-                            Text("\(Int(zoomScale * 100))%")
-                                .monospacedDigit()
-                                .frame(minWidth: 60)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
+                                .padding(8)
                                 .background(.ultraThinMaterial)
                                 .clipShape(RoundedRectangle(cornerRadius: 6))
-
-                            Button {
-                                zoomScale = min(zoomScale + 0.25, 5.0)
-                            } label: {
-                                Image(systemName: "plus.magnifyingglass")
-                                    .font(.title2)
+                                .padding(8)
                             }
-                            .keyboardShortcut("+", modifiers: .command)
-
-                            Divider()
-                                .frame(height: 20)
-
-                            Button {
-                                zoomScale = 1.0
-                            } label: {
-                                Text("Reset")
-                            }
-                            .keyboardShortcut("0", modifiers: .command)
+                            Spacer()
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding()
+                        .allowsHitTesting(false)
+
+                        // Zoom controls (bottom center)
+                        VStack {
+                            Spacer()
+                            HStack(spacing: 12) {
+                                Button {
+                                    zoomScale = max(zoomScale - 0.25, 0.5)
+                                } label: {
+                                    Image(systemName: "minus.magnifyingglass")
+                                        .font(.title2)
+                                }
+                                .keyboardShortcut("-", modifiers: .command)
+
+                                Text("\(Int(zoomScale * 100))%")
+                                    .monospacedDigit()
+                                    .frame(minWidth: 60)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                                Button {
+                                    zoomScale = min(zoomScale + 0.25, 5.0)
+                                } label: {
+                                    Image(systemName: "plus.magnifyingglass")
+                                        .font(.title2)
+                                }
+                                .keyboardShortcut("+", modifiers: .command)
+
+                                Divider()
+                                    .frame(height: 20)
+
+                                Button {
+                                    zoomScale = 1.0
+                                } label: {
+                                    Text("Reset")
+                                }
+                                .keyboardShortcut("0", modifiers: .command)
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding()
+                        }
                     }
                 }
-            }
-            .navigationTitle("\(model.selectedDiagram.rawValue) - \(ldt.luminaireName)")
-            .navigationSubtitle("Max: \(Int(ldt.maxIntensity)) cd/klm • Total: \(Int(ldt.totalLuminousFlux)) lm")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Toggle(isOn: $model.isDarkTheme) {
-                        Label("Dark Theme", systemImage: model.isDarkTheme ? "moon.fill" : "sun.max.fill")
+                .navigationTitle("\(model.selectedDiagram.rawValue) - \(ldt.luminaireName)")
+                .navigationSubtitle("Max: \(Int(ldt.maxIntensity)) cd/klm • Total: \(Int(ldt.totalLuminousFlux)) lm")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Toggle(isOn: $model.isDarkTheme) {
+                            Label("Dark Theme", systemImage: model.isDarkTheme ? "moon.fill" : "sun.max.fill")
+                        }
                     }
                 }
             }
@@ -1949,7 +1971,7 @@ struct DiagramWindowView: View {
             return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
         case .cartesian:
             return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
-        case .butterfly, .butterfly3D:
+        case .butterfly, .butterfly3D, .room3D:
             return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
         case .heatmap:
             return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
@@ -1964,7 +1986,7 @@ struct DiagramWindowView: View {
         switch diagram {
         case .polar, .lcs: return 1.0
         case .bug: return 0.85
-        case .butterfly, .butterfly3D: return 0.8
+        case .butterfly, .butterfly3D, .room3D: return 0.8
         case .cartesian: return 0.75
         case .heatmap: return 0.7
         }
@@ -1983,35 +2005,62 @@ struct DiagramFullscreenView: View {
     @State private var zoomScale: CGFloat = 1.0
 
     var body: some View {
-        NavigationStack {
-            GeometryReader { geometry in
-                let size = min(geometry.size.width, geometry.size.height) - 40
+        // Room3D has its own controls, render without navigation chrome
+        if selectedDiagram == .room3D {
+            ZStack {
+                Room3DView(ldt: ldt, isDarkTheme: $isDarkTheme)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .ignoresSafeArea()
 
-                ScrollView([.horizontal, .vertical], showsIndicators: true) {
-                    VStack {
-                        Spacer(minLength: 0)
-                        HStack {
-                            Spacer(minLength: 0)
-                            diagramContent(size: size)
-                            Spacer(minLength: 0)
+                // Minimal close button overlay
+                VStack {
+                    HStack {
+                        Button {
+                            isPresented = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title)
+                                .foregroundStyle(.white.opacity(0.8))
+                                .background(Circle().fill(.black.opacity(0.3)))
                         }
-                        Spacer(minLength: 0)
+                        .padding()
+                        Spacer()
                     }
-                    .frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
+                    Spacer()
                 }
             }
-            .background(isDarkTheme ? Color.black : Color.white)
-            .navigationTitle(ldt.luminaireName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        isPresented = false
+            .background(Color.black)
+        } else {
+            NavigationStack {
+                GeometryReader { geometry in
+                    let size = min(geometry.size.width, geometry.size.height) - 40
+
+                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                        VStack {
+                            Spacer(minLength: 0)
+                            HStack {
+                                Spacer(minLength: 0)
+                                diagramContent(size: size)
+                                Spacer(minLength: 0)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
                     }
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Toggle(isOn: $isDarkTheme) {
-                        Image(systemName: isDarkTheme ? "moon.fill" : "sun.max.fill")
+                .background(isDarkTheme ? Color.black : Color.white)
+                .navigationTitle(ldt.luminaireName)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            isPresented = false
+                        }
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        Toggle(isOn: $isDarkTheme) {
+                            Image(systemName: isDarkTheme ? "moon.fill" : "sun.max.fill")
+                        }
                     }
                 }
             }
@@ -2039,7 +2088,7 @@ struct DiagramFullscreenView: View {
             return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
         case .cartesian:
             return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
-        case .butterfly, .butterfly3D:
+        case .butterfly, .butterfly3D, .room3D:
             return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
         case .heatmap:
             return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
@@ -2054,7 +2103,7 @@ struct DiagramFullscreenView: View {
         switch diagram {
         case .polar, .lcs: return 1.0
         case .bug: return 0.85
-        case .butterfly, .butterfly3D: return 0.8
+        case .butterfly, .butterfly3D, .room3D: return 0.8
         case .cartesian: return 0.75
         case .heatmap: return 0.7
         }

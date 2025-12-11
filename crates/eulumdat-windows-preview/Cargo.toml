@@ -4,7 +4,10 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "Windows Preview Handler for EULUMDAT (LDT) and IES photometric files"
+keywords = ["eulumdat", "ldt", "ies", "windows", "preview"]
+categories = ["os::windows-apis"]
 
 [lib]
 crate-type = ["cdylib"]

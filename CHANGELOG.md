@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.1] - 2024-12-08
+## [0.2.1] - 2025-12-08
 
 ### Added
 
@@ -35,7 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch conversion support
 - Modular code organization matching core library
 
+#### eulumdat-windows-preview (NEW)
+- **Windows Shell Preview Handler** for File Explorer
+- Preview LDT files in Explorer's preview pane (Alt+P)
+- Renders polar diagram SVG
+
 #### macOS/iOS App (EulumdatApp)
+- **QuickLook Extension** - Preview .ldt files directly in Finder (press Space)
 - **Intensity tab improvements**:
   - Copy CSV button for exporting data to spreadsheets
   - Color toggle to show/hide heatmap coloring
@@ -48,18 +54,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated launcher icon with "LDT/IES" text
 
 #### CI/CD
+- All crates published to crates.io (eulumdat, cli, egui, ffi, wasm, py, windows-preview)
+- Python wheels published to PyPI for all platforms
 - GitHub Actions workflow for building GUI binaries (Windows, macOS, Linux)
 - Android APK builds included in releases
+- Swift XCFramework builds and releases
 - Optional Google Play Store deployment
 
 ### Changed
-- Renamed `eulumdat-egui` binary to `eulumdat-viewer` to avoid naming conflicts
 - Improved intensity table layout with smaller, more compact cells
 - Validation tab now shows both errors (red) and warnings (yellow)
+- Release artifacts categorized by type (cli-*, gui-*, android-*)
 
 ### Fixed
 - Python bindings error handling compatibility with nightly Rust
 - App icons now use solid background (no alpha channel) for App Store compliance
+- Swift workflow patching for UniFFI generated bindings
+- crates.io publishing with proper version specifications
 
 ## [0.2.0] - 2024-11-15
 

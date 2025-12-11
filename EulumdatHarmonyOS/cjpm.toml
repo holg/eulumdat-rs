@@ -1,0 +1,14 @@
+# Eulumdat HarmonyOS - Cangjie Package Configuration
+#
+# This file configures the standalone Cangjie CLI build.
+# For DevEco Studio integration, see the Eulumdat/ directory.
+
+[package]
+name = "eulumdat_harmonyos"
+version = "0.2.0"
+description = "Eulumdat photometric data viewer for HarmonyOS"
+output-type = "executable"
+
+[build]
+# Link against the Rust FFI library
+link-args = ["-leulumdat_harmonyos_ffi", "-L./libs/arm64-v8a"]

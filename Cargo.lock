@@ -1442,6 +1442,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "eulumdat-harmonyos-ffi"
+version = "0.2.0"
+dependencies = [
+ "eulumdat",
+]
+
+[[package]]
+name = "eulumdat-photweb"
+version = "0.2.1"
+dependencies = [
+ "approx",
+ "eulumdat",
+]
+
+[[package]]
 name = "eulumdat-py"
 version = "0.2.1"
 dependencies = [

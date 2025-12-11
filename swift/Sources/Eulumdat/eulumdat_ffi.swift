@@ -4600,6 +4600,44 @@ public func parseLdt(content: String)throws  -> Eulumdat {
 })
 }
 /**
+ * Sample intensity at any C and G angle using bilinear interpolation.
+ *
+ * This handles symmetry automatically and interpolates between stored data points.
+ * Useful for generating smooth 3D meshes or querying intensity at arbitrary angles.
+ *
+ * # Arguments
+ * * `ldt` - The Eulumdat data
+ * * `c_angle` - C-plane angle in degrees (0-360, will be normalized)
+ * * `g_angle` - Gamma angle in degrees (0-180, will be clamped)
+ *
+ * # Returns
+ * Intensity in cd/klm
+ */
+public func sampleIntensity(ldt: Eulumdat, cAngle: Double, gAngle: Double) -> Double {
+    return try!  FfiConverterDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_sample_intensity(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(cAngle),
+        FfiConverterDouble.lower(gAngle),$0
+    )
+})
+}
+/**
+ * Sample normalized intensity (0.0 to 1.0) at any C and G angle.
+ *
+ * Returns intensity divided by max_intensity. Useful for mesh generation
+ * where distance from center should be proportional to intensity.
+ */
+public func sampleIntensityNormalized(ldt: Eulumdat, cAngle: Double, gAngle: Double) -> Double {
+    return try!  FfiConverterDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_sample_intensity_normalized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(cAngle),
+        FfiConverterDouble.lower(gAngle),$0
+    )
+})
+}
+/**
  * Validate Eulumdat data and return warnings
  */
 public func validateLdt(ldt: Eulumdat) -> [ValidationWarning] {
@@ -4707,6 +4745,12 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_parse_ldt() != 27501) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_sample_intensity() != 50276) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_sample_intensity_normalized() != 43091) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_validate_ldt() != 34444) {

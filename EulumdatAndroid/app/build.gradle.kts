@@ -1,18 +1,36 @@
+import java.util.Base64
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
+// Load .env file from app directory
+val envFile = file(".env")
+val envProperties = Properties().apply {
+    if (envFile.exists()) {
+        envFile.inputStream().use { load(it) }
+    }
+}
+
+fun getEnvProperty(key: String, default: String = ""): String {
+    return envProperties.getProperty(key) ?: System.getenv(key) ?: default
+}
+
 android {
     namespace = "eu.trahe.eulumdat"
-    compileSdk = 34
+    compileSdk = 35
+
+    // Name output files as "eulumdat-release.aab" instead of "app-release.aab"
+    base.archivesName.set("eulumdat")
 
     defaultConfig {
-        applicationId = "eu.trahe.eulumdat"
+        applicationId = getEnvProperty("APPLICATION_ID", "eu.trahe.eulumdat")
         minSdk = 26
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.2.0"
+        targetSdk = 35
+        versionCode = getEnvProperty("VERSION_CODE", "1").toIntOrNull() ?: 1
+        versionName = getEnvProperty("VERSION_NAME", "0.2.1")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,13 +43,49 @@ android {
         }
     }
 
+    // Signing configuration - supports local file OR base64 (for CI)
+    signingConfigs {
+        create("release") {
+            // Option 1: Local keystore file (for local development)
+            val localKeystore = file("eulumdat.keystore")
+
+            // Option 2: Base64 encoded keystore from .env (for CI/CD)
+            val keystoreBase64 = getEnvProperty("ANDROID_KEYSTORE_BASE64")
+
+            when {
+                localKeystore.exists() -> {
+                    // Use local keystore file
+                    storeFile = localKeystore
+                    storePassword = getEnvProperty("KEYSTORE_PASSWORD")
+                    keyAlias = getEnvProperty("KEY_ALIAS", "eulumdat")
+                    keyPassword = getEnvProperty("KEY_PASSWORD")
+                }
+                keystoreBase64.isNotEmpty() -> {
+                    // Decode base64 keystore to temp file (CI/CD)
+                    val keystoreFile = File.createTempFile("keystore", ".jks", buildDir)
+                    keystoreFile.writeBytes(Base64.getDecoder().decode(keystoreBase64))
+                    storeFile = keystoreFile
+                    storePassword = getEnvProperty("KEYSTORE_PASSWORD")
+                    keyAlias = getEnvProperty("KEY_ALIAS", "eulumdat")
+                    keyPassword = getEnvProperty("KEY_PASSWORD")
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Use release signing if configured
+            val releaseConfig = signingConfigs.findByName("release")
+            if (releaseConfig?.storeFile != null) {
+                signingConfig = releaseConfig
+            }
         }
     }
 

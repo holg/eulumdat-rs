@@ -82,6 +82,10 @@ Configuration/Development.xcconfig
 
 ## Certificates (sensitive)
 *.p12
+
+## Android keystores (sensitive)
+*.keystore
+*.jks
 *.cer
 *.certSigningRequest
 
@@ -151,3 +155,4 @@ eulumdat-macos-*
 eulumdat-windows-*
 eulumdat-viewer-*
 eulumdat-android.apk
+.env.bak

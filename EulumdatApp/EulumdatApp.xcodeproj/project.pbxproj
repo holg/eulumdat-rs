@@ -10,8 +10,10 @@
 		213C0A882EE44458008B665C /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213C0A872EE44458008B665C /* QuickLook.framework */; };
 		213C0A942EE44458008B665C /* LdtPreview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 213C0A852EE44458008B665C /* LdtPreview.appex */; platformFilters = (macos, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		21618C1B2EE31CAE0023823F /* ValidationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21618C192EE31CAE0023823F /* ValidationView.swift */; };
+		218980FF2EE8CE1E00BC4390 /* Packages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 218980FE2EE8CE1700BC4390 /* Packages.swift */; };
 		21B842A62EE219F600502C5E /* Butterfly3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B842A52EE219F600502C5E /* Butterfly3DView.swift */; };
 		21B842AA2EE21A0400502C5E /* Templates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B842A92EE21A0400502C5E /* Templates.swift */; };
+		21B842B02EE219F700502C5E /* Room3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B842AF2EE219F700502C5E /* Room3DView.swift */; };
 		21B842DC2EE2230300502C5E /* BatchConvertView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B842DB2EE2230300502C5E /* BatchConvertView.swift */; };
 		21B842E52EE2235B00502C5E /* road_luminaire.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842E22EE2235B00502C5E /* road_luminaire.ldt */; };
 		21B842E62EE2235B00502C5E /* floor_uplight.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842DF2EE2235B00502C5E /* floor_uplight.ldt */; };
@@ -63,8 +65,10 @@
 		213C0A852EE44458008B665C /* LdtPreview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LdtPreview.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		213C0A872EE44458008B665C /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
 		21618C192EE31CAE0023823F /* ValidationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationView.swift; sourceTree = "<group>"; };
+		218980FE2EE8CE1700BC4390 /* Packages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Packages.swift; sourceTree = "<group>"; };
 		21B842A52EE219F600502C5E /* Butterfly3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Butterfly3DView.swift; sourceTree = "<group>"; };
 		21B842A92EE21A0400502C5E /* Templates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Templates.swift; sourceTree = "<group>"; };
+		21B842AF2EE219F700502C5E /* Room3DView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Room3DView.swift; sourceTree = "<group>"; };
 		21B842DB2EE2230300502C5E /* BatchConvertView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchConvertView.swift; sourceTree = "<group>"; };
 		21B842DD2EE2235B00502C5E /* 0-2-0.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "0-2-0.ldt"; sourceTree = "<group>"; };
 		21B842DE2EE2235B00502C5E /* 1-1-0.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "1-1-0.ldt"; sourceTree = "<group>"; };
@@ -168,9 +172,11 @@
 		A5000002 /* EulumdatApp */ = {
 			isa = PBXGroup;
 			children = (
+				218980FE2EE8CE1700BC4390 /* Packages.swift */,
 				A2000001 /* EulumdatApp.swift */,
 				A2000002 /* ContentView.swift */,
 				21B842A52EE219F600502C5E /* Butterfly3DView.swift */,
+				21B842AF2EE219F700502C5E /* Room3DView.swift */,
 				A2000003 /* SVGView.swift */,
 				21B842A92EE21A0400502C5E /* Templates.swift */,
 				21618C192EE31CAE0023823F /* ValidationView.swift */,
@@ -361,8 +367,10 @@
 				A1000003 /* SVGView.swift in Sources */,
 				21618C1B2EE31CAE0023823F /* ValidationView.swift in Sources */,
 				21B842A62EE219F600502C5E /* Butterfly3DView.swift in Sources */,
+				21B842B02EE219F700502C5E /* Room3DView.swift in Sources */,
 				21B842AA2EE21A0400502C5E /* Templates.swift in Sources */,
 				21B842DC2EE2230300502C5E /* BatchConvertView.swift in Sources */,
+				218980FF2EE8CE1E00BC4390 /* Packages.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -394,7 +402,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -409,7 +417,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -431,7 +439,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -446,7 +454,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -586,7 +594,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = EulumdatApp/EulumdatApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -607,7 +615,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.1;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
@@ -625,7 +633,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = EulumdatApp/EulumdatApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -646,7 +654,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.1;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
@@ -661,12 +669,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.EulumdatAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -682,12 +690,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.EulumdatAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;

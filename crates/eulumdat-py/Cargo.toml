@@ -1,9 +1,9 @@
 [package]
 name = "eulumdat-py"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
+version = "0.2.1"  # Must be explicit for maturin (workspace inheritance not supported)
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/holg/eulumdat-rs"
 description = "Python bindings for eulumdat photometric file parsing library"
 
 [lib]

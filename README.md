@@ -16,15 +16,25 @@ A Rust workspace for parsing, writing, and analyzing **EULUMDAT (LDT)** and **IE
 | [eulumdat-py](crates/eulumdat-py) | Python bindings (PyO3) |
 | [eulumdat-ffi](crates/eulumdat-ffi) | FFI bindings (UniFFI) for Swift, Kotlin, etc. |
 | [eulumdat-wasm](crates/eulumdat-wasm) | WebAssembly editor |
+| [eulumdat-windows-preview](crates/eulumdat-windows-preview) | Windows Shell Preview Handler for File Explorer |
 
 ## Applications
 
-| Platform | Description |
-|----------|-------------|
-| **Desktop (egui)** | Cross-platform native app via `cargo install eulumdat-egui` |
-| **macOS/iOS** | Native SwiftUI app in [EulumdatApp](EulumdatApp/) |
-| **Android** | Native Jetpack Compose app in [EulumdatAndroid](EulumdatAndroid/) |
-| **Web** | Browser-based editor via WebAssembly |
+| Platform | Description | Status |
+|----------|-------------|--------|
+| **macOS/iOS** | Native SwiftUI app with **QuickLook extension** | Available |
+| **Android** | Native Jetpack Compose app with Material 3 | Available |
+| **Desktop (egui)** | Cross-platform GUI (Windows, macOS, Linux) | Available |
+| **Windows Preview** | File Explorer preview pane integration | Available |
+| **Web** | Browser-based editor via WebAssembly | Beta |
+
+### macOS QuickLook Extension
+
+Preview LDT files directly in Finder with polar diagrams - no need to open an app!
+
+- **Finder Preview**: Select any `.ldt` file and press Space for instant preview
+- **Quick Look**: Beautiful polar diagram visualization in Finder's preview pane
+- **Universal Binary**: Native support for Apple Silicon and Intel Macs
 
 ## Features
 
@@ -57,7 +67,7 @@ cargo install eulumdat-cli
 
 ```bash
 cargo install eulumdat-egui
-eulumdat-viewer  # Launch the GUI
+eulumdat-egui  # Launch the GUI
 ```
 
 ### Python
@@ -188,12 +198,14 @@ open EulumdatApp.xcodeproj
 ```
 
 Features:
-- Universal app (macOS + iOS)
-- All diagram types with interactive viewing
-- QuickLook extension for .ldt files
-- Template library for quick testing
-- Export to SVG, IES, LDT
-- Intensity table with CSV copy and color toggle
+- **Universal app** - Single binary for macOS (Intel + Apple Silicon) and iOS
+- **QuickLook Extension** - Preview .ldt files directly in Finder (press Space)
+- **All diagram types** - Polar, Butterfly, Cartesian, Heatmap, BUG, LCS
+- **Interactive 3D view** - Rotate and zoom butterfly diagrams
+- **Template library** - Built-in sample luminaires for testing
+- **Full validation** - All 44 specification constraints checked
+- **Export options** - SVG, IES, LDT formats
+- **Intensity table** - Copy as CSV, toggle color highlighting
 
 ### Android
 
@@ -206,11 +218,13 @@ cd EulumdatAndroid
 ```
 
 Features:
-- Material 3 design
-- All diagram types including interactive 3D view
-- Template library
-- File picker for .ldt/.ies files
-- Export functionality
+- **Material 3 design** - Modern Android UI following latest guidelines
+- **All diagram types** - Polar, Butterfly, Cartesian, Heatmap, BUG, LCS
+- **Interactive 3D view** - Touch gestures to rotate butterfly diagrams
+- **Template library** - Sample luminaires included
+- **File picker** - Open .ldt/.ies from device storage
+- **Share & Export** - SVG export with Android share sheet
+- **Multi-architecture** - ARM64, ARMv7, x86_64 native libraries
 
 ## Diagram Types
 

@@ -376,6 +376,16 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_parse_ies(RustBuffer content, RustCallSta
 RustBuffer uniffi_eulumdat_ffi_fn_func_parse_ldt(RustBuffer content, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SAMPLE_INTENSITY
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SAMPLE_INTENSITY
+double uniffi_eulumdat_ffi_fn_func_sample_intensity(RustBuffer ldt, double c_angle, double g_angle, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SAMPLE_INTENSITY_NORMALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SAMPLE_INTENSITY_NORMALIZED
+double uniffi_eulumdat_ffi_fn_func_sample_intensity_normalized(RustBuffer ldt, double c_angle, double g_angle, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_VALIDATE_LDT
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_VALIDATE_LDT
 RustBuffer uniffi_eulumdat_ffi_fn_func_validate_ldt(RustBuffer ldt, RustCallStatus *_Nonnull out_status
@@ -813,6 +823,18 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_parse_ies(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_PARSE_LDT
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_PARSE_LDT
 uint16_t uniffi_eulumdat_ffi_checksum_func_parse_ldt(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SAMPLE_INTENSITY
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SAMPLE_INTENSITY
+uint16_t uniffi_eulumdat_ffi_checksum_func_sample_intensity(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SAMPLE_INTENSITY_NORMALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SAMPLE_INTENSITY_NORMALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_sample_intensity_normalized(void
     
 );
 #endif

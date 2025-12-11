@@ -342,4 +342,68 @@ mod tests {
         assert!((x - 1.0).abs() < 0.001);
         assert!((y - 0.0).abs() < 0.001);
     }
+
+    #[test]
+    fn test_get_intensity_at_exact_angles() {
+        let mut ldt = Eulumdat::default();
+        ldt.symmetry = Symmetry::None;
+        ldt.c_angles = vec![0.0, 90.0, 180.0, 270.0];
+        ldt.g_angles = vec![0.0, 45.0, 90.0];
+        ldt.intensities = vec![
+            vec![100.0, 80.0, 50.0], // C0
+            vec![90.0, 70.0, 40.0],  // C90
+            vec![80.0, 60.0, 30.0],  // C180
+            vec![70.0, 50.0, 20.0],  // C270
+        ];
+
+        // Test exact angles
+        let i = SymmetryHandler::get_intensity_at(&ldt, 0.0, 0.0);
+        assert!((i - 100.0).abs() < 0.001);
+
+        let i = SymmetryHandler::get_intensity_at(&ldt, 90.0, 45.0);
+        assert!((i - 70.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_get_intensity_at_interpolated() {
+        let mut ldt = Eulumdat::default();
+        ldt.symmetry = Symmetry::None;
+        ldt.c_angles = vec![0.0, 90.0];
+        ldt.g_angles = vec![0.0, 90.0];
+        ldt.intensities = vec![
+            vec![100.0, 0.0], // C0: 100 at nadir, 0 at horizontal
+            vec![100.0, 0.0], // C90: same
+        ];
+
+        // Interpolate at G=45 should give ~50 (midpoint)
+        let i = SymmetryHandler::get_intensity_at(&ldt, 0.0, 45.0);
+        assert!((i - 50.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_sample_method() {
+        let mut ldt = Eulumdat::default();
+        ldt.symmetry = Symmetry::BothPlanes;
+        ldt.c_angles = vec![0.0, 45.0, 90.0];
+        ldt.g_angles = vec![0.0, 30.0, 60.0, 90.0];
+        ldt.intensities = vec![
+            vec![100.0, 90.0, 70.0, 40.0], // C0
+            vec![95.0, 85.0, 65.0, 35.0],  // C45
+            vec![90.0, 80.0, 60.0, 30.0],  // C90
+        ];
+
+        // Test the sample() convenience method
+        let i = ldt.sample(0.0, 0.0);
+        assert!((i - 100.0).abs() < 0.001);
+
+        // Test symmetry - C180 should mirror C0
+        let i_c0 = ldt.sample(0.0, 30.0);
+        let i_c180 = ldt.sample(180.0, 30.0);
+        assert!((i_c0 - i_c180).abs() < 0.001);
+
+        // Test symmetry - C270 should mirror C90
+        let i_c90 = ldt.sample(90.0, 60.0);
+        let i_c270 = ldt.sample(270.0, 60.0);
+        assert!((i_c90 - i_c270).abs() < 0.001);
+    }
 }

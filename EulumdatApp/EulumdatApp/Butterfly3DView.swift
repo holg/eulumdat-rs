@@ -103,43 +103,61 @@ class SceneKitRenderer {
     func createScene() -> SCNScene {
         let scene = SCNScene()
 
-        // Camera
+        // Camera with better default position
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
         cameraNode.camera?.zNear = 0.01
         cameraNode.camera?.zFar = 100
-        cameraNode.position = SCNVector3(0, 1.2, 2.5)
+        cameraNode.camera?.fieldOfView = 45
+        cameraNode.camera?.wantsHDR = true
+        cameraNode.camera?.bloomIntensity = 0.3
+        cameraNode.camera?.bloomThreshold = 0.8
+        cameraNode.position = SCNVector3(0, 1.0, 2.8)
         cameraNode.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(cameraNode)
 
-        // Lighting setup
+        // Enhanced lighting setup for better material rendering
         let ambientLight = SCNNode()
         ambientLight.light = SCNLight()
         ambientLight.light?.type = .ambient
-        ambientLight.light?.intensity = 400
+        ambientLight.light?.intensity = 300
         #if os(macOS)
-        ambientLight.light?.color = NSColor.white
+        ambientLight.light?.color = NSColor(white: 0.9, alpha: 1)
         #else
-        ambientLight.light?.color = UIColor.white
+        ambientLight.light?.color = UIColor(white: 0.9, alpha: 1)
         #endif
         scene.rootNode.addChildNode(ambientLight)
 
+        // Key light (main directional light)
         let keyLight = SCNNode()
         keyLight.light = SCNLight()
         keyLight.light?.type = .directional
-        keyLight.light?.intensity = 800
+        keyLight.light?.intensity = 1000
         keyLight.light?.castsShadow = true
+        keyLight.light?.shadowMode = .deferred
+        keyLight.light?.shadowSampleCount = 8
+        keyLight.light?.shadowRadius = 3
         keyLight.position = SCNVector3(3, 5, 3)
         keyLight.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(keyLight)
 
+        // Fill light (softer, from opposite side)
         let fillLight = SCNNode()
         fillLight.light = SCNLight()
         fillLight.light?.type = .directional
-        fillLight.light?.intensity = 300
+        fillLight.light?.intensity = 400
         fillLight.position = SCNVector3(-3, 2, -1)
         fillLight.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(fillLight)
+
+        // Rim light for edge definition
+        let rimLight = SCNNode()
+        rimLight.light = SCNLight()
+        rimLight.light?.type = .directional
+        rimLight.light?.intensity = 200
+        rimLight.position = SCNVector3(0, -2, -3)
+        rimLight.look(at: SCNVector3(0, 0, 0))
+        scene.rootNode.addChildNode(rimLight)
 
         // Photometric solid
         let solidNode = SCNNode()
@@ -156,30 +174,28 @@ class SceneKitRenderer {
     private func buildPhotometricMesh(parent: SCNNode) {
         guard !ldt.intensities.isEmpty, !ldt.gAngles.isEmpty else { return }
 
-        let maxIntensity = max(ldt.maxIntensity, 1.0)
-        let expandedCPlanes = expandCPlanes()
+        // Use high-quality sampling with interpolation via FFI
+        // This creates smoother meshes than using raw stored angles
+        let cStep: Double = 5.0  // Sample every 5 degrees for smooth mesh
+        let gStep: Double = 2.5  // Finer gamma resolution
 
-        guard expandedCPlanes.count >= 2 else {
-            buildSimpleWings(parent: parent, cPlaneData: expandedCPlanes, maxIntensity: maxIntensity)
-            return
-        }
-
-        let numC = expandedCPlanes.count
-        let numG = ldt.gAngles.count
+        let numC = Int(360.0 / cStep)
+        let numG = Int(180.0 / gStep) + 1
 
         var vertices: [SCNVector3] = []
         var normals: [SCNVector3] = []
         var colors: [CGFloat] = []
         var indices: [Int32] = []
 
-        for (_, cData) in expandedCPlanes.enumerated() {
-            let cAngle = cData.0
-            let intensities = cData.1
+        for ci in 0..<numC {
+            let cAngle = Double(ci) * cStep
             let cRad = Float(cAngle * .pi / 180.0)
 
-            for (gIndex, gAngle) in ldt.gAngles.enumerated() {
-                let intensity = gIndex < intensities.count ? intensities[gIndex] : 0
-                let normalizedIntensity = intensity / maxIntensity
+            for gi in 0..<numG {
+                let gAngle = Double(gi) * gStep
+
+                // Use FFI sampling with bilinear interpolation
+                let normalizedIntensity = sampleIntensityNormalized(ldt: ldt, cAngle: cAngle, gAngle: gAngle)
                 let r = Float(normalizedIntensity)
                 let gRad = Float(gAngle * .pi / 180.0)
 
@@ -241,10 +257,10 @@ class SceneKitRenderer {
 
         let material = SCNMaterial()
         material.isDoubleSided = true
-        material.lightingModel = .physicallyBased
-        material.metalness.contents = 0.0
-        material.roughness.contents = 0.5
+        // Use constant lighting - colors come directly from vertex colors, no normal-based shading
+        material.lightingModel = .constant
         material.fillMode = showWireframe ? .lines : .fill
+
         geometry.materials = [material]
 
         let meshNode = SCNNode(geometry: geometry)
@@ -320,18 +336,22 @@ class SceneKitRenderer {
     }
 
     private func buildSimpleWings(parent: SCNNode, cPlaneData: [(Double, [Double])], maxIntensity: Double) {
-        for (cAngle, intensities) in cPlaneData {
-            let cRad = cAngle * .pi / 180.0
+        // Simple wing fallback using FFI sampling
+        let gStep: Double = 5.0
+        let numG = Int(180.0 / gStep) + 1
+
+        for (cAngle, _) in cPlaneData {
+            let cRad = Float(cAngle * .pi / 180.0)
             var vertices: [SCNVector3] = [SCNVector3(0, 0, 0)]
 
-            for (j, gAngle) in ldt.gAngles.enumerated() {
-                let intensity = j < intensities.count ? intensities[j] : 0
-                let r = Float(intensity / maxIntensity)
+            for gi in 0..<numG {
+                let gAngle = Double(gi) * gStep
+                let r = Float(sampleIntensityNormalized(ldt: ldt, cAngle: cAngle, gAngle: gAngle))
                 let gRad = Float(gAngle) * .pi / 180.0
 
-                let x = r * sin(gRad) * Float(cos(cRad))
+                let x = r * sin(gRad) * cos(cRad)
                 let y = -r * cos(gRad)
-                let z = r * sin(gRad) * Float(sin(cRad))
+                let z = r * sin(gRad) * sin(cRad)
 
                 vertices.append(SCNVector3(x, y, z))
             }
@@ -374,11 +394,12 @@ class SceneKitRenderer {
 
     private func addGrid(parent: SCNNode) {
         #if os(macOS)
-        let gridColor = isDarkTheme ? NSColor(white: 0.3, alpha: 1) : NSColor(white: 0.7, alpha: 1)
+        let gridColor = isDarkTheme ? NSColor(white: 0.4, alpha: 1) : NSColor(white: 0.6, alpha: 1)
         #else
-        let gridColor = isDarkTheme ? UIColor(white: 0.3, alpha: 1) : UIColor(white: 0.7, alpha: 1)
+        let gridColor = isDarkTheme ? UIColor(white: 0.4, alpha: 1) : UIColor(white: 0.6, alpha: 1)
         #endif
 
+        // Horizontal reference rings at different radii
         for i in 1...4 {
             let radius = CGFloat(i) / 4.0
             let ring = SCNTorus(ringRadius: radius, pipeRadius: 0.002)
@@ -389,13 +410,7 @@ class SceneKitRenderer {
             parent.addChildNode(ringNode)
         }
 
-        let verticalPlane = SCNPlane(width: 2, height: 2)
-        verticalPlane.firstMaterial?.diffuse.contents = gridColor.withAlphaComponent(0.1)
-        verticalPlane.firstMaterial?.isDoubleSided = true
-        verticalPlane.firstMaterial?.lightingModel = .constant
-        let verticalPlaneNode = SCNNode(geometry: verticalPlane)
-        verticalPlaneNode.eulerAngles.y = .pi / 2
-        parent.addChildNode(verticalPlaneNode)
+        // Remove the vertical plane - it obscures the view
     }
 
     private func addAxisIndicators(parent: SCNNode) {

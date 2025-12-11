@@ -244,3 +244,37 @@ pub fn export_ies(ldt: &Eulumdat) -> String {
     let core_ldt = to_core_eulumdat(ldt);
     eulumdat::IesExporter::export(&core_ldt)
 }
+
+/// Sample intensity at any C and G angle using bilinear interpolation.
+///
+/// This handles symmetry automatically and interpolates between stored data points.
+/// Useful for generating smooth 3D meshes or querying intensity at arbitrary angles.
+///
+/// # Arguments
+/// * `ldt` - The Eulumdat data
+/// * `c_angle` - C-plane angle in degrees (0-360, will be normalized)
+/// * `g_angle` - Gamma angle in degrees (0-180, will be clamped)
+///
+/// # Returns
+/// Intensity in cd/klm
+#[uniffi::export]
+pub fn sample_intensity(ldt: &Eulumdat, c_angle: f64, g_angle: f64) -> f64 {
+    let core_ldt = to_core_eulumdat(ldt);
+    core_ldt.sample(c_angle, g_angle)
+}
+
+/// Sample normalized intensity (0.0 to 1.0) at any C and G angle.
+///
+/// Returns intensity divided by max_intensity. Useful for mesh generation
+/// where distance from center should be proportional to intensity.
+#[uniffi::export]
+pub fn sample_intensity_normalized(ldt: &Eulumdat, c_angle: f64, g_angle: f64) -> f64 {
+    let core_ldt = to_core_eulumdat(ldt);
+    let intensity = core_ldt.sample(c_angle, g_angle);
+    let max = core_ldt.max_intensity();
+    if max > 0.0 {
+        intensity / max
+    } else {
+        0.0
+    }
+}

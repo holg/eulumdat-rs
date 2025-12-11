@@ -1,0 +1,17 @@
+[package]
+name = "eulumdat-photweb"
+version = "0.2.1"
+edition = "2021"
+authors = ["Holger Trahe <trahe@mac.com>"]
+license = "MIT OR Apache-2.0"
+description = "Photometric web representation and sampling for EULUMDAT/IES data"
+keywords = ["eulumdat", "ies", "photometric", "lighting", "3d"]
+categories = ["science", "graphics", "rendering"]
+repository = "https://github.com/anthropics/eulumdat-rs"
+readme = "README.md"
+
+[dependencies]
+eulumdat = { path = "../eulumdat", version = "0.2.1" }
+
+[dev-dependencies]
+approx = "0.5"

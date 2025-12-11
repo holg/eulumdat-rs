@@ -361,4 +361,41 @@ impl Eulumdat {
             0.0
         }
     }
+
+    /// Sample intensity at any C and G angle using bilinear interpolation.
+    ///
+    /// This is the key method for generating beam meshes and smooth geometry.
+    /// It handles symmetry automatically and interpolates between stored data points.
+    ///
+    /// # Arguments
+    /// * `c_angle` - C-plane angle in degrees (0-360, will be normalized)
+    /// * `g_angle` - Gamma angle in degrees (0-180, will be clamped)
+    ///
+    /// # Returns
+    /// Interpolated intensity value in cd/klm
+    ///
+    /// # Example
+    /// ```rust,no_run
+    /// use eulumdat::Eulumdat;
+    ///
+    /// let ldt = Eulumdat::from_file("luminaire.ldt")?;
+    ///
+    /// // Sample at exact stored angles
+    /// let intensity = ldt.sample(0.0, 45.0);
+    ///
+    /// // Sample at arbitrary angles (will interpolate)
+    /// let intensity = ldt.sample(22.5, 67.5);
+    ///
+    /// // Generate smooth beam mesh at 5° intervals
+    /// for c in (0..360).step_by(5) {
+    ///     for g in (0..=180).step_by(5) {
+    ///         let intensity = ldt.sample(c as f64, g as f64);
+    ///         // Use intensity for mesh generation...
+    ///     }
+    /// }
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn sample(&self, c_angle: f64, g_angle: f64) -> f64 {
+        crate::symmetry::SymmetryHandler::get_intensity_at(self, c_angle, g_angle)
+    }
 }

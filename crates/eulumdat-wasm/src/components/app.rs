@@ -1,4 +1,4 @@
-use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
+use eulumdat::{Eulumdat, IesParser, LampSet, Symmetry, TypeIndicator};
 use gloo::file::callbacks::FileReader;
 use std::collections::HashMap;
 use web_sys::{DragEvent, Event, HtmlInputElement, HtmlSelectElement};
@@ -144,10 +144,24 @@ impl Component for App {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::FileLoaded(name, content) => {
-                match Eulumdat::parse(&content) {
+                // Detect file type by extension and parse accordingly
+                let is_ies = name.to_lowercase().ends_with(".ies");
+                let parse_result = if is_ies {
+                    IesParser::parse(&content)
+                } else {
+                    Eulumdat::parse(&content)
+                };
+
+                match parse_result {
                     Ok(ldt) => {
                         self.ldt = ldt;
-                        self.current_file = Some(name);
+                        // Convert .ies filename to .ldt for display
+                        let display_name = if is_ies {
+                            name.replace(".ies", ".ldt").replace(".IES", ".ldt")
+                        } else {
+                            name
+                        };
+                        self.current_file = Some(display_name);
                         self.selected_lamp_set = 0;
                     }
                     Err(e) => {
@@ -483,7 +497,7 @@ impl Component for App {
                             {"Open"}
                             <input
                                 type="file"
-                                accept=".ldt,.LDT"
+                                accept=".ldt,.LDT,.ies,.IES"
                                 style="display: none;"
                                 onchange={link.callback(|e: Event| {
                                     let input: HtmlInputElement = e.target_unchecked_into();
@@ -529,7 +543,7 @@ impl Component for App {
                     ondragleave={link.callback(Msg::DragLeave)}
                     ondrop={link.callback(Msg::Drop)}
                 >
-                    <p>{"Drag and drop an LDT file here, or use the Open button above"}</p>
+                    <p>{"Drag and drop an LDT or IES file here, or use the Open button above"}</p>
                 </div>
 
                 // Main content

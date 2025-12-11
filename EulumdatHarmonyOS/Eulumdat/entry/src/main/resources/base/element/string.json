@@ -1,0 +1,80 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Eulumdat - Photometric Data Viewer"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "View and analyze LDT/IES photometric data files"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Eulumdat"
+    },
+    {
+      "name": "permission_read_reason",
+      "value": "Access files to load photometric data"
+    },
+    {
+      "name": "app_name",
+      "value": "Eulumdat"
+    },
+    {
+      "name": "select_file",
+      "value": "Select File"
+    },
+    {
+      "name": "no_file_loaded",
+      "value": "No file loaded"
+    },
+    {
+      "name": "load_ldt_ies",
+      "value": "Load an LDT or IES file to view photometric data"
+    },
+    {
+      "name": "luminaire_info",
+      "value": "Luminaire Info"
+    },
+    {
+      "name": "diagrams",
+      "value": "Diagrams"
+    },
+    {
+      "name": "validation",
+      "value": "Validation"
+    },
+    {
+      "name": "export",
+      "value": "Export"
+    },
+    {
+      "name": "polar",
+      "value": "Polar"
+    },
+    {
+      "name": "cartesian",
+      "value": "Cartesian"
+    },
+    {
+      "name": "butterfly",
+      "value": "Butterfly"
+    },
+    {
+      "name": "heatmap",
+      "value": "Heatmap"
+    },
+    {
+      "name": "export_ldt",
+      "value": "Export as LDT"
+    },
+    {
+      "name": "export_ies",
+      "value": "Export as IES"
+    },
+    {
+      "name": "no_issues",
+      "value": "No validation issues found"
+    }
+  ]
+}
