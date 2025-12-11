@@ -74,8 +74,11 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --manifest-path crates/eulumdat-py/Cargo.toml -i python3.9 python3.10 python3.11 python3.12 python3.13
-          sccache: 'false'
+          sccache: 'true'
           manylinux: musllinux_1_2
+          # Pre-install maturin via pip to avoid CDN download failures
+          before-script-linux: |
+            pip install maturin
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:

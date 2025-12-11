@@ -1446,6 +1446,7 @@ name = "eulumdat-harmonyos-ffi"
 version = "0.2.2"
 dependencies = [
  "eulumdat",
+ "eulumdat-photweb",
 ]
 
 [[package]]

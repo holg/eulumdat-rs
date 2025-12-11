@@ -11,6 +11,7 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 eulumdat = { path = "../eulumdat", version = "0.2.2" }
+eulumdat-photweb = { path = "../eulumdat-photweb", version = "0.2.2" }
 
 [profile.release]
 lto = true

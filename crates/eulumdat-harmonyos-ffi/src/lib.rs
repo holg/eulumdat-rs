@@ -12,6 +12,7 @@ use eulumdat::{
     diagram::{ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram, SvgTheme},
     Eulumdat, Symmetry as CoreSymmetry, TypeIndicator as CoreTypeIndicator,
 };
+use eulumdat_photweb::PhotometricWeb;
 
 // ============================================================================
 // Opaque handle type
