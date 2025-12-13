@@ -6,27 +6,16 @@ use eulumdat::{
     diagram::{ButterflyDiagram as CoreButterflyDiagram, SvgTheme},
     Eulumdat,
 };
-use yew::prelude::*;
+use leptos::prelude::*;
 
 #[allow(dead_code)]
-#[derive(Properties, PartialEq)]
-pub struct ButterflyDiagramProps {
-    pub ldt: Eulumdat,
-}
-
-#[function_component(ButterflyDiagram)]
-pub fn butterfly_diagram(props: &ButterflyDiagramProps) -> Html {
-    let ldt = &props.ldt;
-
-    // Generate butterfly diagram data from core
-    let butterfly = CoreButterflyDiagram::from_eulumdat(ldt, 500.0, 450.0, 60.0);
-
-    // Generate SVG with CSS variables for theme support
-    let svg = butterfly.to_svg(500.0, 450.0, &SvgTheme::css_variables());
-
-    html! {
-        <div class="butterfly-diagram">
-            {Html::from_html_unchecked(AttrValue::from(svg))}
-        </div>
+#[component]
+pub fn ButterflyDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+    view! {
+        <div class="butterfly-diagram" inner_html=move || {
+            let ldt = ldt.get();
+            let butterfly = CoreButterflyDiagram::from_eulumdat(&ldt, 500.0, 450.0, 60.0);
+            butterfly.to_svg(500.0, 450.0, &SvgTheme::css_variables())
+        } />
     }
 }

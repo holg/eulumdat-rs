@@ -11,6 +11,7 @@ import { common } from '@kit.AbilityKit';
 import { webview } from '@kit.ArkWeb';
 import { EulumdatEngine, LuminaireInfo, LampSetInfo, ValidationWarning, SvgTheme } from '../model/EulumdatEngine';
 import { Butterfly3DView } from '../components/Butterfly3DView';
+import { Ldc3DView } from '../components/Ldc3DView';
 
 /**
  * Diagram type for tab selection
@@ -492,7 +493,8 @@ struct Index {
 
       // Show diagram based on current selection
       if (this.currentDiagram === DiagramType.Butterfly3D && this.luminaireInfo !== null) {
-        Butterfly3DView({
+        // Use the new Ldc3DView with mesh-based rendering
+        Ldc3DView({
           engine: this.engine,
           info: this.luminaireInfo!,
           isDarkMode: this.isDarkMode

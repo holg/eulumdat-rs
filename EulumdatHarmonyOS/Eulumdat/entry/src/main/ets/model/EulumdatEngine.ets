@@ -80,6 +80,33 @@ export enum TypeIndicator {
 }
 
 /**
+ * Color mode for 3D mesh rendering
+ */
+export enum ColorMode {
+  Heatmap = 0,      // Blue -> Cyan -> Green -> Yellow -> Red based on intensity
+  CPlaneRainbow = 1, // Rainbow colors based on C-plane angle
+  Solid = 2         // Solid blue color
+}
+
+/**
+ * 3D mesh data for the photometric solid (LDC)
+ */
+export interface LdcMeshData {
+  /** Vertex positions as Float32Array [x0, y0, z0, x1, y1, z1, ...] */
+  positions: Float32Array;
+  /** Vertex normals as Float32Array [nx0, ny0, nz0, nx1, ny1, nz1, ...] */
+  normals: Float32Array;
+  /** Vertex colors as Float32Array [r0, g0, b0, a0, r1, g1, b1, a1, ...] (0.0-1.0) */
+  colors: Float32Array;
+  /** Triangle indices as Uint32Array */
+  indices: Uint32Array;
+  /** Number of vertices */
+  vertexCount: number;
+  /** Number of indices (3 per triangle) */
+  indexCount: number;
+}
+
+/**
  * EulumdatEngine - Main API for working with photometric data
  */
 export class EulumdatEngine {
@@ -288,5 +315,26 @@ export class EulumdatEngine {
    */
   public typeIndicatorName(typeIndicator: number): string {
     return eulumdat_napi.typeIndicatorName(typeIndicator);
+  }
+
+  /**
+   * Generate 3D mesh data for the photometric solid (LDC)
+   *
+   * The mesh represents the luminous intensity distribution as a 3D surface
+   * where the distance from center equals the intensity at that angle.
+   *
+   * @param cStep C-plane angle step in degrees (smaller = smoother, default 10)
+   * @param gStep Gamma angle step in degrees (smaller = smoother, default 10)
+   * @param scale Scale factor for the mesh (default 1.0)
+   * @param colorMode How to color the vertices (default Heatmap)
+   * @returns Mesh data with positions, normals, colors, and indices
+   */
+  public generateLdcMesh(
+    cStep: number = 10,
+    gStep: number = 10,
+    scale: number = 1.0,
+    colorMode: ColorMode = ColorMode.Heatmap
+  ): LdcMeshData {
+    return eulumdat_napi.generateLdcMesh(cStep, gStep, scale, colorMode);
   }
 }

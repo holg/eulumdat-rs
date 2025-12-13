@@ -5,26 +5,15 @@ use eulumdat::{
     diagram::{PolarDiagram as CorePolarDiagram, SvgTheme},
     Eulumdat,
 };
-use yew::prelude::*;
+use leptos::prelude::*;
 
-#[derive(Properties, PartialEq)]
-pub struct PolarDiagramProps {
-    pub ldt: Eulumdat,
-}
-
-#[function_component(PolarDiagram)]
-pub fn polar_diagram(props: &PolarDiagramProps) -> Html {
-    let ldt = &props.ldt;
-
-    // Generate polar diagram data from core
-    let polar = CorePolarDiagram::from_eulumdat(ldt);
-
-    // Generate SVG with CSS variables for theme support
-    let svg = polar.to_svg(500.0, 500.0, &SvgTheme::css_variables());
-
-    html! {
-        <div class="polar-diagram">
-            {Html::from_html_unchecked(AttrValue::from(svg))}
-        </div>
+#[component]
+pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+    view! {
+        <div class="polar-diagram" inner_html=move || {
+            let ldt = ldt.get();
+            let polar = CorePolarDiagram::from_eulumdat(&ldt);
+            polar.to_svg(500.0, 500.0, &SvgTheme::css_variables())
+        } />
     }
 }

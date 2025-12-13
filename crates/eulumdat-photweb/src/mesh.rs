@@ -2,6 +2,108 @@
 
 use crate::PhotometricWeb;
 
+// ============================================================================
+// Color utilities (platform-independent)
+// ============================================================================
+
+/// Color mode for 3D mesh visualization
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ColorMode {
+    /// Heatmap based on intensity (blue -> cyan -> green -> yellow -> red)
+    #[default]
+    Heatmap,
+    /// Rainbow colors based on C-plane angle
+    CPlaneRainbow,
+    /// Solid color (default blue)
+    Solid,
+}
+
+/// RGBA color (0.0 - 1.0)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Color {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
+}
+
+impl Color {
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self { r, g, b, a }
+    }
+
+    /// Create color from heatmap value (0.0-1.0)
+    /// Blue -> Cyan -> Green -> Yellow -> Red
+    pub fn from_heatmap(intensity: f32) -> Self {
+        let v = intensity.clamp(0.0, 1.0);
+        let (r, g, b) = if v < 0.25 {
+            let t = v / 0.25;
+            (0.0, t, 1.0)
+        } else if v < 0.5 {
+            let t = (v - 0.25) / 0.25;
+            (0.0, 1.0, 1.0 - t)
+        } else if v < 0.75 {
+            let t = (v - 0.5) / 0.25;
+            (t, 1.0, 0.0)
+        } else {
+            let t = (v - 0.75) / 0.25;
+            (1.0, 1.0 - t, 0.0)
+        };
+        Self::new(r, g, b, 0.9)
+    }
+
+    /// Create rainbow color from angle (0-360 degrees)
+    pub fn from_c_plane_angle(c_angle: f32) -> Self {
+        let hue = c_angle / 360.0;
+        let (r, g, b) = hsl_to_rgb(hue, 0.7, 0.5);
+        Self::new(r, g, b, 0.9)
+    }
+
+    /// Default solid color (semi-transparent blue)
+    pub fn solid_default() -> Self {
+        Self::new(0.3, 0.5, 0.9, 0.9)
+    }
+}
+
+/// Convert HSL to RGB (all values 0.0-1.0)
+pub fn hsl_to_rgb(h: f32, s: f32, l: f32) -> (f32, f32, f32) {
+    if s == 0.0 {
+        return (l, l, l);
+    }
+
+    let q = if l < 0.5 {
+        l * (1.0 + s)
+    } else {
+        l + s - l * s
+    };
+    let p = 2.0 * l - q;
+
+    fn hue_to_rgb(p: f32, q: f32, mut t: f32) -> f32 {
+        if t < 0.0 {
+            t += 1.0;
+        }
+        if t > 1.0 {
+            t -= 1.0;
+        }
+        if t < 1.0 / 6.0 {
+            return p + (q - p) * 6.0 * t;
+        }
+        if t < 1.0 / 2.0 {
+            return q;
+        }
+        if t < 2.0 / 3.0 {
+            return p + (q - p) * (2.0 / 3.0 - t) * 6.0;
+        }
+        p
+    }
+
+    (
+        hue_to_rgb(p, q, h + 1.0 / 3.0),
+        hue_to_rgb(p, q, h),
+        hue_to_rgb(p, q, h - 1.0 / 3.0),
+    )
+}
+
 /// A 3D vertex with position and normal.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vertex {
@@ -171,6 +273,111 @@ impl LdcMesh {
     pub fn vertex_count(&self) -> usize {
         self.vertices.len()
     }
+
+    /// Generate per-vertex colors based on mode.
+    ///
+    /// Uses the photometric web to sample intensity at each vertex's angle.
+    pub fn generate_colors(
+        &self,
+        web: &PhotometricWeb,
+        c_step: f64,
+        g_step: f64,
+        mode: ColorMode,
+    ) -> Vec<Color> {
+        let mut colors = Vec::with_capacity(self.vertex_count());
+
+        for gi in 0..self.g_divisions {
+            let g_angle = (gi as f64 * g_step).min(180.0);
+            for ci in 0..self.c_divisions {
+                let c_angle = (ci as f64 * c_step).min(360.0);
+
+                let color = match mode {
+                    ColorMode::Heatmap => {
+                        let intensity = web.sample_normalized(c_angle, g_angle) as f32;
+                        Color::from_heatmap(intensity)
+                    }
+                    ColorMode::CPlaneRainbow => Color::from_c_plane_angle(c_angle as f32),
+                    ColorMode::Solid => Color::solid_default(),
+                };
+                colors.push(color);
+            }
+        }
+        colors
+    }
+
+    /// Get colors as a flat RGBA array [r0, g0, b0, a0, r1, g1, b1, a1, ...]
+    pub fn colors_flat(colors: &[Color]) -> Vec<f32> {
+        colors.iter().flat_map(|c| [c.r, c.g, c.b, c.a]).collect()
+    }
+}
+
+/// A colored 3D mesh with positions, normals, colors, and indices.
+///
+/// This is a convenience wrapper that combines `LdcMesh` with per-vertex colors.
+#[derive(Debug, Clone)]
+pub struct ColoredLdcMesh {
+    /// The base mesh (positions, normals, indices)
+    pub mesh: LdcMesh,
+    /// Per-vertex colors
+    pub colors: Vec<Color>,
+    /// The color mode used to generate colors
+    pub color_mode: ColorMode,
+}
+
+impl ColoredLdcMesh {
+    /// Generate a colored LDC mesh from a PhotometricWeb.
+    ///
+    /// # Arguments
+    /// * `web` - The photometric web to generate from
+    /// * `c_step` - Angle step for C-planes in degrees
+    /// * `g_step` - Angle step for gamma in degrees
+    /// * `scale` - Scale factor for the mesh
+    /// * `color_mode` - How to color the vertices
+    pub fn from_photweb(
+        web: &PhotometricWeb,
+        c_step: f64,
+        g_step: f64,
+        scale: f32,
+        color_mode: ColorMode,
+    ) -> Self {
+        let mesh = LdcMesh::from_photweb(web, c_step, g_step, scale);
+        let colors = mesh.generate_colors(web, c_step, g_step, color_mode);
+        Self {
+            mesh,
+            colors,
+            color_mode,
+        }
+    }
+
+    /// Get vertex positions as a flat array.
+    pub fn positions_flat(&self) -> Vec<f32> {
+        self.mesh.positions_flat()
+    }
+
+    /// Get vertex normals as a flat array.
+    pub fn normals_flat(&self) -> Vec<f32> {
+        self.mesh.normals_flat()
+    }
+
+    /// Get vertex colors as a flat RGBA array.
+    pub fn colors_flat(&self) -> Vec<f32> {
+        LdcMesh::colors_flat(&self.colors)
+    }
+
+    /// Get triangle indices.
+    pub fn indices(&self) -> &[u32] {
+        &self.mesh.indices
+    }
+
+    /// Get vertex count.
+    pub fn vertex_count(&self) -> usize {
+        self.mesh.vertex_count()
+    }
+
+    /// Get index count.
+    pub fn index_count(&self) -> usize {
+        self.mesh.indices.len()
+    }
 }
 
 impl PhotometricWeb {
@@ -179,6 +386,19 @@ impl PhotometricWeb {
     /// Convenience method that creates an LdcMesh.
     pub fn generate_ldc_mesh(&self, c_step: f64, g_step: f64, scale: f32) -> LdcMesh {
         LdcMesh::from_photweb(self, c_step, g_step, scale)
+    }
+
+    /// Generate a colored LDC solid mesh.
+    ///
+    /// Convenience method that creates a ColoredLdcMesh with positions, normals, colors, and indices.
+    pub fn generate_colored_ldc_mesh(
+        &self,
+        c_step: f64,
+        g_step: f64,
+        scale: f32,
+        color_mode: ColorMode,
+    ) -> ColoredLdcMesh {
+        ColoredLdcMesh::from_photweb(self, c_step, g_step, scale, color_mode)
     }
 
     /// Generate just the vertex positions for the LDC solid.
@@ -269,5 +489,49 @@ mod tests {
 
         assert_eq!(positions.len(), mesh.vertex_count() * 3);
         assert_eq!(normals.len(), mesh.vertex_count() * 3);
+    }
+
+    #[test]
+    fn test_colored_mesh() {
+        let web = create_uniform_web();
+        let colored = web.generate_colored_ldc_mesh(45.0, 45.0, 1.0, ColorMode::Heatmap);
+
+        // Should have positions, normals, and colors
+        assert!(colored.vertex_count() > 0);
+        assert_eq!(colored.colors.len(), colored.vertex_count());
+
+        // Flat arrays should have correct lengths
+        let positions = colored.positions_flat();
+        let normals = colored.normals_flat();
+        let colors = colored.colors_flat();
+
+        assert_eq!(positions.len(), colored.vertex_count() * 3);
+        assert_eq!(normals.len(), colored.vertex_count() * 3);
+        assert_eq!(colors.len(), colored.vertex_count() * 4); // RGBA
+    }
+
+    #[test]
+    fn test_heatmap_colors() {
+        // Low intensity = blue
+        let blue = Color::from_heatmap(0.0);
+        assert!(blue.b > blue.r && blue.b > blue.g);
+
+        // High intensity = red
+        let red = Color::from_heatmap(1.0);
+        assert!(red.r > red.g && red.r > red.b);
+
+        // Middle = green-ish
+        let mid = Color::from_heatmap(0.5);
+        assert!(mid.g > 0.5);
+    }
+
+    #[test]
+    fn test_c_plane_colors() {
+        // C=0° and C=360° should give same color (within tolerance)
+        let c0 = Color::from_c_plane_angle(0.0);
+        let c360 = Color::from_c_plane_angle(360.0);
+        assert!((c0.r - c360.r).abs() < 0.01);
+        assert!((c0.g - c360.g).abs() < 0.01);
+        assert!((c0.b - c360.b).abs() < 0.01);
     }
 }

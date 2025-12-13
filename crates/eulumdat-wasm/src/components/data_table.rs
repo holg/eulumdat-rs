@@ -1,14 +1,8 @@
 use eulumdat::{Eulumdat, Symmetry};
+use leptos::prelude::*;
+use leptos::ev;
+use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
-use yew::prelude::*;
-
-use super::app::Msg;
-
-#[derive(Properties, PartialEq)]
-pub struct DataTableProps {
-    pub ldt: Eulumdat,
-    pub on_update: Callback<Msg>,
-}
 
 /// Format a number: show as integer if it's a whole number, otherwise with decimals
 fn format_value(v: f64) -> String {
@@ -29,59 +23,42 @@ fn format_angle(v: f64) -> String {
 }
 
 /// Get the starting index for C-angles based on symmetry type
-/// For symmetry 3 (PlaneC90C270), intensity data starts at C90
 fn get_c_angle_start_index(ldt: &Eulumdat) -> usize {
     match ldt.symmetry {
         Symmetry::PlaneC90C270 => {
-            // Find index where C-angle >= 90
             ldt.c_angles.iter().position(|&c| c >= 90.0).unwrap_or(0)
         }
         _ => 0,
     }
 }
 
-#[function_component(DataTable)]
-pub fn data_table(props: &DataTableProps) -> Html {
-    let ldt = &props.ldt;
-    let on_update = &props.on_update;
-
-    if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
-        return html! {
-            <div class="text-center text-muted">
-                {"No intensity data available"}
-            </div>
-        };
-    }
-
-    // Number of intensity data planes (Mc)
-    let mc = ldt.intensities.len();
-
-    // Starting index in c_angles array for this symmetry type
-    let c_start = get_c_angle_start_index(ldt);
-
-    // Copy to clipboard handler
-    let ldt_clone = ldt.clone();
-    let on_copy = Callback::from(move |_: MouseEvent| {
+#[component]
+pub fn DataTable(
+    ldt: ReadSignal<Eulumdat>,
+    set_ldt: WriteSignal<Eulumdat>,
+) -> impl IntoView {
+    let on_copy = move |_: ev::MouseEvent| {
+        let ldt = ldt.get();
         let mut text = String::new();
-        let mc_copy = ldt_clone.intensities.len();
-        let c_start_copy = get_c_angle_start_index(&ldt_clone);
+        let mc = ldt.intensities.len();
+        let c_start = get_c_angle_start_index(&ldt);
 
         // Header row with C angles
         text.push_str("γ\\C");
-        for i in 0..mc_copy {
+        for i in 0..mc {
             text.push('\t');
-            if let Some(&angle) = ldt_clone.c_angles.get(c_start_copy + i) {
+            if let Some(&angle) = ldt.c_angles.get(c_start + i) {
                 text.push_str(&format_angle(angle));
             }
         }
         text.push('\n');
 
         // Data rows
-        for (g_idx, g_angle) in ldt_clone.g_angles.iter().enumerate() {
+        for (g_idx, g_angle) in ldt.g_angles.iter().enumerate() {
             text.push_str(&format_angle(*g_angle));
-            for c_idx in 0..mc_copy {
+            for c_idx in 0..mc {
                 text.push('\t');
-                if let Some(intensity) = ldt_clone
+                if let Some(intensity) = ldt
                     .intensities
                     .get(c_idx)
                     .and_then(|row| row.get(g_idx))
@@ -93,76 +70,97 @@ pub fn data_table(props: &DataTableProps) -> Html {
         }
 
         // Copy to clipboard
-        let window = gloo::utils::window();
-        let clipboard = window.navigator().clipboard();
-        let _ = clipboard.write_text(&text);
-        gloo::console::log!("Copied to clipboard");
-    });
+        if let Some(window) = web_sys::window() {
+            let clipboard = window.navigator().clipboard();
+            let _ = clipboard.write_text(&text);
+        }
+    };
 
-    // Get the C-angles that correspond to intensity data
-    let display_c_angles: Vec<f64> = ldt
-        .c_angles
-        .iter()
-        .skip(c_start)
-        .take(mc)
-        .copied()
-        .collect();
+    move || {
+        let ldt_val = ldt.get();
 
-    html! {
-        <div class="data-table-wrapper">
-            <div class="data-table-toolbar">
-                <button class="btn btn-sm btn-secondary" onclick={on_copy}>
-                    {"Copy to Clipboard"}
-                </button>
-            </div>
+        if ldt_val.intensities.is_empty() || ldt_val.g_angles.is_empty() {
+            return view! {
+                <div class="text-center text-muted">
+                    "No intensity data available"
+                </div>
+            }.into_any();
+        }
 
-            <div class="data-table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th class="angle-header">{"γ \\ C"}</th>
-                            {for display_c_angles.iter().enumerate().map(|(i, angle)| {
-                                html! {
-                                    <th key={i} class="c-angle-header">{format_angle(*angle)}</th>
-                                }
-                            })}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {for ldt.g_angles.iter().enumerate().map(|(g_idx, g_angle)| {
-                            html! {
-                                <tr key={g_idx}>
-                                    <th class="g-angle-header">{format_angle(*g_angle)}</th>
-                                    {for (0..mc).map(|c_idx| {
-                                        let intensity = ldt.intensities.get(c_idx)
-                                            .and_then(|row| row.get(g_idx))
-                                            .copied()
-                                            .unwrap_or(0.0);
+        let mc = ldt_val.intensities.len();
+        let c_start = get_c_angle_start_index(&ldt_val);
 
-                                        let cb = on_update.clone();
-                                        html! {
-                                            <td key={c_idx}>
-                                                <input
-                                                    type="number"
-                                                    step="1"
-                                                    value={format_value(intensity)}
-                                                    class="intensity-input"
-                                                    onchange={Callback::from(move |e: Event| {
-                                                        let input: HtmlInputElement = e.target_unchecked_into();
-                                                        if let Ok(v) = input.value().parse::<f64>() {
-                                                            cb.emit(Msg::UpdateIntensity(c_idx, g_idx, v));
+        let display_c_angles: Vec<f64> = ldt_val
+            .c_angles
+            .iter()
+            .skip(c_start)
+            .take(mc)
+            .copied()
+            .collect();
+
+        view! {
+            <div class="data-table-wrapper">
+                <div class="data-table-toolbar">
+                    <button class="btn btn-sm btn-secondary" on:click=on_copy>
+                        "Copy to Clipboard"
+                    </button>
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="angle-header">"γ \\ C"</th>
+                                {display_c_angles.iter().enumerate().map(|(i, angle)| {
+                                    view! {
+                                        <th class="c-angle-header">{format_angle(*angle)}</th>
+                                    }
+                                }).collect_view()}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {ldt_val.g_angles.iter().enumerate().map(|(g_idx, g_angle)| {
+                                view! {
+                                    <tr>
+                                        <th class="g-angle-header">{format_angle(*g_angle)}</th>
+                                        {(0..mc).map(|c_idx| {
+                                            let intensity = ldt_val.intensities.get(c_idx)
+                                                .and_then(|row| row.get(g_idx))
+                                                .copied()
+                                                .unwrap_or(0.0);
+
+                                            let on_change = move |e: ev::Event| {
+                                                let input: HtmlInputElement = e.target().unwrap().unchecked_into();
+                                                if let Ok(v) = input.value().parse::<f64>() {
+                                                    set_ldt.update(|ldt| {
+                                                        if let Some(row) = ldt.intensities.get_mut(c_idx) {
+                                                            if let Some(cell) = row.get_mut(g_idx) {
+                                                                *cell = v;
+                                                            }
                                                         }
-                                                    })}
-                                                />
-                                            </td>
-                                        }
-                                    })}
-                                </tr>
-                            }
-                        })}
-                    </tbody>
-                </table>
+                                                    });
+                                                }
+                                            };
+
+                                            view! {
+                                                <td>
+                                                    <input
+                                                        type="number"
+                                                        step="1"
+                                                        prop:value=format_value(intensity)
+                                                        class="intensity-input"
+                                                        on:change=on_change
+                                                    />
+                                                </td>
+                                            }
+                                        }).collect_view()}
+                                    </tr>
+                                }
+                            }).collect_view()}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        }.into_any()
     }
 }

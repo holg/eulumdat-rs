@@ -1,0 +1,26 @@
+[package]
+name = "eulumdat-ui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared egui UI components for Eulumdat viewer/editor"
+keywords = ["lighting", "photometry", "egui", "visualization"]
+categories = ["gui", "visualization"]
+
+[features]
+default = []
+3d = ["three-d"]
+persistence = ["egui/persistence", "serde"]
+
+[dependencies]
+eulumdat = { workspace = true, features = ["serde"] }
+egui.workspace = true
+serde = { workspace = true, optional = true }
+
+# 3D rendering (optional)
+three-d = { workspace = true, optional = true }
+
+[dev-dependencies]
+approx.workspace = true

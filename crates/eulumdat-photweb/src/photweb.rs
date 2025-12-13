@@ -128,11 +128,13 @@ impl PhotometricWeb {
                 }
             }
             Symmetry::PlaneC90C270 => {
-                let shifted = (c_normalized + 90.0).rem_euclid(360.0);
-                if shifted <= 180.0 {
-                    (shifted - 90.0).abs()
+                // Mirror across the C90-C270 line (left-right symmetry)
+                // Data stored for C0-C180 (right half)
+                // C180-C360 mirrors to C180-C0
+                if c_normalized > 180.0 {
+                    360.0 - c_normalized // C225→C135, C270→C90, C315→C45
                 } else {
-                    (270.0 - shifted).abs()
+                    c_normalized // C0-C180 stored as-is
                 }
             }
             Symmetry::BothPlanes => {

@@ -7,6 +7,9 @@ license.workspace = true
 repository.workspace = true
 description = "WebAssembly Eulumdat (LDT/IES) Editor - Browser-based photometric file editor"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [[bin]]
 name = "eulumdat-wasm"
 path = "src/main.rs"
@@ -18,8 +21,10 @@ gloo.workspace = true
 gloo-file.workspace = true
 js-sys.workspace = true
 
-# Web framework
-yew.workspace = true
+# Web framework (Leptos)
+leptos.workspace = true
+leptos_router.workspace = true
+console_error_panic_hook.workspace = true
 
 # WASM bindings
 wasm-bindgen.workspace = true
@@ -27,6 +32,16 @@ wasm-bindgen-futures.workspace = true
 
 # Utilities
 base64.workspace = true
+
+# 3D Scene Viewer (Bevy) - optional for larger WASM bundle
+eulumdat-bevy = { workspace = true, optional = true }
+
+[features]
+default = ["csr"]
+csr = ["leptos/csr"]
+ssr = ["leptos/ssr"]
+hydrate = ["leptos/hydrate"]
+bevy-viewer = ["eulumdat-bevy"]
 
 [dependencies.web-sys]
 version = "0.3"
@@ -62,7 +77,20 @@ features = [
     "WebGlBuffer",
     "WebGlUniformLocation",
     "Performance",
+    "Storage",
 ]
 
 [dev-dependencies]
 wasm-bindgen-test.workspace = true
+
+# Optimized web release profile
+[profile.web-release]
+inherits = "release"
+opt-level = 'z'
+lto = "fat"
+codegen-units = 1
+strip = true
+debug = false
+
+[package.metadata.bevy_cli.web.release]
+wasm-opt = ["-Oz", "-all"]

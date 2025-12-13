@@ -119,6 +119,25 @@ void eulumdat_float_array_free(FloatArray array);
 char* eulumdat_symmetry_name(int32_t symmetry);
 char* eulumdat_type_indicator_name(int32_t type_indicator);
 
+// 3D Mesh generation
+struct LdcMeshData {
+    float* positions;   // [x0, y0, z0, x1, y1, z1, ...]
+    float* normals;     // [nx0, ny0, nz0, nx1, ny1, nz1, ...]
+    float* colors;      // [r0, g0, b0, a0, r1, g1, b1, a1, ...]
+    uint32_t* indices;  // Triangle indices
+    size_t vertex_count;
+    size_t index_count;
+};
+
+LdcMeshData eulumdat_generate_ldc_mesh(
+    const EulumdatHandle* handle,
+    double c_step,
+    double g_step,
+    float scale,
+    int32_t color_mode
+);
+void eulumdat_mesh_free(LdcMeshData mesh);
+
 } // extern "C"
 
 // ============================================================================
@@ -767,6 +786,119 @@ static napi_value TypeIndicatorName(napi_env env, napi_callback_info info) {
     return result;
 }
 
+/**
+ * generateLdcMesh(cStep: number, gStep: number, scale: number, colorMode: number): LdcMeshData
+ * Generate 3D mesh data for the photometric solid (LDC).
+ *
+ * Returns an object with:
+ *   - positions: Float32Array [x0, y0, z0, x1, y1, z1, ...]
+ *   - normals: Float32Array [nx0, ny0, nz0, nx1, ny1, nz1, ...]
+ *   - colors: Float32Array [r0, g0, b0, a0, r1, g1, b1, a1, ...]
+ *   - indices: Uint32Array [i0, i1, i2, ...]
+ *   - vertexCount: number
+ *   - indexCount: number
+ *
+ * colorMode: 0 = heatmap, 1 = c-plane rainbow, 2 = solid blue
+ */
+static napi_value GenerateLdcMesh(napi_env env, napi_callback_info info) {
+    if (g_handle == nullptr) {
+        napi_throw_error(env, nullptr, "No file loaded");
+        return nullptr;
+    }
+
+    size_t argc = 4;
+    napi_value argv[4];
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    double cStep = 10.0, gStep = 10.0;
+    double scale = 1.0;
+    int32_t colorMode = 0;
+
+    if (argc >= 1) napi_get_value_double(env, argv[0], &cStep);
+    if (argc >= 2) napi_get_value_double(env, argv[1], &gStep);
+    if (argc >= 3) napi_get_value_double(env, argv[2], &scale);
+    if (argc >= 4) napi_get_value_int32(env, argv[3], &colorMode);
+
+    // Generate mesh from Rust
+    LdcMeshData mesh = eulumdat_generate_ldc_mesh(g_handle, cStep, gStep, (float)scale, colorMode);
+
+    if (mesh.positions == nullptr || mesh.vertex_count == 0) {
+        napi_throw_error(env, nullptr, "Failed to generate mesh");
+        return nullptr;
+    }
+
+    // Create result object
+    napi_value result;
+    napi_create_object(env, &result);
+
+    // Create TypedArrays for positions, normals, colors, indices
+    // Note: We copy data to JS-managed ArrayBuffers to ensure proper memory management
+
+    // Positions (Float32Array)
+    {
+        size_t byteLen = mesh.vertex_count * 3 * sizeof(float);
+        napi_value arrayBuffer;
+        void* bufferData;
+        napi_create_arraybuffer(env, byteLen, &bufferData, &arrayBuffer);
+        memcpy(bufferData, mesh.positions, byteLen);
+
+        napi_value typedArray;
+        napi_create_typedarray(env, napi_float32_array, mesh.vertex_count * 3, arrayBuffer, 0, &typedArray);
+        napi_set_named_property(env, result, "positions", typedArray);
+    }
+
+    // Normals (Float32Array)
+    {
+        size_t byteLen = mesh.vertex_count * 3 * sizeof(float);
+        napi_value arrayBuffer;
+        void* bufferData;
+        napi_create_arraybuffer(env, byteLen, &bufferData, &arrayBuffer);
+        memcpy(bufferData, mesh.normals, byteLen);
+
+        napi_value typedArray;
+        napi_create_typedarray(env, napi_float32_array, mesh.vertex_count * 3, arrayBuffer, 0, &typedArray);
+        napi_set_named_property(env, result, "normals", typedArray);
+    }
+
+    // Colors (Float32Array) - RGBA
+    {
+        size_t byteLen = mesh.vertex_count * 4 * sizeof(float);
+        napi_value arrayBuffer;
+        void* bufferData;
+        napi_create_arraybuffer(env, byteLen, &bufferData, &arrayBuffer);
+        memcpy(bufferData, mesh.colors, byteLen);
+
+        napi_value typedArray;
+        napi_create_typedarray(env, napi_float32_array, mesh.vertex_count * 4, arrayBuffer, 0, &typedArray);
+        napi_set_named_property(env, result, "colors", typedArray);
+    }
+
+    // Indices (Uint32Array)
+    {
+        size_t byteLen = mesh.index_count * sizeof(uint32_t);
+        napi_value arrayBuffer;
+        void* bufferData;
+        napi_create_arraybuffer(env, byteLen, &bufferData, &arrayBuffer);
+        memcpy(bufferData, mesh.indices, byteLen);
+
+        napi_value typedArray;
+        napi_create_typedarray(env, napi_uint32_array, mesh.index_count, arrayBuffer, 0, &typedArray);
+        napi_set_named_property(env, result, "indices", typedArray);
+    }
+
+    // Vertex count and index count
+    napi_value vertexCount, indexCount;
+    napi_create_uint32(env, (uint32_t)mesh.vertex_count, &vertexCount);
+    napi_create_uint32(env, (uint32_t)mesh.index_count, &indexCount);
+    napi_set_named_property(env, result, "vertexCount", vertexCount);
+    napi_set_named_property(env, result, "indexCount", indexCount);
+
+    // Free Rust memory
+    eulumdat_mesh_free(mesh);
+
+    return result;
+}
+
 // ============================================================================
 // Module registration
 // ============================================================================
@@ -795,6 +927,7 @@ static napi_value Init(napi_env env, napi_value exports) {
         { "getIntensityAt", nullptr, GetIntensityAt, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "symmetryName", nullptr, SymmetryName, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "typeIndicatorName", nullptr, TypeIndicatorName, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "generateLdcMesh", nullptr, GenerateLdcMesh, nullptr, nullptr, nullptr, napi_default, nullptr },
     };
 
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);

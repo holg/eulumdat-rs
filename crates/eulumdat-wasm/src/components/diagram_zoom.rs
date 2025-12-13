@@ -1,148 +1,115 @@
 //! Zoom and pan wrapper component for diagrams
 //! Provides mouse wheel zoom and drag-to-pan functionality
 
-use web_sys::{Element, MouseEvent, WheelEvent};
-use yew::prelude::*;
+use leptos::prelude::*;
+use leptos::ev;
+use wasm_bindgen::JsCast;
+use web_sys::Element;
 
-#[derive(Properties, PartialEq)]
-pub struct DiagramZoomProps {
-    pub children: Children,
-}
+#[component]
+pub fn DiagramZoom(children: Children) -> impl IntoView {
+    let (scale, set_scale) = signal(1.0_f64);
+    let (translate_x, set_translate_x) = signal(0.0_f64);
+    let (translate_y, set_translate_y) = signal(0.0_f64);
+    let (dragging, set_dragging) = signal(false);
+    let (last_mouse_x, set_last_mouse_x) = signal(0.0_f64);
+    let (last_mouse_y, set_last_mouse_y) = signal(0.0_f64);
 
-pub enum Msg {
-    Wheel(WheelEvent),
-    MouseDown(MouseEvent),
-    MouseMove(MouseEvent),
-    MouseUp,
-    MouseLeave,
-    Reset,
-}
+    let container_ref = NodeRef::<leptos::html::Div>::new();
 
-pub struct DiagramZoom {
-    container_ref: NodeRef,
-    scale: f64,
-    translate_x: f64,
-    translate_y: f64,
-    dragging: bool,
-    last_mouse_x: f64,
-    last_mouse_y: f64,
-}
+    let on_wheel = move |e: ev::WheelEvent| {
+        e.prevent_default();
+        let delta = e.delta_y();
+        let zoom_factor = if delta > 0.0 { 0.9 } else { 1.1 };
 
-impl Component for DiagramZoom {
-    type Message = Msg;
-    type Properties = DiagramZoomProps;
+        let current_scale = scale.get();
+        let new_scale = (current_scale * zoom_factor).clamp(0.5, 4.0);
 
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            container_ref: NodeRef::default(),
-            scale: 1.0,
-            translate_x: 0.0,
-            translate_y: 0.0,
-            dragging: false,
-            last_mouse_x: 0.0,
-            last_mouse_y: 0.0,
+        if let Some(container) = container_ref.get() {
+            let element: &Element = container.as_ref();
+            let rect = element.get_bounding_client_rect();
+            let mouse_x = e.client_x() as f64 - rect.left();
+            let mouse_y = e.client_y() as f64 - rect.top();
+
+            let scale_change = new_scale / current_scale;
+            let tx = translate_x.get();
+            let ty = translate_y.get();
+            set_translate_x.set(mouse_x - (mouse_x - tx) * scale_change);
+            set_translate_y.set(mouse_y - (mouse_y - ty) * scale_change);
         }
-    }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::Wheel(e) => {
-                e.prevent_default();
-                let delta = e.delta_y();
-                let zoom_factor = if delta > 0.0 { 0.9 } else { 1.1 };
+        set_scale.set(new_scale);
+    };
 
-                // Clamp scale between 0.5 and 4.0
-                let new_scale = (self.scale * zoom_factor).clamp(0.5, 4.0);
-
-                // Get mouse position relative to container
-                if let Some(container) = self.container_ref.cast::<Element>() {
-                    let rect = container.get_bounding_client_rect();
-                    let mouse_x = e.client_x() as f64 - rect.left();
-                    let mouse_y = e.client_y() as f64 - rect.top();
-
-                    // Adjust translation to zoom towards mouse position
-                    let scale_change = new_scale / self.scale;
-                    self.translate_x = mouse_x - (mouse_x - self.translate_x) * scale_change;
-                    self.translate_y = mouse_y - (mouse_y - self.translate_y) * scale_change;
-                }
-
-                self.scale = new_scale;
-                true
-            }
-            Msg::MouseDown(e) => {
-                if e.button() == 0 {
-                    // Left mouse button
-                    self.dragging = true;
-                    self.last_mouse_x = e.client_x() as f64;
-                    self.last_mouse_y = e.client_y() as f64;
-                }
-                false
-            }
-            Msg::MouseMove(e) => {
-                if self.dragging {
-                    let dx = e.client_x() as f64 - self.last_mouse_x;
-                    let dy = e.client_y() as f64 - self.last_mouse_y;
-
-                    self.translate_x += dx;
-                    self.translate_y += dy;
-
-                    self.last_mouse_x = e.client_x() as f64;
-                    self.last_mouse_y = e.client_y() as f64;
-                    true
-                } else {
-                    false
-                }
-            }
-            Msg::MouseUp | Msg::MouseLeave => {
-                self.dragging = false;
-                false
-            }
-            Msg::Reset => {
-                self.scale = 1.0;
-                self.translate_x = 0.0;
-                self.translate_y = 0.0;
-                true
-            }
+    let on_mousedown = move |e: ev::MouseEvent| {
+        if e.button() == 0 {
+            set_dragging.set(true);
+            set_last_mouse_x.set(e.client_x() as f64);
+            set_last_mouse_y.set(e.client_y() as f64);
         }
-    }
+    };
 
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let transform = format!(
-            "translate({}px, {}px) scale({})",
-            self.translate_x, self.translate_y, self.scale
-        );
+    let on_mousemove = move |e: ev::MouseEvent| {
+        if dragging.get() {
+            let dx = e.client_x() as f64 - last_mouse_x.get();
+            let dy = e.client_y() as f64 - last_mouse_y.get();
 
-        let onwheel = ctx.link().callback(Msg::Wheel);
-        let onmousedown = ctx.link().callback(Msg::MouseDown);
-        let onmousemove = ctx.link().callback(Msg::MouseMove);
-        let onmouseup = ctx.link().callback(|_| Msg::MouseUp);
-        let onmouseleave = ctx.link().callback(|_| Msg::MouseLeave);
-        let onreset = ctx.link().callback(|_| Msg::Reset);
+            set_translate_x.update(|tx| *tx += dx);
+            set_translate_y.update(|ty| *ty += dy);
 
-        let is_zoomed = (self.scale - 1.0).abs() > 0.01
-            || self.translate_x.abs() > 1.0
-            || self.translate_y.abs() > 1.0;
+            set_last_mouse_x.set(e.client_x() as f64);
+            set_last_mouse_y.set(e.client_y() as f64);
+        }
+    };
 
-        html! {
+    let on_mouseup = move |_: ev::MouseEvent| {
+        set_dragging.set(false);
+    };
+
+    let on_mouseleave = move |_: ev::MouseEvent| {
+        set_dragging.set(false);
+    };
+
+    let on_reset = move |_: ev::MouseEvent| {
+        set_scale.set(1.0);
+        set_translate_x.set(0.0);
+        set_translate_y.set(0.0);
+    };
+
+    view! {
+        <div
+            class="diagram-zoom-container"
+            node_ref=container_ref
+            on:wheel=on_wheel
+            on:mousedown=on_mousedown
+            on:mousemove=on_mousemove
+            on:mouseup=on_mouseup
+            on:mouseleave=on_mouseleave
+        >
             <div
-                class="diagram-zoom-container"
-                ref={self.container_ref.clone()}
-                {onwheel}
-                {onmousedown}
-                {onmousemove}
-                {onmouseup}
-                {onmouseleave}
+                class="diagram-zoom-content"
+                style=move || format!(
+                    "transform: translate({}px, {}px) scale({})",
+                    translate_x.get(), translate_y.get(), scale.get()
+                )
             >
-                <div class="diagram-zoom-content" style={format!("transform: {}", transform)}>
-                    { for ctx.props().children.iter() }
-                </div>
-                <div class="diagram-zoom-overlay">
-                    <span class="zoom-level">{format!("{:.0}%", self.scale * 100.0)}</span>
-                    if is_zoomed {
-                        <button class="zoom-reset-btn" onclick={onreset}>{"Reset"}</button>
-                    }
-                </div>
+                {children()}
             </div>
-        }
+            <div class="diagram-zoom-overlay">
+                <span class="zoom-level">{move || format!("{:.0}%", scale.get() * 100.0)}</span>
+                {move || {
+                    let is_zoomed = (scale.get() - 1.0).abs() > 0.01
+                        || translate_x.get().abs() > 1.0
+                        || translate_y.get().abs() > 1.0;
+                    if is_zoomed {
+                        Some(view! {
+                            <button class="zoom-reset-btn" on:click=on_reset>"Reset"</button>
+                        })
+                    } else {
+                        None
+                    }
+                }}
+            </div>
+        </div>
     }
 }

@@ -12,7 +12,7 @@ use eulumdat::{
     diagram::{ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram, SvgTheme},
     Eulumdat, Symmetry as CoreSymmetry, TypeIndicator as CoreTypeIndicator,
 };
-use eulumdat_photweb::PhotometricWeb;
+use eulumdat_photweb::{ColorMode, ColoredLdcMesh, PhotometricWeb};
 
 // ============================================================================
 // Opaque handle type
@@ -848,4 +848,119 @@ pub unsafe extern "C" fn eulumdat_type_indicator_name(type_indicator: i32) -> *m
         _ => "Unknown",
     };
     string_to_c(name)
+}
+
+// ============================================================================
+// 3D Mesh generation (using eulumdat-photweb)
+// ============================================================================
+
+/// 3D mesh data for rendering the photometric solid
+#[repr(C)]
+pub struct LdcMeshData {
+    /// Vertex positions as flat array [x0, y0, z0, x1, y1, z1, ...]
+    pub positions: *mut f32,
+    /// Vertex normals as flat array [nx0, ny0, nz0, nx1, ny1, nz1, ...]
+    pub normals: *mut f32,
+    /// Vertex colors as flat array [r0, g0, b0, a0, r1, g1, b1, a1, ...] (0.0-1.0)
+    pub colors: *mut f32,
+    /// Triangle indices
+    pub indices: *mut u32,
+    /// Number of vertices
+    pub vertex_count: usize,
+    /// Number of indices (3 per triangle)
+    pub index_count: usize,
+}
+
+/// Generate LDC (Luminous Distribution Curve) 3D mesh data
+///
+/// # Arguments
+/// * `handle` - Valid Eulumdat handle
+/// * `c_step` - C-plane angle step in degrees (e.g., 5.0 for smooth, 15.0 for fast)
+/// * `g_step` - Gamma angle step in degrees
+/// * `scale` - Scale factor (1.0 = normalized intensity as radius)
+/// * `color_mode` - 0 = heatmap, 1 = c-plane color, 2 = solid color
+///
+/// # Safety
+/// - `handle` must be a valid pointer
+/// - Caller must free with `eulumdat_mesh_free`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_generate_ldc_mesh(
+    handle: *const EulumdatHandle,
+    c_step: f64,
+    g_step: f64,
+    scale: f32,
+    color_mode_int: i32,
+) -> LdcMeshData {
+    if handle.is_null() {
+        return LdcMeshData {
+            positions: ptr::null_mut(),
+            normals: ptr::null_mut(),
+            colors: ptr::null_mut(),
+            indices: ptr::null_mut(),
+            vertex_count: 0,
+            index_count: 0,
+        };
+    }
+
+    let ldt = &(*handle).inner;
+    let web = PhotometricWeb::from(ldt);
+
+    // Convert int to ColorMode
+    let color_mode = match color_mode_int {
+        0 => ColorMode::Heatmap,
+        1 => ColorMode::CPlaneRainbow,
+        _ => ColorMode::Solid,
+    };
+
+    // Use the new cross-platform ColoredLdcMesh from eulumdat-photweb
+    let colored_mesh = ColoredLdcMesh::from_photweb(&web, c_step, g_step, scale, color_mode);
+
+    // Get flat arrays
+    let mut positions = colored_mesh.positions_flat();
+    let mut normals = colored_mesh.normals_flat();
+    let mut colors = colored_mesh.colors_flat();
+    let mut indices = colored_mesh.mesh.indices.clone();
+
+    let vertex_count = colored_mesh.vertex_count();
+    let index_count = colored_mesh.index_count();
+
+    // Transfer ownership to C
+    let positions_ptr = positions.as_mut_ptr();
+    let normals_ptr = normals.as_mut_ptr();
+    let colors_ptr = colors.as_mut_ptr();
+    let indices_ptr = indices.as_mut_ptr();
+
+    std::mem::forget(positions);
+    std::mem::forget(normals);
+    std::mem::forget(colors);
+    std::mem::forget(indices);
+
+    LdcMeshData {
+        positions: positions_ptr,
+        normals: normals_ptr,
+        colors: colors_ptr,
+        indices: indices_ptr,
+        vertex_count,
+        index_count,
+    }
+}
+
+/// Free mesh data
+///
+/// # Safety
+/// - Must be called with a valid LdcMeshData returned by `eulumdat_generate_ldc_mesh`
+#[no_mangle]
+pub unsafe extern "C" fn eulumdat_mesh_free(mesh: LdcMeshData) {
+    if !mesh.positions.is_null() && mesh.vertex_count > 0 {
+        let _ = Vec::from_raw_parts(mesh.positions, mesh.vertex_count * 3, mesh.vertex_count * 3);
+    }
+    if !mesh.normals.is_null() && mesh.vertex_count > 0 {
+        let _ = Vec::from_raw_parts(mesh.normals, mesh.vertex_count * 3, mesh.vertex_count * 3);
+    }
+    if !mesh.colors.is_null() && mesh.vertex_count > 0 {
+        let _ = Vec::from_raw_parts(mesh.colors, mesh.vertex_count * 4, mesh.vertex_count * 4);
+    }
+    if !mesh.indices.is_null() && mesh.index_count > 0 {
+        let _ = Vec::from_raw_parts(mesh.indices, mesh.index_count, mesh.index_count);
+    }
 }

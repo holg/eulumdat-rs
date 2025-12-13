@@ -2,7 +2,7 @@
 //!
 //! Provides light and dark mode color schemes with system preference detection
 
-use yew::prelude::*;
+use leptos::prelude::*;
 
 /// Theme mode
 #[derive(Clone, Copy, PartialEq, Default)]
@@ -169,7 +169,7 @@ impl DiagramColors {
 }
 
 /// Context provider for theme
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct ThemeContext {
     pub mode: ThemeMode,
     pub colors: &'static DiagramColors,
@@ -184,30 +184,24 @@ impl Default for ThemeContext {
     }
 }
 
-/// Properties for ThemeProvider
-#[derive(Properties, PartialEq)]
-pub struct ThemeProviderProps {
-    pub children: Children,
-    pub mode: ThemeMode,
-}
-
 /// Theme provider component
-#[function_component(ThemeProvider)]
-pub fn theme_provider(props: &ThemeProviderProps) -> Html {
-    let context = ThemeContext {
-        mode: props.mode,
-        colors: DiagramColors::for_mode(props.mode),
+#[component]
+pub fn ThemeProvider(
+    mode: ReadSignal<ThemeMode>,
+    children: Children,
+) -> impl IntoView {
+    let context = move || ThemeContext {
+        mode: mode.get(),
+        colors: DiagramColors::for_mode(mode.get()),
     };
 
-    html! {
-        <ContextProvider<ThemeContext> context={context}>
-            {props.children.clone()}
-        </ContextProvider<ThemeContext>>
-    }
+    // Provide context to children
+    provide_context(context());
+
+    children()
 }
 
 /// Hook to use theme context
-#[hook]
 pub fn use_theme() -> ThemeContext {
     use_context::<ThemeContext>().unwrap_or_default()
 }

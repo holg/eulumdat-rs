@@ -31,5 +31,5 @@
 mod mesh;
 mod photweb;
 
-pub use mesh::{LdcMesh, Vertex};
+pub use mesh::{hsl_to_rgb, Color, ColorMode, ColoredLdcMesh, LdcMesh, Vertex};
 pub use photweb::PhotometricWeb;

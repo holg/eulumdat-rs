@@ -13,11 +13,17 @@ homepage = "https://github.com/holg/eulumdat-rs"
 [workspace.dependencies]
 # Internal crates
 eulumdat = { path = "crates/eulumdat", version = "0.2.2" }
+eulumdat-ui = { path = "crates/eulumdat-ui", version = "0.2.2" }
 
 # Shared dependencies
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"  # Required for uniffi error types
+
+# egui dependencies
+egui = "0.29"
+eframe = "0.29"
+three-d = { version = "0.18", default-features = false }
 
 # WASM dependencies
 base64 = "0.22"
