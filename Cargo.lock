@@ -2823,7 +2823,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
@@ -2832,7 +2832,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-bevy"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "bevy",
  "eulumdat",
@@ -2846,7 +2846,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-cli"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2856,7 +2856,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-egui"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "eframe",
@@ -2871,7 +2871,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ffi"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "eulumdat",
  "thiserror 1.0.69",
@@ -2880,7 +2880,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-harmonyos-ffi"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "eulumdat",
  "eulumdat-photweb",
@@ -2888,7 +2888,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-photweb"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -2896,7 +2896,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-py"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "eulumdat",
  "pyo3",
@@ -2904,7 +2904,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ui"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "approx 0.5.1",
  "egui",
@@ -2915,7 +2915,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
@@ -2934,7 +2934,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-windows-preview"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "embed-resource",

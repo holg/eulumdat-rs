@@ -44,7 +44,8 @@ Preview LDT files directly in Finder with polar diagrams - no need to open an ap
 - **Batch conversion** - Efficient bulk processing of multiple files
 - **Validation** - 44 validation constraints based on official specification
 - **Symmetry handling** - 5 symmetry types with automatic data expansion
-- **Photometric calculations** - Downward flux, beam angles, utilization factors
+- **Photometric calculations** - CIE flux codes, beam/field angles, spacing criteria, zonal lumens, UGR
+- **GLDF export** - Global Lighting Data Format compatible photometric data export
 - **BUG Rating** - IESNA TM-15-11 Backlight-Uplight-Glare calculations
 - **Diagram generation** - Polar, Butterfly, Cartesian, Heatmap with SVG export
 
@@ -133,6 +134,22 @@ bug_svg = ldt.bug_svg()
 rating = ldt.bug_rating()
 print(f"BUG Rating: {rating}")
 
+# NEW: Photometric calculations
+summary = ldt.photometric_summary()
+print(summary.to_text())  # Full report
+print(summary.to_compact())  # One-liner
+
+# NEW: Individual calculations
+cie = ldt.cie_flux_codes()
+print(f"CIE Flux Code: {cie}")  # e.g., "100 77 43 0 0"
+print(f"Beam angle: {ldt.beam_angle():.1f}°")
+print(f"Field angle: {ldt.field_angle():.1f}°")
+print(f"Spacing: {ldt.spacing_criteria()}")  # (S/H C0, S/H C90)
+
+# NEW: GLDF export
+gldf = ldt.gldf_data()
+print(gldf.to_dict())  # For JSON serialization
+
 # Batch conversion (efficient bulk processing)
 from eulumdat import BatchInput, ConversionFormat, batch_convert
 
@@ -185,6 +202,20 @@ eulumdat bug outdoor_luminaire.ldt --svg bug.svg
 
 # Batch convert multiple files
 eulumdat batch input_folder/ -o output_folder/ -f ies
+
+# NEW: Photometric summary (text, compact, or JSON)
+eulumdat summary luminaire.ldt
+eulumdat summary luminaire.ldt -f json -o summary.json
+
+# NEW: GLDF-compatible export
+eulumdat gldf luminaire.ldt --pretty -o gldf_data.json
+
+# NEW: Specific calculations
+eulumdat calc luminaire.ldt -t cie-codes      # CIE flux codes
+eulumdat calc luminaire.ldt -t beam-angles    # Beam/field angles
+eulumdat calc luminaire.ldt -t spacing        # S/H ratios
+eulumdat calc luminaire.ldt -t zonal-lumens   # 30° zone distribution
+eulumdat calc luminaire.ldt -t all            # Everything
 ```
 
 ### macOS / iOS

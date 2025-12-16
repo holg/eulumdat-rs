@@ -10,8 +10,8 @@ repository = "https://github.com/htr/eulumdat-rs"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-eulumdat = { path = "../eulumdat", version = "0.3.0" }
-eulumdat-photweb = { path = "../eulumdat-photweb", version = "0.3.0" }
+eulumdat.workspace = true
+eulumdat-photweb.workspace = true
 
 [profile.release]
 lto = true

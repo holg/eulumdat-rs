@@ -18,7 +18,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-eulumdat = { path = "../eulumdat", version = "0.3.0" }
+eulumdat.workspace = true
 
 [dev-dependencies]
 approx = "0.5"

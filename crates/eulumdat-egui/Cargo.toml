@@ -13,7 +13,7 @@ name = "eulumdat-egui"
 path = "src/main.rs"
 
 [dependencies]
-eulumdat = { path = "../eulumdat", version = "0.3.0" }
+eulumdat.workspace = true
 
 # GUI
 eframe = "0.29"
