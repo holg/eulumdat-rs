@@ -34,12 +34,14 @@ jobs:
         run: |
           cargo build -p eulumdat --release
           cargo build -p eulumdat-photweb --release
+          cargo build -p eulumdat-bevy --release
+          cargo build -p eulumdat-ui --release
           cargo build -p eulumdat-cli --release
           cargo build -p eulumdat-egui --release
           cargo build -p eulumdat-ffi --release
 
       - name: Run tests
-        run: cargo test -p eulumdat -p eulumdat-photweb -p eulumdat-cli -p eulumdat-ffi
+        run: cargo test -p eulumdat -p eulumdat-photweb -p eulumdat-bevy -p eulumdat-ui -p eulumdat-cli -p eulumdat-ffi
 
       # Publish crates in dependency order
       # eulumdat must be published first as all others depend on it
@@ -57,6 +59,18 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-photweb --allow-dirty || echo "eulumdat-photweb already published or no changes"
+
+      - name: Publish eulumdat-bevy (3D scene viewer)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish -p eulumdat-bevy --allow-dirty || echo "eulumdat-bevy already published or no changes"
+
+      - name: Publish eulumdat-ui (shared egui components)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          cargo publish -p eulumdat-ui --allow-dirty || echo "eulumdat-ui already published or no changes"
 
       - name: Publish eulumdat-ffi (FFI bindings for Swift/Kotlin)
         env:

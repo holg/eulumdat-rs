@@ -12,6 +12,8 @@ include = ["src/**/*", "assets/**/*", "build.rs", "Cargo.toml", "README.md"]
 name = "eulumdat-egui"
 path = "src/main.rs"
 
+[target.'cfg(windows)'.dependencies]
+
 [dependencies]
 eulumdat.workspace = true
 
@@ -34,6 +36,4 @@ anyhow = "1.0"
 
 # Encoding for LDT files
 encoding_rs = "0.8"
-
-[target.'cfg(windows)'.dependencies]
 # Windows-specific if needed later

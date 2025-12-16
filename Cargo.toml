@@ -13,9 +13,9 @@ homepage = "https://github.com/holg/eulumdat-rs"
 [workspace.dependencies]
 # Internal crates (path only - version added at publish time)
 eulumdat = { path = "crates/eulumdat" }
-eulumdat-ui = { path = "crates/eulumdat-ui" }
 eulumdat-bevy = { path = "crates/eulumdat-bevy" }
 eulumdat-photweb = { path = "crates/eulumdat-photweb" }
+eulumdat-ui = { path = "crates/eulumdat-ui" }
 
 # Shared dependencies
 anyhow = "1.0"
@@ -23,8 +23,8 @@ serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"  # Required for uniffi error types
 
 # egui dependencies
-egui = "0.29"
 eframe = "0.29"
+egui = "0.29"
 three-d = { version = "0.18", default-features = false }
 
 # WASM dependencies
@@ -36,9 +36,9 @@ wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 
 # Leptos (replaces Yew)
+console_error_panic_hook = "0.1"
 leptos = { version = "0.7", features = ["csr"] }
 leptos_router = "0.7"
-console_error_panic_hook = "0.1"
 
 # CLI dependencies
 clap = { version = "4.4", features = ["derive"] }

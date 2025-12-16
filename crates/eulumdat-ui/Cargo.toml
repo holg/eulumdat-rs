@@ -15,8 +15,8 @@ default = []
 persistence = ["egui/persistence", "serde"]
 
 [dependencies]
-eulumdat = { workspace = true, features = ["serde"] }
 egui.workspace = true
+eulumdat = { workspace = true, features = ["serde"] }
 serde = { workspace = true, optional = true }
 
 # 3D rendering (optional)

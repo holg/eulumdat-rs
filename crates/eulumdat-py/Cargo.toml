@@ -11,5 +11,5 @@ name = "eulumdat"
 crate-type = ["cdylib"]
 
 [dependencies]
-eulumdat = { path = "../eulumdat", version = "0.3.0" }
+eulumdat.workspace = true
 pyo3 = { version = "0.27", features = ["extension-module"] }
