@@ -11,11 +11,11 @@ repository = "https://github.com/holg/eulumdat-rs"
 homepage = "https://github.com/holg/eulumdat-rs"
 
 [workspace.dependencies]
-# Internal crates (path only - version added at publish time)
-eulumdat = { path = "crates/eulumdat" }
-eulumdat-bevy = { path = "crates/eulumdat-bevy" }
-eulumdat-photweb = { path = "crates/eulumdat-photweb" }
-eulumdat-ui = { path = "crates/eulumdat-ui" }
+# Internal crates
+eulumdat = { path = "crates/eulumdat", version = "0.3.0" }
+eulumdat-bevy = { path = "crates/eulumdat-bevy", version = "0.3.0" }
+eulumdat-photweb = { path = "crates/eulumdat-photweb", version = "0.3.0" }
+eulumdat-ui = { path = "crates/eulumdat-ui", version = "0.3.0" }
 
 # Shared dependencies
 anyhow = "1.0"
