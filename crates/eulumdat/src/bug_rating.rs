@@ -359,6 +359,174 @@ impl BugDiagram {
         svg
     }
 
+    /// Generate SVG with detailed zone lumens breakdown.
+    ///
+    /// Includes a table showing exact lumen values for each BUG zone.
+    pub fn to_svg_with_details(
+        &self,
+        width: f64,
+        height: f64,
+        theme: &crate::diagram::SvgTheme,
+    ) -> String {
+        let cx = width * 0.35;
+        let cy = height / 2.0 + 20.0;
+        let radius = (width.min(height) / 2.0 - 70.0).max(70.0);
+        let table_x = width * 0.62;
+
+        let mut svg = format!(
+            r#"<svg viewBox="0 0 {} {}" xmlns="http://www.w3.org/2000/svg">
+<rect width="{}" height="{}" fill="{}"/>"#,
+            width, height, width, height, theme.background
+        );
+
+        // Percentage arcs
+        svg.push_str(&self.render_percentage_arcs(cx, cy, radius, theme));
+
+        // Main circle
+        svg.push_str(&format!(
+            r#"<circle cx="{}" cy="{}" r="{}" fill="none" stroke="{}" stroke-width="2"/>"#,
+            cx, cy, radius, theme.grid
+        ));
+
+        // Zone markers and fills
+        svg.push_str(&self.render_zone_markers(cx, cy, radius, theme));
+        svg.push_str(&self.render_zone_fills(cx, cy, radius, theme));
+
+        // Luminaire symbol
+        svg.push_str(&format!(
+            r#"<rect x="{}" y="{}" width="30" height="8" fill="{}" rx="2"/>
+<circle cx="{}" cy="{}" r="2" fill="{}"/>"#,
+            cx - 15.0,
+            cy - 4.0,
+            theme.text,
+            cx,
+            cy,
+            theme.background
+        ));
+
+        // Rating display
+        svg.push_str(&format!(
+            r#"<text x="{}" y="25" text-anchor="middle" font-size="14" font-weight="bold" fill="{}">BUG Rating: {}</text>"#,
+            width / 2.0, theme.text, self.rating
+        ));
+
+        // === ZONE LUMENS TABLE ===
+        svg.push_str(&format!(
+            r#"<text x="{}" y="55" font-size="11" font-weight="bold" fill="{}">Zone Lumens (lm)</text>"#,
+            table_x, theme.text
+        ));
+
+        // Table headers
+        let col1 = table_x;
+        let col2 = table_x + 45.0;
+        let col3 = table_x + 100.0;
+        let mut y = 75.0;
+        let row_h = 18.0;
+
+        svg.push_str(&format!(
+            r#"<text x="{}" y="{}" font-size="9" font-weight="bold" fill="{}">Zone</text>
+<text x="{}" y="{}" font-size="9" font-weight="bold" fill="{}">Forward</text>
+<text x="{}" y="{}" font-size="9" font-weight="bold" fill="{}">Back</text>"#,
+            col1,
+            y,
+            theme.text_secondary,
+            col2,
+            y,
+            theme.text_secondary,
+            col3,
+            y,
+            theme.text_secondary
+        ));
+        y += row_h;
+
+        // Zone rows
+        let rows = [
+            ("VH (80-90°)", self.zones.fvh, self.zones.bvh, "U"),
+            ("H (60-80°)", self.zones.fh, self.zones.bh, "G"),
+            ("M (30-60°)", self.zones.fm, self.zones.bm, "G"),
+            ("L (0-30°)", self.zones.fl, self.zones.bl, "B"),
+        ];
+
+        for (label, fwd, back, category) in rows {
+            // Row background for visual grouping
+            let bg_color = match category {
+                "U" => "rgba(239,68,68,0.1)",  // Red for uplight
+                "G" => "rgba(245,158,11,0.1)", // Orange for glare
+                _ => "rgba(59,130,246,0.1)",   // Blue for backlight
+            };
+            svg.push_str(&format!(
+                r#"<rect x="{}" y="{}" width="140" height="{}" fill="{}" rx="2"/>"#,
+                col1 - 5.0,
+                y - 12.0,
+                row_h,
+                bg_color
+            ));
+
+            svg.push_str(&format!(
+                r#"<text x="{}" y="{}" font-size="9" fill="{}">{}</text>
+<text x="{}" y="{}" font-size="9" fill="{}">{:.0}</text>
+<text x="{}" y="{}" font-size="9" fill="{}">{:.0}</text>"#,
+                col1, y, theme.text, label, col2, y, theme.text, fwd, col3, y, theme.text, back
+            ));
+            y += row_h;
+        }
+
+        // Totals
+        y += 5.0;
+        svg.push_str(&format!(
+            r#"<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1"/>"#,
+            col1 - 5.0,
+            y - 10.0,
+            col1 + 135.0,
+            y - 10.0,
+            theme.grid
+        ));
+
+        let fwd_total = self.zones.fl + self.zones.fm + self.zones.fh + self.zones.fvh;
+        let back_total = self.zones.bl + self.zones.bm + self.zones.bh + self.zones.bvh;
+
+        svg.push_str(&format!(
+            r#"<text x="{}" y="{}" font-size="9" font-weight="bold" fill="{}">Total</text>
+<text x="{}" y="{}" font-size="9" font-weight="bold" fill="{}">{:.0}</text>
+<text x="{}" y="{}" font-size="9" font-weight="bold" fill="{}">{:.0}</text>"#,
+            col1, y, theme.text, col2, y, theme.text, fwd_total, col3, y, theme.text, back_total
+        ));
+
+        // Uplight total
+        y += row_h + 5.0;
+        let uplight = self.zones.fvh + self.zones.bvh;
+        let uplight_pct = if self.total_lumens > 0.0 {
+            uplight / self.total_lumens * 100.0
+        } else {
+            0.0
+        };
+        svg.push_str(&format!(
+            r#"<text x="{}" y="{}" font-size="9" fill="{}">Uplight: {:.0} lm ({:.1}%)</text>"#,
+            col1, y, theme.text_secondary, uplight, uplight_pct
+        ));
+
+        // B, U, G breakdown
+        y += row_h;
+        svg.push_str(&format!(
+            r#"<text x="{}" y="{}" font-size="9" fill="{}">B{} (back: {:.0}lm)</text>"#,
+            col1, y, theme.text_secondary, self.rating.b, back_total
+        ));
+        y += row_h - 4.0;
+        svg.push_str(&format!(
+            r#"<text x="{}" y="{}" font-size="9" fill="{}">U{} (up: {:.0}lm)</text>"#,
+            col1, y, theme.text_secondary, self.rating.u, uplight
+        ));
+        y += row_h - 4.0;
+        let glare = self.zones.fh + self.zones.fm + self.zones.bh + self.zones.bm;
+        svg.push_str(&format!(
+            r#"<text x="{}" y="{}" font-size="9" fill="{}">G{} (glare: {:.0}lm)</text>"#,
+            col1, y, theme.text_secondary, self.rating.g, glare
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+
     /// Generate SVG for TM-15-07 LCS view
     pub fn to_lcs_svg(&self, width: f64, height: f64, theme: &crate::diagram::SvgTheme) -> String {
         let cx = width * 0.3;

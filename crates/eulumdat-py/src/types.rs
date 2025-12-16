@@ -14,6 +14,10 @@ use core::{
 
 use crate::{
     bug_rating::{BugRating, ZoneLumens},
+    calculations::{
+        CieFluxCodes, GldfPhotometricData, PhotometricCalcs, PhotometricSummary, UgrParams,
+        ZonalLumens30,
+    },
     diagram::SvgTheme,
     error::to_py_err,
     validation::ValidationWarning,
@@ -277,7 +281,7 @@ impl Eulumdat {
     fn from_file(path: &str) -> PyResult<Self> {
         core::Eulumdat::from_file(path)
             .map(|inner| Self { inner })
-            .map_err(|e| to_py_err(e))
+            .map_err(to_py_err)
     }
 
     /// Parse from IES format string.
@@ -293,7 +297,7 @@ impl Eulumdat {
     fn from_ies_file(path: &str) -> PyResult<Self> {
         IesParser::parse_file(path)
             .map(|inner| Self { inner })
-            .map_err(|e| to_py_err(e))
+            .map_err(to_py_err)
     }
 
     /// Convert to LDT format string.
@@ -308,7 +312,7 @@ impl Eulumdat {
 
     /// Save to a file path.
     fn save(&self, path: &str) -> PyResult<()> {
-        self.inner.save(path).map_err(|e| to_py_err(e))
+        self.inner.save(path).map_err(to_py_err)
     }
 
     /// Validate the data and return any warnings.
@@ -822,6 +826,123 @@ impl Eulumdat {
             ul: diagram.zones.ul,
             uh: diagram.zones.uh,
         }
+    }
+
+    /// Generate a BUG diagram SVG with detailed zone lumens breakdown.
+    #[pyo3(signature = (width=600.0, height=400.0, theme=SvgTheme::Light))]
+    fn bug_svg_with_details(&self, width: f64, height: f64, theme: SvgTheme) -> String {
+        let diagram = CoreBugDiagram::from_eulumdat(&self.inner);
+        diagram.to_svg_with_details(width, height, &theme.to_core())
+    }
+
+    // === Photometric Calculations ===
+
+    /// Calculate complete photometric summary.
+    ///
+    /// Returns a PhotometricSummary containing all calculated photometric values
+    /// including CIE flux codes, beam/field angles, spacing criteria, etc.
+    fn photometric_summary(&self) -> PhotometricSummary {
+        PhotometricCalcs::photometric_summary(&self.inner)
+    }
+
+    /// Calculate GLDF-compatible photometric data.
+    ///
+    /// Returns data structured for GLDF (Global Lighting Data Format) export.
+    fn gldf_data(&self) -> GldfPhotometricData {
+        PhotometricCalcs::gldf_data(&self.inner)
+    }
+
+    /// Calculate CIE flux codes (N1-N5).
+    ///
+    /// Returns:
+    ///     CieFluxCodes with N1 (DLOR), N2 (0-60°), N3 (0-40°), N4 (ULOR), N5 (90-120°)
+    fn cie_flux_codes(&self) -> CieFluxCodes {
+        PhotometricCalcs::cie_flux_codes(&self.inner)
+    }
+
+    /// Calculate beam angle (50% intensity drop).
+    ///
+    /// Returns:
+    ///     Beam angle in degrees
+    fn beam_angle(&self) -> f64 {
+        PhotometricCalcs::beam_angle(&self.inner)
+    }
+
+    /// Calculate field angle (10% intensity drop).
+    ///
+    /// Returns:
+    ///     Field angle in degrees
+    fn field_angle(&self) -> f64 {
+        PhotometricCalcs::field_angle(&self.inner)
+    }
+
+    /// Calculate spacing criteria (S/H ratios) for both principal planes.
+    ///
+    /// Returns:
+    ///     Tuple of (S/H for C0 plane, S/H for C90 plane)
+    fn spacing_criteria(&self) -> (f64, f64) {
+        PhotometricCalcs::spacing_criteria(&self.inner)
+    }
+
+    /// Calculate zonal lumens in 30° zones.
+    ///
+    /// Returns:
+    ///     ZonalLumens30 with flux percentages in 6 zones from nadir to zenith
+    fn zonal_lumens_30(&self) -> ZonalLumens30 {
+        PhotometricCalcs::zonal_lumens_30(&self.inner)
+    }
+
+    /// Calculate downward flux fraction up to a given arc angle.
+    ///
+    /// Args:
+    ///     arc: Maximum angle from vertical (0° = straight down, 90° = horizontal)
+    ///
+    /// Returns:
+    ///     Percentage of light directed downward (0-100)
+    fn downward_flux(&self, arc: f64) -> f64 {
+        PhotometricCalcs::downward_flux(&self.inner, arc)
+    }
+
+    /// Calculate cut-off angle (where intensity drops below 2.5% of max).
+    ///
+    /// Returns:
+    ///     Cut-off angle in degrees
+    fn cut_off_angle(&self) -> f64 {
+        PhotometricCalcs::cut_off_angle(&self.inner)
+    }
+
+    /// Generate photometric classification code.
+    ///
+    /// Format: D-N where D=distribution type, N=beam classification
+    /// Distribution: D (direct), SD (semi-direct), GD (general diffuse),
+    ///               SI (semi-indirect), I (indirect)
+    /// Beam: VN (very narrow), N (narrow), M (medium), W (wide), VW (very wide)
+    ///
+    /// Returns:
+    ///     Classification code string (e.g., "D-M" for direct medium beam)
+    fn photometric_code(&self) -> String {
+        PhotometricCalcs::photometric_code(&self.inner)
+    }
+
+    /// Calculate luminaire efficacy (accounting for LOR).
+    ///
+    /// Differs from lamp efficacy by including light output ratio losses.
+    ///
+    /// Returns:
+    ///     Luminaire efficacy in lm/W
+    fn luminaire_efficacy_lor(&self) -> f64 {
+        PhotometricCalcs::luminaire_efficacy(&self.inner)
+    }
+
+    /// Calculate UGR (Unified Glare Rating) for a room configuration.
+    ///
+    /// Args:
+    ///     params: UgrParams with room geometry and luminaire positions
+    ///
+    /// Returns:
+    ///     UGR value (typically 10-30, lower is better)
+    fn calculate_ugr(&self, params: &UgrParams) -> f64 {
+        PhotometricCalcs::ugr(&self.inner, params)
     }
 
     fn __repr__(&self) -> String {

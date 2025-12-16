@@ -3,7 +3,7 @@
 
 use eulumdat::{
     diagram::{PolarDiagram as CorePolarDiagram, SvgTheme},
-    Eulumdat,
+    Eulumdat, PhotometricSummary,
 };
 use leptos::prelude::*;
 
@@ -13,7 +13,8 @@ pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         <div class="polar-diagram" inner_html=move || {
             let ldt = ldt.get();
             let polar = CorePolarDiagram::from_eulumdat(&ldt);
-            polar.to_svg(500.0, 500.0, &SvgTheme::css_variables())
+            let summary = PhotometricSummary::from_eulumdat(&ldt);
+            polar.to_svg_with_summary(500.0, 500.0, &SvgTheme::css_variables(), &summary)
         } />
     }
 }

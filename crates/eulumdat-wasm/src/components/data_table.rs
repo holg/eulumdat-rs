@@ -1,6 +1,6 @@
 use eulumdat::{Eulumdat, Symmetry};
-use leptos::prelude::*;
 use leptos::ev;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 
@@ -25,18 +25,13 @@ fn format_angle(v: f64) -> String {
 /// Get the starting index for C-angles based on symmetry type
 fn get_c_angle_start_index(ldt: &Eulumdat) -> usize {
     match ldt.symmetry {
-        Symmetry::PlaneC90C270 => {
-            ldt.c_angles.iter().position(|&c| c >= 90.0).unwrap_or(0)
-        }
+        Symmetry::PlaneC90C270 => ldt.c_angles.iter().position(|&c| c >= 90.0).unwrap_or(0),
         _ => 0,
     }
 }
 
 #[component]
-pub fn DataTable(
-    ldt: ReadSignal<Eulumdat>,
-    set_ldt: WriteSignal<Eulumdat>,
-) -> impl IntoView {
+pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
     let on_copy = move |_: ev::MouseEvent| {
         let ldt = ldt.get();
         let mut text = String::new();
@@ -58,11 +53,7 @@ pub fn DataTable(
             text.push_str(&format_angle(*g_angle));
             for c_idx in 0..mc {
                 text.push('\t');
-                if let Some(intensity) = ldt
-                    .intensities
-                    .get(c_idx)
-                    .and_then(|row| row.get(g_idx))
-                {
+                if let Some(intensity) = ldt.intensities.get(c_idx).and_then(|row| row.get(g_idx)) {
                     text.push_str(&format_value(*intensity));
                 }
             }
@@ -84,7 +75,8 @@ pub fn DataTable(
                 <div class="text-center text-muted">
                     "No intensity data available"
                 </div>
-            }.into_any();
+            }
+            .into_any();
         }
 
         let mc = ldt_val.intensities.len();
@@ -111,7 +103,7 @@ pub fn DataTable(
                         <thead>
                             <tr>
                                 <th class="angle-header">"γ \\ C"</th>
-                                {display_c_angles.iter().enumerate().map(|(i, angle)| {
+                                {display_c_angles.iter().map(|angle| {
                                     view! {
                                         <th class="c-angle-header">{format_angle(*angle)}</th>
                                     }

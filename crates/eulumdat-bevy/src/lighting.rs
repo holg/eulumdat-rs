@@ -3,17 +3,25 @@
 //! Since Bevy doesn't have native IES/photometric light support,
 //! we simulate it using spot lights or by calculating illuminance on surfaces.
 
-use bevy::prelude::*;
-use bevy::pbr::NotShadowCaster;
 use crate::SceneSettings;
+use bevy::pbr::NotShadowCaster;
+use bevy::prelude::*;
 use eulumdat::Eulumdat;
 
 pub struct PhotometricLightPlugin;
 
 impl Plugin for PhotometricLightPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_lights)
-            .add_systems(Update, update_lights);
+        // Initialize default SceneSettings if not already present
+        app.init_resource::<SceneSettings>();
+        app.add_systems(
+            Startup,
+            setup_lights.run_if(resource_exists::<SceneSettings>),
+        )
+        .add_systems(
+            Update,
+            update_lights.run_if(resource_exists::<SceneSettings>),
+        );
     }
 }
 
@@ -71,7 +79,9 @@ fn spawn_lights(
     use crate::scene::SceneType;
 
     // Get luminaire height for positioning calculations
-    let lum_height = settings.ldt_data.as_ref()
+    let lum_height = settings
+        .ldt_data
+        .as_ref()
         .map(|ldt| (ldt.height / 1000.0).max(0.1) as f32)
         .unwrap_or(0.2);
 
@@ -109,7 +119,9 @@ fn spawn_lights(
     };
 
     // Get color temperature, CRI, and luminous flux from LDT data
-    let (color_temp, cri, total_flux, lor) = settings.ldt_data.as_ref()
+    let (color_temp, cri, total_flux, lor) = settings
+        .ldt_data
+        .as_ref()
         .map(|ldt| {
             let lamp = ldt.lamp_sets.first();
             let color_temp = lamp
@@ -132,10 +144,36 @@ fn spawn_lights(
     let light_color = apply_cri_adjustment(light_color, cri);
 
     // Get downward flux fraction to determine light direction
-    let downward_fraction = settings.ldt_data.as_ref()
-        .map(|ldt| (ldt.downward_flux_fraction / 100.0) as f32)
+    let downward_fraction = settings
+        .ldt_data
+        .as_ref()
+        .map(|ldt| {
+            let frac = (ldt.downward_flux_fraction / 100.0) as f32;
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(
+                &format!(
+                    "[Lighting] LDT downward_flux_fraction: {}% -> {}, upward: {}",
+                    ldt.downward_flux_fraction,
+                    frac,
+                    1.0 - frac
+                )
+                .into(),
+            );
+            frac
+        })
         .unwrap_or(1.0);
     let upward_fraction = 1.0 - downward_fraction;
+
+    #[cfg(target_arch = "wasm32")]
+    web_sys::console::log_1(
+        &format!(
+            "[Lighting] Final fractions - down: {}, up: {}, has_ldt: {}",
+            downward_fraction,
+            upward_fraction,
+            settings.ldt_data.is_some()
+        )
+        .into(),
+    );
 
     // Bevy uses lumens for intensity (roughly)
     // Scale factor to make it visible in the scene
@@ -178,8 +216,7 @@ fn spawn_lights(
                     shadows_enabled: settings.show_shadows,
                     ..default()
                 },
-                Transform::from_translation(spot_pos)
-                    .looking_at(floor_target, Vec3::X),
+                Transform::from_translation(spot_pos).looking_at(floor_target, Vec3::X),
                 PhotometricLight,
             ));
         }
@@ -198,8 +235,7 @@ fn spawn_lights(
                     shadows_enabled: settings.show_shadows,
                     ..default()
                 },
-                Transform::from_translation(light_pos)
-                    .looking_at(ceiling_target, Vec3::X),
+                Transform::from_translation(light_pos).looking_at(ceiling_target, Vec3::X),
                 PhotometricLight,
             ));
         }
@@ -207,7 +243,14 @@ fn spawn_lights(
 
     // Luminaire model
     if settings.show_luminaire {
-        spawn_luminaire_model(commands, meshes, materials, settings, light_pos, light_color);
+        spawn_luminaire_model(
+            commands,
+            meshes,
+            materials,
+            settings,
+            light_pos,
+            light_color,
+        );
     }
 
     // Photometric solid
@@ -228,12 +271,16 @@ fn spawn_luminaire_model(
 ) {
     use crate::scene::SceneType;
 
-    let (width, length, height) = settings.ldt_data.as_ref()
-        .map(|ldt| (
-            ldt.width / 1000.0,   // mm to m
-            ldt.length / 1000.0,  // mm to m (or diameter if width=0)
-            (ldt.height / 1000.0).max(0.05),
-        ))
+    let (width, length, height) = settings
+        .ldt_data
+        .as_ref()
+        .map(|ldt| {
+            (
+                ldt.width / 1000.0,  // mm to m
+                ldt.length / 1000.0, // mm to m (or diameter if width=0)
+                (ldt.height / 1000.0).max(0.05),
+            )
+        })
         .unwrap_or((0.2, 0.2, 0.05));
 
     let linear = light_color.to_linear();
@@ -263,10 +310,7 @@ fn spawn_luminaire_model(
             }
             SceneType::Room => Quat::IDENTITY,
         };
-        (
-            Cylinder::new(radius, height as f32).into(),
-            rotation,
-        )
+        (Cylinder::new(radius, height as f32).into(), rotation)
     } else {
         // Rectangular luminaire
         let rotation = match settings.scene_type {
@@ -287,8 +331,7 @@ fn spawn_luminaire_model(
     commands.spawn((
         Mesh3d(meshes.add(mesh)),
         MeshMaterial3d(luminaire_material),
-        Transform::from_translation(position)
-            .with_rotation(rotation),
+        Transform::from_translation(position).with_rotation(rotation),
         LuminaireModel,
         NotShadowCaster,
     ));
@@ -394,7 +437,7 @@ fn parse_color_temperature(appearance: &str) -> f32 {
             digits.push(ch);
             if digits.len() == 4 {
                 if let Ok(kelvin) = digits.parse::<f32>() {
-                    if kelvin >= 1000.0 && kelvin <= 20000.0 {
+                    if (1000.0..=20000.0).contains(&kelvin) {
                         return kelvin;
                     }
                 }
@@ -410,35 +453,32 @@ fn parse_color_temperature(appearance: &str) -> f32 {
 /// Using Tanner Helland's algorithm
 fn kelvin_to_rgb(kelvin: f32) -> Color {
     let temp = kelvin / 100.0;
-    let r: f32;
-    let g: f32;
-    let b: f32;
 
     // Red
-    if temp <= 66.0 {
-        r = 255.0;
+    let r = if temp <= 66.0 {
+        255.0
     } else {
         let x = temp - 60.0;
-        r = (329.698727446 * x.powf(-0.1332047592)).clamp(0.0, 255.0);
-    }
+        (329.698_73 * x.powf(-0.133_204_76)).clamp(0.0, 255.0)
+    };
 
     // Green
-    if temp <= 66.0 {
-        g = (99.4708025861 * temp.ln() - 161.1195681661).clamp(0.0, 255.0);
+    let g = if temp <= 66.0 {
+        (99.470_8 * temp.ln() - 161.119_57).clamp(0.0, 255.0)
     } else {
         let x = temp - 60.0;
-        g = (288.1221695283 * x.powf(-0.0755148492)).clamp(0.0, 255.0);
-    }
+        (288.122_16 * x.powf(-0.075_514_846)).clamp(0.0, 255.0)
+    };
 
     // Blue
-    if temp >= 66.0 {
-        b = 255.0;
+    let b = if temp >= 66.0 {
+        255.0
     } else if temp <= 19.0 {
-        b = 0.0;
+        0.0
     } else {
         let x = temp - 10.0;
-        b = (138.5177312231 * x.ln() - 305.0447927307).clamp(0.0, 255.0);
-    }
+        (138.517_73 * x.ln() - 305.044_8).clamp(0.0, 255.0)
+    };
 
     Color::srgb(r / 255.0, g / 255.0, b / 255.0)
 }

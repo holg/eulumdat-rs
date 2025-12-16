@@ -197,11 +197,7 @@ pub fn run_on_canvas(canvas_selector: &str) {
             }),
             ..default()
         }))
-        .add_plugins((
-            CameraPlugin,
-            ScenePlugin,
-            PhotometricLightPlugin,
-        ))
+        .add_plugins((CameraPlugin, ScenePlugin, PhotometricLightPlugin))
         .insert_resource(SceneSettings::default())
         .insert_resource(LdtTimestamp::default())
         .add_systems(Startup, setup_with_default_ldt)
@@ -228,11 +224,7 @@ pub fn run_native() {
             }),
             ..default()
         }))
-        .add_plugins((
-            CameraPlugin,
-            ScenePlugin,
-            PhotometricLightPlugin,
-        ))
+        .add_plugins((CameraPlugin, ScenePlugin, PhotometricLightPlugin))
         .insert_resource(SceneSettings::default())
         .insert_resource(LdtTimestamp::default())
         .add_systems(Startup, setup_with_default_ldt)

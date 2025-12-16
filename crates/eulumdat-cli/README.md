@@ -69,6 +69,54 @@ eulumdat bug outdoor_luminaire.ldt
 eulumdat bug outdoor_luminaire.ldt --svg bug.svg
 ```
 
+### Photometric Summary (v0.3.0+)
+
+```bash
+# Full text report
+eulumdat summary luminaire.ldt
+
+# Compact one-liner
+eulumdat summary luminaire.ldt -f compact
+
+# JSON output
+eulumdat summary luminaire.ldt -f json
+
+# Save to file
+eulumdat summary luminaire.ldt -f json -o summary.json
+```
+
+### GLDF Export (v0.3.0+)
+
+```bash
+# GLDF-compatible photometric data as JSON
+eulumdat gldf luminaire.ldt
+
+# Pretty-printed JSON
+eulumdat gldf luminaire.ldt --pretty
+
+# Save to file
+eulumdat gldf luminaire.ldt --pretty -o gldf_data.json
+```
+
+### Photometric Calculations (v0.3.0+)
+
+```bash
+# CIE flux codes (N1-N5)
+eulumdat calc luminaire.ldt -t cie-codes
+
+# Beam and field angles
+eulumdat calc luminaire.ldt -t beam-angles
+
+# Spacing criteria (S/H ratios)
+eulumdat calc luminaire.ldt -t spacing
+
+# Zonal lumens distribution
+eulumdat calc luminaire.ldt -t zonal-lumens
+
+# All calculations
+eulumdat calc luminaire.ldt -t all
+```
+
 ## Commands
 
 | Command | Description |
@@ -78,6 +126,9 @@ eulumdat bug outdoor_luminaire.ldt --svg bug.svg
 | `convert` | Convert between LDT and IES |
 | `diagram` | Generate SVG diagrams |
 | `bug` | Calculate BUG rating |
+| `summary` | Display photometric summary (v0.3.0+) |
+| `gldf` | Export GLDF-compatible data (v0.3.0+) |
+| `calc` | Calculate specific values (v0.3.0+) |
 
 ## License
 

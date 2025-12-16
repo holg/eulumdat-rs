@@ -2,12 +2,12 @@
 //! Features: auto-rotation animation, mouse drag rotation controls
 
 use eulumdat::{Eulumdat, Symmetry};
-use leptos::prelude::*;
 use leptos::ev;
-use wasm_bindgen::JsCast;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
+use leptos::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
 /// Theme colors for canvas rendering (read from CSS variables)
 #[derive(Clone)]
@@ -474,17 +474,16 @@ pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     // Animation loop
     Effect::new({
         let renderer = renderer.clone();
-        let canvas_ref = canvas_ref.clone();
         move |_| {
             let renderer = renderer.clone();
-            let canvas_ref = canvas_ref.clone();
 
-            let animate = Rc::new(RefCell::new(None::<wasm_bindgen::closure::Closure<dyn Fn()>>));
+            let animate = Rc::new(RefCell::new(
+                None::<wasm_bindgen::closure::Closure<dyn Fn()>>,
+            ));
             let animate_clone = animate.clone();
 
             *animate.borrow_mut() = Some(wasm_bindgen::closure::Closure::new({
                 let renderer = renderer.clone();
-                let canvas_ref = canvas_ref.clone();
                 let animate = animate_clone.clone();
 
                 move || {
@@ -520,7 +519,8 @@ pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                     if let Some(window) = web_sys::window() {
                         if let Some(closure) = animate.borrow().as_ref() {
-                            let _ = window.request_animation_frame(closure.as_ref().unchecked_ref());
+                            let _ =
+                                window.request_animation_frame(closure.as_ref().unchecked_ref());
                         }
                     }
                 }
@@ -535,7 +535,7 @@ pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     });
 
     let on_mousedown = {
-        let renderer = renderer.clone();
+        let _renderer = renderer.clone();
         move |e: ev::MouseEvent| {
             set_dragging.set(true);
             set_last_mouse_x.set(e.client_x() as f64);

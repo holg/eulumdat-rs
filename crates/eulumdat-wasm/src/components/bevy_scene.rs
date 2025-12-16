@@ -150,10 +150,9 @@ pub fn BevySceneViewer() -> impl IntoView {
 }
 
 /// Standalone Bevy scene for when iframe is still preferred
+#[allow(dead_code)]
 #[component]
-pub fn BevySceneIframe(
-    #[prop(default = 0)] reload_key: u32,
-) -> impl IntoView {
+pub fn BevySceneIframe(#[prop(default = 0)] reload_key: u32) -> impl IntoView {
     view! {
         <div class="scene-container">
             <iframe

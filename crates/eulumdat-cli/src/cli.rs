@@ -103,6 +103,44 @@ pub enum Commands {
         #[arg(long)]
         overwrite: bool,
     },
+
+    /// Display photometric summary with calculated values
+    Summary {
+        /// Input file (.ldt or .ies)
+        file: PathBuf,
+
+        /// Output format
+        #[arg(short = 'f', long, value_enum, default_value = "text")]
+        format: SummaryFormat,
+
+        /// Output to file instead of stdout
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
+    /// Export GLDF-compatible photometric data
+    Gldf {
+        /// Input file (.ldt or .ies)
+        file: PathBuf,
+
+        /// Output JSON file (stdout if not specified)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Pretty-print JSON output
+        #[arg(short, long)]
+        pretty: bool,
+    },
+
+    /// Calculate specific photometric values
+    Calc {
+        /// Input file (.ldt or .ies)
+        file: PathBuf,
+
+        /// Calculation type
+        #[arg(short = 't', long, value_enum)]
+        calc_type: CalcType,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
@@ -123,4 +161,28 @@ pub enum OutputFormat {
     Ldt,
     /// Convert to IES format (common in North America)
     Ies,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum SummaryFormat {
+    /// Human-readable text report
+    Text,
+    /// Single-line compact summary
+    Compact,
+    /// JSON output
+    Json,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum CalcType {
+    /// CIE flux codes (N1-N5)
+    CieCodes,
+    /// Beam angle (50%) and field angle (10%)
+    BeamAngles,
+    /// Spacing criteria (S/H ratios)
+    Spacing,
+    /// Zonal lumens in 30° zones
+    ZonalLumens,
+    /// All calculations
+    All,
 }

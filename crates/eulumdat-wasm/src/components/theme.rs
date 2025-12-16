@@ -186,10 +186,7 @@ impl Default for ThemeContext {
 
 /// Theme provider component
 #[component]
-pub fn ThemeProvider(
-    mode: ReadSignal<ThemeMode>,
-    children: Children,
-) -> impl IntoView {
+pub fn ThemeProvider(mode: ReadSignal<ThemeMode>, children: Children) -> impl IntoView {
     let context = move || ThemeContext {
         mode: mode.get(),
         colors: DiagramColors::for_mode(mode.get()),
@@ -202,6 +199,7 @@ pub fn ThemeProvider(
 }
 
 /// Hook to use theme context
+#[allow(dead_code)]
 pub fn use_theme() -> ThemeContext {
     use_context::<ThemeContext>().unwrap_or_default()
 }

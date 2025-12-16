@@ -5,6 +5,7 @@
 
 pub mod batch;
 pub mod bug_rating;
+pub mod calculations;
 pub mod diagram;
 pub mod error;
 pub mod types;
@@ -14,6 +15,9 @@ use pyo3::prelude::*;
 
 use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 use bug_rating::{BugRating, ZoneLumens};
+use calculations::{
+    CieFluxCodes, GldfPhotometricData, PhotometricSummary, UgrParams, ZonalLumens30,
+};
 use diagram::SvgTheme;
 use types::{Eulumdat, LampSet, Symmetry, TypeIndicator};
 use validation::ValidationWarning;
@@ -36,6 +40,13 @@ fn eulumdat(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // BUG rating types
     m.add_class::<BugRating>()?;
     m.add_class::<ZoneLumens>()?;
+
+    // Photometric calculation types
+    m.add_class::<PhotometricSummary>()?;
+    m.add_class::<GldfPhotometricData>()?;
+    m.add_class::<CieFluxCodes>()?;
+    m.add_class::<ZonalLumens30>()?;
+    m.add_class::<UgrParams>()?;
 
     // Batch conversion types
     m.add_class::<InputFormat>()?;

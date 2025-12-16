@@ -4,11 +4,12 @@ use anyhow::{Context, Result};
 use eulumdat::{
     batch::{self, BatchInput, ConversionFormat},
     diagram::SvgTheme,
-    BugDiagram, Eulumdat, IesExporter, IesParser,
+    BugDiagram, Eulumdat, GldfPhotometricData, IesExporter, IesParser, PhotometricCalculations,
+    PhotometricSummary,
 };
 use std::path::PathBuf;
 
-use crate::cli::{DiagramType, OutputFormat};
+use crate::cli::{CalcType, DiagramType, OutputFormat, SummaryFormat};
 
 pub fn load_file(path: &PathBuf) -> Result<Eulumdat> {
     let ext = path
@@ -363,6 +364,171 @@ pub fn batch(
 
     if stats.failed > 0 {
         anyhow::bail!("{} file(s) failed to convert", stats.failed);
+    }
+
+    Ok(())
+}
+
+pub fn summary(file: &PathBuf, format: SummaryFormat, output: Option<&PathBuf>) -> Result<()> {
+    let ldt = load_file(file)?;
+    let summary = PhotometricSummary::from_eulumdat(&ldt);
+
+    let content = match format {
+        SummaryFormat::Text => {
+            let mut s = format!("File: {}\n\n", file.display());
+            s.push_str(&summary.to_text());
+            s
+        }
+        SummaryFormat::Compact => summary.to_compact(),
+        SummaryFormat::Json => {
+            let kv = summary.to_key_value();
+            let mut json = String::from("{\n");
+            for (i, (key, value)) in kv.iter().enumerate() {
+                let comma = if i < kv.len() - 1 { "," } else { "" };
+                // Try to parse as number for proper JSON formatting
+                if let Ok(num) = value.parse::<f64>() {
+                    json.push_str(&format!("  \"{}\": {}{}\n", key, num, comma));
+                } else {
+                    json.push_str(&format!("  \"{}\": \"{}\"{}\n", key, value, comma));
+                }
+            }
+            json.push('}');
+            json
+        }
+    };
+
+    if let Some(out_path) = output {
+        std::fs::write(out_path, &content).context("Failed to write output file")?;
+        println!("Summary written to: {}", out_path.display());
+    } else {
+        println!("{content}");
+    }
+
+    Ok(())
+}
+
+pub fn gldf(file: &PathBuf, output: Option<&PathBuf>, pretty: bool) -> Result<()> {
+    let ldt = load_file(file)?;
+    let gldf = GldfPhotometricData::from_eulumdat(&ldt);
+    let props = gldf.to_gldf_properties();
+
+    let json = if pretty {
+        let mut s = String::from("{\n");
+        for (i, (key, value)) in props.iter().enumerate() {
+            let comma = if i < props.len() - 1 { "," } else { "" };
+            // Try to parse as number for proper JSON formatting
+            if let Ok(num) = value.parse::<f64>() {
+                s.push_str(&format!("  \"{}\": {}{}\n", key, num, comma));
+            } else {
+                s.push_str(&format!("  \"{}\": \"{}\"{}\n", key, value, comma));
+            }
+        }
+        s.push('}');
+        s
+    } else {
+        let pairs: Vec<String> = props
+            .iter()
+            .map(|(k, v)| {
+                if let Ok(num) = v.parse::<f64>() {
+                    format!("\"{}\":{}", k, num)
+                } else {
+                    format!("\"{}\":\"{}\"", k, v)
+                }
+            })
+            .collect();
+        format!("{{{}}}", pairs.join(","))
+    };
+
+    if let Some(out_path) = output {
+        std::fs::write(out_path, &json).context("Failed to write JSON file")?;
+        println!("GLDF data exported to: {}", out_path.display());
+    } else {
+        println!("{json}");
+    }
+
+    Ok(())
+}
+
+pub fn calc(file: &PathBuf, calc_type: CalcType) -> Result<()> {
+    let ldt = load_file(file)?;
+
+    println!("Photometric calculations for: {}", file.display());
+    println!();
+
+    match calc_type {
+        CalcType::CieCodes => {
+            let codes = PhotometricCalculations::cie_flux_codes(&ldt);
+            println!("=== CIE Flux Codes ===");
+            println!("N1 (0-90°, DLOR):      {:.1}%", codes.n1);
+            println!("N2 (0-60°):            {:.1}%", codes.n2);
+            println!("N3 (0-40°):            {:.1}%", codes.n3);
+            println!("N4 (90-180°, ULOR):    {:.1}%", codes.n4);
+            println!("N5 (90-120°):          {:.1}%", codes.n5);
+            println!();
+            println!("CIE Flux Code: {}", codes);
+        }
+        CalcType::BeamAngles => {
+            let beam = PhotometricCalculations::beam_angle(&ldt);
+            let field = PhotometricCalculations::field_angle(&ldt);
+            let beam_c0 = PhotometricCalculations::beam_angle_for_plane(&ldt, 0.0);
+            let beam_c90 = PhotometricCalculations::beam_angle_for_plane(&ldt, 90.0);
+            let field_c0 = PhotometricCalculations::field_angle_for_plane(&ldt, 0.0);
+            let field_c90 = PhotometricCalculations::field_angle_for_plane(&ldt, 90.0);
+            let cut_off = PhotometricCalculations::cut_off_angle(&ldt);
+
+            println!("=== Beam Characteristics ===");
+            println!("Beam Angle (50%):      {:.1}°", beam);
+            println!("Field Angle (10%):     {:.1}°", field);
+            println!("Cut-off Angle (2.5%):  {:.1}°", cut_off);
+            println!();
+            println!("=== Per-Plane Angles ===");
+            println!("Beam C0 / C90:         {:.1}° / {:.1}°", beam_c0, beam_c90);
+            println!(
+                "Field C0 / C90:        {:.1}° / {:.1}°",
+                field_c0, field_c90
+            );
+        }
+        CalcType::Spacing => {
+            let (s_c0, s_c90) = PhotometricCalculations::spacing_criteria(&ldt);
+            let code = PhotometricCalculations::photometric_code(&ldt);
+
+            println!("=== Spacing Criteria ===");
+            println!("S/H ratio (C0):        {:.2}", s_c0);
+            println!("S/H ratio (C90):       {:.2}", s_c90);
+            println!();
+            println!("Photometric Code:      {}", code);
+            println!();
+            println!("Note: S/H ratio indicates maximum spacing-to-height");
+            println!("      ratio for reasonably uniform illumination.");
+        }
+        CalcType::ZonalLumens => {
+            let zones = PhotometricCalculations::zonal_lumens_30deg(&ldt);
+            let flux_90 = PhotometricCalculations::downward_flux(&ldt, 90.0);
+            let flux_60 = PhotometricCalculations::downward_flux(&ldt, 60.0);
+            let flux_40 = PhotometricCalculations::downward_flux(&ldt, 40.0);
+
+            println!("=== Zonal Lumens (30° zones) ===");
+            println!("0-30°:                 {:.1}%", zones.zone_0_30);
+            println!("30-60°:                {:.1}%", zones.zone_30_60);
+            println!("60-90°:                {:.1}%", zones.zone_60_90);
+            println!("90-120°:               {:.1}%", zones.zone_90_120);
+            println!("120-150°:              {:.1}%", zones.zone_120_150);
+            println!("150-180°:              {:.1}%", zones.zone_150_180);
+            println!();
+            println!("=== Downward Totals ===");
+            println!("Downward (0-90°):      {:.1}%", zones.downward_total());
+            println!("Upward (90-180°):      {:.1}%", zones.upward_total());
+            println!();
+            println!("=== Cumulative Flux ===");
+            println!("Within 40°:            {:.1}%", flux_40);
+            println!("Within 60°:            {:.1}%", flux_60);
+            println!("Within 90°:            {:.1}%", flux_90);
+        }
+        CalcType::All => {
+            // Print all calculations
+            let summary = PhotometricSummary::from_eulumdat(&ldt);
+            println!("{}", summary.to_text());
+        }
     }
 
     Ok(())

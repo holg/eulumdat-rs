@@ -573,10 +573,18 @@ textarea::placeholder {
 }
 
 /* Lamp Sets */
+.lamp-set-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 .lamp-set-tabs {
     display: flex;
     gap: 0.25rem;
-    margin-bottom: 1rem;
     flex-wrap: wrap;
 }
 
@@ -593,6 +601,12 @@ textarea::placeholder {
     background: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
+}
+
+.btn-add-lamp {
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 /* Direct Ratios */
@@ -1185,4 +1199,62 @@ textarea::placeholder {
 
 .butterfly-3d-controls button:hover {
     background: var(--background);
+}
+
+/* ============================================
+   CALCULATED PHOTOMETRIC SUMMARY
+   ============================================ */
+.calculated-summary {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--border);
+    background: linear-gradient(to bottom, var(--background), transparent);
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.calculated-summary .summary-header {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.calculated-summary .summary-header::before {
+    content: "⚡";
+    font-size: 0.875rem;
+}
+
+.calculated-summary .text-small {
+    font-size: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.calculated-summary .subsection-header {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px dashed var(--border);
+}
+
+.calculated-summary .info-grid-wide {
+    background: var(--surface);
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
+.calculated-summary .info-item {
+    background: transparent;
+}
+
+.calculated-summary .info-value.mono {
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    letter-spacing: 0.05em;
 }

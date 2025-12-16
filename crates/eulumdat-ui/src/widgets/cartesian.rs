@@ -1,7 +1,7 @@
 //! Cartesian diagram widget for egui
 
 use crate::Theme;
-use egui::{pos2, vec2, Pos2, Rect, Sense, Stroke, Vec2};
+use egui::{pos2, vec2, Pos2, Rect, Sense, Stroke};
 use eulumdat::{diagram::CartesianDiagram, Eulumdat};
 
 /// Cartesian diagram widget
@@ -19,10 +19,7 @@ impl CartesianWidget {
 
         // Margins for axes
         let margin = vec2(60.0, 40.0);
-        let plot_rect = Rect::from_min_max(
-            rect.min + margin,
-            rect.max - vec2(20.0, 30.0),
-        );
+        let plot_rect = Rect::from_min_max(rect.min + margin, rect.max - vec2(20.0, 30.0));
 
         // Background
         painter.rect_filled(rect, 0.0, theme.background);
@@ -34,7 +31,7 @@ impl CartesianWidget {
         Self::draw_grid(&painter, plot_rect, &cartesian, theme);
 
         // Draw curves
-        for (i, curve) in cartesian.curves.iter().enumerate() {
+        for curve in cartesian.curves.iter() {
             let color = theme.c_plane_color(curve.c_angle, cartesian.curves.len());
             Self::draw_curve(&painter, plot_rect, curve, &cartesian, color);
         }
@@ -49,7 +46,7 @@ impl CartesianWidget {
     fn draw_grid(
         painter: &egui::Painter,
         rect: Rect,
-        cartesian: &CartesianDiagram,
+        _cartesian: &CartesianDiagram,
         theme: &Theme,
     ) {
         let grid_stroke = Stroke::new(1.0, theme.grid);
@@ -57,20 +54,14 @@ impl CartesianWidget {
         // Vertical grid lines (gamma angles)
         for gamma in (0..=180).step_by(30) {
             let x = rect.left() + (gamma as f32 / 180.0) * rect.width();
-            painter.line_segment(
-                [pos2(x, rect.top()), pos2(x, rect.bottom())],
-                grid_stroke,
-            );
+            painter.line_segment([pos2(x, rect.top()), pos2(x, rect.bottom())], grid_stroke);
         }
 
         // Horizontal grid lines (intensity)
         let num_lines = 5;
         for i in 0..=num_lines {
             let y = rect.bottom() - (i as f32 / num_lines as f32) * rect.height();
-            painter.line_segment(
-                [pos2(rect.left(), y), pos2(rect.right(), y)],
-                grid_stroke,
-            );
+            painter.line_segment([pos2(rect.left(), y), pos2(rect.right(), y)], grid_stroke);
         }
     }
 
@@ -103,23 +94,24 @@ impl CartesianWidget {
         }
     }
 
-    fn draw_axes(
-        painter: &egui::Painter,
-        rect: Rect,
-        cartesian: &CartesianDiagram,
-        theme: &Theme,
-    ) {
+    fn draw_axes(painter: &egui::Painter, rect: Rect, cartesian: &CartesianDiagram, theme: &Theme) {
         let axis_stroke = Stroke::new(1.5, theme.axis);
 
         // X axis
         painter.line_segment(
-            [pos2(rect.left(), rect.bottom()), pos2(rect.right(), rect.bottom())],
+            [
+                pos2(rect.left(), rect.bottom()),
+                pos2(rect.right(), rect.bottom()),
+            ],
             axis_stroke,
         );
 
         // Y axis
         painter.line_segment(
-            [pos2(rect.left(), rect.top()), pos2(rect.left(), rect.bottom())],
+            [
+                pos2(rect.left(), rect.top()),
+                pos2(rect.left(), rect.bottom()),
+            ],
             axis_stroke,
         );
 

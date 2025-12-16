@@ -111,7 +111,11 @@ impl InfoPanel {
                                 );
                                 Self::row(ui, "Color", &lamp.color_appearance);
                                 Self::row(ui, "CRI/Group", &lamp.color_rendering_group);
-                                Self::row(ui, "Wattage", &format!("{:.1} W", lamp.wattage_with_ballast));
+                                Self::row(
+                                    ui,
+                                    "Wattage",
+                                    &format!("{:.1} W", lamp.wattage_with_ballast),
+                                );
                             });
                     });
                 }

@@ -1,6 +1,8 @@
-use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
-use leptos::prelude::*;
+use eulumdat::{
+    Eulumdat, GldfPhotometricData, LampSet, PhotometricSummary, Symmetry, TypeIndicator,
+};
 use leptos::ev;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlSelectElement};
 
@@ -9,10 +11,7 @@ use web_sys::{HtmlInputElement, HtmlSelectElement};
 // ============================================================================
 
 #[component]
-pub fn GeneralTab(
-    ldt: ReadSignal<Eulumdat>,
-    set_ldt: WriteSignal<Eulumdat>,
-) -> impl IntoView {
+pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
     let on_iden_change = move |e: ev::Event| {
         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
         set_ldt.update(|ldt| ldt.identification = input.value());
@@ -164,6 +163,171 @@ pub fn GeneralTab(
                 />
             </div>
         </div>
+
+        // Photometric Summary (Calculated Values)
+        <div class="calculated-summary">
+            <h4 class="summary-header">"Calculated Photometric Summary"</h4>
+            <p class="text-muted text-small">"Values below are calculated from the intensity distribution data"</p>
+
+            <div class="info-grid-wide">
+                // Flux & Efficiency
+                <div class="info-item">
+                    <div class="info-label">"Total Lamp Flux"</div>
+                    <div class="info-value">{move || format!("{:.0} lm", ldt.get().total_luminous_flux())}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Total Wattage"</div>
+                    <div class="info-value">{move || format!("{:.1} W", ldt.get().total_wattage())}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Lamp Efficacy"</div>
+                    <div class="info-value">{move || format!("{:.1} lm/W", ldt.get().luminous_efficacy())}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Luminaire Efficacy"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.1} lm/W", summary.luminaire_efficacy)
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"LOR"</div>
+                    <div class="info-value">{move || format!("{:.1}%", ldt.get().light_output_ratio)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"DLOR / ULOR"</div>
+                    <div class="info-value">{move || {
+                        let l = ldt.get();
+                        format!("{:.1}% / {:.1}%", l.downward_flux_fraction, 100.0 - l.downward_flux_fraction)
+                    }}</div>
+                </div>
+            </div>
+
+            <h5 class="subsection-header">"Beam Characteristics"</h5>
+            <div class="info-grid-wide">
+                <div class="info-item">
+                    <div class="info-label">"Max Intensity"</div>
+                    <div class="info-value">{move || format!("{:.1} cd/klm", ldt.get().max_intensity())}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Beam Angle (50%)"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.1}°", summary.beam_angle)
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Field Angle (10%)"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.1}°", summary.field_angle)
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Spacing Criterion"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.2} × {:.2}", summary.spacing_c0, summary.spacing_c90)
+                    }}</div>
+                </div>
+            </div>
+
+            <h5 class="subsection-header">"CIE Classification"</h5>
+            <div class="info-grid-wide">
+                <div class="info-item" style="grid-column: span 2;">
+                    <div class="info-label">"CIE Flux Code"</div>
+                    <div class="info-value mono">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{}", summary.cie_flux_codes)
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Photometric Code"</div>
+                    <div class="info-value">{move || {
+                        let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
+                        gldf.photometric_code
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Cut-off Angle"</div>
+                    <div class="info-value">{move || {
+                        let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
+                        format!("{:.1}°", gldf.cut_off_angle)
+                    }}</div>
+                </div>
+            </div>
+
+            <h5 class="subsection-header">"Zonal Lumens"</h5>
+            <div class="info-grid-wide">
+                <div class="info-item">
+                    <div class="info-label">"0-30°"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.1}%", summary.zonal_lumens.zone_0_30)
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"30-60°"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.1}%", summary.zonal_lumens.zone_30_60)
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"60-90°"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.1}%", summary.zonal_lumens.zone_60_90)
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"90-180° (upward)"</div>
+                    <div class="info-value">{move || {
+                        let summary = PhotometricSummary::from_eulumdat(&ldt.get());
+                        format!("{:.1}%", summary.zonal_lumens.upward_total())
+                    }}</div>
+                </div>
+            </div>
+
+            <h5 class="subsection-header">"Glare Assessment"</h5>
+            <div class="info-grid-wide">
+                <div class="info-item">
+                    <div class="info-label">"Luminaire Luminance (65°)"</div>
+                    <div class="info-value">{move || {
+                        let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
+                        if gldf.luminaire_luminance > 0.0 {
+                            format!("{:.0} cd/m²", gldf.luminaire_luminance)
+                        } else {
+                            "N/A (no luminous area)".to_string()
+                        }
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"UGR Crosswise (C90)"</div>
+                    <div class="info-value">{move || {
+                        let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
+                        match &gldf.ugr_4h_8h_705020 {
+                            Some(ugr) => format!("{:.1}", ugr.crosswise),
+                            None => "N/A".to_string(),
+                        }
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"UGR Endwise (C0)"</div>
+                    <div class="info-value">{move || {
+                        let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
+                        match &gldf.ugr_4h_8h_705020 {
+                            Some(ugr) => format!("{:.1}", ugr.endwise),
+                            None => "N/A".to_string(),
+                        }
+                    }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">"Room Config"</div>
+                    <div class="info-value text-muted">"4H×8H, 70/50/20"</div>
+                </div>
+            </div>
+        </div>
     }
 }
 
@@ -172,10 +336,7 @@ pub fn GeneralTab(
 // ============================================================================
 
 #[component]
-pub fn DimensionsTab(
-    ldt: ReadSignal<Eulumdat>,
-    set_ldt: WriteSignal<Eulumdat>,
-) -> impl IntoView {
+pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
     view! {
         <h4 class="mb-1">"Luminaire Dimensions (mm)"</h4>
         <div class="form-row">
@@ -338,21 +499,25 @@ pub fn LampSetsTab(
     };
 
     view! {
-        <div class="lamp-set-tabs">
-            {move || ldt.get().lamp_sets.iter().enumerate().map(|(i, _)| {
-                let on_select = move |_: ev::MouseEvent| {
-                    set_selected.set(i);
-                };
-                view! {
-                    <button
-                        class=move || format!("lamp-set-tab{}", if i == selected.get() { " active" } else { "" })
-                        on:click=on_select
-                    >
-                        {format!("Set {}", i + 1)}
-                    </button>
-                }
-            }).collect_view()}
-            <button class="lamp-set-tab" on:click=on_add>"+"</button>
+        <div class="lamp-set-header">
+            <div class="lamp-set-tabs">
+                {move || ldt.get().lamp_sets.iter().enumerate().map(|(i, _)| {
+                    let on_select = move |_: ev::MouseEvent| {
+                        set_selected.set(i);
+                    };
+                    view! {
+                        <button
+                            class=move || format!("lamp-set-tab{}", if i == selected.get() { " active" } else { "" })
+                            on:click=on_select
+                        >
+                            {format!("Set {}", i + 1)}
+                        </button>
+                    }
+                }).collect_view()}
+            </div>
+            <button class="btn btn-primary btn-add-lamp" on:click=on_add>
+                "+ Add Lamp Set"
+            </button>
         </div>
 
         {move || {
@@ -489,10 +654,7 @@ pub fn LampSetsTab(
 // ============================================================================
 
 #[component]
-pub fn DirectRatiosTab(
-    ldt: ReadSignal<Eulumdat>,
-    set_ldt: WriteSignal<Eulumdat>,
-) -> impl IntoView {
+pub fn DirectRatiosTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
     let k_values = [
         "0.60", "0.80", "1.00", "1.25", "1.50", "2.00", "2.50", "3.00", "4.00", "5.00",
     ];

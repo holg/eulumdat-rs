@@ -39,5 +39,16 @@ fn main() -> Result<()> {
             recursive,
             overwrite,
         ),
+        Commands::Summary {
+            file,
+            format,
+            output,
+        } => commands::summary(&file, format, output.as_ref()),
+        Commands::Gldf {
+            file,
+            output,
+            pretty,
+        } => commands::gldf(&file, output.as_ref(), pretty),
+        Commands::Calc { file, calc_type } => commands::calc(&file, calc_type),
     }
 }

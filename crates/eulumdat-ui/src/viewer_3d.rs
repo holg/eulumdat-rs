@@ -329,7 +329,10 @@ impl Viewer3D {
         let (y, z) = self.rotate_x(0.0, z);
         let f = perspective / (perspective + z + 1.0);
         painter.line_segment(
-            [center, pos2(center.x + x * scale * f, center.y - y * scale * f)],
+            [
+                center,
+                pos2(center.x + x * scale * f, center.y - y * scale * f),
+            ],
             Stroke::new(2.0, Color32::from_rgb(200, 80, 80)),
         );
 
@@ -338,7 +341,10 @@ impl Viewer3D {
         let (y, z) = self.rotate_x(axis_len, z);
         let f = perspective / (perspective + z + 1.0);
         painter.line_segment(
-            [center, pos2(center.x + x * scale * f, center.y - y * scale * f)],
+            [
+                center,
+                pos2(center.x + x * scale * f, center.y - y * scale * f),
+            ],
             Stroke::new(2.0, Color32::from_rgb(80, 200, 80)),
         );
 
@@ -347,7 +353,10 @@ impl Viewer3D {
         let (y, z) = self.rotate_x(0.0, z);
         let f = perspective / (perspective + z + 1.0);
         painter.line_segment(
-            [center, pos2(center.x + x * scale * f, center.y - y * scale * f)],
+            [
+                center,
+                pos2(center.x + x * scale * f, center.y - y * scale * f),
+            ],
             Stroke::new(2.0, Color32::from_rgb(80, 80, 200)),
         );
     }

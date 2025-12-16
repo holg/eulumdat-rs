@@ -1,15 +1,23 @@
 //! Scene geometry generation
 
-use bevy::prelude::*;
-use bevy::pbr::NotShadowCaster;
 use crate::SceneSettings;
+use bevy::pbr::NotShadowCaster;
+use bevy::prelude::*;
 
 pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_scene)
-            .add_systems(Update, rebuild_scene_on_change);
+        // Initialize default SceneSettings if not already present
+        app.init_resource::<SceneSettings>();
+        app.add_systems(
+            Startup,
+            setup_scene.run_if(resource_exists::<SceneSettings>),
+        )
+        .add_systems(
+            Update,
+            rebuild_scene_on_change.run_if(resource_exists::<SceneSettings>),
+        );
     }
 }
 
@@ -232,7 +240,13 @@ fn build_road(
     ));
 
     // Light pole - on the right sidewalk, not on the road!
-    spawn_pole(commands, meshes, materials, Vec3::new(w - 0.7, 0.0, l / 2.0), settings.mounting_height);
+    spawn_pole(
+        commands,
+        meshes,
+        materials,
+        Vec3::new(w - 0.7, 0.0, l / 2.0),
+        settings.mounting_height,
+    );
 }
 
 fn build_parking(
@@ -284,7 +298,13 @@ fn build_parking(
     }
 
     // Light pole
-    spawn_pole(commands, meshes, materials, Vec3::new(w / 2.0, 0.0, l / 2.0), settings.mounting_height);
+    spawn_pole(
+        commands,
+        meshes,
+        materials,
+        Vec3::new(w / 2.0, 0.0, l / 2.0),
+        settings.mounting_height,
+    );
 }
 
 fn build_outdoor(
@@ -331,7 +351,11 @@ fn build_outdoor(
         ..default()
     });
 
-    for (x, y, z) in [(2.0, 0.4, 3.0), (w - 2.0, 0.3, l - 4.0), (1.5, 0.35, l - 2.0)] {
+    for (x, y, z) in [
+        (2.0, 0.4, 3.0),
+        (w - 2.0, 0.3, l - 4.0),
+        (1.5, 0.35, l - 2.0),
+    ] {
         commands.spawn((
             Mesh3d(meshes.add(Sphere::new(y))),
             MeshMaterial3d(bush_material.clone()),
@@ -341,7 +365,13 @@ fn build_outdoor(
     }
 
     // Light pole
-    spawn_pole(commands, meshes, materials, Vec3::new(w / 2.0, 0.0, l / 2.0), settings.mounting_height);
+    spawn_pole(
+        commands,
+        meshes,
+        materials,
+        Vec3::new(w / 2.0, 0.0, l / 2.0),
+        settings.mounting_height,
+    );
 }
 
 fn spawn_pole(

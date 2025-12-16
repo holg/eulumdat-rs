@@ -17,14 +17,15 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     <span>"✓"</span>
                     <span>"All validation checks passed"</span>
                 </div>
-            }.into_any();
+            }
+            .into_any();
         }
 
         view! {
             <div class="validation-panel">
                 // Critical errors first
                 {errors.iter().map(|error| {
-                    let code = error.code.clone();
+                    let code = error.code;
                     let message = error.message.clone();
                     view! {
                         <div class="validation-item error">
@@ -51,6 +52,7 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     {format!("{} error(s), {} warning(s)", errors.len(), warnings.len())}
                 </div>
             </div>
-        }.into_any()
+        }
+        .into_any()
     }
 }

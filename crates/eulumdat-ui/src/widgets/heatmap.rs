@@ -85,12 +85,7 @@ impl HeatmapWidget {
         }
     }
 
-    fn draw_axes(
-        painter: &egui::Painter,
-        rect: Rect,
-        heatmap: &HeatmapDiagram,
-        theme: &Theme,
-    ) {
+    fn draw_axes(painter: &egui::Painter, rect: Rect, _heatmap: &HeatmapDiagram, theme: &Theme) {
         // X axis label (C-planes)
         painter.text(
             pos2(rect.center().x, rect.bottom() + 25.0),
@@ -140,12 +135,7 @@ impl HeatmapWidget {
         }
     }
 
-    fn draw_legend(
-        painter: &egui::Painter,
-        rect: Rect,
-        heatmap: &HeatmapDiagram,
-        theme: &Theme,
-    ) {
+    fn draw_legend(painter: &egui::Painter, rect: Rect, heatmap: &HeatmapDiagram, theme: &Theme) {
         let legend_x = rect.right() - 50.0;
         let legend_top = rect.top() + 20.0;
         let legend_height = rect.height() - 60.0;
@@ -166,7 +156,10 @@ impl HeatmapWidget {
 
         // Border
         painter.rect_stroke(
-            Rect::from_min_size(pos2(legend_x, legend_top), vec2(legend_width, legend_height)),
+            Rect::from_min_size(
+                pos2(legend_x, legend_top),
+                vec2(legend_width, legend_height),
+            ),
             0.0,
             egui::Stroke::new(1.0, theme.axis),
         );

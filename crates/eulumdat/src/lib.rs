@@ -180,7 +180,10 @@ mod writer;
 
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 pub use bug_rating::{BugDiagram, BugRating, ZoneLumens};
-pub use calculations::PhotometricCalculations;
+pub use calculations::{
+    CieFluxCodes, GldfPhotometricData, PhotometricCalculations, PhotometricSummary, UgrParams,
+    UgrTableValues, ZonalLumens30,
+};
 pub use error::{Error, Result};
 pub use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
 pub use ies::{IesExporter, IesParser, PhotometricType, UnitType};

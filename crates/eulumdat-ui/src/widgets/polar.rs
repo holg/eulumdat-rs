@@ -1,7 +1,7 @@
 //! Polar diagram widget for egui
 
 use crate::Theme;
-use egui::{pos2, vec2, Color32, Pos2, Rect, Sense, Stroke, Vec2};
+use egui::{vec2, Color32, Pos2, Sense, Stroke, Vec2};
 use eulumdat::{diagram::PolarDiagram, Eulumdat};
 
 /// Polar diagram widget
@@ -12,8 +12,7 @@ impl PolarWidget {
     pub fn show(ui: &mut egui::Ui, ldt: &Eulumdat, theme: &Theme) {
         let available_size = ui.available_size();
         let size = available_size.min_elem().min(600.0);
-        let (response, painter) =
-            ui.allocate_painter(Vec2::splat(size), Sense::hover());
+        let (response, painter) = ui.allocate_painter(Vec2::splat(size), Sense::hover());
 
         let rect = response.rect;
         let center = rect.center();
@@ -67,7 +66,7 @@ impl PolarWidget {
         let axis_stroke = Stroke::new(1.5, theme.axis);
 
         // Concentric circles for intensity scale
-        for (i, &value) in polar.scale.grid_values.iter().enumerate() {
+        for &value in polar.scale.grid_values.iter() {
             let r = radius * (value / polar.scale.scale_max) as f32;
             painter.circle_stroke(center, r, grid_stroke);
 

@@ -1,6 +1,6 @@
 [package]
 name = "eulumdat-harmonyos-ffi"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 description = "Simple C FFI bindings for Eulumdat - HarmonyOS/Cangjie compatible"
 license = "MIT OR Apache-2.0"
@@ -10,8 +10,8 @@ repository = "https://github.com/htr/eulumdat-rs"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-eulumdat = { path = "../eulumdat", version = "0.2.2" }
-eulumdat-photweb = { path = "../eulumdat-photweb", version = "0.2.2" }
+eulumdat = { path = "../eulumdat", version = "0.3.0" }
+eulumdat-photweb = { path = "../eulumdat-photweb", version = "0.3.0" }
 
 [profile.release]
 lto = true

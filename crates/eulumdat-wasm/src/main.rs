@@ -1,5 +1,4 @@
 use eulumdat_wasm::App;
-use leptos::prelude::*;
 
 fn main() {
     // Better panic messages in the browser console

@@ -1,6 +1,6 @@
 use eulumdat::{Eulumdat, IesParser, LampSet, Symmetry, TypeIndicator};
-use leptos::prelude::*;
 use leptos::ev;
+use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlSelectElement};
 
@@ -11,6 +11,7 @@ use super::cartesian_diagram::CartesianDiagram;
 use super::data_table::DataTable;
 use super::diagram_zoom::DiagramZoom;
 use super::intensity_heatmap::IntensityHeatmap;
+use super::lcs_classification::LcsClassification;
 use super::polar_diagram::PolarDiagram;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
 use super::templates::ALL_TEMPLATES;
@@ -32,6 +33,7 @@ pub enum Tab {
     Diagram3D,
     Heatmap,
     BugRating,
+    Lcs,
     Validation,
     Scene3D,
 }
@@ -67,8 +69,8 @@ fn create_default_ldt() -> Eulumdat {
     ldt.c_angles = vec![0.0];
     ldt.g_angles = (0..19).map(|i| i as f64 * 5.0).collect();
     ldt.intensities = vec![vec![
-        100.0, 99.0, 96.0, 91.0, 84.0, 75.0, 64.0, 51.0, 36.0, 25.0, 16.0, 9.0, 4.0, 2.0, 1.0,
-        0.5, 0.2, 0.1, 0.0,
+        100.0, 99.0, 96.0, 91.0, 84.0, 75.0, 64.0, 51.0, 36.0, 25.0, 16.0, 9.0, 4.0, 2.0, 1.0, 0.5,
+        0.2, 0.1, 0.0,
     ]];
 
     ldt
@@ -140,7 +142,9 @@ pub fn App() -> impl IntoView {
 
     let on_save_ldt = move |_| {
         let content = ldt.get().to_ldt();
-        let filename = current_file.get().unwrap_or_else(|| "luminaire.ldt".to_string());
+        let filename = current_file
+            .get()
+            .unwrap_or_else(|| "luminaire.ldt".to_string());
         super::file_handler::download_file(&filename, &content, "text/plain");
     };
 
@@ -162,7 +166,7 @@ pub fn App() -> impl IntoView {
         if let Some(files) = input.files() {
             if let Some(file) = files.get(0) {
                 let name = file.name();
-                let load_content = load_file_content.clone();
+                let load_content = load_file_content;
                 wasm_bindgen_futures::spawn_local(async move {
                     let text = gloo_file::futures::read_as_text(&file.into()).await;
                     if let Ok(content) = text {
@@ -189,7 +193,9 @@ pub fn App() -> impl IntoView {
                         set_selected_lamp_set.set(0);
                     }
                     Err(e) => {
-                        web_sys::console::error_1(&format!("Failed to parse template: {}", e).into());
+                        web_sys::console::error_1(
+                            &format!("Failed to parse template: {}", e).into(),
+                        );
                     }
                 }
             }
@@ -213,7 +219,7 @@ pub fn App() -> impl IntoView {
             if let Some(files) = data_transfer.files() {
                 if let Some(file) = files.get(0) {
                     let name = file.name();
-                    let load_content = load_file_content.clone();
+                    let load_content = load_file_content;
                     wasm_bindgen_futures::spawn_local(async move {
                         let text = gloo_file::futures::read_as_text(&file.into()).await;
                         if let Ok(content) = text {
@@ -232,7 +238,7 @@ pub fn App() -> impl IntoView {
     };
 
     // LDT update callback for child components
-    let update_ldt = move |f: Box<dyn FnOnce(&mut Eulumdat)>| {
+    let _update_ldt = move |f: Box<dyn FnOnce(&mut Eulumdat)>| {
         set_ldt.update(|ldt| f(ldt));
     };
 
@@ -318,6 +324,7 @@ pub fn App() -> impl IntoView {
                             <TabButton tab=Tab::Diagram3D active_tab=active_tab on_click=on_tab_click(Tab::Diagram3D) label="3D Diagram" />
                             <TabButton tab=Tab::Heatmap active_tab=active_tab on_click=on_tab_click(Tab::Heatmap) label="Heatmap" />
                             <TabButton tab=Tab::BugRating active_tab=active_tab on_click=on_tab_click(Tab::BugRating) label="BUG Rating" />
+                            <TabButton tab=Tab::Lcs active_tab=active_tab on_click=on_tab_click(Tab::Lcs) label="LCS" />
                             <TabButton tab=Tab::Validation active_tab=active_tab on_click=on_tab_click(Tab::Validation) label="Validation" />
                             <TabButton tab=Tab::Scene3D active_tab=active_tab on_click=on_tab_click(Tab::Scene3D) label="3D Scene" />
                         </div>
@@ -389,73 +396,58 @@ pub fn App() -> impl IntoView {
                                     <div class="diagram-3d-tab">
                                         <div class="diagram-header">
                                             <span class="diagram-title">"3D Butterfly Diagram"</span>
-                                            <span class="text-muted">"Drag to rotate | Auto-rotates on load"</span>
+                                            <span class="text-muted">"Drag to rotate | Scroll to zoom | Auto-rotates on load"</span>
                                         </div>
-                                        <div class="diagram-fullwidth">
-                                            <Butterfly3D ldt=ldt />
-                                        </div>
+                                        <DiagramZoom>
+                                            <div class="diagram-fullwidth">
+                                                <Butterfly3D ldt=ldt />
+                                            </div>
+                                        </DiagramZoom>
                                     </div>
                                 }.into_any(),
                                 Tab::Heatmap => view! {
                                     <div class="heatmap-tab">
                                         <div class="diagram-header">
                                             <span class="diagram-title">"Intensity Heatmap"</span>
-                                            <span class="text-muted">"Candela distribution across C-planes and gamma angles"</span>
+                                            <span class="text-muted">"Scroll to zoom | Drag to pan"</span>
                                         </div>
-                                        <div class="diagram-fullwidth">
-                                            <IntensityHeatmap ldt=ldt />
-                                        </div>
+                                        <DiagramZoom>
+                                            <div class="diagram-fullwidth">
+                                                <IntensityHeatmap ldt=ldt />
+                                            </div>
+                                        </DiagramZoom>
                                     </div>
                                 }.into_any(),
                                 Tab::BugRating => view! {
                                     <div class="bug-rating-tab">
                                         <div class="diagram-header">
                                             <span class="diagram-title">"BUG Rating Analysis"</span>
-                                            <span class="text-muted">"IES TM-15-11 Backlight, Uplight, Glare"</span>
+                                            <span class="text-muted">"IES TM-15-11 | Scroll to zoom | Drag to pan"</span>
                                         </div>
-                                        <div class="diagram-fullwidth">
-                                            <BugRating ldt=ldt />
+                                        <DiagramZoom>
+                                            <div class="diagram-fullwidth">
+                                                <BugRating ldt=ldt />
+                                            </div>
+                                        </DiagramZoom>
+                                    </div>
+                                }.into_any(),
+                                Tab::Lcs => view! {
+                                    <div class="lcs-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">"Luminaire Classification System"</span>
+                                            <span class="text-muted">"IES TM-15-07 | Scroll to zoom | Drag to pan"</span>
                                         </div>
+                                        <DiagramZoom>
+                                            <div class="diagram-fullwidth">
+                                                <LcsClassification ldt=ldt />
+                                            </div>
+                                        </DiagramZoom>
                                     </div>
                                 }.into_any(),
                                 Tab::Validation => view! {
                                     <div class="validation-tab">
-                                        <div class="validation-section">
-                                            <h3>"Validation Results"</h3>
-                                            <ValidationPanel ldt=ldt />
-                                        </div>
-                                        <div class="summary-section">
-                                            <h3>"Summary"</h3>
-                                            <div class="info-grid-wide">
-                                                <div class="info-item">
-                                                    <div class="info-label">"Total Flux"</div>
-                                                    <div class="info-value">{move || format!("{:.0} lm", ldt.get().total_luminous_flux())}</div>
-                                                </div>
-                                                <div class="info-item">
-                                                    <div class="info-label">"Total Wattage"</div>
-                                                    <div class="info-value">{move || format!("{:.1} W", ldt.get().total_wattage())}</div>
-                                                </div>
-                                                <div class="info-item">
-                                                    <div class="info-label">"Efficacy"</div>
-                                                    <div class="info-value">{move || format!("{:.1} lm/W", ldt.get().luminous_efficacy())}</div>
-                                                </div>
-                                                <div class="info-item">
-                                                    <div class="info-label">"Max Intensity"</div>
-                                                    <div class="info-value">{move || format!("{:.1} cd/klm", ldt.get().max_intensity())}</div>
-                                                </div>
-                                                <div class="info-item">
-                                                    <div class="info-label">"Symmetry"</div>
-                                                    <div class="info-value">{move || ldt.get().symmetry.description()}</div>
-                                                </div>
-                                                <div class="info-item">
-                                                    <div class="info-label">"C-Planes"</div>
-                                                    <div class="info-value">{move || {
-                                                        let l = ldt.get();
-                                                        format!("{} (Mc={})", l.num_c_planes, l.actual_c_planes())
-                                                    }}</div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <h3>"Validation Results"</h3>
+                                        <ValidationPanel ldt=ldt />
                                     </div>
                                 }.into_any(),
                                 Tab::Scene3D => view! {

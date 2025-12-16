@@ -47,9 +47,7 @@ impl ValidationPanel {
 
                             ui.vertical(|ui| {
                                 ui.label(
-                                    RichText::new(warning.code)
-                                        .monospace()
-                                        .color(Color32::GRAY),
+                                    RichText::new(warning.code).monospace().color(Color32::GRAY),
                                 );
                                 ui.label(&warning.message);
                             });

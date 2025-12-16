@@ -1,9 +1,8 @@
 //! Zoom and pan wrapper component for diagrams
 //! Provides mouse wheel zoom and drag-to-pan functionality
 
-use leptos::prelude::*;
 use leptos::ev;
-use wasm_bindgen::JsCast;
+use leptos::prelude::*;
 use web_sys::Element;
 
 #[component]

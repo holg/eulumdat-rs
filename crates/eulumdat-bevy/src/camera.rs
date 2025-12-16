@@ -1,7 +1,7 @@
 //! First-person camera controller
 
-use bevy::prelude::*;
 use bevy::input::mouse::MouseMotion;
+use bevy::prelude::*;
 
 pub struct CameraPlugin;
 
@@ -14,7 +14,7 @@ impl Plugin for CameraPlugin {
 
 /// Default camera position and look target
 /// Position: standing on sidewalk looking at the lamp/scene center
-const DEFAULT_CAM_POS: Vec3 = Vec3::new(1.0, 1.7, 5.0);  // Sidewalk, eye height ~1.7m
+const DEFAULT_CAM_POS: Vec3 = Vec3::new(1.0, 1.7, 5.0); // Sidewalk, eye height ~1.7m
 const DEFAULT_LOOK_AT: Vec3 = Vec3::new(5.0, 4.0, 15.0); // Looking at lamp area
 
 #[derive(Component)]
@@ -53,8 +53,12 @@ fn spawn_camera(mut commands: Commands) {
     let (yaw, pitch) = default_yaw_pitch();
     commands.spawn((
         Camera3d::default(),
-        Transform::from_translation(DEFAULT_CAM_POS)
-            .with_rotation(Quat::from_euler(EulerRot::YXZ, yaw, pitch, 0.0)),
+        Transform::from_translation(DEFAULT_CAM_POS).with_rotation(Quat::from_euler(
+            EulerRot::YXZ,
+            yaw,
+            pitch,
+            0.0,
+        )),
         FirstPersonCamera {
             yaw,
             pitch,

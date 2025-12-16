@@ -1,6 +1,6 @@
 [package]
 name = "eulumdat-photweb"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 authors = ["Holger Trahe <trahe@mac.com>"]
 license = "MIT OR Apache-2.0"
@@ -18,7 +18,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-eulumdat = { path = "../eulumdat", version = "0.2.2" }
+eulumdat = { path = "../eulumdat", version = "0.3.0" }
 
 [dev-dependencies]
 approx = "0.5"

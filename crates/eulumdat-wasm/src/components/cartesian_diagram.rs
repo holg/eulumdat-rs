@@ -3,7 +3,7 @@
 
 use eulumdat::{
     diagram::{CartesianDiagram as CoreCartesianDiagram, SvgTheme},
-    Eulumdat,
+    Eulumdat, PhotometricSummary,
 };
 use leptos::prelude::*;
 
@@ -13,7 +13,8 @@ pub fn CartesianDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         <div class="cartesian-diagram" inner_html=move || {
             let ldt = ldt.get();
             let cartesian = CoreCartesianDiagram::from_eulumdat(&ldt, 500.0, 380.0, 8);
-            cartesian.to_svg(500.0, 380.0, &SvgTheme::css_variables())
+            let summary = PhotometricSummary::from_eulumdat(&ldt);
+            cartesian.to_svg_with_summary(500.0, 380.0, &SvgTheme::css_variables(), &summary)
         } />
     }
 }

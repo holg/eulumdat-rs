@@ -1,18 +1,30 @@
 # Swift package build workflow
 # Builds XCFramework and tests Swift package on tag
+#
+# DISABLED: This workflow is currently disabled due to recurring failures.
+# To re-enable, uncomment the 'on:' triggers below.
 name: Swift
 
+# Disabled - uncomment to re-enable
+# on:
+#   push:
+#     tags:
+#       - 'v*'
+#       - 'swift-v*'
+#   workflow_dispatch:
+
 on:
-  push:
-    tags:
-      - 'v*'
-      - 'swift-v*'
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "enable" to run this workflow'
+        required: true
 
 jobs:
   build-xcframework:
     name: Build XCFramework
     runs-on: macos-14
+    if: github.event.inputs.confirm == 'enable'
     steps:
       - uses: actions/checkout@v4
 
@@ -59,7 +71,7 @@ jobs:
   release:
     name: Release Swift Package
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && github.event.inputs.confirm == 'enable'
     needs: build-xcframework
     permissions:
       contents: write
@@ -93,7 +105,7 @@ jobs:
 
             ## Swift Package
 
-            Add to your `Package.swift`:
+            Add to your Package.swift:
             ```swift
             .package(url: "https://github.com/holg/eulumdat-rs", from: "${{ github.ref_name }}")
             ```

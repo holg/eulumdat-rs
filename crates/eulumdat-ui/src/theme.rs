@@ -65,7 +65,7 @@ impl Theme {
     }
 
     /// Get a color for a specific C-plane (for multi-curve diagrams)
-    pub fn c_plane_color(&self, c_angle: f64, total_planes: usize) -> Color32 {
+    pub fn c_plane_color(&self, c_angle: f64, _total_planes: usize) -> Color32 {
         let hue = (c_angle / 360.0) as f32;
         let (r, g, b) = hsl_to_rgb(hue, 0.7, if self.is_dark { 0.6 } else { 0.45 });
         Color32::from_rgb(r, g, b)
