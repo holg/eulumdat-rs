@@ -379,11 +379,14 @@ fn to_json(doc: &LuminaireOpticalData) -> AtlaJson {
                 goniometer_type: g.goniometer_type.clone(),
                 distance: g.distance,
             }),
-            integrating_sphere: e.integrating_sphere.as_ref().map(|s| IntegratingSphereJson {
-                manufacturer: s.manufacturer.clone(),
-                model: s.model.clone(),
-                diameter: s.diameter,
-            }),
+            integrating_sphere: e
+                .integrating_sphere
+                .as_ref()
+                .map(|s| IntegratingSphereJson {
+                    manufacturer: s.manufacturer.clone(),
+                    model: s.model.clone(),
+                    diameter: s.diameter,
+                }),
             spectroradiometer: e.spectroradiometer.as_ref().map(|s| SpectroradiometerJson {
                 manufacturer: s.manufacturer.clone(),
                 model: s.model.clone(),
@@ -407,12 +410,15 @@ fn emitter_to_json(emitter: &Emitter) -> EmitterJson {
         input_watts: emitter.input_watts,
         power_factor: emitter.power_factor,
         cct: emitter.cct,
-        color_rendering: emitter.color_rendering.as_ref().map(|cr| ColorRenderingJson {
-            ra: cr.ra,
-            r9: cr.r9,
-            rf: cr.rf,
-            rg: cr.rg,
-        }),
+        color_rendering: emitter
+            .color_rendering
+            .as_ref()
+            .map(|cr| ColorRenderingJson {
+                ra: cr.ra,
+                r9: cr.r9,
+                rf: cr.rf,
+                rg: cr.rg,
+            }),
         sp_ratio: emitter.sp_ratio,
         intensity_distribution: emitter.intensity_distribution.as_ref().map(|id| {
             // Flatten 2D array to 1D (row-major)
@@ -514,7 +520,10 @@ mod tests {
 
         assert_eq!(parsed.header.manufacturer, doc.header.manufacturer);
         assert_eq!(parsed.header.catalog_number, doc.header.catalog_number);
-        assert_eq!(parsed.emitters[0].rated_lumens, doc.emitters[0].rated_lumens);
+        assert_eq!(
+            parsed.emitters[0].rated_lumens,
+            doc.emitters[0].rated_lumens
+        );
         assert_eq!(parsed.emitters[0].cct, doc.emitters[0].cct);
     }
 }

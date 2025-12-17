@@ -76,54 +76,52 @@ impl Tm30Theme {
 
 /// CIE 1931 2° x̄(λ) color matching function
 const CIE_X: [f64; 81] = [
-    0.001368, 0.002236, 0.004243, 0.007650, 0.014310, 0.023190, 0.043510, 0.077630, 0.134380, 0.214770,
-    0.283900, 0.328500, 0.348280, 0.348060, 0.336200, 0.318700, 0.290800, 0.251100, 0.195360, 0.142100,
-    0.095640, 0.058010, 0.032010, 0.014700, 0.004900, 0.002400, 0.009300, 0.029100, 0.063270, 0.109600,
-    0.165500, 0.225750, 0.290400, 0.359700, 0.433450, 0.512050, 0.594500, 0.678400, 0.762100, 0.842500,
-    0.916300, 0.978600, 1.026300, 1.056700, 1.062200, 1.045600, 1.002600, 0.938400, 0.854450, 0.751400,
-    0.642400, 0.541900, 0.447900, 0.360800, 0.283500, 0.218700, 0.164900, 0.121200, 0.087400, 0.063600,
-    0.046770, 0.032900, 0.022700, 0.015840, 0.011359, 0.008111, 0.005790, 0.004109, 0.002899, 0.002049,
-    0.001440, 0.001000, 0.000690, 0.000476, 0.000332, 0.000235, 0.000166, 0.000117, 0.000083, 0.000059,
-    0.000042,
+    0.001368, 0.002236, 0.004243, 0.007650, 0.014310, 0.023190, 0.043510, 0.077630, 0.134380,
+    0.214770, 0.283900, 0.328500, 0.348280, 0.348060, 0.336200, 0.318700, 0.290800, 0.251100,
+    0.195360, 0.142100, 0.095640, 0.058010, 0.032010, 0.014700, 0.004900, 0.002400, 0.009300,
+    0.029100, 0.063270, 0.109600, 0.165500, 0.225750, 0.290400, 0.359700, 0.433450, 0.512050,
+    0.594500, 0.678400, 0.762100, 0.842500, 0.916300, 0.978600, 1.026300, 1.056700, 1.062200,
+    1.045600, 1.002600, 0.938400, 0.854450, 0.751400, 0.642400, 0.541900, 0.447900, 0.360800,
+    0.283500, 0.218700, 0.164900, 0.121200, 0.087400, 0.063600, 0.046770, 0.032900, 0.022700,
+    0.015840, 0.011359, 0.008111, 0.005790, 0.004109, 0.002899, 0.002049, 0.001440, 0.001000,
+    0.000690, 0.000476, 0.000332, 0.000235, 0.000166, 0.000117, 0.000083, 0.000059, 0.000042,
 ];
 
 /// CIE 1931 2° ȳ(λ) color matching function
 const CIE_Y: [f64; 81] = [
-    0.000039, 0.000064, 0.000120, 0.000217, 0.000396, 0.000640, 0.001210, 0.002180, 0.004000, 0.007300,
-    0.011600, 0.016840, 0.023000, 0.029800, 0.038000, 0.048000, 0.060000, 0.073900, 0.090980, 0.112600,
-    0.139020, 0.169300, 0.208020, 0.258600, 0.323000, 0.407300, 0.503000, 0.608200, 0.710000, 0.793200,
-    0.862000, 0.914850, 0.954000, 0.980300, 0.994950, 1.000000, 0.995000, 0.978600, 0.952000, 0.915400,
-    0.870000, 0.816300, 0.757000, 0.694900, 0.631000, 0.566800, 0.503000, 0.441200, 0.381000, 0.321000,
-    0.265000, 0.217000, 0.175000, 0.138200, 0.107000, 0.081600, 0.061000, 0.044580, 0.032000, 0.023200,
-    0.017000, 0.011920, 0.008210, 0.005723, 0.004102, 0.002929, 0.002091, 0.001484, 0.001047, 0.000740,
-    0.000520, 0.000361, 0.000249, 0.000172, 0.000120, 0.000085, 0.000060, 0.000042, 0.000030, 0.000021,
-    0.000015,
+    0.000039, 0.000064, 0.000120, 0.000217, 0.000396, 0.000640, 0.001210, 0.002180, 0.004000,
+    0.007300, 0.011600, 0.016840, 0.023000, 0.029800, 0.038000, 0.048000, 0.060000, 0.073900,
+    0.090980, 0.112600, 0.139020, 0.169300, 0.208020, 0.258600, 0.323000, 0.407300, 0.503000,
+    0.608200, 0.710000, 0.793200, 0.862000, 0.914850, 0.954000, 0.980300, 0.994950, 1.000000,
+    0.995000, 0.978600, 0.952000, 0.915400, 0.870000, 0.816300, 0.757000, 0.694900, 0.631000,
+    0.566800, 0.503000, 0.441200, 0.381000, 0.321000, 0.265000, 0.217000, 0.175000, 0.138200,
+    0.107000, 0.081600, 0.061000, 0.044580, 0.032000, 0.023200, 0.017000, 0.011920, 0.008210,
+    0.005723, 0.004102, 0.002929, 0.002091, 0.001484, 0.001047, 0.000740, 0.000520, 0.000361,
+    0.000249, 0.000172, 0.000120, 0.000085, 0.000060, 0.000042, 0.000030, 0.000021, 0.000015,
 ];
 
 /// CIE 1931 2° z̄(λ) color matching function
 const CIE_Z: [f64; 81] = [
-    0.006450, 0.010550, 0.020050, 0.036210, 0.067850, 0.110200, 0.207400, 0.371300, 0.645600, 1.039050,
-    1.385600, 1.622960, 1.747060, 1.782600, 1.772110, 1.744100, 1.669200, 1.528100, 1.287640, 1.041900,
-    0.812950, 0.616200, 0.465180, 0.353300, 0.272000, 0.212300, 0.158200, 0.111700, 0.078250, 0.057250,
-    0.042160, 0.029840, 0.020300, 0.013400, 0.008750, 0.005750, 0.003900, 0.002750, 0.002100, 0.001800,
-    0.001650, 0.001400, 0.001100, 0.001000, 0.000800, 0.000600, 0.000340, 0.000240, 0.000190, 0.000100,
-    0.000050, 0.000030, 0.000020, 0.000010, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-    0.000000,
+    0.006450, 0.010550, 0.020050, 0.036210, 0.067850, 0.110200, 0.207400, 0.371300, 0.645600,
+    1.039050, 1.385600, 1.622960, 1.747060, 1.782600, 1.772110, 1.744100, 1.669200, 1.528100,
+    1.287640, 1.041900, 0.812950, 0.616200, 0.465180, 0.353300, 0.272000, 0.212300, 0.158200,
+    0.111700, 0.078250, 0.057250, 0.042160, 0.029840, 0.020300, 0.013400, 0.008750, 0.005750,
+    0.003900, 0.002750, 0.002100, 0.001800, 0.001650, 0.001400, 0.001100, 0.001000, 0.000800,
+    0.000600, 0.000340, 0.000240, 0.000190, 0.000100, 0.000050, 0.000030, 0.000020, 0.000010,
+    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
+    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
 ];
 
 /// Wavelengths for CMF data (380-780nm at 5nm)
 const WAVELENGTHS: [f64; 81] = [
-    380.0, 385.0, 390.0, 395.0, 400.0, 405.0, 410.0, 415.0, 420.0, 425.0,
-    430.0, 435.0, 440.0, 445.0, 450.0, 455.0, 460.0, 465.0, 470.0, 475.0,
-    480.0, 485.0, 490.0, 495.0, 500.0, 505.0, 510.0, 515.0, 520.0, 525.0,
-    530.0, 535.0, 540.0, 545.0, 550.0, 555.0, 560.0, 565.0, 570.0, 575.0,
-    580.0, 585.0, 590.0, 595.0, 600.0, 605.0, 610.0, 615.0, 620.0, 625.0,
-    630.0, 635.0, 640.0, 645.0, 650.0, 655.0, 660.0, 665.0, 670.0, 675.0,
-    680.0, 685.0, 690.0, 695.0, 700.0, 705.0, 710.0, 715.0, 720.0, 725.0,
-    730.0, 735.0, 740.0, 745.0, 750.0, 755.0, 760.0, 765.0, 770.0, 775.0,
-    780.0,
+    380.0, 385.0, 390.0, 395.0, 400.0, 405.0, 410.0, 415.0, 420.0, 425.0, 430.0, 435.0, 440.0,
+    445.0, 450.0, 455.0, 460.0, 465.0, 470.0, 475.0, 480.0, 485.0, 490.0, 495.0, 500.0, 505.0,
+    510.0, 515.0, 520.0, 525.0, 530.0, 535.0, 540.0, 545.0, 550.0, 555.0, 560.0, 565.0, 570.0,
+    575.0, 580.0, 585.0, 590.0, 595.0, 600.0, 605.0, 610.0, 615.0, 620.0, 625.0, 630.0, 635.0,
+    640.0, 645.0, 650.0, 655.0, 660.0, 665.0, 670.0, 675.0, 680.0, 685.0, 690.0, 695.0, 700.0,
+    705.0, 710.0, 715.0, 720.0, 725.0, 730.0, 735.0, 740.0, 745.0, 750.0, 755.0, 760.0, 765.0,
+    770.0, 775.0, 780.0,
 ];
 
 // ============================================================================
@@ -136,7 +134,12 @@ const WAVELENGTHS: [f64; 81] = [
 const NUM_CES: usize = 99;
 
 // Include the full CES reflectance data from external file
-include!("tm30_ces_data.rs");
+// These are measured reflectance values that happen to be close to mathematical constants
+#[allow(clippy::approx_constant)]
+mod ces_data {
+    include!("tm30_ces_data.rs");
+}
+use ces_data::*;
 
 // ============================================================================
 // Core Calculation Functions
@@ -210,15 +213,14 @@ fn xyz_to_cct(x: f64, y: f64, _z: f64) -> (f64, f64) {
 /// Generate Planckian (blackbody) radiator SPD at given CCT
 fn planckian_spd(cct: f64) -> SpectralDistribution {
     let c1 = 3.74183e-16; // W⋅m²
-    let c2 = 1.4388e-2;   // m⋅K
+    let c2 = 1.4388e-2; // m⋅K
 
     let wavelengths: Vec<f64> = WAVELENGTHS.to_vec();
     let values: Vec<f64> = wavelengths
         .iter()
         .map(|&wl| {
             let wl_m = wl * 1e-9; // Convert nm to m
-            let radiance = c1 / (wl_m.powi(5) * ((c2 / (wl_m * cct)).exp() - 1.0));
-            radiance
+            c1 / (wl_m.powi(5) * ((c2 / (wl_m * cct)).exp() - 1.0))
         })
         .collect();
 
@@ -251,10 +253,7 @@ fn d_series_spd(cct: f64) -> SpectralDistribution {
 }
 
 /// Calculate color appearance under illuminant for a CES sample
-fn calculate_ces_color(
-    spd: &SpectralDistribution,
-    ces_idx: usize,
-) -> (f64, f64, f64) {
+fn calculate_ces_color(spd: &SpectralDistribution, ces_idx: usize) -> (f64, f64, f64) {
     let mut x = 0.0;
     let mut y = 0.0;
     let mut z = 0.0;
@@ -279,7 +278,14 @@ fn calculate_ces_color(
 
 /// Convert XYZ to CAM02-UCS (J', a', b')
 /// Simplified version - full CAM02 is complex
-fn xyz_to_cam02_ucs(x: f64, y: f64, z: f64, white_x: f64, white_y: f64, white_z: f64) -> (f64, f64, f64) {
+fn xyz_to_cam02_ucs(
+    x: f64,
+    y: f64,
+    z: f64,
+    white_x: f64,
+    white_y: f64,
+    white_z: f64,
+) -> (f64, f64, f64) {
     // Simplified CIELAB-like transform for TM-30 approximation
     // Full CAM02 would require viewing conditions
 
@@ -312,10 +318,7 @@ fn lab_f(t: f64) -> f64 {
 }
 
 /// Calculate color difference in CAM02-UCS
-fn color_difference(
-    j1: f64, a1: f64, b1: f64,
-    j2: f64, a2: f64, b2: f64,
-) -> f64 {
+fn color_difference(j1: f64, a1: f64, b1: f64, j2: f64, a2: f64, b2: f64) -> f64 {
     ((j1 - j2).powi(2) + (a1 - a2).powi(2) + (b1 - b2).powi(2)).sqrt()
 }
 
@@ -372,17 +375,13 @@ pub fn calculate_tm30(spd: &SpectralDistribution) -> Option<Tm30Result> {
     for i in 0..NUM_CES {
         // Test source
         let (test_ces_x, test_ces_y, test_ces_z) = calculate_ces_color(spd, i);
-        let (test_j, test_a, test_b) = xyz_to_cam02_ucs(
-            test_ces_x, test_ces_y, test_ces_z,
-            test_x, test_y, test_z,
-        );
+        let (test_j, test_a, test_b) =
+            xyz_to_cam02_ucs(test_ces_x, test_ces_y, test_ces_z, test_x, test_y, test_z);
 
         // Reference source
         let (ref_ces_x, ref_ces_y, ref_ces_z) = calculate_ces_color(&ref_spd, i);
-        let (ref_j, ref_a, ref_b) = xyz_to_cam02_ucs(
-            ref_ces_x, ref_ces_y, ref_ces_z,
-            ref_x, ref_y, ref_z,
-        );
+        let (ref_j, ref_a, ref_b) =
+            xyz_to_cam02_ucs(ref_ces_x, ref_ces_y, ref_ces_z, ref_x, ref_y, ref_z);
 
         // Color difference
         let de = color_difference(test_j, test_a, test_b, ref_j, ref_a, ref_b);
@@ -476,7 +475,7 @@ pub fn calculate_tm30(spd: &SpectralDistribution) -> Option<Tm30Result> {
 
     // Calculate Rf (fidelity index) - based on all 99 samples
     let mean_de = delta_e_sum / NUM_CES as f64;
-    let rf = (100.0 - 6.73 * mean_de).max(0.0).min(100.0);
+    let rf = (100.0 - 6.73 * mean_de).clamp(0.0, 100.0);
 
     // Calculate Rg (gamut index) - ratio of test to reference gamut areas
     let test_area = polygon_area(&test_gamut_points);
@@ -559,19 +558,30 @@ impl Tm30Result {
         // Outer circle (reference boundary)
         svg.push_str(&format!(
             r#"  <circle cx="{}" cy="{}" r="{}" fill="none" stroke="{}" stroke-width="2"/>"#,
-            center_x, center_y, plot_size / 2.0, theme.grid_color
+            center_x,
+            center_y,
+            plot_size / 2.0,
+            theme.grid_color
         ));
         svg.push('\n');
 
         // Axis lines
         svg.push_str(&format!(
             r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1"/>"#,
-            center_x - plot_size / 2.0, center_y, center_x + plot_size / 2.0, center_y, theme.grid_color
+            center_x - plot_size / 2.0,
+            center_y,
+            center_x + plot_size / 2.0,
+            center_y,
+            theme.grid_color
         ));
         svg.push('\n');
         svg.push_str(&format!(
             r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1"/>"#,
-            center_x, center_y - plot_size / 2.0, center_x, center_y + plot_size / 2.0, theme.grid_color
+            center_x,
+            center_y - plot_size / 2.0,
+            center_x,
+            center_y + plot_size / 2.0,
+            theme.grid_color
         ));
         svg.push('\n');
 
@@ -651,12 +661,18 @@ impl Tm30Result {
         // Rf and Rg values
         svg.push_str(&format!(
             r#"  <text x="20" y="{}" fill="{}" font-size="14" font-family="{}">Rf = {:.0}</text>"#,
-            height - 40.0, theme.foreground, theme.font_family, self.rf
+            height - 40.0,
+            theme.foreground,
+            theme.font_family,
+            self.rf
         ));
         svg.push('\n');
         svg.push_str(&format!(
             r#"  <text x="20" y="{}" fill="{}" font-size="14" font-family="{}">Rg = {:.0}</text>"#,
-            height - 20.0, theme.foreground, theme.font_family, self.rg
+            height - 20.0,
+            theme.foreground,
+            theme.font_family,
+            self.rg
         ));
         svg.push('\n');
         svg.push_str(&format!(
@@ -677,16 +693,24 @@ impl Tm30Result {
         ));
         svg.push_str(&format!(
             r#"  <text x="{}" y="24" fill="{}" font-size="11" font-family="{}">Reference</text>"#,
-            width - 85.0, theme.foreground, theme.font_family
+            width - 85.0,
+            theme.foreground,
+            theme.font_family
         ));
         svg.push('\n');
         svg.push_str(&format!(
             r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="2"/>"#,
-            width - 120.0, 38.0, width - 90.0, 38.0, theme.test_color
+            width - 120.0,
+            38.0,
+            width - 90.0,
+            38.0,
+            theme.test_color
         ));
         svg.push_str(&format!(
             r#"  <text x="{}" y="42" fill="{}" font-size="11" font-family="{}">Test</text>"#,
-            width - 85.0, theme.foreground, theme.font_family
+            width - 85.0,
+            theme.foreground,
+            theme.font_family
         ));
         svg.push('\n');
 
@@ -706,10 +730,8 @@ impl Tm30Result {
         let bar_width = plot_width / 16.0 - 4.0;
 
         let hue_colors = [
-            "#e74c3c", "#e67e22", "#f39c12", "#f1c40f",
-            "#2ecc71", "#27ae60", "#1abc9c", "#16a085",
-            "#3498db", "#2980b9", "#9b59b6", "#8e44ad",
-            "#c0392b", "#d35400", "#e74c3c", "#922b21",
+            "#e74c3c", "#e67e22", "#f39c12", "#f1c40f", "#2ecc71", "#27ae60", "#1abc9c", "#16a085",
+            "#3498db", "#2980b9", "#9b59b6", "#8e44ad", "#c0392b", "#d35400", "#e74c3c", "#922b21",
         ];
 
         let mut svg = format!(
@@ -733,7 +755,11 @@ impl Tm30Result {
             let y = margin_top + plot_height * (1.0 - y_val as f64 / 100.0);
             svg.push_str(&format!(
                 r#"  <line x1="{}" y1="{:.1}" x2="{}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
-                margin_left, y, margin_left + plot_width, y, theme.grid_color
+                margin_left,
+                y,
+                margin_left + plot_width,
+                y,
+                theme.grid_color
             ));
             svg.push('\n');
             svg.push_str(&format!(
@@ -835,9 +861,21 @@ mod tests {
         let tm30 = result.unwrap();
         // Basic sanity checks - values should be in valid ranges
         // (exact values depend on simplified algorithm)
-        assert!(tm30.rf >= 0.0 && tm30.rf <= 100.0, "Rf={} out of range", tm30.rf);
-        assert!(tm30.rg > 0.0 && tm30.rg < 200.0, "Rg={} out of range", tm30.rg);
-        assert!(tm30.cct > 1000.0 && tm30.cct < 20000.0, "CCT={} out of range", tm30.cct);
+        assert!(
+            tm30.rf >= 0.0 && tm30.rf <= 100.0,
+            "Rf={} out of range",
+            tm30.rf
+        );
+        assert!(
+            tm30.rg > 0.0 && tm30.rg < 200.0,
+            "Rg={} out of range",
+            tm30.rg
+        );
+        assert!(
+            tm30.cct > 1000.0 && tm30.cct < 20000.0,
+            "CCT={} out of range",
+            tm30.cct
+        );
         // Per-hue values should exist
         assert_eq!(tm30.rf_hue.len(), 16);
         assert_eq!(tm30.color_vectors.len(), 16);

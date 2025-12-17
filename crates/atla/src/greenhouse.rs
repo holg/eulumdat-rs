@@ -62,8 +62,8 @@ impl GreenhouseTheme {
 #[derive(Debug, Clone)]
 pub struct PpfdAtDistance {
     pub distance_m: f64,
-    pub ppfd: f64,        // µmol/m²/s
-    pub coverage_m: f64,  // beam diameter at this distance
+    pub ppfd: f64,       // µmol/m²/s
+    pub coverage_m: f64, // beam diameter at this distance
 }
 
 /// Greenhouse PPFD diagram data
@@ -108,11 +108,11 @@ impl GreenhouseDiagram {
         // Estimate beam angle from intensity distribution
         let beam_angle = emitter
             .and_then(|e| e.intensity_distribution.as_ref())
-            .map(|dist| estimate_beam_angle(dist))
+            .map(estimate_beam_angle)
             .unwrap_or(120.0);
 
         // Calculate PPFD at various distances
-        let distances = vec![0.3, 0.5, 0.75, 1.0, 1.5, 2.0];
+        let distances = [0.3, 0.5, 0.75, 1.0, 1.5, 2.0];
         let ppfd_levels: Vec<PpfdAtDistance> = distances
             .iter()
             .map(|&d| {
@@ -170,7 +170,9 @@ impl GreenhouseDiagram {
         // Ground/bench
         svg.push_str(&format!(
             "  <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"10\" fill=\"#8b5a2b\" rx=\"2\"/>\n",
-            margin, greenhouse_y + greenhouse_height, plot_width
+            margin,
+            greenhouse_y + greenhouse_height,
+            plot_width
         ));
 
         // Plants on bench
@@ -194,22 +196,29 @@ impl GreenhouseDiagram {
         ));
 
         // Light beam (cone)
-        let beam_bottom_width = 2.0 * greenhouse_height * (self.beam_angle / 2.0_f64).to_radians().tan();
+        let beam_bottom_width =
+            2.0 * greenhouse_height * (self.beam_angle / 2.0_f64).to_radians().tan();
         let beam_left = width / 2.0 - beam_bottom_width / 2.0;
         let beam_right = width / 2.0 + beam_bottom_width / 2.0;
 
         svg.push_str(&format!(
             "  <polygon points=\"{},{} {},{} {},{}\" fill=\"{}\" opacity=\"0.15\"/>\n",
-            width / 2.0 - lum_width / 4.0, lum_y + 12.0,
-            beam_left.max(margin), greenhouse_y + greenhouse_height,
-            beam_right.min(margin + plot_width), greenhouse_y + greenhouse_height,
+            width / 2.0 - lum_width / 4.0,
+            lum_y + 12.0,
+            beam_left.max(margin),
+            greenhouse_y + greenhouse_height,
+            beam_right.min(margin + plot_width),
+            greenhouse_y + greenhouse_height,
             theme.beam_color
         ));
         svg.push_str(&format!(
             "  <polygon points=\"{},{} {},{} {},{}\" fill=\"{}\" opacity=\"0.25\"/>\n",
-            width / 2.0 - lum_width / 6.0, lum_y + 12.0,
-            (width / 2.0 - beam_bottom_width / 4.0).max(margin), greenhouse_y + greenhouse_height,
-            (width / 2.0 + beam_bottom_width / 4.0).min(margin + plot_width), greenhouse_y + greenhouse_height,
+            width / 2.0 - lum_width / 6.0,
+            lum_y + 12.0,
+            (width / 2.0 - beam_bottom_width / 4.0).max(margin),
+            greenhouse_y + greenhouse_height,
+            (width / 2.0 + beam_bottom_width / 4.0).min(margin + plot_width),
+            greenhouse_y + greenhouse_height,
             theme.beam_color
         ));
 
@@ -217,7 +226,9 @@ impl GreenhouseDiagram {
         let max_distance = 2.0;
         for level in &self.ppfd_levels {
             if level.distance_m <= max_distance {
-                let y = greenhouse_y + 12.0 + (level.distance_m / max_distance) * (greenhouse_height - 12.0);
+                let y = greenhouse_y
+                    + 12.0
+                    + (level.distance_m / max_distance) * (greenhouse_height - 12.0);
 
                 // Horizontal line
                 svg.push_str(&format!(
@@ -281,7 +292,9 @@ impl GreenhouseDiagram {
         // PPFD legend
         svg.push_str(&format!(
             "  <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\"/>\n",
-            margin + 280.0, info_y + 14.0, theme.ppfd_high
+            margin + 280.0,
+            info_y + 14.0,
+            theme.ppfd_high
         ));
         svg.push_str(&format!(
             "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">&gt;800 (Flowering)</text>\n",
@@ -289,7 +302,9 @@ impl GreenhouseDiagram {
         ));
         svg.push_str(&format!(
             "  <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\"/>\n",
-            margin + 280.0, info_y + 30.0, theme.ppfd_medium
+            margin + 280.0,
+            info_y + 30.0,
+            theme.ppfd_medium
         ));
         svg.push_str(&format!(
             "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">400-800 (Veg)</text>\n",
@@ -297,7 +312,9 @@ impl GreenhouseDiagram {
         ));
         svg.push_str(&format!(
             "  <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\"/>\n",
-            margin + 280.0, info_y + 46.0, theme.ppfd_low
+            margin + 280.0,
+            info_y + 46.0,
+            theme.ppfd_low
         ));
         svg.push_str(&format!(
             "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">&lt;400 (Seedling)</text>\n",

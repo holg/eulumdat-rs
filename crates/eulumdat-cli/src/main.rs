@@ -16,7 +16,11 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Info { file, verbose } => commands::info(&file, verbose),
         Commands::Validate { file, strict } => commands::validate(&file, strict),
-        Commands::Convert { input, output, compact } => commands::convert(&input, &output, compact),
+        Commands::Convert {
+            input,
+            output,
+            compact,
+        } => commands::convert(&input, &output, compact),
         Commands::Diagram {
             input,
             output,

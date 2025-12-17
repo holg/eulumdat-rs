@@ -605,7 +605,10 @@ pub fn validate_atla(file: &PathBuf, schema: Option<&PathBuf>, use_xsd: bool) ->
 
     // For XML files, we can do XSD validation
     if ext == "xml" && use_xsd {
-        println!("Validating {} against ATLA S001 XSD schema...", file.display());
+        println!(
+            "Validating {} against ATLA S001 XSD schema...",
+            file.display()
+        );
         println!();
 
         // Check if xmllint is available
@@ -616,8 +619,8 @@ pub fn validate_atla(file: &PathBuf, schema: Option<&PathBuf>, use_xsd: bool) ->
         } else {
             // Do XSD validation
             let xsd_result = if let Some(schema_path) = schema {
-                let schema_content = std::fs::read_to_string(schema_path)
-                    .context("Failed to read schema file")?;
+                let schema_content =
+                    std::fs::read_to_string(schema_path).context("Failed to read schema file")?;
                 validate::validate_xsd_with_schema(&content, &schema_content)?
             } else {
                 validate::validate_xsd(&content)?

@@ -81,7 +81,8 @@ impl SpectralMetrics {
     pub fn from_spd(spd: &SpectralDistribution) -> Self {
         let wavelengths = if !spd.wavelengths.is_empty() {
             spd.wavelengths.clone()
-        } else if let (Some(start), Some(interval)) = (spd.start_wavelength, spd.wavelength_interval)
+        } else if let (Some(start), Some(interval)) =
+            (spd.start_wavelength, spd.wavelength_interval)
         {
             (0..spd.values.len())
                 .map(|i| start + i as f64 * interval)
@@ -135,12 +136,12 @@ impl SpectralMetrics {
             let mid_wl = (wl1 + wl2) / 2.0;
 
             // UV-A (315-400nm)
-            if mid_wl >= UV_A_START && mid_wl < UV_A_END {
+            if (UV_A_START..UV_A_END).contains(&mid_wl) {
                 uv_a_power += power;
             }
 
             // Visible (380-780nm)
-            if mid_wl >= VISIBLE_START && mid_wl <= VISIBLE_END {
+            if (VISIBLE_START..=VISIBLE_END).contains(&mid_wl) {
                 visible_power += power;
             }
 
@@ -150,12 +151,12 @@ impl SpectralMetrics {
             }
 
             // Far-red (700-780nm)
-            if mid_wl >= FAR_RED_START && mid_wl <= FAR_RED_END {
+            if (FAR_RED_START..=FAR_RED_END).contains(&mid_wl) {
                 far_red_power += power;
             }
 
             // PAR (400-700nm)
-            if mid_wl >= 400.0 && mid_wl <= 700.0 {
+            if (400.0..=700.0).contains(&mid_wl) {
                 par_power += power;
 
                 // Blue (400-500nm)
@@ -173,10 +174,10 @@ impl SpectralMetrics {
             }
 
             // R:FR ratio bands
-            if mid_wl >= RED_START && mid_wl <= RED_END {
+            if (RED_START..=RED_END).contains(&mid_wl) {
                 r_band_power += power;
             }
-            if mid_wl >= 725.0 && mid_wl <= 735.0 {
+            if (725.0..=735.0).contains(&mid_wl) {
                 fr_band_power += power;
             }
         }
@@ -356,7 +357,9 @@ impl SpectralDiagram {
     pub fn from_spectral(spd: &SpectralDistribution) -> Self {
         let wavelengths = if !spd.wavelengths.is_empty() {
             spd.wavelengths.clone()
-        } else if let (Some(start), Some(interval)) = (spd.start_wavelength, spd.wavelength_interval) {
+        } else if let (Some(start), Some(interval)) =
+            (spd.start_wavelength, spd.wavelength_interval)
+        {
             (0..spd.values.len())
                 .map(|i| start + i as f64 * interval)
                 .collect()
@@ -364,7 +367,9 @@ impl SpectralDiagram {
             // Default visible spectrum range
             let n = spd.values.len();
             if n > 1 {
-                (0..n).map(|i| 380.0 + i as f64 * (400.0 / (n - 1) as f64)).collect()
+                (0..n)
+                    .map(|i| 380.0 + i as f64 * (400.0 / (n - 1) as f64))
+                    .collect()
             } else {
                 vec![550.0]
             }
@@ -380,10 +385,15 @@ impl SpectralDiagram {
 
         // Find peak
         let (peak_wavelength, peak_value) = if !wavelengths.is_empty() && !values.is_empty() {
-            let (idx, &peak_v) = values.iter().enumerate()
+            let (idx, &peak_v) = values
+                .iter()
+                .enumerate()
                 .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
                 .unwrap_or((0, &0.0));
-            (Some(wavelengths.get(idx).copied().unwrap_or(550.0)), Some(peak_v))
+            (
+                Some(wavelengths.get(idx).copied().unwrap_or(550.0)),
+                Some(peak_v),
+            )
         } else {
             (None, None)
         };
@@ -423,7 +433,11 @@ impl SpectralDiagram {
 
         let min_wl = self.wavelengths.iter().copied().fold(f64::MAX, f64::min);
         let max_wl = self.wavelengths.iter().copied().fold(f64::MIN, f64::max);
-        let wl_range = if (max_wl - min_wl).abs() < f64::EPSILON { 400.0 } else { max_wl - min_wl };
+        let wl_range = if (max_wl - min_wl).abs() < f64::EPSILON {
+            400.0
+        } else {
+            max_wl - min_wl
+        };
 
         // Determine if this is a dark theme (for zone coloring)
         let is_dark = theme.background.contains("1a") || theme.background.contains("2e");
@@ -494,7 +508,11 @@ impl SpectralDiagram {
             let y = margin_top + plot_height * (1.0 - y_val);
             svg.push_str(&format!(
                 r#"  <line x1="{}" y1="{:.1}" x2="{}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
-                margin_left, y, margin_left + plot_width, y, theme.grid
+                margin_left,
+                y,
+                margin_left + plot_width,
+                y,
+                theme.grid
             ));
             svg.push('\n');
             svg.push_str(&format!(
@@ -546,7 +564,11 @@ impl SpectralDiagram {
 
                 if i == 0 {
                     path_data.push_str(&format!("M {:.1} {:.1}", x, y));
-                    fill_path.push_str(&format!("M {:.1} {:.1}", margin_left, margin_top + plot_height));
+                    fill_path.push_str(&format!(
+                        "M {:.1} {:.1}",
+                        margin_left,
+                        margin_top + plot_height
+                    ));
                     fill_path.push_str(&format!(" L {:.1} {:.1}", x, y));
                 } else {
                     path_data.push_str(&format!(" L {:.1} {:.1}", x, y));
@@ -555,7 +577,8 @@ impl SpectralDiagram {
             }
 
             // Close fill path
-            let last_x = margin_left + plot_width * ((self.wavelengths.last().unwrap() - min_wl) / wl_range);
+            let last_x =
+                margin_left + plot_width * ((self.wavelengths.last().unwrap() - min_wl) / wl_range);
             fill_path.push_str(&format!(" L {:.1} {:.1}", last_x, margin_top + plot_height));
             fill_path.push_str(" Z");
 
@@ -645,17 +668,17 @@ fn generate_wavelength_ticks(min_wl: f64, max_wl: f64) -> Vec<f64> {
 fn generate_spectrum_gradient_stops_extended(min_wl: f64, max_wl: f64) -> String {
     // Extended spectrum colors from UV through visible to IR
     let colors = [
-        (280.0, "#4c1d95"), // UV-B (deep purple)
-        (315.0, "#6d28d9"), // UV-A start
-        (380.0, "#7c3aed"), // violet
-        (420.0, "#3b82f6"), // blue
-        (470.0, "#22d3ee"), // cyan
-        (530.0, "#22c55e"), // green
-        (580.0, "#eab308"), // yellow
-        (620.0, "#f97316"), // orange
-        (700.0, "#ef4444"), // red
-        (780.0, "#b91c1c"), // far-red/NIR boundary
-        (900.0, "#7f1d1d"), // near-IR
+        (280.0, "#4c1d95"),  // UV-B (deep purple)
+        (315.0, "#6d28d9"),  // UV-A start
+        (380.0, "#7c3aed"),  // violet
+        (420.0, "#3b82f6"),  // blue
+        (470.0, "#22d3ee"),  // cyan
+        (530.0, "#22c55e"),  // green
+        (580.0, "#eab308"),  // yellow
+        (620.0, "#f97316"),  // orange
+        (700.0, "#ef4444"),  // red
+        (780.0, "#b91c1c"),  // far-red/NIR boundary
+        (900.0, "#7f1d1d"),  // near-IR
         (1100.0, "#451a03"), // deep IR (brown)
         (1400.0, "#1c1917"), // far NIR (nearly black/heat)
     ];
@@ -723,7 +746,8 @@ fn generate_uv_zone(
     let uv_border = if is_dark { "#6d28d9" } else { "#7c3aed" };
 
     // UV-A zone (315-400nm)
-    let uv_start = margin_left + plot_width * ((UV_A_START.max(min_wl) - min_wl) / wl_range).clamp(0.0, 1.0);
+    let uv_start =
+        margin_left + plot_width * ((UV_A_START.max(min_wl) - min_wl) / wl_range).clamp(0.0, 1.0);
     let uv_end = margin_left + plot_width * ((UV_A_END - min_wl) / wl_range).clamp(0.0, 1.0);
     let uv_width = uv_end - uv_start;
 
@@ -756,6 +780,7 @@ fn generate_uv_zone(
 }
 
 /// Generate IR zone background (when data includes IR wavelengths)
+#[allow(clippy::too_many_arguments)]
 fn generate_ir_zone(
     margin_left: f64,
     margin_top: f64,
@@ -778,17 +803,18 @@ fn generate_ir_zone(
 
     // Near-IR zone (780-1400nm or data max)
     let ir_start = margin_left + plot_width * ((NIR_START - min_wl) / wl_range).clamp(0.0, 1.0);
-    let ir_end = margin_left + plot_width * ((max_wl.min(NIR_END) - min_wl) / wl_range).clamp(0.0, 1.0);
+    let ir_end =
+        margin_left + plot_width * ((max_wl.min(NIR_END) - min_wl) / wl_range).clamp(0.0, 1.0);
     let ir_width = ir_end - ir_start;
 
     if ir_width > 0.0 {
         // Zone background with gradient (fades to warmer color)
-        svg.push_str(&format!(
+        svg.push_str(
             r#"  <defs><linearGradient id="ir-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.1"/>
       <stop offset="100%" style="stop-color:#7f1d1d;stop-opacity:0.2"/>
-    </linearGradient></defs>"#
-        ));
+    </linearGradient></defs>"#,
+        );
         svg.push('\n');
 
         svg.push_str(&format!(
@@ -846,10 +872,10 @@ fn generate_par_zones(
     // Red: 600-700nm (flowering, chlorophyll a)
     // Far-red: 700-780nm (shade response, phytochrome)
     let zones = [
-        (400.0, 500.0, "#3b82f620", "Blue"),      // Blue zone - 20% opacity
-        (500.0, 600.0, "#22c55e15", "Green"),     // Green zone - 15% opacity
-        (600.0, 700.0, "#ef444425", "Red"),       // Red zone - 25% opacity
-        (700.0, 780.0, "#7c3aed15", "Far-Red"),   // Far-red zone - 15% opacity
+        (400.0, 500.0, "#3b82f620", "Blue"),    // Blue zone - 20% opacity
+        (500.0, 600.0, "#22c55e15", "Green"),   // Green zone - 15% opacity
+        (600.0, 700.0, "#ef444425", "Red"),     // Red zone - 25% opacity
+        (700.0, 780.0, "#7c3aed15", "Far-Red"), // Far-red zone - 15% opacity
     ];
 
     for (start_wl, end_wl, color, label) in zones {
@@ -905,9 +931,10 @@ pub fn synthesize_spectrum(cct: f64, cri: Option<f64>) -> SpectralDistribution {
     let wavelengths: Vec<f64> = (380..=780).step_by(5).map(|w| w as f64).collect();
     let cri_val = cri.unwrap_or(80.0);
 
-    let values: Vec<f64> = wavelengths.iter().map(|&wl| {
-        synthesize_spd_value(wl, cct, cri_val)
-    }).collect();
+    let values: Vec<f64> = wavelengths
+        .iter()
+        .map(|&wl| synthesize_spd_value(wl, cct, cri_val))
+        .collect();
 
     // Normalize to peak = 1.0
     let max_val = values.iter().copied().fold(0.0_f64, f64::max);
@@ -942,11 +969,11 @@ fn synthesize_spd_value(wavelength: f64, cct: f64, cri: f64) -> f64 {
 
     // Phosphor emission (broadband yellow-red)
     let phosphor_center = if cct > 5000.0 {
-        550.0  // Cool white: greener phosphor
+        550.0 // Cool white: greener phosphor
     } else if cct > 3500.0 {
-        570.0  // Neutral white
+        570.0 // Neutral white
     } else {
-        590.0  // Warm white: more orange phosphor
+        590.0 // Warm white: more orange phosphor
     };
     let phosphor_width = 80.0 + (cri - 80.0) * 0.5; // Higher CRI = broader emission
     let phosphor = gaussian(wavelength, phosphor_center, phosphor_width);

@@ -176,7 +176,8 @@ mod tests {
     #[cfg(feature = "json")]
     #[test]
     fn test_auto_detect_json() {
-        let json = r#"{"version":"1.0","header":{"manufacturer":"Test"},"emitters":[{"quantity":1}]}"#;
+        let json =
+            r#"{"version":"1.0","header":{"manufacturer":"Test"},"emitters":[{"quantity":1}]}"#;
 
         let doc = parse(json).unwrap();
         assert_eq!(doc.header.manufacturer, Some("Test".to_string()));

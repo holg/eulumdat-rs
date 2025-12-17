@@ -42,15 +42,14 @@ fn log_color_data(filename: &str, doc: &LuminaireOpticalData) {
                 format!(
                     "Can synthesize from CCT={}K{}",
                     cct.unwrap() as i32,
-                    cri.map(|c| format!(", CRI={}", c as i32)).unwrap_or_default()
+                    cri.map(|c| format!(", CRI={}", c as i32))
+                        .unwrap_or_default()
                 )
             } else {
                 "No color data - will show sample spectrum".to_string()
             };
 
-            web_sys::console::log_1(
-                &format!("Emitter {}: {}", i, status).into()
-            );
+            web_sys::console::log_1(&format!("Emitter {}: {}", i, status).into());
 
             // Show raw values for debugging
             if cct.is_none() && !has_spectral {
@@ -73,8 +72,16 @@ fn log_color_data_from_ldt(filename: &str, ldt: &Eulumdat, doc: &LuminaireOptica
 
     for (i, lamp_set) in ldt.lamp_sets.iter().enumerate() {
         web_sys::console::log_1(&format!("Lamp Set {}:", i).into());
-        web_sys::console::log_1(&format!("  Raw color_appearance: '{}'", lamp_set.color_appearance).into());
-        web_sys::console::log_1(&format!("  Raw color_rendering_group: '{}'", lamp_set.color_rendering_group).into());
+        web_sys::console::log_1(
+            &format!("  Raw color_appearance: '{}'", lamp_set.color_appearance).into(),
+        );
+        web_sys::console::log_1(
+            &format!(
+                "  Raw color_rendering_group: '{}'",
+                lamp_set.color_rendering_group
+            )
+            .into(),
+        );
     }
 
     if let Some(emitter) = doc.emitters.first() {
@@ -85,16 +92,21 @@ fn log_color_data_from_ldt(filename: &str, ldt: &Eulumdat, doc: &LuminaireOptica
         if has_spectral {
             web_sys::console::log_1(&"  → Direct SPD data available".into());
         } else if let Some(cct_val) = cct {
-            web_sys::console::log_1(&format!(
-                "  → Parsed: CCT={}K, CRI={:?}",
-                cct_val as i32,
-                cri.map(|c| c as i32)
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "  → Parsed: CCT={}K, CRI={:?}",
+                    cct_val as i32,
+                    cri.map(|c| c as i32)
+                )
+                .into(),
+            );
             web_sys::console::log_1(&"  → Can synthesize spectrum!".into());
         } else {
             web_sys::console::warn_1(&"  → Could not parse CCT - showing sample spectrum".into());
             web_sys::console::log_1(&"  Supported formats:".into());
-            web_sys::console::log_1(&"    CCT: '3000K', '4000', 'tw/6500', 'ww/2700', 'warm white', 'daylight'".into());
+            web_sys::console::log_1(
+                &"    CCT: '3000K', '4000', 'tw/6500', 'ww/2700', 'warm white', 'daylight'".into(),
+            );
             web_sys::console::log_1(&"    CRI: '1B/86', 'Ra>90', '80', '1A', '1B', '2A'".into());
         }
     }
@@ -205,7 +217,7 @@ pub fn App() -> impl IntoView {
     });
 
     // Custom setter that syncs Eulumdat changes back to ATLA
-    let set_ldt = WriteSignal::from(set_ldt_internal);
+    let set_ldt = set_ldt_internal;
 
     // Also sync Eulumdat → ATLA (for when child components modify ldt)
     Effect::new(move |_| {
@@ -389,52 +401,57 @@ pub fn App() -> impl IntoView {
                 };
                 let filename = format!(
                     "{}.{}",
-                    template.name.to_lowercase().replace(' ', "_").replace("(", "").replace(")", ""),
+                    template
+                        .name
+                        .to_lowercase()
+                        .replace(' ', "_")
+                        .replace("(", "")
+                        .replace(")", ""),
                     ext
                 );
 
                 // Parse template based on format (with raw value logging for LDT)
                 match template.format {
-                    TemplateFormat::Ldt => {
-                        match Eulumdat::parse(template.content) {
-                            Ok(ldt) => {
-                                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                                log_color_data_from_ldt(&filename, &ldt, &doc);
-                                set_atla_doc.set(doc);
-                                set_current_file.set(Some(filename));
-                                set_selected_lamp_set.set(0);
-                            }
-                            Err(e) => {
-                                web_sys::console::error_1(&format!("Failed to parse template: {}", e).into());
-                            }
+                    TemplateFormat::Ldt => match Eulumdat::parse(template.content) {
+                        Ok(ldt) => {
+                            let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                            log_color_data_from_ldt(&filename, &ldt, &doc);
+                            set_atla_doc.set(doc);
+                            set_current_file.set(Some(filename));
+                            set_selected_lamp_set.set(0);
                         }
-                    }
-                    TemplateFormat::AtlaXml => {
-                        match atla::xml::parse(template.content) {
-                            Ok(doc) => {
-                                log_color_data(&filename, &doc);
-                                set_atla_doc.set(doc);
-                                set_current_file.set(Some(filename));
-                                set_selected_lamp_set.set(0);
-                            }
-                            Err(e) => {
-                                web_sys::console::error_1(&format!("Failed to parse template: {}", e).into());
-                            }
+                        Err(e) => {
+                            web_sys::console::error_1(
+                                &format!("Failed to parse template: {}", e).into(),
+                            );
                         }
-                    }
-                    TemplateFormat::AtlaJson => {
-                        match atla::json::parse(template.content) {
-                            Ok(doc) => {
-                                log_color_data(&filename, &doc);
-                                set_atla_doc.set(doc);
-                                set_current_file.set(Some(filename));
-                                set_selected_lamp_set.set(0);
-                            }
-                            Err(e) => {
-                                web_sys::console::error_1(&format!("Failed to parse template: {}", e).into());
-                            }
+                    },
+                    TemplateFormat::AtlaXml => match atla::xml::parse(template.content) {
+                        Ok(doc) => {
+                            log_color_data(&filename, &doc);
+                            set_atla_doc.set(doc);
+                            set_current_file.set(Some(filename));
+                            set_selected_lamp_set.set(0);
                         }
-                    }
+                        Err(e) => {
+                            web_sys::console::error_1(
+                                &format!("Failed to parse template: {}", e).into(),
+                            );
+                        }
+                    },
+                    TemplateFormat::AtlaJson => match atla::json::parse(template.content) {
+                        Ok(doc) => {
+                            log_color_data(&filename, &doc);
+                            set_atla_doc.set(doc);
+                            set_current_file.set(Some(filename));
+                            set_selected_lamp_set.set(0);
+                        }
+                        Err(e) => {
+                            web_sys::console::error_1(
+                                &format!("Failed to parse template: {}", e).into(),
+                            );
+                        }
+                    },
                 }
             }
         }

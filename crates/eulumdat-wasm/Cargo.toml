@@ -25,13 +25,13 @@ hydrate = ["leptos/hydrate"]
 bevy-viewer = ["eulumdat-bevy"]
 
 [dependencies]
+atla = { path = "../atla", features = ["xml", "json", "eulumdat"] }
+console_error_panic_hook.workspace = true
 # Core library
 eulumdat.workspace = true
-atla = { path = "../atla", features = ["xml", "json", "eulumdat"] }
 gloo.workspace = true
 gloo-file.workspace = true
 js-sys.workspace = true
-console_error_panic_hook.workspace = true
 
 # Web framework (Leptos)
 leptos.workspace = true

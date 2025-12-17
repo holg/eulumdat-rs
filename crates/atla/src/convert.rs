@@ -89,7 +89,10 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
     let total_watts: f64 = ldt.lamp_sets.iter().map(|ls| ls.wattage_with_ballast).sum();
 
     // Get CCT from first lamp set if available
-    let cct = ldt.lamp_sets.first().and_then(|ls| parse_cct(&ls.color_appearance));
+    let cct = ldt
+        .lamp_sets
+        .first()
+        .and_then(|ls| parse_cct(&ls.color_appearance));
 
     // Get CRI from first lamp set if available
     let color_rendering = ldt.lamp_sets.first().and_then(|ls| {
@@ -135,7 +138,12 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
     Emitter {
         id: None,
         description,
-        quantity: ldt.lamp_sets.iter().map(|ls| ls.num_lamps as u32).sum::<u32>().max(1),
+        quantity: ldt
+            .lamp_sets
+            .iter()
+            .map(|ls| ls.num_lamps as u32)
+            .sum::<u32>()
+            .max(1),
         rated_lumens: if total_lumens > 0.0 {
             Some(total_lumens)
         } else {
@@ -239,8 +247,7 @@ impl From<&LuminaireOpticalData> for Eulumdat {
                 ldt.num_g_planes = dist.vertical_angles.len();
 
                 if dist.horizontal_angles.len() > 1 {
-                    ldt.c_plane_distance =
-                        dist.horizontal_angles[1] - dist.horizontal_angles[0];
+                    ldt.c_plane_distance = dist.horizontal_angles[1] - dist.horizontal_angles[0];
                 }
                 if dist.vertical_angles.len() > 1 {
                     ldt.g_plane_distance = dist.vertical_angles[1] - dist.vertical_angles[0];
@@ -310,7 +317,11 @@ fn parse_cct(color_appearance: &str) -> Option<f64> {
     if lower.contains("neutral") || lower.contains("nw") || lower.starts_with("nw") {
         return Some(4000.0);
     }
-    if lower.contains("cool") || lower.contains("cold") || lower.contains("cw") || lower.starts_with("cw") {
+    if lower.contains("cool")
+        || lower.contains("cold")
+        || lower.contains("cw")
+        || lower.starts_with("cw")
+    {
         return Some(5000.0);
     }
     if lower.contains("daylight") || lower.contains("tw") || lower.starts_with("tw") {
@@ -332,14 +343,12 @@ fn extract_numbers(s: &str) -> Vec<f64> {
         } else if c == '.' && !has_dot && !current.is_empty() {
             current.push(c);
             has_dot = true;
-        } else {
-            if !current.is_empty() {
-                if let Ok(num) = current.trim_end_matches('.').parse::<f64>() {
-                    numbers.push(num);
-                }
-                current.clear();
-                has_dot = false;
+        } else if !current.is_empty() {
+            if let Ok(num) = current.trim_end_matches('.').parse::<f64>() {
+                numbers.push(num);
             }
+            current.clear();
+            has_dot = false;
         }
     }
 
@@ -386,7 +395,10 @@ fn parse_cri(color_rendering_group: &str) -> Option<f64> {
         .filter(|&n| (20.0..=100.0).contains(&n))
         .collect();
 
-    if let Some(&cri) = cri_candidates.iter().max_by(|a, b| a.partial_cmp(b).unwrap()) {
+    if let Some(&cri) = cri_candidates
+        .iter()
+        .max_by(|a, b| a.partial_cmp(b).unwrap())
+    {
         return Some(cri);
     }
 

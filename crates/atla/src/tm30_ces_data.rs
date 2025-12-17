@@ -1,5 +1,6 @@
 // Auto-generated from IES TM-30-20 CES data (colour-science library)
 // 99 Color Evaluation Samples at 5nm intervals (380-780nm)
+// These are measured reflectance values, not mathematical constants
 
 const CES_01: [f64; 81] = [
     0.63590, 0.63590, 0.63590, 0.63590, 0.63590, 0.64015, 0.64540, 0.64888, 0.65070,
@@ -1190,7 +1191,7 @@ const CES_99: [f64; 81] = [
 ];
 
 /// Full 99 CES reflectance samples
-const CES_REFLECTANCE: [&[f64; 81]; 99] = [
+pub(super) const CES_REFLECTANCE: [&[f64; 81]; 99] = [
     &CES_01,
     &CES_02,
     &CES_03,

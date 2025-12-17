@@ -29,8 +29,7 @@ pub fn parse(xml: &str) -> Result<LuminaireOpticalData> {
                     "LuminaireOpticalData" => {
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"version" {
-                                doc.version =
-                                    String::from_utf8_lossy(&attr.value).to_string();
+                                doc.version = String::from_utf8_lossy(&attr.value).to_string();
                             }
                         }
                     }
@@ -57,7 +56,13 @@ pub fn parse(xml: &str) -> Result<LuminaireOpticalData> {
                 current_path.pop();
             }
             Ok(Event::Eof) => break,
-            Err(e) => return Err(AtlaError::XmlParse(format!("Error at position {}: {:?}", reader.buffer_position(), e))),
+            Err(e) => {
+                return Err(AtlaError::XmlParse(format!(
+                    "Error at position {}: {:?}",
+                    reader.buffer_position(),
+                    e
+                )))
+            }
             _ => {}
         }
         buf.clear();
@@ -290,8 +295,7 @@ fn parse_emitter(reader: &mut Reader<&[u8]>) -> Result<Emitter> {
                             Some(parse_intensity_distribution(reader)?);
                     }
                     "SpectralDistribution" => {
-                        emitter.spectral_distribution =
-                            Some(parse_spectral_distribution(reader)?);
+                        emitter.spectral_distribution = Some(parse_spectral_distribution(reader)?);
                     }
                     _ => {}
                 }
@@ -364,14 +368,10 @@ fn parse_intensity_distribution(reader: &mut Reader<&[u8]>) -> Result<IntensityD
                     for attr in e.attributes().flatten() {
                         match attr.key.as_ref() {
                             b"horz" | b"horizontal" => {
-                                horz = String::from_utf8_lossy(&attr.value)
-                                    .parse()
-                                    .unwrap_or(0.0);
+                                horz = String::from_utf8_lossy(&attr.value).parse().unwrap_or(0.0);
                             }
                             b"vert" | b"vertical" => {
-                                vert = String::from_utf8_lossy(&attr.value)
-                                    .parse()
-                                    .unwrap_or(0.0);
+                                vert = String::from_utf8_lossy(&attr.value).parse().unwrap_or(0.0);
                             }
                             _ => {}
                         }
@@ -586,11 +586,7 @@ fn write_with_indent(doc: &LuminaireOpticalData, indent: Option<usize>) -> Resul
     String::from_utf8(result).map_err(|e| AtlaError::XmlParse(e.to_string()))
 }
 
-fn write_element<W: std::io::Write>(
-    writer: &mut Writer<W>,
-    name: &str,
-    value: &str,
-) -> Result<()> {
+fn write_element<W: std::io::Write>(writer: &mut Writer<W>, name: &str, value: &str) -> Result<()> {
     writer
         .write_event(Event::Start(BytesStart::new(name)))
         .map_err(|e| AtlaError::XmlParse(e.to_string()))?;
@@ -672,7 +668,10 @@ fn write_luminaire<W: std::io::Write>(writer: &mut Writer<W>, luminaire: &Lumina
     Ok(())
 }
 
-fn write_equipment<W: std::io::Write>(writer: &mut Writer<W>, _equipment: &Equipment) -> Result<()> {
+fn write_equipment<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    _equipment: &Equipment,
+) -> Result<()> {
     writer
         .write_event(Event::Start(BytesStart::new("Equipment")))
         .map_err(|e| AtlaError::XmlParse(e.to_string()))?;
@@ -840,7 +839,10 @@ mod tests {
 
         assert_eq!(parsed.header.manufacturer, doc.header.manufacturer);
         assert_eq!(parsed.header.catalog_number, doc.header.catalog_number);
-        assert_eq!(parsed.emitters[0].rated_lumens, doc.emitters[0].rated_lumens);
+        assert_eq!(
+            parsed.emitters[0].rated_lumens,
+            doc.emitters[0].rated_lumens
+        );
         assert_eq!(parsed.emitters[0].cct, doc.emitters[0].cct);
     }
 

@@ -13,15 +13,32 @@ use leptos::prelude::*;
 
 /// Check if this appears to be a horticultural/grow light based on metadata
 fn is_horticultural(doc: &LuminaireOpticalData) -> bool {
-    let desc = doc.header.description.as_deref().unwrap_or("").to_lowercase();
-    let lum_type = doc.header.luminaire_type.as_deref().unwrap_or("").to_lowercase();
+    let desc = doc
+        .header
+        .description
+        .as_deref()
+        .unwrap_or("")
+        .to_lowercase();
+    let lum_type = doc
+        .header
+        .luminaire_type
+        .as_deref()
+        .unwrap_or("")
+        .to_lowercase();
     let comments = doc.header.comments.as_deref().unwrap_or("").to_lowercase();
 
-    let keywords = ["grow", "horticultural", "par", "plant", "greenhouse", "cultivation"];
+    let keywords = [
+        "grow",
+        "horticultural",
+        "par",
+        "plant",
+        "greenhouse",
+        "cultivation",
+    ];
 
-    keywords.iter().any(|kw| {
-        desc.contains(kw) || lum_type.contains(kw) || comments.contains(kw)
-    })
+    keywords
+        .iter()
+        .any(|kw| desc.contains(kw) || lum_type.contains(kw) || comments.contains(kw))
 }
 
 /// Spectral data source detected
@@ -47,7 +64,11 @@ enum SpectralSubTab {
 
 /// Detect what spectral source we have
 fn detect_spectral_source(doc: &LuminaireOpticalData) -> SpectralSource {
-    if doc.emitters.iter().any(|e| e.spectral_distribution.is_some()) {
+    if doc
+        .emitters
+        .iter()
+        .any(|e| e.spectral_distribution.is_some())
+    {
         return SpectralSource::Direct;
     }
 
@@ -96,7 +117,12 @@ pub fn SpectralDiagramView(
 
         match detect_spectral_source(&doc) {
             SpectralSource::Direct => {
-                if let Some(spd) = doc.emitters.iter().filter_map(|e| e.spectral_distribution.as_ref()).next() {
+                if let Some(spd) = doc
+                    .emitters
+                    .iter()
+                    .filter_map(|e| e.spectral_distribution.as_ref())
+                    .next()
+                {
                     let diagram = SpectralDiagram::from_spectral(spd);
                     diagram.to_svg(700.0, 400.0, &theme)
                 } else {
@@ -123,7 +149,12 @@ pub fn SpectralDiagramView(
     // TM-30 result (only for direct spectral data)
     let tm30_result = move || {
         let doc = atla_doc.get();
-        if let Some(spd) = doc.emitters.iter().filter_map(|e| e.spectral_distribution.as_ref()).next() {
+        if let Some(spd) = doc
+            .emitters
+            .iter()
+            .filter_map(|e| e.spectral_distribution.as_ref())
+            .next()
+        {
             calculate_tm30(spd)
         } else {
             None
@@ -132,13 +163,21 @@ pub fn SpectralDiagramView(
 
     // TM-30 Color Vector Graphic SVG
     let tm30_cvg_svg = move || {
-        let theme = if dark.get() { Tm30Theme::dark() } else { Tm30Theme::light() };
+        let theme = if dark.get() {
+            Tm30Theme::dark()
+        } else {
+            Tm30Theme::light()
+        };
         tm30_result().map(|tm30| tm30.to_svg(500.0, 500.0, &theme))
     };
 
     // TM-30 Rf Hue Bar Chart SVG
     let tm30_hue_svg = move || {
-        let theme = if dark.get() { Tm30Theme::dark() } else { Tm30Theme::light() };
+        let theme = if dark.get() {
+            Tm30Theme::dark()
+        } else {
+            Tm30Theme::light()
+        };
         tm30_result().map(|tm30| tm30.rf_hue_svg(700.0, 300.0, &theme))
     };
 
@@ -146,18 +185,16 @@ pub fn SpectralDiagramView(
     let spectral_metrics = move || -> Option<SpectralMetrics> {
         let doc = atla_doc.get();
         match detect_spectral_source(&doc) {
-            SpectralSource::Direct => {
-                doc.emitters.iter()
-                    .filter_map(|e| e.spectral_distribution.as_ref())
-                    .next()
-                    .map(SpectralMetrics::from_spd)
-            }
-            SpectralSource::Synthesized => {
-                get_cct_cri(&doc).map(|(cct, cri)| {
-                    let spd = synthesize_spectrum(cct, cri);
-                    SpectralMetrics::from_spd(&spd)
-                })
-            }
+            SpectralSource::Direct => doc
+                .emitters
+                .iter()
+                .filter_map(|e| e.spectral_distribution.as_ref())
+                .next()
+                .map(SpectralMetrics::from_spd),
+            SpectralSource::Synthesized => get_cct_cri(&doc).map(|(cct, cri)| {
+                let spd = synthesize_spectrum(cct, cri);
+                SpectralMetrics::from_spd(&spd)
+            }),
             SpectralSource::Sample => {
                 let sample = create_sample_led_spectrum();
                 Some(SpectralMetrics::from_spd(&sample))
@@ -168,7 +205,11 @@ pub fn SpectralDiagramView(
     let is_hort_display = move || is_horticultural(&atla_doc.get());
     let has_ir = move || spectral_metrics().map(|m| m.has_ir).unwrap_or(false);
     let has_uv = move || spectral_metrics().map(|m| m.has_uv).unwrap_or(false);
-    let thermal_warning = move || spectral_metrics().map(|m| m.thermal_warning).unwrap_or(false);
+    let thermal_warning = move || {
+        spectral_metrics()
+            .map(|m| m.thermal_warning)
+            .unwrap_or(false)
+    };
     let uv_warning = move || spectral_metrics().map(|m| m.uv_warning).unwrap_or(false);
 
     view! {
@@ -495,27 +536,38 @@ pub fn SpectralDiagramView(
 
 /// Get color for Rf value (green = good, red = poor)
 fn rf_color(rf: f64) -> &'static str {
-    if rf >= 90.0 { "#22c55e" }
-    else if rf >= 80.0 { "#84cc16" }
-    else if rf >= 70.0 { "#eab308" }
-    else if rf >= 60.0 { "#f97316" }
-    else { "#ef4444" }
+    if rf >= 90.0 {
+        "#22c55e"
+    } else if rf >= 80.0 {
+        "#84cc16"
+    } else if rf >= 70.0 {
+        "#eab308"
+    } else if rf >= 60.0 {
+        "#f97316"
+    } else {
+        "#ef4444"
+    }
 }
 
 /// Get color for Rg value (100 = neutral, deviation shows color)
 fn rg_color(rg: f64) -> &'static str {
-    if (rg - 100.0).abs() <= 5.0 { "#22c55e" }
-    else if (rg - 100.0).abs() <= 10.0 { "#84cc16" }
-    else if (rg - 100.0).abs() <= 15.0 { "#eab308" }
-    else { "#f97316" }
+    if (rg - 100.0).abs() <= 5.0 {
+        "#22c55e"
+    } else if (rg - 100.0).abs() <= 10.0 {
+        "#84cc16"
+    } else if (rg - 100.0).abs() <= 15.0 {
+        "#eab308"
+    } else {
+        "#f97316"
+    }
 }
 
 /// Get style for R:FR ratio value
 /// Sunlight ~1.1-1.2, shade ~0.1-0.7, HPS ~1.5-2.0
 fn r_fr_style(ratio: f64) -> String {
-    let color = if ratio >= 0.8 && ratio <= 1.5 {
+    let color = if (0.8..=1.5).contains(&ratio) {
         "#22c55e" // Good for most plants
-    } else if ratio >= 0.5 && ratio <= 2.0 {
+    } else if (0.5..=2.0).contains(&ratio) {
         "#eab308" // Acceptable
     } else {
         "#f97316" // Extreme

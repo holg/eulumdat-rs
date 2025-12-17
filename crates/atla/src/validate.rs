@@ -148,7 +148,7 @@ fn validate_emitter(emitter: &Emitter, index: usize, result: &mut ValidationResu
 
     // Check CCT range
     if let Some(cct) = emitter.cct {
-        if cct < 1000.0 || cct > 20000.0 {
+        if !(1000.0..=20000.0).contains(&cct) {
             result.warnings.push(ValidationMessage {
                 code: "W003".to_string(),
                 message: format!(
@@ -164,7 +164,7 @@ fn validate_emitter(emitter: &Emitter, index: usize, result: &mut ValidationResu
     // Check CRI range
     if let Some(ref cr) = emitter.color_rendering {
         if let Some(ra) = cr.ra {
-            if ra < 0.0 || ra > 100.0 {
+            if !(0.0..=100.0).contains(&ra) {
                 result.errors.push(ValidationMessage {
                     code: "E005".to_string(),
                     message: format!("{}: Ra must be between 0 and 100", prefix),
@@ -247,10 +247,7 @@ fn validate_intensity_distribution(
             if value < 0.0 {
                 result.errors.push(ValidationMessage {
                     code: "E008".to_string(),
-                    message: format!(
-                        "{}: Negative intensity {} at [{},{}]",
-                        prefix, value, i, j
-                    ),
+                    message: format!("{}: Negative intensity {} at [{},{}]", prefix, value, i, j),
                     line: None,
                     column: None,
                 });

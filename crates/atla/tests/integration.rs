@@ -72,7 +72,10 @@ fn test_xml_json_equivalence() {
 
     // Both should have same core data
     assert_eq!(xml_doc.header.manufacturer, json_doc.header.manufacturer);
-    assert_eq!(xml_doc.header.catalog_number, json_doc.header.catalog_number);
+    assert_eq!(
+        xml_doc.header.catalog_number,
+        json_doc.header.catalog_number
+    );
     assert_eq!(xml_doc.emitters.len(), json_doc.emitters.len());
     assert_eq!(
         xml_doc.emitters[0].rated_lumens,
@@ -82,7 +85,10 @@ fn test_xml_json_equivalence() {
 
     // Intensity at same point should match
     let xml_dist = xml_doc.emitters[0].intensity_distribution.as_ref().unwrap();
-    let json_dist = json_doc.emitters[0].intensity_distribution.as_ref().unwrap();
+    let json_dist = json_doc.emitters[0]
+        .intensity_distribution
+        .as_ref()
+        .unwrap();
     assert_eq!(xml_dist.sample(0.0, 0.0), json_dist.sample(0.0, 0.0));
 }
 
@@ -283,28 +289,46 @@ fn test_ir_spectral_templates() {
     let halogen_path = samples_dir().join("halogen_lamp.xml");
     let halogen = atla::parse_file(&halogen_path).expect("Failed to parse halogen lamp");
 
-    let spd = halogen.emitters[0].spectral_distribution.as_ref()
+    let spd = halogen.emitters[0]
+        .spectral_distribution
+        .as_ref()
         .expect("Halogen should have spectral data");
     let metrics = SpectralMetrics::from_spd(spd);
 
     assert!(metrics.has_ir, "Halogen should have IR data");
-    assert!(metrics.wavelength_max >= 1000.0, "Halogen should extend to 1000nm");
-    assert!(metrics.nir_percent > 5.0, "Halogen should have significant IR content");
-    println!("Halogen: {:.1}% visible, {:.1}% NIR", metrics.visible_percent, metrics.nir_percent);
+    assert!(
+        metrics.wavelength_max >= 1000.0,
+        "Halogen should extend to 1000nm"
+    );
+    assert!(
+        metrics.nir_percent > 5.0,
+        "Halogen should have significant IR content"
+    );
+    println!(
+        "Halogen: {:.1}% visible, {:.1}% NIR",
+        metrics.visible_percent, metrics.nir_percent
+    );
 
     // Test heat lamp with high IR
     let heat_path = samples_dir().join("heat_lamp.xml");
     let heat = atla::parse_file(&heat_path).expect("Failed to parse heat lamp");
 
-    let spd = heat.emitters[0].spectral_distribution.as_ref()
+    let spd = heat.emitters[0]
+        .spectral_distribution
+        .as_ref()
         .expect("Heat lamp should have spectral data");
     let metrics = SpectralMetrics::from_spd(spd);
 
     assert!(metrics.has_ir, "Heat lamp should have IR data");
-    assert!(metrics.thermal_warning, "Heat lamp should trigger thermal warning");
+    assert!(
+        metrics.thermal_warning,
+        "Heat lamp should trigger thermal warning"
+    );
     assert!(metrics.nir_percent > 25.0, "Heat lamp should have >25% IR");
-    println!("Heat lamp: {:.1}% visible, {:.1}% NIR (thermal warning: {})",
-        metrics.visible_percent, metrics.nir_percent, metrics.thermal_warning);
+    println!(
+        "Heat lamp: {:.1}% visible, {:.1}% NIR (thermal warning: {})",
+        metrics.visible_percent, metrics.nir_percent, metrics.thermal_warning
+    );
 }
 
 #[test]
@@ -314,14 +338,24 @@ fn test_uv_spectral_template() {
     let uv_path = samples_dir().join("uv_blacklight.xml");
     let uv = atla::parse_file(&uv_path).expect("Failed to parse UV blacklight");
 
-    let spd = uv.emitters[0].spectral_distribution.as_ref()
+    let spd = uv.emitters[0]
+        .spectral_distribution
+        .as_ref()
         .expect("UV lamp should have spectral data");
     let metrics = SpectralMetrics::from_spd(spd);
 
     assert!(metrics.has_uv, "UV lamp should have UV data");
-    assert!(metrics.wavelength_min <= 320.0, "UV lamp should have data below 320nm");
-    assert!(metrics.uv_a_percent > 5.0, "UV lamp should have significant UV-A content");
+    assert!(
+        metrics.wavelength_min <= 320.0,
+        "UV lamp should have data below 320nm"
+    );
+    assert!(
+        metrics.uv_a_percent > 5.0,
+        "UV lamp should have significant UV-A content"
+    );
     assert!(metrics.uv_warning, "UV lamp should trigger UV warning");
-    println!("UV blacklight: {:.1}% UV-A, {:.1}% visible (UV warning: {})",
-        metrics.uv_a_percent, metrics.visible_percent, metrics.uv_warning);
+    println!(
+        "UV blacklight: {:.1}% UV-A, {:.1}% visible (UV warning: {})",
+        metrics.uv_a_percent, metrics.visible_percent, metrics.uv_warning
+    );
 }

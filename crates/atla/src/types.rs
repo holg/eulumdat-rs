@@ -312,7 +312,7 @@ pub struct IntensityDistribution {
     pub vertical_angles: Vec<f64>,
 
     /// Intensity values - outer vec is horizontal angles, inner is vertical
-    /// intensities[h_index][v_index] = intensity at horizontal_angles[h_index], vertical_angles[v_index]
+    /// `intensities[h_index][v_index]` = intensity at `horizontal_angles[h_index]`, `vertical_angles[v_index]`
     pub intensities: Vec<Vec<f64>>,
 }
 
