@@ -61,3 +61,13 @@ pub fn download_file(filename: &str, content: &str, mime_type: &str) {
 pub fn download_ies(filename: &str, content: &str) {
     download_file(filename, content, "text/plain");
 }
+
+/// Download an ATLA XML file
+pub fn download_atla_xml(filename: &str, content: &str) {
+    download_file(filename, content, "application/xml");
+}
+
+/// Download an ATLA JSON file
+pub fn download_atla_json(filename: &str, content: &str) {
+    download_file(filename, content, "application/json");
+}

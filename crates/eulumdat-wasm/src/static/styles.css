@@ -261,6 +261,15 @@ textarea::placeholder {
     color: white;
 }
 
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+}
+
 /* Main Layout - single column, full width */
 .main-content {
     display: block;
@@ -877,6 +886,522 @@ textarea::placeholder {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+/* Spectral Tab */
+.spectral-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.spectral-diagram-container {
+    width: 100%;
+}
+
+.spectral-diagram {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.spectral-diagram svg {
+    width: 100%;
+    height: auto;
+}
+
+.spectral-no-data {
+    text-align: center;
+    padding: 1rem;
+}
+
+.spectral-no-data .sample {
+    margin-top: 1rem;
+}
+
+.spectral-info {
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: #22c55e;
+    color: white;
+}
+
+.badge-info {
+    background: #3b82f6;
+    color: white;
+}
+
+.badge-warning {
+    background: #f59e0b;
+    color: white;
+}
+
+.badge-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.badge-danger {
+    background: #ef4444;
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+.badge-ir {
+    background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+    color: white;
+}
+
+.badge-uv {
+    background: linear-gradient(135deg, #7c3aed, #4c1d95);
+    color: white;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.spectral-diagrams-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.diagram-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.diagram-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.diagram-section-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.spectral-diagram,
+.greenhouse-diagram {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.spectral-diagram svg,
+.greenhouse-diagram svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.hint-text {
+    text-align: center;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+/* Spectral Sub-tabs */
+.spectral-tab-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.spectral-sub-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--surface);
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+
+.sub-tab {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.sub-tab:hover {
+    background: var(--background);
+    color: var(--text-primary);
+}
+
+.sub-tab.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.sub-tab-badges {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.spectral-sub-content {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+/* SPD Diagram Container */
+.spd-diagram-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.diagram-svg {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.diagram-svg svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* TM-30 Summary (inline metrics on SPD tab) */
+.tm30-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+    padding: 1rem;
+    background: var(--background);
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
+.tm30-metric-inline {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.tm30-metric-inline .label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.tm30-metric-inline .value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+/* TM-30 CVG Container */
+.tm30-cvg-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tm30-cvg-diagram {
+    display: flex;
+    justify-content: center;
+}
+
+.tm30-cvg-legend {
+    text-align: center;
+    max-width: 500px;
+}
+
+.tm30-cvg-legend p {
+    margin: 0.25rem 0;
+    font-size: 0.85rem;
+}
+
+/* TM-30 Hue Container */
+.tm30-hue-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.tm30-hue-diagram {
+    display: flex;
+    justify-content: center;
+}
+
+.tm30-hue-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.tm30-hue-table {
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.tm30-hue-table th,
+.tm30-hue-table td {
+    padding: 0.35rem 0.75rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.tm30-hue-table th {
+    background: var(--background);
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.tm30-hue-table tbody tr:hover {
+    background: var(--background);
+}
+
+.tm30-legend {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.tm30-legend p {
+    margin: 0.25rem 0;
+}
+
+/* TM-30 Report (legacy, can be removed) */
+.tm30-report {
+    margin-top: 1.5rem;
+}
+
+.tm30-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: 8px;
+    justify-content: center;
+}
+
+.tm30-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.tm30-metric .metric-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tm30-metric .metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.tm30-diagrams {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.tm30-cvg,
+.tm30-hue-chart {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tm30-cvg svg,
+.tm30-hue-chart svg {
+    max-width: 100%;
+    height: auto;
+}
+
+@media (max-width: 900px) {
+    .tm30-diagrams {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* ============================================
+   SPECTRAL METRICS DISPLAY
+   ============================================ */
+.spectral-metrics-container {
+    padding: 1rem;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.metric-card h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.metric-detail {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.metric-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+/* Energy Distribution Bars */
+.energy-bars,
+.par-bars,
+.hort-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.energy-row,
+.par-row,
+.hort-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.energy-label,
+.par-label,
+.hort-label {
+    width: 60px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.energy-bar,
+.par-bar {
+    height: 16px;
+    border-radius: 4px;
+    min-width: 4px;
+    transition: width 0.3s ease;
+}
+
+.energy-value,
+.par-value,
+.hort-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Energy bar colors */
+.uv-bar {
+    background: linear-gradient(90deg, #7c3aed, #4c1d95);
+}
+
+.visible-bar {
+    background: linear-gradient(90deg, #7c3aed, #3b82f6, #22c55e, #eab308, #ef4444);
+}
+
+.ir-bar {
+    background: linear-gradient(90deg, #b91c1c, #7f1d1d);
+}
+
+/* PAR bar colors */
+.par-label.blue { color: #3b82f6; }
+.par-label.green { color: #22c55e; }
+.par-label.red { color: #ef4444; }
+
+.blue-bar { background: #3b82f6; }
+.green-bar { background: #22c55e; }
+.red-bar { background: #ef4444; }
+
+/* Warning card */
+.warning-card {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    border-color: #fecaca;
+}
+
+.theme-dark .warning-card {
+    background: linear-gradient(135deg, #450a0a, #7f1d1d);
+    border-color: #991b1b;
+}
+
+.warning-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.warning-item.thermal {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.warning-item.uv {
+    background: rgba(124, 58, 237, 0.1);
+}
+
+.warning-icon {
+    font-size: 1.25rem;
 }
 
 .intensity-heatmap {

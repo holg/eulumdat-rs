@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LuminaireOpticalData version="1.0" xmlns="http://www.ies.org/tm-33">
+    <Header>
+        <Manufacturer>ATLA Test Manufacturer</Manufacturer>
+        <CatalogNumber>HAL-500W</CatalogNumber>
+        <Description>500W Halogen Flood Light with IR Spectral Data</Description>
+        <Laboratory>Spectral Test Laboratory</Laboratory>
+        <ReportNumber>SPEC-2024-IR-001</ReportNumber>
+        <TestDate>2024-01-20</TestDate>
+        <LuminaireType>Flood</LuminaireType>
+        <Comments>Demonstrates extended spectral range including near-IR (780-1000nm). Halogen lamps emit significant infrared radiation as thermal output.</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>200</Length>
+            <Width>150</Width>
+            <Height>120</Height>
+        </Dimensions>
+        <Mounting>Surface</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Goniometer>
+            <Manufacturer>Spectral Equipment Co</Manufacturer>
+            <Model>SP-IR-3000</Model>
+            <GoniometerType>Type C</GoniometerType>
+            <Distance>10.0</Distance>
+        </Goniometer>
+    </Equipment>
+    <Emitter>
+        <ID>halogen-1</ID>
+        <Description>500W Linear Halogen R7s</Description>
+        <Quantity>1</Quantity>
+        <RatedLumens>9500</RatedLumens>
+        <InputWatts>500</InputWatts>
+        <CCT>3000</CCT>
+        <ColorRendering>
+            <Ra>100</Ra>
+        </ColorRendering>
+        <SpectralDistribution>
+            <Wavelengths>380 390 400 410 420 430 440 450 460 470 480 490 500 510 520 530 540 550 560 570 580 590 600 610 620 630 640 650 660 670 680 690 700 710 720 730 740 750 760 770 780 790 800 820 840 860 880 900 920 940 960 980 1000</Wavelengths>
+            <Values>0.012 0.016 0.022 0.029 0.038 0.048 0.060 0.073 0.088 0.104 0.122 0.141 0.162 0.184 0.207 0.231 0.257 0.284 0.312 0.341 0.371 0.402 0.434 0.467 0.500 0.534 0.568 0.602 0.637 0.671 0.705 0.739 0.772 0.804 0.835 0.865 0.893 0.920 0.945 0.968 0.989 1.000 0.998 0.975 0.938 0.890 0.835 0.775 0.712 0.650 0.590 0.533 0.480</Values>
+            <Units>Relative</Units>
+        </SpectralDistribution>
+        <IntensityDistribution>
+            <PhotometryType>C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <IntensityData horz="0" vert="0">475</IntensityData>
+            <IntensityData horz="0" vert="10">470</IntensityData>
+            <IntensityData horz="0" vert="20">455</IntensityData>
+            <IntensityData horz="0" vert="30">430</IntensityData>
+            <IntensityData horz="0" vert="40">390</IntensityData>
+            <IntensityData horz="0" vert="50">340</IntensityData>
+            <IntensityData horz="0" vert="60">280</IntensityData>
+            <IntensityData horz="0" vert="70">210</IntensityData>
+            <IntensityData horz="0" vert="80">130</IntensityData>
+            <IntensityData horz="0" vert="90">50</IntensityData>
+        </IntensityDistribution>
+    </Emitter>
+</LuminaireOpticalData>

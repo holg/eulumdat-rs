@@ -16,6 +16,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+atla = { workspace = true, features = ["xml", "json", "eulumdat"] }
 clap.workspace = true
 eulumdat.workspace = true
 walkdir = "2.5.0"

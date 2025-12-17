@@ -27,6 +27,7 @@ bevy-viewer = ["eulumdat-bevy"]
 [dependencies]
 # Core library
 eulumdat.workspace = true
+atla = { path = "../atla", features = ["xml", "json", "eulumdat"] }
 gloo.workspace = true
 gloo-file.workspace = true
 js-sys.workspace = true

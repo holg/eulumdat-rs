@@ -1,0 +1,117 @@
+{
+  "FileType": "ATLA_S001_A",
+  "Version": 1.0,
+  "Header": {
+    "Manufacturer": "Academy Lighting",
+    "CatalogNumber": "XET 55529",
+    "Description": "LED 2' x 4' Troffer",
+    "Laboratory": "Apex Analytics",
+    "ReportNumber": "APEX-091101-004",
+    "ReportDate": "2009-11-01",
+    "DocumentCreator": "Apex Analytics",
+    "UniqueIdentifier": "21EC2020-3AEA-4069-A2DD-08002B30309D",
+    "Comment": [
+      "Ambient temperature 25 degrees C."
+    ]
+  },
+  "Luminaire": {
+    "Dimensions": {
+      "Length": 1.20,
+      "Width": 0.60,
+      "Height": 0.10
+    },
+    "NumEmitter": 1
+  },
+  "Equipment": {
+    "Gonioradiometer": {
+      "Type": "IES_C",
+      "MeasurementEquipment": [
+        "LightLab"
+      ]
+    },
+    "IntegratingSphere": {
+      "MeasurementEquipment": [
+        "LabSphere"
+      ]
+    }
+  },
+  "Emitter": [
+    {
+      "Quantity": 1,
+      "Description": "Integral LED module",
+      "CatalogNumber": "Not applicable",
+      "RatedLumens": 0.0,
+      "InputWattage": 35.4,
+      "ColorTemperature": {
+        "FixedCCT": 4000
+      },
+      "ColorRendering": {
+        "CIE_CRI": {
+          "Ra": 92,
+          "R9": 85
+        },
+        "IES_TM30": {
+          "Rf": 60,
+          "Rg": 95
+        }
+      },
+      "LuminousData": {
+        "LuminousIntensity": {
+          "AbsolutePhotometry": true,
+          "Symm": "Symm_Full",
+          "NumberMeasured": 19,
+          "NumberHorz": 1,
+          "NumberVert": 19,
+          "h": [0.0],
+          "v": [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0,
+               40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0,
+               85.0, 90.0],
+          "IntDataSymm": [109, 109, 108, 107, 104, 100, 95, 89, 83,
+                         77, 71, 63, 53, 44, 36, 29, 22, 16, 13]
+        },
+        "LuminousFlux": 1000.0
+      },
+      "Channels": {
+        "NumChannels": 3,
+        "ChannelMult": [
+          {
+            "name": "red",
+            "mult": 0.21
+          },
+          {
+            "name": "green",
+            "mult": 0.72
+          },
+          {
+            "name": "blue",
+            "mult": 0.08
+          }
+        ]
+      },
+      "EmissionAreas": {
+        "BottomFace": {
+          "NumberBottom": 2,
+          "BottomArea": [
+            {
+              "Length": 0.50,
+              "Width": 0.60,
+              "LengthOffset": -0.1,
+              "WidthOffset": 0.0
+            },
+            {
+              "Length": 0.50,
+              "Width": 0.60,
+              "LengthOffset": 0.1,
+              "WidthOffset": 0.0
+            }
+          ]
+        }
+      },
+      "EmitterCenter": {
+        "LengthOffset": 0.00,
+        "WidthOffset": 0.00,
+        "HeightOffset": -0.05
+      }
+    }
+  ]
+}

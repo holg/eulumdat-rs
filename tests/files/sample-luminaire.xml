@@ -1,0 +1,109 @@
+<?xml version="1.1"?>
+<ATLA_S001_A>
+  <Version>1.0</Version>
+  <Header>
+    <Manufacturer>Academy Lighting</Manufacturer>
+    <CatalogNumber>XET 55529</CatalogNumber>
+    <Description>LED 2' x 4' Troffer</Description>
+    <Laboratory>Apex Analytics</Laboratory>
+    <ReportNumber>APEX-091101-004</ReportNumber>
+    <ReportDate>2009-11-01</ReportDate>
+    <DocumentCreator>Apex Analytics</DocumentCreator>
+    <UniqueIdentifier>21EC2020-3AEA-4069-A2DD-08002B30309D</UniqueIdentifier>
+    <Comment>Ambient temperature 25 degrees C.</Comment>
+  </Header>
+  <Luminaire>
+    <Dimensions>
+      <Length>1.20</Length>
+      <Width>0.60</Width>
+      <Height>0.10</Height>
+    </Dimensions>
+    <NumEmitter>1</NumEmitter>
+  </Luminaire>
+  <Equipment>
+    <Gonioradiometer>
+      <Type>IES_C</Type>
+      <MeasurementEquipment>LightLab</MeasurementEquipment>
+    </Gonioradiometer>
+    <IntegratingSphere>
+      <MeasurementEquipment>LabSphere</MeasurementEquipment>
+    </IntegratingSphere>
+  </Equipment>
+  <Emitter>
+    <Quantity>1</Quantity>
+    <Description>Integral LED module</Description>
+    <CatalogNumber>Not applicable</CatalogNumber>
+    <RatedLumens>0.0</RatedLumens>
+    <InputWattage>35.4</InputWattage>
+    <ColorTemperature>
+      <FixedCCT>4000</FixedCCT>
+    </ColorTemperature>
+    <ColorRendering>
+      <CIE_CRI>
+        <Ra>92</Ra>
+        <R9>85</R9>
+      </CIE_CRI>
+      <IES_TM30>
+        <Rf>60</Rf>
+        <Rg>95</Rg>
+      </IES_TM30>
+    </ColorRendering>
+    <LuminousData>
+      <LuminousIntensity>
+        <AbsolutePhotometry>true</AbsolutePhotometry>
+        <Symm>Symm_Full</Symm>
+        <NumberMeasured>19</NumberMeasured>
+        <NumberHorz>1</NumberHorz>
+        <NumberVert>19</NumberVert>
+        <IntData h="0.0" v="0.0">109</IntData>
+        <IntData h="0.0" v="5.0">109</IntData>
+        <IntData h="0.0" v="10.0">108</IntData>
+        <IntData h="0.0" v="15.0">107</IntData>
+        <IntData h="0.0" v="20.0">104</IntData>
+        <IntData h="0.0" v="25.0">100</IntData>
+        <IntData h="0.0" v="30.0">95</IntData>
+        <IntData h="0.0" v="35.0">89</IntData>
+        <IntData h="0.0" v="40.0">83</IntData>
+        <IntData h="0.0" v="45.0">77</IntData>
+        <IntData h="0.0" v="50.0">71</IntData>
+        <IntData h="0.0" v="55.0">63</IntData>
+        <IntData h="0.0" v="60.0">53</IntData>
+        <IntData h="0.0" v="65.0">44</IntData>
+        <IntData h="0.0" v="70.0">36</IntData>
+        <IntData h="0.0" v="75.0">29</IntData>
+        <IntData h="0.0" v="80.0">22</IntData>
+        <IntData h="0.0" v="85.0">16</IntData>
+        <IntData h="0.0" v="90.0">13</IntData>
+      </LuminousIntensity>
+      <LuminousFlux>1000.0</LuminousFlux>
+    </LuminousData>
+    <Channels>
+      <NumChannels>3</NumChannels>
+      <ChannelMult name="red">0.21</ChannelMult>
+      <ChannelMult name="green">0.72</ChannelMult>
+      <ChannelMult name="blue">0.08</ChannelMult>
+    </Channels>
+    <EmissionAreas>
+      <BottomFace>
+        <NumberBottom>2</NumberBottom>
+        <BottomArea>
+          <Length>0.50</Length>
+          <Width>0.60</Width>
+          <LengthOffset>-0.1</LengthOffset>
+          <WidthOffset>0.0</WidthOffset>
+        </BottomArea>
+        <BottomArea>
+          <Length>0.50</Length>
+          <Width>0.60</Width>
+          <LengthOffset>0.1</LengthOffset>
+          <WidthOffset>0.0</WidthOffset>
+        </BottomArea>
+      </BottomFace>
+    </EmissionAreas>
+    <EmitterCenter>
+      <LengthOffset>0.00</LengthOffset>
+      <WidthOffset>0.00</WidthOffset>
+      <HeightOffset>-0.05</HeightOffset>
+    </EmitterCenter>
+  </Emitter>
+</ATLA_S001_A>

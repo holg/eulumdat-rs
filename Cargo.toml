@@ -12,6 +12,7 @@ homepage = "https://github.com/holg/eulumdat-rs"
 
 [workspace.dependencies]
 # Internal crates
+atla = { path = "crates/atla", version = "0.3.0" }
 eulumdat = { path = "crates/eulumdat", version = "0.3.0" }
 eulumdat-bevy = { path = "crates/eulumdat-bevy", version = "0.3.0" }
 eulumdat-photweb = { path = "crates/eulumdat-photweb", version = "0.3.0" }

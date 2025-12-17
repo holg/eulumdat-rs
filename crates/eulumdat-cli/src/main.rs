@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Info { file, verbose } => commands::info(&file, verbose),
         Commands::Validate { file, strict } => commands::validate(&file, strict),
-        Commands::Convert { input, output } => commands::convert(&input, &output),
+        Commands::Convert { input, output, compact } => commands::convert(&input, &output, compact),
         Commands::Diagram {
             input,
             output,
@@ -50,5 +50,8 @@ fn main() -> Result<()> {
             pretty,
         } => commands::gldf(&file, output.as_ref(), pretty),
         Commands::Calc { file, calc_type } => commands::calc(&file, calc_type),
+        Commands::ValidateAtla { file, schema, xsd } => {
+            commands::validate_atla(&file, schema.as_ref(), xsd)
+        }
     }
 }

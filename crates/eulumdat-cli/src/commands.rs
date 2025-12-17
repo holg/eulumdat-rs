@@ -21,7 +21,12 @@ pub fn load_file(path: &PathBuf) -> Result<Eulumdat> {
     match ext.as_str() {
         "ldt" => Eulumdat::from_file(path).context("Failed to parse LDT file"),
         "ies" => IesParser::parse_file(path).context("Failed to parse IES file"),
-        _ => anyhow::bail!("Unknown file extension: .{ext} (expected .ldt or .ies)"),
+        "xml" | "json" => {
+            // Parse ATLA format and convert to Eulumdat
+            let atla_doc = atla::parse_file(path).context("Failed to parse ATLA file")?;
+            Ok(atla_doc.to_eulumdat())
+        }
+        _ => anyhow::bail!("Unknown file extension: .{ext} (expected .ldt, .ies, .xml, or .json)"),
     }
 }
 
@@ -125,8 +130,12 @@ pub fn validate(file: &PathBuf, strict: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn convert(input: &PathBuf, output: &PathBuf) -> Result<()> {
-    let ldt = load_file(input)?;
+pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
+    let in_ext = input
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
 
     let out_ext = output
         .extension()
@@ -134,27 +143,75 @@ pub fn convert(input: &PathBuf, output: &PathBuf) -> Result<()> {
         .unwrap_or("")
         .to_lowercase();
 
-    let content = match out_ext.as_str() {
-        "ldt" => ldt.to_ldt(),
-        "ies" => IesExporter::export(&ldt),
-        _ => anyhow::bail!("Unknown output extension: .{out_ext} (expected .ldt or .ies)"),
+    // Load the source data
+    let content = match (in_ext.as_str(), out_ext.as_str()) {
+        // ATLA input -> ATLA output (direct conversion)
+        ("xml" | "json", "xml") => {
+            let atla_doc = atla::parse_file(input).context("Failed to parse ATLA file")?;
+            if compact {
+                atla::xml::write_compact(&atla_doc).context("Failed to write ATLA XML")?
+            } else {
+                atla::xml::write(&atla_doc).context("Failed to write ATLA XML")?
+            }
+        }
+        ("xml" | "json", "json") => {
+            let atla_doc = atla::parse_file(input).context("Failed to parse ATLA file")?;
+            if compact {
+                atla::json::write_compact(&atla_doc).context("Failed to write ATLA JSON")?
+            } else {
+                atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
+            }
+        }
+        // LDT/IES input -> ATLA output
+        ("ldt" | "ies", "xml") => {
+            let ldt = load_file(input)?;
+            let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&ldt);
+            if compact {
+                atla::xml::write_compact(&atla_doc).context("Failed to write ATLA XML")?
+            } else {
+                atla::xml::write(&atla_doc).context("Failed to write ATLA XML")?
+            }
+        }
+        ("ldt" | "ies", "json") => {
+            let ldt = load_file(input)?;
+            let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&ldt);
+            if compact {
+                atla::json::write_compact(&atla_doc).context("Failed to write ATLA JSON")?
+            } else {
+                atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
+            }
+        }
+        // Any input -> LDT/IES output (via Eulumdat)
+        (_, "ldt") => {
+            let ldt = load_file(input)?;
+            ldt.to_ldt()
+        }
+        (_, "ies") => {
+            let ldt = load_file(input)?;
+            IesExporter::export(&ldt)
+        }
+        _ => anyhow::bail!(
+            "Unknown output extension: .{out_ext} (expected .ldt, .ies, .xml, or .json)"
+        ),
     };
 
     std::fs::write(output, &content).context("Failed to write output file")?;
 
-    let in_ext = input
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_uppercase();
+    let in_ext_upper = in_ext.to_uppercase();
     let out_ext_upper = out_ext.to_uppercase();
+    let format_note = if compact && (out_ext == "xml" || out_ext == "json") {
+        " [compact]"
+    } else {
+        ""
+    };
 
     println!(
-        "Converted {} → {} ({} → {})",
+        "Converted {} → {} ({} → {}){}",
         input.display(),
         output.display(),
-        in_ext,
-        out_ext_upper
+        in_ext_upper,
+        out_ext_upper,
+        format_note
     );
 
     Ok(())
@@ -532,4 +589,96 @@ pub fn calc(file: &PathBuf, calc_type: CalcType) -> Result<()> {
     }
 
     Ok(())
+}
+
+pub fn validate_atla(file: &PathBuf, schema: Option<&PathBuf>, use_xsd: bool) -> Result<()> {
+    use atla::validate;
+
+    let ext = file
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    // Parse the file first
+    let content = std::fs::read_to_string(file).context("Failed to read file")?;
+
+    // For XML files, we can do XSD validation
+    if ext == "xml" && use_xsd {
+        println!("Validating {} against ATLA S001 XSD schema...", file.display());
+        println!();
+
+        // Check if xmllint is available
+        if !validate::is_xmllint_available() {
+            eprintln!("Warning: xmllint not found. Install libxml2 for full XSD validation.");
+            eprintln!("Falling back to structural validation only.");
+            eprintln!();
+        } else {
+            // Do XSD validation
+            let xsd_result = if let Some(schema_path) = schema {
+                let schema_content = std::fs::read_to_string(schema_path)
+                    .context("Failed to read schema file")?;
+                validate::validate_xsd_with_schema(&content, &schema_content)?
+            } else {
+                validate::validate_xsd(&content)?
+            };
+
+            if xsd_result.is_valid() {
+                println!("XSD validation: PASSED");
+            } else {
+                println!("XSD validation: FAILED");
+                for err in &xsd_result.errors {
+                    println!("  {}", err);
+                }
+            }
+
+            for warn in &xsd_result.warnings {
+                println!("  Warning: {}", warn);
+            }
+            println!();
+        }
+    }
+
+    // Parse and do structural validation
+    let doc = atla::parse(&content).context("Failed to parse ATLA file")?;
+
+    println!("Structural validation for {}:", file.display());
+    println!();
+
+    let result = validate::validate(&doc);
+
+    if result.errors.is_empty() && result.warnings.is_empty() {
+        println!("  All checks passed!");
+    }
+
+    if !result.errors.is_empty() {
+        println!("Errors:");
+        for err in &result.errors {
+            println!("  {}", err);
+        }
+    }
+
+    if !result.warnings.is_empty() {
+        println!("Warnings:");
+        for warn in &result.warnings {
+            println!("  {}", warn);
+        }
+    }
+
+    println!();
+    println!("Summary:");
+    println!("  Version: {}", doc.version);
+    println!("  Emitters: {}", doc.emitters.len());
+    println!("  Total flux: {:.0} lm", doc.total_luminous_flux());
+    println!("  Total power: {:.1} W", doc.total_input_watts());
+
+    if result.is_valid() {
+        println!();
+        println!("Result: VALID");
+        Ok(())
+    } else {
+        println!();
+        println!("Result: INVALID ({} errors)", result.errors.len());
+        anyhow::bail!("Validation failed with {} errors", result.errors.len())
+    }
 }

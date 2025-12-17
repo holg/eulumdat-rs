@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LuminaireOpticalData version="1.0" xmlns="http://www.ies.org/tm-33">
+    <Header>
+        <Manufacturer>ATLA Test Manufacturer</Manufacturer>
+        <CatalogNumber>FL-T16-54W</CatalogNumber>
+        <Description>T16 G5 Fluorescent Luminaire</Description>
+        <Laboratory>Test Laboratory</Laboratory>
+        <ReportNumber>TEST-2024-001</ReportNumber>
+        <TestDate>2024-01-15</TestDate>
+        <LuminaireType>Recessed Linear</LuminaireType>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>1170</Length>
+            <Width>90</Width>
+            <Height>0</Height>
+        </Dimensions>
+        <Mounting>Recessed</Mounting>
+        <NumEmitters>2</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Goniometer>
+            <Manufacturer>Test Equipment Co</Manufacturer>
+            <Model>GP-5000</Model>
+            <GoniometerType>Type C</GoniometerType>
+            <Distance>10.0</Distance>
+        </Goniometer>
+    </Equipment>
+    <Emitter>
+        <ID>lamp-1</ID>
+        <Description>T16 G5 54W Fluorescent</Description>
+        <Quantity>2</Quantity>
+        <RatedLumens>8100</RatedLumens>
+        <InputWatts>120</InputWatts>
+        <CCT>6500</CCT>
+        <ColorRendering>
+            <Ra>86</Ra>
+        </ColorRendering>
+        <IntensityDistribution>
+            <PhotometryType>C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <IntensityData horz="0" vert="0">136</IntensityData>
+            <IntensityData horz="0" vert="5">135</IntensityData>
+            <IntensityData horz="0" vert="10">133</IntensityData>
+            <IntensityData horz="0" vert="15">130</IntensityData>
+            <IntensityData horz="0" vert="20">125</IntensityData>
+            <IntensityData horz="0" vert="25">120</IntensityData>
+            <IntensityData horz="0" vert="30">114</IntensityData>
+            <IntensityData horz="0" vert="35">107</IntensityData>
+            <IntensityData horz="0" vert="40">99</IntensityData>
+            <IntensityData horz="0" vert="45">90</IntensityData>
+            <IntensityData horz="0" vert="50">81</IntensityData>
+            <IntensityData horz="0" vert="55">71</IntensityData>
+            <IntensityData horz="0" vert="60">61</IntensityData>
+            <IntensityData horz="0" vert="65">50</IntensityData>
+            <IntensityData horz="0" vert="70">39</IntensityData>
+            <IntensityData horz="0" vert="75">29</IntensityData>
+            <IntensityData horz="0" vert="80">20</IntensityData>
+            <IntensityData horz="0" vert="85">14</IntensityData>
+            <IntensityData horz="0" vert="90">10</IntensityData>
+            <IntensityData horz="90" vert="0">136</IntensityData>
+            <IntensityData horz="90" vert="5">136</IntensityData>
+            <IntensityData horz="90" vert="10">134</IntensityData>
+            <IntensityData horz="90" vert="15">132</IntensityData>
+            <IntensityData horz="90" vert="20">128</IntensityData>
+            <IntensityData horz="90" vert="25">123</IntensityData>
+            <IntensityData horz="90" vert="30">117</IntensityData>
+            <IntensityData horz="90" vert="35">110</IntensityData>
+            <IntensityData horz="90" vert="40">102</IntensityData>
+            <IntensityData horz="90" vert="45">94</IntensityData>
+            <IntensityData horz="90" vert="50">84</IntensityData>
+            <IntensityData horz="90" vert="55">74</IntensityData>
+            <IntensityData horz="90" vert="60">63</IntensityData>
+            <IntensityData horz="90" vert="65">52</IntensityData>
+            <IntensityData horz="90" vert="70">40</IntensityData>
+            <IntensityData horz="90" vert="75">28</IntensityData>
+            <IntensityData horz="90" vert="80">16</IntensityData>
+            <IntensityData horz="90" vert="85">6</IntensityData>
+            <IntensityData horz="90" vert="90">1</IntensityData>
+        </IntensityDistribution>
+    </Emitter>
+</LuminaireOpticalData>

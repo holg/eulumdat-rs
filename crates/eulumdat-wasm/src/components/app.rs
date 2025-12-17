@@ -1,4 +1,5 @@
-use eulumdat::{Eulumdat, IesParser, LampSet, Symmetry, TypeIndicator};
+use atla::{Emitter, IntensityDistribution, LuminaireOpticalData};
+use eulumdat::{Eulumdat, IesParser};
 use leptos::ev;
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
@@ -10,16 +11,96 @@ use super::butterfly_3d::Butterfly3D;
 use super::cartesian_diagram::CartesianDiagram;
 use super::data_table::DataTable;
 use super::diagram_zoom::DiagramZoom;
+use super::greenhouse_diagram::GreenhouseDiagramView;
 use super::intensity_heatmap::IntensityHeatmap;
 use super::lcs_classification::LcsClassification;
 use super::polar_diagram::PolarDiagram;
+use super::spectral_diagram::SpectralDiagramView;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
-use super::templates::ALL_TEMPLATES;
+use super::templates::{TemplateFormat, ALL_TEMPLATES};
 use super::theme::{ThemeMode, ThemeProvider};
 use super::validation_panel::ValidationPanel;
 
-const LDT_STORAGE_KEY: &str = "eulumdat_current_ldt";
-const LDT_TIMESTAMP_KEY: &str = "eulumdat_ldt_timestamp";
+const ATLA_STORAGE_KEY: &str = "eulumdat_current_atla";
+const ATLA_TIMESTAMP_KEY: &str = "eulumdat_atla_timestamp";
+
+/// Log color data (CCT/CRI) for debugging spectral synthesis
+fn log_color_data(filename: &str, doc: &LuminaireOpticalData) {
+    web_sys::console::group_collapsed_1(&format!("[Color Data] {}", filename).into());
+
+    if doc.emitters.is_empty() {
+        web_sys::console::warn_1(&"No emitters found".into());
+    } else {
+        for (i, emitter) in doc.emitters.iter().enumerate() {
+            let has_spectral = emitter.spectral_distribution.is_some();
+            let cct = emitter.cct;
+            let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
+
+            let status = if has_spectral {
+                "Direct SPD data available".to_string()
+            } else if cct.is_some() {
+                format!(
+                    "Can synthesize from CCT={}K{}",
+                    cct.unwrap() as i32,
+                    cri.map(|c| format!(", CRI={}", c as i32)).unwrap_or_default()
+                )
+            } else {
+                "No color data - will show sample spectrum".to_string()
+            };
+
+            web_sys::console::log_1(
+                &format!("Emitter {}: {}", i, status).into()
+            );
+
+            // Show raw values for debugging
+            if cct.is_none() && !has_spectral {
+                web_sys::console::log_1(
+                    &"  Tip: CCT parsed from LDT 'color_appearance' field (e.g., '3000K', 'tw/6500', 'warm white')".into()
+                );
+                web_sys::console::log_1(
+                    &"  Tip: CRI parsed from LDT 'color_rendering_group' field (e.g., '1B/86', 'Ra>90', '80')".into()
+                );
+            }
+        }
+    }
+
+    web_sys::console::group_end();
+}
+
+/// Log color data with raw LDT values
+fn log_color_data_from_ldt(filename: &str, ldt: &Eulumdat, doc: &LuminaireOpticalData) {
+    web_sys::console::group_1(&format!("[Color Data] {}", filename).into());
+
+    for (i, lamp_set) in ldt.lamp_sets.iter().enumerate() {
+        web_sys::console::log_1(&format!("Lamp Set {}:", i).into());
+        web_sys::console::log_1(&format!("  Raw color_appearance: '{}'", lamp_set.color_appearance).into());
+        web_sys::console::log_1(&format!("  Raw color_rendering_group: '{}'", lamp_set.color_rendering_group).into());
+    }
+
+    if let Some(emitter) = doc.emitters.first() {
+        let cct = emitter.cct;
+        let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
+        let has_spectral = emitter.spectral_distribution.is_some();
+
+        if has_spectral {
+            web_sys::console::log_1(&"  → Direct SPD data available".into());
+        } else if let Some(cct_val) = cct {
+            web_sys::console::log_1(&format!(
+                "  → Parsed: CCT={}K, CRI={:?}",
+                cct_val as i32,
+                cri.map(|c| c as i32)
+            ).into());
+            web_sys::console::log_1(&"  → Can synthesize spectrum!".into());
+        } else {
+            web_sys::console::warn_1(&"  → Could not parse CCT - showing sample spectrum".into());
+            web_sys::console::log_1(&"  Supported formats:".into());
+            web_sys::console::log_1(&"    CCT: '3000K', '4000', 'tw/6500', 'ww/2700', 'warm white', 'daylight'".into());
+            web_sys::console::log_1(&"    CRI: '1B/86', 'Ra>90', '80', '1A', '1B', '2A'".into());
+        }
+    }
+
+    web_sys::console::group_end();
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tab {
@@ -32,6 +113,8 @@ pub enum Tab {
     Diagram2D,
     Diagram3D,
     Heatmap,
+    Spectral,
+    Greenhouse,
     BugRating,
     Lcs,
     Validation,
@@ -45,56 +128,95 @@ pub enum DiagramType {
     Cartesian,
 }
 
-fn create_default_ldt() -> Eulumdat {
-    let mut ldt = Eulumdat::new();
-    ldt.identification = "New Luminaire".to_string();
-    ldt.type_indicator = TypeIndicator::PointSourceSymmetric;
-    ldt.symmetry = Symmetry::VerticalAxis;
-    ldt.num_c_planes = 1;
-    ldt.c_plane_distance = 0.0;
-    ldt.num_g_planes = 19;
-    ldt.g_plane_distance = 5.0;
-    ldt.light_output_ratio = 100.0;
-    ldt.conversion_factor = 1.0;
+/// Create a default ATLA document for new files
+fn create_default_atla() -> LuminaireOpticalData {
+    let mut doc = LuminaireOpticalData::new();
+    doc.header.manufacturer = Some("New Luminaire".to_string());
+    doc.header.description = Some("Default luminaire".to_string());
 
-    ldt.lamp_sets.push(LampSet {
-        num_lamps: 1,
-        lamp_type: "LED".to_string(),
-        total_luminous_flux: 1000.0,
-        color_appearance: "3000K".to_string(),
-        color_rendering_group: "80".to_string(),
-        wattage_with_ballast: 10.0,
-    });
-
-    ldt.c_angles = vec![0.0];
-    ldt.g_angles = (0..19).map(|i| i as f64 * 5.0).collect();
-    ldt.intensities = vec![vec![
+    // Create default emitter with intensity distribution
+    let g_angles: Vec<f64> = (0..19).map(|i| i as f64 * 5.0).collect();
+    let intensities = vec![vec![
         100.0, 99.0, 96.0, 91.0, 84.0, 75.0, 64.0, 51.0, 36.0, 25.0, 16.0, 9.0, 4.0, 2.0, 1.0, 0.5,
         0.2, 0.1, 0.0,
     ]];
 
-    ldt
+    doc.emitters.push(Emitter {
+        quantity: 1,
+        description: Some("LED".to_string()),
+        rated_lumens: Some(1000.0),
+        input_watts: Some(10.0),
+        cct: Some(3000.0),
+        color_rendering: Some(atla::ColorRendering {
+            ra: Some(80.0),
+            ..Default::default()
+        }),
+        intensity_distribution: Some(IntensityDistribution {
+            horizontal_angles: vec![0.0],
+            vertical_angles: g_angles,
+            intensities,
+            ..Default::default()
+        }),
+        ..Default::default()
+    });
+
+    doc
 }
 
 fn detect_system_theme() -> ThemeMode {
     super::theme::detect_system_theme()
 }
 
-fn save_ldt_to_storage(ldt: &Eulumdat) {
+/// Replace file extension with a new one
+fn replace_extension(filename: &str, new_ext: &str) -> String {
+    if let Some(dot_pos) = filename.rfind('.') {
+        format!("{}.{}", &filename[..dot_pos], new_ext)
+    } else {
+        format!("{}.{}", filename, new_ext)
+    }
+}
+
+/// Save ATLA document to localStorage (as LDT string for Bevy compatibility)
+fn save_to_storage(doc: &LuminaireOpticalData) {
     if let Some(window) = web_sys::window() {
         if let Ok(Some(storage)) = window.local_storage() {
+            // Save as LDT for Bevy 3D viewer compatibility
+            let ldt = doc.to_eulumdat();
             let ldt_string = ldt.to_ldt();
-            let _ = storage.set_item(LDT_STORAGE_KEY, &ldt_string);
+            let _ = storage.set_item(ATLA_STORAGE_KEY, &ldt_string);
             let timestamp = js_sys::Date::now().to_string();
-            let _ = storage.set_item(LDT_TIMESTAMP_KEY, &timestamp);
+            let _ = storage.set_item(ATLA_TIMESTAMP_KEY, &timestamp);
         }
     }
 }
 
 #[component]
 pub fn App() -> impl IntoView {
-    // State signals
-    let (ldt, set_ldt) = signal(create_default_ldt());
+    // Primary state: ATLA document (source of truth)
+    let (atla_doc, set_atla_doc) = signal(create_default_atla());
+
+    // Secondary state: Eulumdat for existing components
+    // This is derived from ATLA and syncs back to ATLA on changes
+    let (ldt, set_ldt_internal) = signal(create_default_atla().to_eulumdat());
+
+    // Sync ATLA → Eulumdat whenever ATLA changes
+    Effect::new(move |_| {
+        set_ldt_internal.set(atla_doc.get().to_eulumdat());
+    });
+
+    // Custom setter that syncs Eulumdat changes back to ATLA
+    let set_ldt = WriteSignal::from(set_ldt_internal);
+
+    // Also sync Eulumdat → ATLA (for when child components modify ldt)
+    Effect::new(move |_| {
+        let current_ldt = ldt.get();
+        let current_atla_as_ldt = atla_doc.get_untracked().to_eulumdat();
+        // Only update if actually different (avoid infinite loop)
+        if current_ldt.to_ldt() != current_atla_as_ldt.to_ldt() {
+            set_atla_doc.set(LuminaireOpticalData::from_eulumdat(&current_ldt));
+        }
+    });
+
     let (current_file, set_current_file) = signal::<Option<String>>(None);
     let (active_tab, set_active_tab) = signal(Tab::default());
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
@@ -102,59 +224,136 @@ pub fn App() -> impl IntoView {
     let (diagram_type, set_diagram_type) = signal(DiagramType::default());
     let (theme_mode, set_theme_mode) = signal(detect_system_theme());
 
-    // Save to localStorage whenever LDT changes
+    // Save to localStorage whenever ATLA doc changes
     Effect::new(move |_| {
-        save_ldt_to_storage(&ldt.get());
+        save_to_storage(&atla_doc.get());
     });
 
-    // File loading helper
+    // File loading helper - ALL formats convert to ATLA (lossless)
     let load_file_content = move |name: String, content: String| {
-        let is_ies = name.to_lowercase().ends_with(".ies");
-        let parse_result = if is_ies {
-            IesParser::parse(&content)
-        } else {
-            Eulumdat::parse(&content)
-        };
+        let lower_name = name.to_lowercase();
+        let is_ies = lower_name.ends_with(".ies");
+        let is_atla_xml = lower_name.ends_with(".xml");
+        let is_atla_json = lower_name.ends_with(".json");
+        let is_ldt = lower_name.ends_with(".ldt");
 
-        match parse_result {
-            Ok(parsed_ldt) => {
-                set_ldt.set(parsed_ldt);
-                let display_name = if is_ies {
-                    name.replace(".ies", ".ldt").replace(".IES", ".ldt")
-                } else {
-                    name
-                };
-                set_current_file.set(Some(display_name));
-                set_selected_lamp_set.set(0);
+        // Parse to ATLA format (source of truth)
+        if is_ies {
+            // IES → Eulumdat → ATLA
+            match IesParser::parse(&content) {
+                Ok(ldt) => {
+                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                    log_color_data_from_ldt(&name, &ldt, &doc);
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(name));
+                    set_selected_lamp_set.set(0);
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to parse IES: {}", e).into());
+                }
             }
-            Err(e) => {
-                web_sys::console::error_1(&format!("Failed to parse file: {}", e).into());
+        } else if is_atla_xml {
+            // ATLA XML → ATLA (direct, no conversion)
+            match atla::xml::parse(&content) {
+                Ok(doc) => {
+                    log_color_data(&name, &doc);
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(name));
+                    set_selected_lamp_set.set(0);
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to parse ATLA XML: {}", e).into());
+                }
             }
+        } else if is_atla_json {
+            // ATLA JSON → ATLA (direct, no conversion)
+            match atla::json::parse(&content) {
+                Ok(doc) => {
+                    log_color_data(&name, &doc);
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(name));
+                    set_selected_lamp_set.set(0);
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to parse ATLA JSON: {}", e).into());
+                }
+            }
+        } else if is_ldt {
+            // LDT → Eulumdat → ATLA (with raw value logging)
+            match Eulumdat::parse(&content) {
+                Ok(ldt) => {
+                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                    log_color_data_from_ldt(&name, &ldt, &doc);
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(name));
+                    set_selected_lamp_set.set(0);
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to parse LDT: {}", e).into());
+                }
+            }
+        } else {
+            web_sys::console::error_1(&"Unknown file format".into());
         }
     };
 
     // Handlers
     let on_new_file = move |_| {
-        set_ldt.set(create_default_ldt());
+        set_atla_doc.set(create_default_atla());
         set_current_file.set(None);
         set_selected_lamp_set.set(0);
     };
 
     let on_save_ldt = move |_| {
-        let content = ldt.get().to_ldt();
+        // Export from ATLA → LDT
+        let content = atla_doc.get().to_eulumdat().to_ldt();
         let filename = current_file
             .get()
+            .map(|f| replace_extension(&f, "ldt"))
             .unwrap_or_else(|| "luminaire.ldt".to_string());
         super::file_handler::download_file(&filename, &content, "text/plain");
     };
 
     let on_export_ies = move |_| {
-        let content = eulumdat::IesExporter::export(&ldt.get());
+        // Export from ATLA → Eulumdat → IES
+        let content = eulumdat::IesExporter::export(&atla_doc.get().to_eulumdat());
         let filename = current_file
             .get()
-            .map(|f| f.replace(".ldt", ".ies"))
+            .map(|f| replace_extension(&f, "ies"))
             .unwrap_or_else(|| "luminaire.ies".to_string());
         super::file_handler::download_ies(&filename, &content);
+    };
+
+    let on_export_atla_xml = move |_| {
+        // Export directly from ATLA (no conversion needed!)
+        match atla::xml::write(&atla_doc.get()) {
+            Ok(content) => {
+                let filename = current_file
+                    .get()
+                    .map(|f| replace_extension(&f, "xml"))
+                    .unwrap_or_else(|| "luminaire.xml".to_string());
+                super::file_handler::download_atla_xml(&filename, &content);
+            }
+            Err(e) => {
+                web_sys::console::error_1(&format!("Failed to export ATLA XML: {}", e).into());
+            }
+        }
+    };
+
+    let on_export_atla_json = move |_| {
+        // Export directly from ATLA (no conversion needed!)
+        match atla::json::write(&atla_doc.get()) {
+            Ok(content) => {
+                let filename = current_file
+                    .get()
+                    .map(|f| replace_extension(&f, "json"))
+                    .unwrap_or_else(|| "luminaire.json".to_string());
+                super::file_handler::download_atla_json(&filename, &content);
+            }
+            Err(e) => {
+                web_sys::console::error_1(&format!("Failed to export ATLA JSON: {}", e).into());
+            }
+        }
     };
 
     let on_toggle_theme = move |_| {
@@ -183,19 +382,58 @@ pub fn App() -> impl IntoView {
         select.set_selected_index(0);
         if idx > 0 {
             if let Some(template) = ALL_TEMPLATES.get((idx - 1) as usize) {
-                match Eulumdat::parse(template.content) {
-                    Ok(parsed_ldt) => {
-                        set_ldt.set(parsed_ldt);
-                        set_current_file.set(Some(format!(
-                            "{}.ldt",
-                            template.name.to_lowercase().replace(' ', "_")
-                        )));
-                        set_selected_lamp_set.set(0);
+                let ext = match template.format {
+                    TemplateFormat::Ldt => "ldt",
+                    TemplateFormat::AtlaXml => "xml",
+                    TemplateFormat::AtlaJson => "json",
+                };
+                let filename = format!(
+                    "{}.{}",
+                    template.name.to_lowercase().replace(' ', "_").replace("(", "").replace(")", ""),
+                    ext
+                );
+
+                // Parse template based on format (with raw value logging for LDT)
+                match template.format {
+                    TemplateFormat::Ldt => {
+                        match Eulumdat::parse(template.content) {
+                            Ok(ldt) => {
+                                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                                log_color_data_from_ldt(&filename, &ldt, &doc);
+                                set_atla_doc.set(doc);
+                                set_current_file.set(Some(filename));
+                                set_selected_lamp_set.set(0);
+                            }
+                            Err(e) => {
+                                web_sys::console::error_1(&format!("Failed to parse template: {}", e).into());
+                            }
+                        }
                     }
-                    Err(e) => {
-                        web_sys::console::error_1(
-                            &format!("Failed to parse template: {}", e).into(),
-                        );
+                    TemplateFormat::AtlaXml => {
+                        match atla::xml::parse(template.content) {
+                            Ok(doc) => {
+                                log_color_data(&filename, &doc);
+                                set_atla_doc.set(doc);
+                                set_current_file.set(Some(filename));
+                                set_selected_lamp_set.set(0);
+                            }
+                            Err(e) => {
+                                web_sys::console::error_1(&format!("Failed to parse template: {}", e).into());
+                            }
+                        }
+                    }
+                    TemplateFormat::AtlaJson => {
+                        match atla::json::parse(template.content) {
+                            Ok(doc) => {
+                                log_color_data(&filename, &doc);
+                                set_atla_doc.set(doc);
+                                set_current_file.set(Some(filename));
+                                set_selected_lamp_set.set(0);
+                            }
+                            Err(e) => {
+                                web_sys::console::error_1(&format!("Failed to parse template: {}", e).into());
+                            }
+                        }
                     }
                 }
             }
@@ -237,10 +475,8 @@ pub fn App() -> impl IntoView {
         }
     };
 
-    // LDT update callback for child components
-    let _update_ldt = move |f: Box<dyn FnOnce(&mut Eulumdat)>| {
-        set_ldt.update(|ldt| f(ldt));
-    };
+    // Note: Child components use the `ldt` Memo which derives from atla_doc.
+    // When they call set_ldt, it converts back to ATLA internally.
 
     view! {
         <ThemeProvider mode=theme_mode>
@@ -266,7 +502,7 @@ pub fn App() -> impl IntoView {
                             "Open"
                             <input
                                 type="file"
-                                accept=".ldt,.LDT,.ies,.IES"
+                                accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON"
                                 style="display: none;"
                                 on:change=on_file_input
                             />
@@ -276,6 +512,12 @@ pub fn App() -> impl IntoView {
                         </button>
                         <button class="btn btn-success" on:click=on_export_ies>
                             "Export IES"
+                        </button>
+                        <button class="btn btn-info" on:click=on_export_atla_xml title="Export as ATLA/TM-33 XML">
+                            "ATLA XML"
+                        </button>
+                        <button class="btn btn-info" on:click=on_export_atla_json title="Export as ATLA/TM-33 JSON">
+                            "ATLA JSON"
                         </button>
                         <button
                             class="btn btn-secondary theme-toggle"
@@ -307,7 +549,7 @@ pub fn App() -> impl IntoView {
                     on:dragleave=on_dragleave
                     on:drop=on_drop
                 >
-                    <p>"Drag and drop an LDT or IES file here, or use the Open button above"</p>
+                    <p>"Drag and drop an LDT, IES, or ATLA (XML/JSON) file here, or use the Open button above"</p>
                 </div>
 
                 // Main content
@@ -323,6 +565,20 @@ pub fn App() -> impl IntoView {
                             <TabButton tab=Tab::Diagram2D active_tab=active_tab on_click=on_tab_click(Tab::Diagram2D) label="2D Diagram" />
                             <TabButton tab=Tab::Diagram3D active_tab=active_tab on_click=on_tab_click(Tab::Diagram3D) label="3D Diagram" />
                             <TabButton tab=Tab::Heatmap active_tab=active_tab on_click=on_tab_click(Tab::Heatmap) label="Heatmap" />
+                            {move || {
+                                let doc = atla_doc.get();
+                                let has_spectral_or_cct = doc.emitters.iter().any(|e| {
+                                    e.spectral_distribution.is_some() || e.cct.is_some()
+                                });
+                                if has_spectral_or_cct {
+                                    Some(view! {
+                                        <TabButton tab=Tab::Spectral active_tab=active_tab on_click=on_tab_click(Tab::Spectral) label="Spectral" />
+                                    })
+                                } else {
+                                    None
+                                }
+                            }}
+                            <TabButton tab=Tab::Greenhouse active_tab=active_tab on_click=on_tab_click(Tab::Greenhouse) label="Greenhouse" />
                             <TabButton tab=Tab::BugRating active_tab=active_tab on_click=on_tab_click(Tab::BugRating) label="BUG Rating" />
                             <TabButton tab=Tab::Lcs active_tab=active_tab on_click=on_tab_click(Tab::Lcs) label="LCS" />
                             <TabButton tab=Tab::Validation active_tab=active_tab on_click=on_tab_click(Tab::Validation) label="Validation" />
@@ -418,6 +674,38 @@ pub fn App() -> impl IntoView {
                                         </DiagramZoom>
                                     </div>
                                 }.into_any(),
+                                Tab::Spectral => {
+                                    let is_dark = Memo::new(move |_| theme_mode.get() == ThemeMode::Dark);
+                                    view! {
+                                        <div class="spectral-tab">
+                                            <div class="diagram-header">
+                                                <span class="diagram-title">"Spectral Power Distribution"</span>
+                                                <span class="text-muted">"ATLA S001 spectral data | CCT/CRI synthesis"</span>
+                                            </div>
+                                            <DiagramZoom>
+                                                <div class="diagram-fullwidth">
+                                                    <SpectralDiagramView atla_doc=atla_doc dark=is_dark />
+                                                </div>
+                                            </DiagramZoom>
+                                        </div>
+                                    }.into_any()
+                                },
+                                Tab::Greenhouse => {
+                                    let is_dark = Memo::new(move |_| theme_mode.get() == ThemeMode::Dark);
+                                    view! {
+                                        <div class="greenhouse-tab">
+                                            <div class="diagram-header">
+                                                <span class="diagram-title">"Greenhouse PPFD"</span>
+                                                <span class="text-muted">"µmol/m²/s at mounting distances"</span>
+                                            </div>
+                                            <DiagramZoom>
+                                                <div class="diagram-fullwidth">
+                                                    <GreenhouseDiagramView atla_doc=atla_doc dark=is_dark />
+                                                </div>
+                                            </DiagramZoom>
+                                        </div>
+                                    }.into_any()
+                                },
                                 Tab::BugRating => view! {
                                     <div class="bug-rating-tab">
                                         <div class="diagram-header">

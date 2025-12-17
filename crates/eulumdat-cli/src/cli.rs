@@ -33,13 +33,17 @@ pub enum Commands {
         strict: bool,
     },
 
-    /// Convert between LDT and IES formats
+    /// Convert between photometric formats (LDT, IES, ATLA XML/JSON)
     Convert {
-        /// Input file (.ldt or .ies)
+        /// Input file (.ldt, .ies, .xml, or .json)
         input: PathBuf,
 
-        /// Output file (.ldt or .ies)
+        /// Output file (.ldt, .ies, .xml, or .json)
         output: PathBuf,
+
+        /// Output compact format (no indentation) for XML/JSON
+        #[arg(short, long)]
+        compact: bool,
     },
 
     /// Generate SVG diagram
@@ -140,6 +144,20 @@ pub enum Commands {
         /// Calculation type
         #[arg(short = 't', long, value_enum)]
         calc_type: CalcType,
+    },
+
+    /// Validate ATLA XML file against XSD schema
+    ValidateAtla {
+        /// Input ATLA XML file (.xml)
+        file: PathBuf,
+
+        /// Custom XSD schema file (uses embedded schema if not specified)
+        #[arg(short, long)]
+        schema: Option<PathBuf>,
+
+        /// Use xmllint for full XSD validation (requires libxml2)
+        #[arg(long)]
+        xsd: bool,
     },
 }
 
