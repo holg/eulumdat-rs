@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ATLA S001 / ANSI/IES TM-33 / UNI 11733
+  XML Schema for Luminaire Optical Data
+
+  Based on ATLA S001 specification (Section 4.7)
+  Cleaned up and formatted for validation use.
+
+  Copyright (c) 2016-2018 All Things Lighting Association
+  Schema extracted from ATLA-S001.pdf for reference purposes.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.ies.org/tm-33"
+           xmlns:tns="http://www.ies.org/tm-33"
+           elementFormDefault="unqualified"
+           attributeFormDefault="unqualified">
+
+  <!-- Common attribute definitions -->
+  <xs:attribute name="angle" type="xs:decimal"/>
+  <xs:attribute name="h" type="xs:decimal"/>
+  <xs:attribute name="v" type="xs:decimal"/>
+  <xs:attribute name="w" type="xs:decimal"/>
+  <xs:attribute name="x" type="xs:decimal"/>
+  <xs:attribute name="y" type="xs:decimal"/>
+  <xs:attribute name="z" type="xs:decimal"/>
+  <xs:attribute name="horz" type="xs:decimal"/>
+  <xs:attribute name="vert" type="xs:decimal"/>
+  <xs:attribute name="horizontal" type="xs:decimal"/>
+  <xs:attribute name="vertical" type="xs:decimal"/>
+
+  <!-- Common simple element definitions -->
+  <xs:element name="Circular" type="xs:boolean"/>
+  <xs:element name="Height" type="xs:decimal"/>
+  <xs:element name="HeightOffset" type="xs:decimal"/>
+  <xs:element name="Length" type="xs:decimal"/>
+  <xs:element name="LengthOffset" type="xs:decimal"/>
+  <xs:element name="MaxWavelength" type="xs:decimal"/>
+  <xs:element name="MeasurementEquipment" type="xs:string"/>
+  <xs:element name="MinWavelength" type="xs:decimal"/>
+  <xs:element name="NumberHorz" type="xs:int"/>
+  <xs:element name="NumberMeasured" type="xs:int"/>
+  <xs:element name="NumberPlanes" type="xs:int"/>
+  <xs:element name="NumberVert" type="xs:int"/>
+  <xs:element name="NumberWavelength" type="xs:int"/>
+  <xs:element name="Width" type="xs:decimal"/>
+  <xs:element name="WidthOffset" type="xs:decimal"/>
+
+  <!-- Intensity data type with horizontal and vertical attributes -->
+  <xs:complexType name="IntensityDataType">
+    <xs:simpleContent>
+      <xs:extension base="xs:decimal">
+        <xs:attribute name="horz" type="xs:decimal"/>
+        <xs:attribute name="vert" type="xs:decimal"/>
+        <xs:attribute name="horizontal" type="xs:decimal"/>
+        <xs:attribute name="vertical" type="xs:decimal"/>
+        <xs:attribute name="h" type="xs:decimal"/>
+        <xs:attribute name="v" type="xs:decimal"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Spectral data type with wavelength attribute -->
+  <xs:complexType name="SpectralDataType">
+    <xs:simpleContent>
+      <xs:extension base="xs:decimal">
+        <xs:attribute name="w" type="xs:decimal"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Plane normal type -->
+  <xs:complexType name="PlaneNormalType">
+    <xs:simpleContent>
+      <xs:extension base="xs:decimal">
+        <xs:attribute name="x" type="xs:decimal"/>
+        <xs:attribute name="y" type="xs:decimal"/>
+        <xs:attribute name="z" type="xs:decimal"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Regulatory value enumeration -->
+  <xs:simpleType name="RegulatoryValue">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Measured"/>
+      <xs:enumeration value="Nominal"/>
+      <xs:enumeration value="Rated"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Data source enumeration -->
+  <xs:simpleType name="DataSourceType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Measured"/>
+      <xs:enumeration value="Simulated"/>
+      <xs:enumeration value="Derived"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Photometry type enumeration -->
+  <xs:simpleType name="PhotometryType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="A"/>
+      <xs:enumeration value="B"/>
+      <xs:enumeration value="C"/>
+      <xs:enumeration value="TypeA"/>
+      <xs:enumeration value="TypeB"/>
+      <xs:enumeration value="TypeC"/>
+      <xs:enumeration value="CIE_A"/>
+      <xs:enumeration value="CIE_B"/>
+      <xs:enumeration value="CIE_C"/>
+      <xs:enumeration value="IES_A"/>
+      <xs:enumeration value="IES_B"/>
+      <xs:enumeration value="IES_C"/>
+      <xs:enumeration value="CUSTOM"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Intensity metric enumeration -->
+  <xs:simpleType name="IntensityMetricType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Luminous"/>
+      <xs:enumeration value="Radiant"/>
+      <xs:enumeration value="Photon"/>
+      <xs:enumeration value="Spectral"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Root element -->
+  <xs:element name="LuminaireOpticalData">
+    <xs:complexType>
+      <xs:sequence>
+        <!-- Header section (required) -->
+        <xs:element name="Header" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Manufacturer" type="xs:string" minOccurs="0"/>
+              <xs:element name="CatalogNumber" type="xs:string" minOccurs="0"/>
+              <xs:element name="GTIN" type="xs:string" minOccurs="0"/>
+              <xs:element name="UUID" type="xs:string" minOccurs="0"/>
+              <xs:element name="Description" type="xs:string" minOccurs="0"/>
+              <xs:element name="Laboratory" type="xs:string" minOccurs="0"/>
+              <xs:element name="ReportNumber" type="xs:string" minOccurs="0"/>
+              <xs:element name="ReportDate" type="xs:string" minOccurs="0"/>
+              <xs:element name="TestDate" type="xs:string" minOccurs="0"/>
+              <xs:element name="IssueDate" type="xs:string" minOccurs="0"/>
+              <xs:element name="DocumentCreator" type="xs:string" minOccurs="0"/>
+              <xs:element name="DocumentCreationDate" type="xs:string" minOccurs="0"/>
+              <xs:element name="UniqueIdentifier" type="xs:string" minOccurs="0"/>
+              <xs:element name="LuminaireType" type="xs:string" minOccurs="0"/>
+              <xs:element name="Comments" type="xs:string" minOccurs="0"/>
+              <xs:element name="Comment" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:element name="Reference" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:element name="MoreInfoURI" type="xs:anyURI" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- Luminaire section (optional) -->
+        <xs:element name="Luminaire" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Dimensions" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Length" type="xs:decimal"/>
+                    <xs:element name="Width" type="xs:decimal"/>
+                    <xs:element name="Height" type="xs:decimal"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="LuminousOpening" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Shape" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Length" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="Width" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="Diameter" type="xs:decimal" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="Mounting" type="xs:string" minOccurs="0"/>
+              <xs:element name="NumEmitters" type="xs:int" minOccurs="0"/>
+              <xs:element name="NumEmitter" type="xs:int" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- Equipment section (optional) -->
+        <xs:element name="Equipment" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Goniometer" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Manufacturer" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Model" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Type" type="tns:PhotometryType" minOccurs="0"/>
+                    <xs:element name="GoniometerType" type="tns:PhotometryType" minOccurs="0"/>
+                    <xs:element name="Distance" type="xs:decimal" minOccurs="0"/>
+                    <xs:element ref="tns:MeasurementEquipment" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="Gonioradiometer" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Type" type="tns:PhotometryType" minOccurs="0"/>
+                    <xs:element ref="tns:MeasurementEquipment" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="IntegratingSphere" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Manufacturer" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Model" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Diameter" type="xs:decimal" minOccurs="0"/>
+                    <xs:element ref="tns:MeasurementEquipment" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="Spectroradiometer" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Manufacturer" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Model" type="xs:string" minOccurs="0"/>
+                    <xs:element name="WavelengthMin" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="WavelengthMax" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="Resolution" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="BandwidthFWHM" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="BandwidthCorrected" type="xs:boolean" minOccurs="0"/>
+                    <xs:element name="BandwidthMethod" type="xs:string" minOccurs="0"/>
+                    <xs:element ref="tns:MeasurementEquipment" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="Accreditation" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Body" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Number" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Scope" type="xs:string" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- Emitter section (required, at least one) -->
+        <xs:element name="Emitter" minOccurs="1" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ID" type="xs:string" minOccurs="0"/>
+              <xs:element name="Id" type="xs:string" minOccurs="0"/>
+              <xs:element name="Description" type="xs:string" minOccurs="0"/>
+              <xs:element name="Quantity" type="xs:int" minOccurs="0"/>
+              <xs:element name="CatalogNumber" type="xs:string" minOccurs="0"/>
+              <xs:element name="RatedLumens" type="xs:decimal" minOccurs="0"/>
+              <xs:element name="MeasuredLumens" type="xs:decimal" minOccurs="0"/>
+              <xs:element name="InputWatts" type="xs:decimal" minOccurs="0"/>
+              <xs:element name="InputWattage" type="xs:decimal" minOccurs="0"/>
+              <xs:element name="PowerFactor" type="xs:decimal" minOccurs="0"/>
+              <xs:element name="BallastFactor" type="xs:decimal" minOccurs="0"/>
+              <xs:element name="CCT" type="xs:decimal" minOccurs="0"/>
+              <xs:element name="SPRatio" type="xs:decimal" minOccurs="0"/>
+
+              <!-- Color Temperature -->
+              <xs:element name="ColorTemperature" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="FixedCCT" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="MinCCT" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="MaxCCT" type="xs:decimal" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+
+              <!-- Color Rendering -->
+              <xs:element name="ColorRendering" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Ra" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="R9" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="Rf" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="Rg" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="CIE_CRI" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Ra" type="xs:decimal"/>
+                          <xs:element name="R9" type="xs:decimal" minOccurs="0"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="IES_TM30" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="Rf" type="xs:decimal"/>
+                          <xs:element name="Rg" type="xs:decimal"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+
+              <!-- Data Generation -->
+              <xs:element name="DataGeneration" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Source" type="tns:DataSourceType" minOccurs="0"/>
+                    <xs:element name="Scaled" type="xs:boolean" minOccurs="0"/>
+                    <xs:element name="Interpolated" type="xs:boolean" minOccurs="0"/>
+                    <xs:element name="Software" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Uncertainty" type="xs:decimal" minOccurs="0"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+
+              <!-- Intensity Distribution -->
+              <xs:element name="IntensityDistribution" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="PhotometryType" type="tns:PhotometryType" minOccurs="0"/>
+                    <xs:element name="Metric" type="tns:IntensityMetricType" minOccurs="0"/>
+                    <xs:element name="Units" type="xs:string" minOccurs="0"/>
+                    <xs:element name="HorizontalAngles" type="xs:string" minOccurs="0"/>
+                    <xs:element name="VerticalAngles" type="xs:string" minOccurs="0"/>
+                    <xs:element name="IntensityData" type="tns:IntensityDataType"
+                                minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+
+              <!-- Spectral Distribution -->
+              <xs:element name="SpectralDistribution" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Units" type="xs:string" minOccurs="0"/>
+                    <xs:element name="StartWavelength" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="WavelengthInterval" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="Wavelengths" type="xs:string" minOccurs="0"/>
+                    <xs:element name="Values" type="xs:string" minOccurs="0"/>
+                    <xs:element name="SpectralData" type="tns:SpectralDataType"
+                                minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- Custom Data section (optional) -->
+        <xs:element name="CustomData" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="namespace" type="xs:string"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+
+      <!-- Root element attributes -->
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Alternative root element name (IESTM33) for compatibility -->
+  <xs:element name="IESTM33">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Version" type="xs:string"/>
+        <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
