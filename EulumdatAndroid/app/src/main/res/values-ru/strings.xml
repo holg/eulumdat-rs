@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Auto-generated from locales/ru.json - DO NOT EDIT -->
 <resources>
+    <string name="app_name">Eulumdat</string>
     <string name="app_diagram_3d">3D</string>
     <string name="app_diagram_beam">Луч</string>
     <string name="app_diagram_bug">BUG</string>
