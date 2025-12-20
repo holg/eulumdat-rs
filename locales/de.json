@@ -1,0 +1,571 @@
+{
+  "meta": {
+    "language": "Deutsch",
+    "code": "de",
+    "direction": "ltr"
+  },
+  "diagram": {
+    "units": {
+      "intensity": "cd/1000lm",
+      "intensity_short": "cd/klm",
+      "candela": "Candela",
+      "lumen": "lm",
+      "watt": "W",
+      "lux": "lx"
+    },
+    "bug": {
+      "forward_light": "Vorderlicht",
+      "back_light": "Rücklicht",
+      "uplight": "Auflicht",
+      "total": "Gesamt",
+      "sum": "Summe",
+      "zone_low": "Niedrig",
+      "zone_medium": "Mittel",
+      "zone_high": "Hoch",
+      "zone_very_high": "Sehr hoch",
+      "lumens": "Lumen",
+      "percent": "%"
+    },
+    "axis": {
+      "gamma": "Gamma (γ)",
+      "intensity": "Lichtstärke (cd/klm)",
+      "c_plane": "C-Ebene Winkel (°)",
+      "gamma_angle": "Gamma Winkel (°)"
+    },
+    "plane": {
+      "c0_c180": "C0-C180",
+      "c90_c270": "C90-C270"
+    },
+    "angle": {
+      "beam": "Strahl",
+      "field": "Feld",
+      "beam_50": "Strahl 50%",
+      "field_10": "Feld 10%"
+    },
+    "metrics": {
+      "cie": "CIE:",
+      "efficacy": "Eff:",
+      "max": "Max:",
+      "sh_ratio": "A/H:"
+    },
+    "title": {
+      "heatmap": "Lichtstärke-Heatmap (Candela)",
+      "polar": "Polardiagramm",
+      "cartesian": "Kartesisches Diagramm",
+      "cone": "Kegeldiagramm"
+    },
+    "placeholder": {
+      "no_data": "Keine Daten"
+    },
+    "cone": {
+      "beam_angle": "Abstrahlwinkel",
+      "field_angle": "Feldwinkel",
+      "mounting_height": "Montagehöhe",
+      "beam_diameter": "Strahl ⌀",
+      "field_diameter": "Feld ⌀",
+      "intensity_50": "50%",
+      "intensity_10": "10%",
+      "floor": "Boden",
+      "meter": "m",
+      "classification": {
+        "very_narrow_spot": "Sehr eng strahlend",
+        "narrow_spot": "Eng strahlend",
+        "spot": "Spot",
+        "medium_flood": "Mittel flutend",
+        "wide_flood": "Breit flutend",
+        "very_wide_flood": "Sehr breit flutend"
+      }
+    },
+    "greenhouse": {
+      "max_height": "Max. Höhe"
+    }
+  },
+  "spectral": {
+    "axis": {
+      "wavelength": "Wellenlänge (nm)",
+      "relative_power": "Relative Leistung"
+    },
+    "title": {
+      "spd": "Spektrale Leistungsverteilung",
+      "cvg": "Farbvektorgrafik",
+      "hue": "Farbton-Wiedergabe"
+    },
+    "region": {
+      "uv_a": "UV-A",
+      "visible": "Sichtbar",
+      "near_ir": "Nah-IR",
+      "blue": "Blau",
+      "green": "Grün",
+      "red": "Rot"
+    },
+    "warning": {
+      "uv_thermal": "UV + Wärme-Gefahr",
+      "uv_exposure": "UV-Expositionsrisiko",
+      "high_thermal": "Hohe Wärmeabgabe"
+    },
+    "units": {
+      "watts_per_nm": "W/nm",
+      "relative": "Relativ"
+    },
+    "tm30": {
+      "rf": "Rf",
+      "rg": "Rg",
+      "reference": "Referenz",
+      "test": "Test"
+    },
+    "metrics": {
+      "energy_distribution": "Energieverteilung",
+      "uv_percent": "UV",
+      "visible_percent": "Sichtbar",
+      "ir_percent": "IR",
+      "r_fr_ratio": "R:FR Verhältnis"
+    }
+  },
+  "luminaire": {
+    "info": {
+      "manufacturer": "Hersteller",
+      "catalog_number": "Katalognummer",
+      "description": "Beschreibung",
+      "luminaire_name": "Leuchtenname",
+      "luminaire_number": "Leuchtennummer",
+      "luminaire_type": "Leuchtentyp",
+      "lamp_type": "Lampentyp",
+      "test_date": "Prüfdatum",
+      "report_number": "Berichtsnummer",
+      "laboratory": "Labor",
+      "identification": "Kennung",
+      "type_indicator": "Typenindikator",
+      "type_indicator_1": "1 - Punktlichtquelle (vertikale Symmetrie)",
+      "type_indicator_2": "2 - Lineare Leuchte",
+      "type_indicator_3": "3 - Punktlichtquelle (andere Symmetrie)",
+      "symmetry": "Symmetrie",
+      "symmetry_0": "0 - Keine Symmetrie",
+      "symmetry_1": "1 - Vertikale Achse",
+      "symmetry_2": "2 - C0-C180 Ebene",
+      "symmetry_3": "3 - C90-C270 Ebene",
+      "symmetry_4": "4 - Beide Ebenen",
+      "num_c_planes": "Anzahl C-Ebenen (Nc)",
+      "c_plane_distance": "C-Ebenen-Abstand (Dc)",
+      "num_g_planes": "Anzahl G-Ebenen (Ng)",
+      "g_plane_distance": "G-Ebenen-Abstand (Dg)",
+      "measurement_report": "Messbericht-Nummer",
+      "file_name": "Dateiname",
+      "date_user": "Datum / Benutzer"
+    },
+    "physical": {
+      "dimensions": "Abmessungen",
+      "dimensions_mm": "Leuchtenabmessungen (mm)",
+      "length": "Länge",
+      "length_diameter": "Länge / Durchmesser (L)",
+      "width": "Breite",
+      "width_b": "Breite (B)",
+      "height": "Höhe",
+      "height_h": "Höhe (H)",
+      "luminous_area": "Leuchtfläche",
+      "luminous_area_mm": "Leuchtfläche (mm)",
+      "luminous_length": "Länge / Durchmesser (La)",
+      "luminous_width": "Breite (B1)",
+      "luminous_height_c_planes": "Leuchtflächenhöhe bei C-Ebenen (mm)",
+      "mounting": "Montage"
+    },
+    "optical": {
+      "title": "Optische Eigenschaften",
+      "downward_flux_fraction": "Anteil Abwärtslichtstrom (%)",
+      "light_output_ratio": "Leuchtenbetriebswirkungsgrad (%)",
+      "conversion_factor": "Umrechnungsfaktor",
+      "tilt_angle": "Neigungswinkel (°)"
+    },
+    "photometric": {
+      "total_flux": "Gesamtlichtstrom",
+      "total_lamp_flux": "Gesamter Lampenstrom",
+      "total_wattage": "Gesamtleistung",
+      "lamp_efficacy": "Lampeneffizienz",
+      "luminaire_efficacy": "Leuchteneffizienz",
+      "efficacy": "Lichtausbeute",
+      "lor": "Leuchtenbetriebswirkungsgrad",
+      "dlor": "Unterer LOR",
+      "ulor": "Oberer LOR",
+      "cct": "Farbtemperatur",
+      "cri": "Farbwiedergabeindex",
+      "beam_angle": "Strahlwinkel",
+      "beam_angle_50": "Strahlwinkel (50%)",
+      "field_angle": "Feldwinkel",
+      "field_angle_10": "Feldwinkel (10%)",
+      "cie_class": "CIE-Klassifikation",
+      "symmetry": "Symmetrie",
+      "max_intensity": "Maximale Lichtstärke",
+      "spacing_criterion": "Abstandskriterium",
+      "photometric_code": "Fotometrischer Code",
+      "cutoff_angle": "Abblendwinkel"
+    },
+    "electrical": {
+      "power": "Eingangsleistung",
+      "voltage": "Spannung",
+      "current": "Strom",
+      "power_factor": "Leistungsfaktor"
+    },
+    "lamp_set": {
+      "title": "Leuchtmittel",
+      "set_n": "Set {n}",
+      "num_lamps": "Anzahl Lampen",
+      "luminous_flux": "Gesamtlichtstrom (lm)",
+      "wattage": "Leistung inkl. Vorschaltgerät (W)",
+      "lamp_type": "Lampentyp",
+      "color_appearance": "Lichtfarbe / CCT",
+      "color_rendering": "Farbwiedergabe / CRI",
+      "remove": "Dieses Leuchtmittelset entfernen"
+    },
+    "summary": {
+      "title": "Berechnete fotometrische Zusammenfassung",
+      "description": "Die folgenden Werte werden aus den Lichtstärkeverteilungsdaten berechnet",
+      "beam_characteristics": "Strahlcharakteristik",
+      "zonal_lumens": "Zonale Lichtströme",
+      "glare_assessment": "Blendungsbewertung",
+      "luminaire_luminance": "Leuchtendichte (65°)",
+      "room_config": "Raumkonfiguration"
+    },
+    "direct_ratios": {
+      "description": "Direkte Verhältnisse für Raumindizes (k-Werte). Dies sind Nutzungsfaktoren.",
+      "calculate": "Aus Intensitätsdaten berechnen"
+    }
+  },
+  "validation": {
+    "level": {
+      "error": "Fehler",
+      "warning": "Warnung",
+      "info": "Info"
+    },
+    "messages": {
+      "missing_manufacturer": "Fehlende Herstellerinformation",
+      "missing_flux": "Fehlende Lichtstromdaten",
+      "invalid_angles": "Ungültige Winkelwerte",
+      "intensity_mismatch": "Lichtstärkedaten-Unstimmigkeit",
+      "symmetry_violation": "Symmetriebedingung verletzt"
+    }
+  },
+  "ui": {
+    "header": {
+      "title": "Eulumdat Editor",
+      "file": "Datei",
+      "new": "Neu",
+      "open": "Öffnen...",
+      "templates": "Vorlagen",
+      "save_ldt": "Als LDT speichern",
+      "export_ies": "Als IES exportieren",
+      "atla_xml": "Als ATLA XML exportieren",
+      "atla_json": "Als ATLA JSON exportieren",
+      "switch_to_dark": "Zum Dunkelmodus wechseln",
+      "switch_to_light": "Zum Hellmodus wechseln"
+    },
+    "tabs": {
+      "general": "Allgemein",
+      "dimensions": "Abmessungen",
+      "lamp_sets": "Leuchtmittel",
+      "direct_ratios": "Direkt-Verhältnisse",
+      "intensity": "Lichtstärke",
+      "diagram_2d": "2D",
+      "diagram_3d": "3D",
+      "heatmap": "Heatmap",
+      "spectral": "Spektral",
+      "greenhouse": "Gewächshaus",
+      "bug_rating": "BUG",
+      "lcs": "LCS",
+      "validation": "Validierung",
+      "scene_3d": "3D-Szene",
+      "info": "Info",
+      "data": "Daten",
+      "diagrams": "Diagramme",
+      "analysis": "Analyse",
+      "polar": "Polar",
+      "cartesian": "Kartesisch",
+      "cone": "Kegel",
+      "export": "Export"
+    },
+    "subtabs": {
+      "spd": "SPD",
+      "tm30_cvg": "TM-30 CVG",
+      "tm30_hue": "TM-30 Farbton",
+      "metrics": "Metriken"
+    },
+    "dropzone": {
+      "text": "LDT-, IES- oder ATLA-Datei (XML/JSON) hierher ziehen oder die Schaltfläche Öffnen verwenden",
+      "current_file": "Aktuelle Datei:"
+    },
+    "diagram": {
+      "title_2d": "2D-Lichtstärkeverteilung",
+      "title_3d": "3D-Schmetterlingsdiagramm",
+      "title_heatmap": "Lichtstärke-Heatmap",
+      "title_spectral": "Spektrale Leistungsverteilung",
+      "title_greenhouse": "Gewächshaus-PPFD",
+      "title_bug": "BUG-Bewertungsanalyse",
+      "title_lcs": "Leuchten-Klassifizierungssystem",
+      "title_scene": "3D-Szenenansicht",
+      "polar": "Polar",
+      "cartesian": "Kartesisch",
+      "zoom_hint": "Scrollen zum Zoomen | Ziehen zum Schwenken",
+      "rotate_hint": "Ziehen zum Drehen | Scrollen zum Zoomen | Automatische Rotation beim Laden",
+      "scene_controls": "Steuerung: WASD/Pfeile bewegen • Q/E auf/ab • Rechtsklick+ziehen zum Umschauen • R zurücksetzen • 1-4 Szenentypen • P fotometrischer Körper • L Leuchte"
+    },
+    "intensity": {
+      "title": "Lichtstärke (cd/klm)",
+      "table_info": "{c_planes} C-Ebenen × {g_angles} γ-Winkel"
+    },
+    "validation": {
+      "title": "Validierungsergebnisse"
+    },
+    "spectral": {
+      "subtitle": "ATLA S001 Spektraldaten | CCT/CRI-Synthese",
+      "greenhouse_subtitle": "µmol/m²/s bei Montagehöhen",
+      "bug_subtitle": "IES TM-15-11 | Scrollen zum Zoomen | Ziehen zum Schwenken",
+      "lcs_subtitle": "IES TM-15-07 | Scrollen zum Zoomen | Ziehen zum Schwenken",
+      "direct_spd": "Direkte SPD",
+      "sample": "Beispiel",
+      "load_hint": "Laden Sie eine ATLA-Vorlage mit Spektraldaten für TM-30-Analyse",
+      "wavelength_range": "Wellenlängenbereich",
+      "peak": "Spitze",
+      "energy_distribution": "Energieverteilung",
+      "par_distribution": "PAR-Verteilung (400-700nm)",
+      "par_total": "PAR gesamt",
+      "hort_metrics": "Gartenbaumetriken",
+      "far_red": "Fernrot (700-780nm)",
+      "r_fr_hint": "R:FR-Verhältnis beeinflusst Pflanzenmorphologie (>1,0 = kompaktes Wachstum)",
+      "warnings": "Warnungen",
+      "thermal_warning": "Hoher Infrarotanteil - erhebliche Wärmeabgabe",
+      "uv_warning": "Erhöhter UV-A-Anteil - mögliche Materialschädigung",
+      "cvg_legend1": "Farbvektorgrafik zeigt Farbton- und Chromaverschiebungen für 16 Farbtonbereiche.",
+      "cvg_legend2": "Gestrichelter Kreis = Referenzlicht. Ausgefüllte Form = Testquelle.",
+      "hue_table": {
+        "hue": "Farbton",
+        "rf": "Rf",
+        "rcs": "Rcs",
+        "rhs": "Rhs"
+      },
+      "hue_legend": {
+        "rf": "Wiedergabe (0-100, höher = bessere Übereinstimmung)",
+        "rcs": "Chromaverschiebung (+ve = gesättigter)",
+        "rhs": "Farbtonverschiebung (Grad)"
+      }
+    },
+    "butterfly": {
+      "pause": "Pause",
+      "auto": "Auto",
+      "reset": "Zurücksetzen",
+      "drag_hint": "Ziehen zum Drehen",
+      "max": "Max"
+    },
+    "bevy_scene": {
+      "title": "3D-Szenenansicht",
+      "click_to_load": "Klicken zum Laden (~22MB)",
+      "load_button": "3D-Viewer laden",
+      "loading": "Lade 3D-Viewer...",
+      "downloading": "Lade herunter ~22MB",
+      "load_failed": "3D-Viewer konnte nicht geladen werden",
+      "try_again": "Erneut versuchen",
+      "scene_type": "Szenentyp",
+      "scene_room": "Raum",
+      "scene_road": "Straße",
+      "scene_parking": "Parkplatz",
+      "scene_outdoor": "Außenbereich",
+      "room_width": "Breite (m)",
+      "room_length": "Länge (m)",
+      "room_height": "Höhe (m)",
+      "mounting_height": "Montagehöhe (m)",
+      "pendulum_length": "Pendellänge (m)",
+      "show_luminaire": "Leuchte anzeigen",
+      "show_solid": "Photometrischer Körper",
+      "show_shadows": "Schatten",
+      "controls_hint": "WASD: Bewegen, Maus: Blicken, R: Zurücksetzen, 1-4: Szene"
+    },
+    "bug_rating": {
+      "title": "IESNA TM-15-11 BUG-Bewertung",
+      "title_detailed": "IESNA TM-15-11 BUG-Bewertung (Detailliert)",
+      "show_details": "Details anzeigen",
+      "hide_details": "Details ausblenden",
+      "footer_basic": "IESNA TM-15-11 Rücklicht-, Auflicht-, Blendbewertung",
+      "footer_detailed": "IESNA TM-15-11 BUG-Bewertung mit Zonenlumen-Aufschlüsselung"
+    },
+    "lcs": {
+      "footer": "IES TM-15-07 Leuchtenklassifizierungssystem für Außenleuchten"
+    },
+    "data_table": {
+      "no_data": "Keine Intensitätsdaten verfügbar",
+      "copy_to_clipboard": "In Zwischenablage kopieren"
+    },
+    "validation_panel": {
+      "all_passed": "Alle Validierungsprüfungen bestanden",
+      "error_count": "{errors} Fehler, {warnings} Warnungen"
+    },
+    "spectral_badges": {
+      "ir": "IR",
+      "uv": "UV",
+      "ir_high_title": "Hoher Infrarotgehalt - Wärmegefahr",
+      "ir_title": "Enthält Infrarotdaten",
+      "uv_high_title": "Hoher UV-Gehalt - Expositionsrisiko",
+      "uv_title": "Enthält UV-Daten",
+      "rg": "Rg",
+      "duv": "Duv"
+    },
+    "actions": {
+      "load": "Laden",
+      "save": "Speichern",
+      "export": "Exportieren",
+      "import": "Importieren",
+      "clear": "Löschen",
+      "reset": "Zurücksetzen",
+      "apply": "Anwenden",
+      "cancel": "Abbrechen",
+      "close": "Schließen",
+      "download": "Herunterladen"
+    },
+    "file": {
+      "open": "Datei öffnen",
+      "save_as": "Speichern unter",
+      "export_ldt": "Als LDT exportieren",
+      "export_ies": "Als IES exportieren",
+      "export_atla": "Als ATLA exportieren",
+      "export_svg": "Als SVG exportieren",
+      "export_pdf": "Als PDF exportieren"
+    },
+    "theme": {
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    },
+    "language": {
+      "select": "Sprache wählen"
+    },
+    "template": {
+      "select": "Vorlage wählen",
+      "downlight": "Downlight",
+      "projector": "Projektor",
+      "linear": "Linearleuchte",
+      "fluorescent": "Leuchtstofflampe",
+      "road": "Straßenleuchte",
+      "uplight": "Steh-Uplight",
+      "atla_fluorescent_xml": "ATLA Leuchtstoff (XML)",
+      "atla_fluorescent_json": "ATLA Leuchtstoff (JSON)",
+      "atla_grow_light_fs": "ATLA Pflanzenlampe (Vollspektrum)",
+      "atla_grow_light_rb": "ATLA Pflanzenlampe (Rot/Blau)",
+      "halogen": "ATLA Halogenlampe (IR)",
+      "incandescent": "ATLA Glühlampe (IR)",
+      "heat_lamp": "ATLA Wärmelampe (hoher IR)",
+      "uv_blacklight": "ATLA UV-Schwarzlicht"
+    },
+    "messages": {
+      "loading": "Laden...",
+      "saving": "Speichern...",
+      "error": "Ein Fehler ist aufgetreten",
+      "success": "Erfolgreich",
+      "file_loaded": "Datei erfolgreich geladen",
+      "file_saved": "Datei erfolgreich gespeichert",
+      "invalid_file": "Ungültiges Dateiformat",
+      "no_file": "Keine Datei ausgewählt"
+    }
+  },
+  "report": {
+    "title": "Fotometrischer Bericht",
+    "generated": "Erstellt am",
+    "page": "Seite",
+    "of": "von",
+    "summary": "Zusammenfassung",
+    "details": "Details",
+    "appendix": "Anhang"
+  },
+  "app": {
+    "welcome": {
+      "title": "Willkommen bei Eulumdat",
+      "subtitle": "Öffnen Sie eine LDT/IES-Datei oder wählen Sie eine Vorlage",
+      "openFile": "Datei öffnen",
+      "newFromTemplate": "Neu aus Vorlage",
+      "dropFile": "Datei hier ablegen"
+    },
+    "settings": {
+      "language": "Sprache",
+      "language_system": "Systemstandard",
+      "appearance": "Erscheinungsbild",
+      "darkTheme": "Dunkles Design für Diagramme",
+      "defaultDiagram": "Standarddiagramm",
+      "mountingHeight": "Montagehöhe",
+      "mountingHeight_description": "Für Kegel- und PPFD-Diagramme",
+      "export": "Export",
+      "about": "Über"
+    },
+    "toolbar": {
+      "open": "Öffnen",
+      "export": "Export",
+      "exportSVG": "SVG exportieren...",
+      "exportIES": "IES exportieren...",
+      "exportLDT": "LDT exportieren...",
+      "dark": "Dunkles Design"
+    },
+    "nav": {
+      "title": "Eulumdat"
+    },
+    "error": {
+      "ok": "OK"
+    },
+    "fullscreen": {
+      "darkTheme": "Dunkles Design",
+      "done": "Fertig"
+    },
+    "tab": {
+      "general": "Allgemein",
+      "dimensions": "Abmessungen",
+      "lampSets": "Leuchtmittel",
+      "optical": "Optik",
+      "intensity": "Intensität",
+      "diagram": "Diagramm"
+    },
+    "validation": {
+      "title": "Validierung"
+    },
+    "diagram": {
+      "polar": "Polar",
+      "cartesian": "Kartesisch",
+      "butterfly": "Schmetterling",
+      "3d": "3D",
+      "room": "Raum",
+      "heatmap": "Heatmap",
+      "cone": "Kegel",
+      "beam": "Strahl",
+      "spectral": "Spektral",
+      "ppfd": "PPFD",
+      "bug": "BUG",
+      "lcs": "LCS"
+    },
+    "template": {
+      "downlight": "Downlight",
+      "downlight_desc": "Einfaches Downlight mit vertikaler Achsensymmetrie",
+      "projector": "Projektor",
+      "projector_desc": "CDM-TD 70W Strahler mit asymmetrischem Lichtstrahl",
+      "linear": "Lineare Leuchte",
+      "linear_desc": "Lineare Leuchte mit C0-C180-Symmetrie",
+      "fluorescent": "Leuchtstofflampe",
+      "fluorescent_desc": "T16 G5 54W lineare Leuchte mit bilateraler Symmetrie",
+      "roadLuminaire": "Straßenleuchte",
+      "roadLuminaire_desc": "SON-TPP 250W Straßenleuchte mit C90-C270-Symmetrie",
+      "floorUplight": "Steh-Uplight",
+      "floorUplight_desc": "HIT-DE 250W Steh-Uplight",
+      "wikiBatwing": "Fledermausflügel (Wiki)",
+      "wikiBatwing_desc": "Fledermausflügelverteilung für gleichmäßige Beleuchtung",
+      "wikiSpotlight": "Spotlight (Wiki)",
+      "wikiSpotlight_desc": "Schmale Spotlight-Verteilung",
+      "wikiFlood": "Flutlicht (Wiki)",
+      "wikiFlood_desc": "Breite Flutlichtverteilung",
+      "atlaGrowLight": "Pflanzenlampe (ATLA)",
+      "atlaGrowLight_desc": "LED-Pflanzenlampe mit Rot/Blau PPF-Spektrum",
+      "atlaGrowLightRB": "Pflanzenlampe R/B (ATLA)",
+      "atlaGrowLightRB_desc": "Rot/Blau LED-Pflanzenlampe",
+      "atlaFluorescent": "Leuchtstoff (ATLA)",
+      "atlaFluorescent_desc": "Leuchtstofflampe mit Spektraldaten",
+      "atlaHalogen": "Halogen (ATLA)",
+      "atlaHalogen_desc": "Halogenlampe mit kontinuierlichem Spektrum",
+      "atlaIncandescent": "Glühlampe (ATLA)",
+      "atlaIncandescent_desc": "Glühlampe mit warmem Spektrum",
+      "atlaHeatLamp": "Wärmelampe (ATLA)",
+      "atlaHeatLamp_desc": "Infrarot-Wärmelampe mit IR-Spektrum",
+      "atlaUvBlacklight": "UV-Schwarzlicht (ATLA)",
+      "atlaUvBlacklight_desc": "UV-Schwarzlicht mit UV-A-Spektrum"
+    }
+  }
+}

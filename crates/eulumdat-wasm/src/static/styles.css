@@ -196,11 +196,26 @@ textarea::placeholder {
     padding-top: 1rem;
 }
 
+/* Mobile app container */
+@media (max-width: 768px) {
+    .app > * {
+        padding: 0 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .app > * {
+        padding: 0 0.25rem;
+    }
+}
+
 /* Header */
 .header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     padding: 1rem;
     background: var(--surface);
     border-radius: 8px;
@@ -211,11 +226,219 @@ textarea::placeholder {
 .header h1 {
     font-size: 1.5rem;
     color: var(--primary-color);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .header-actions {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.5rem;
+}
+
+/* File Menu Dropdown */
+.file-menu {
+    position: relative;
+}
+
+.file-menu-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.dropdown-arrow {
+    font-size: 0.7em;
+    opacity: 0.7;
+}
+
+.file-menu-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    padding: 0.25rem 0;
+    margin-top: 0.25rem;
+}
+
+.file-menu:hover .file-menu-dropdown,
+.file-menu:focus-within .file-menu-dropdown {
+    display: block;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.menu-item:hover {
+    background: var(--background);
+}
+
+.menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.25rem 0;
+}
+
+/* Submenu for templates */
+.menu-submenu {
+    position: relative;
+}
+
+.menu-submenu-toggle {
+    cursor: default;
+}
+
+.submenu-arrow {
+    font-size: 0.7em;
+    opacity: 0.7;
+}
+
+.menu-submenu-content {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 220px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0.25rem 0;
+    margin-left: 0.25rem;
+}
+
+.menu-submenu:hover .menu-submenu-content {
+    display: block;
+}
+
+/* Templates dropdown - needs scrolling for many items */
+.templates-dropdown {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Mobile: Full-width dropdown */
+@media (max-width: 768px) {
+    .file-menu-dropdown {
+        position: fixed;
+        top: auto;
+        left: 0.5rem;
+        right: 0.5rem;
+        width: auto;
+        min-width: auto;
+    }
+
+    .menu-submenu-content {
+        position: static;
+        border: none;
+        box-shadow: none;
+        margin-left: 1rem;
+        padding-left: 0.5rem;
+        border-left: 2px solid var(--border);
+        max-height: 200px;
+    }
+
+    .menu-submenu:hover .menu-submenu-content,
+    .menu-submenu .menu-submenu-content {
+        display: block;
+    }
+
+    .submenu-arrow {
+        transform: rotate(90deg);
+    }
+}
+
+/* Tablet: Start compressing */
+@media (max-width: 1100px) {
+    .header-actions {
+        gap: 0.4rem;
+    }
+
+    .header-actions > button,
+    .header-actions > select {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Mobile: Stack header */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .header h1 {
+        text-align: center;
+        font-size: 1.2rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .header-actions {
+        justify-content: center;
+        gap: 0.4rem;
+    }
+
+    .header-actions > button {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+    }
+
+    .language-selector-compact {
+        min-width: 90px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .header {
+        padding: 0.5rem;
+        border-radius: 6px;
+    }
+
+    .header h1 {
+        font-size: 1rem;
+    }
+
+    .header-actions {
+        gap: 0.3rem;
+    }
+
+    .header-actions > button {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .language-selector-compact {
+        min-width: 80px;
+        font-size: 0.75rem;
+    }
 }
 
 /* Buttons */
@@ -297,8 +520,12 @@ textarea::placeholder {
 /* Tabs */
 .tabs {
     display: flex;
+    flex-wrap: wrap;
     border-bottom: 1px solid var(--border);
     background: var(--background);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
 }
 
 .tab {
@@ -310,6 +537,8 @@ textarea::placeholder {
     color: var(--tab-inactive);
     border-bottom: 2px solid transparent;
     transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .tab:hover {
@@ -322,8 +551,118 @@ textarea::placeholder {
     font-weight: 500;
 }
 
+/* Main tabs (primary navigation) */
+.main-tabs {
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+}
+
+.main-tabs .tab {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.main-tabs .tab.active {
+    border-bottom-color: var(--primary-color);
+    border-bottom-width: 3px;
+}
+
+/* Sub-tabs (secondary navigation) */
+.sub-tabs {
+    background: var(--background);
+    border-bottom: 1px solid var(--border);
+    padding-left: 0.5rem;
+}
+
+.sub-tabs .tab {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 400;
+    border-bottom-width: 2px;
+}
+
+.sub-tabs .tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
 .tab-content {
     padding: 1rem;
+}
+
+/* Tablet: Smaller tabs */
+@media (max-width: 1024px) {
+    .tab {
+        padding: 0.6rem 0.9rem;
+        font-size: 0.8rem;
+    }
+
+    .main-tabs .tab {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .sub-tabs .tab {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Mobile: Even smaller tabs, scrollable */
+@media (max-width: 768px) {
+    .tabs {
+        flex-wrap: nowrap;
+        gap: 0;
+    }
+
+    .tab {
+        padding: 0.5rem 0.7rem;
+        font-size: 0.75rem;
+    }
+
+    .main-tabs .tab {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .sub-tabs {
+        padding-left: 0.25rem;
+    }
+
+    .sub-tabs .tab {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.7rem;
+    }
+
+    .tab-content {
+        padding: 0.75rem;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .main-tabs .tab {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .sub-tabs .tab {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.65rem;
+    }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+    .tab {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .tab-content {
+        padding: 0.5rem;
+    }
 }
 
 /* Form Elements */
@@ -376,6 +715,13 @@ textarea::placeholder {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
+}
+
+/* Mobile: Stack info grid */
+@media (max-width: 600px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .info-item {
@@ -520,6 +866,19 @@ textarea::placeholder {
     color: white;
 }
 
+/* Responsive diagram toggle */
+@media (max-width: 480px) {
+    .diagram-toggle {
+        gap: 1px;
+        padding: 1px;
+    }
+
+    .btn-toggle {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.65rem;
+    }
+}
+
 /* Polar Diagram */
 .polar-diagram {
     width: 100%;
@@ -579,6 +938,74 @@ textarea::placeholder {
 .validation-code {
     font-weight: 600;
     font-family: monospace;
+}
+
+/* Schema Validation Styles */
+.schema-validation-section,
+.ldt-validation-section {
+    margin-bottom: 0.75rem;
+}
+
+.validation-header {
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.validation-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0.75rem 0;
+}
+
+.schema-badge {
+    font-family: monospace;
+    font-weight: 600;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    min-width: 55px;
+    text-align: center;
+}
+
+.error-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.tm33-errors {
+    margin-top: 0.5rem;
+    margin-left: 0.5rem;
+}
+
+.tm33-errors summary {
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.tm33-errors summary:hover {
+    color: var(--text-secondary);
+}
+
+.error-details {
+    margin-top: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--border);
+}
+
+.validation-item.small {
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+}
+
+.validation-item.small .validation-code {
+    font-size: 0.65rem;
 }
 
 /* Lamp Sets */
@@ -663,6 +1090,26 @@ textarea::placeholder {
 .drop-zone p {
     color: var(--text-secondary);
     margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+/* Tablet: Smaller dropzone */
+@media (max-width: 768px) {
+    .drop-zone {
+        padding: 0.75rem;
+    }
+
+    .drop-zone p {
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* Mobile: Hide dropzone (drag & drop not useful on touch devices) */
+@media (max-width: 600px) {
+    .drop-zone {
+        display: none;
+    }
 }
 
 /* File Info */
@@ -714,14 +1161,34 @@ textarea::placeholder {
 
 .diagram-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.5rem;
 }
 
 .diagram-title {
     font-weight: 500;
     font-size: 0.9rem;
+}
+
+/* Responsive diagram header */
+@media (max-width: 600px) {
+    .diagram-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .diagram-title {
+        font-size: 0.85rem;
+    }
+
+    .diagram-controls,
+    .text-muted {
+        font-size: 0.7rem;
+    }
 }
 
 .diagram-container {
@@ -790,6 +1257,88 @@ textarea::placeholder {
     height: auto;
 }
 
+/* Responsive diagram container */
+@media (max-width: 768px) {
+    .diagram-fullwidth {
+        min-height: 400px;
+        padding: 0.5rem;
+        border-radius: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .diagram-fullwidth {
+        min-height: 300px;
+        padding: 0.25rem;
+    }
+
+    .diagram-fullwidth .polar-diagram,
+    .diagram-fullwidth .cartesian-diagram {
+        max-width: 100%;
+    }
+}
+
+/* ============================================
+   RESPONSIVE SVG DETAIL LEVELS
+
+   These rules work with DetailLevel classes embedded
+   in SVGs generated by to_svg_responsive().
+
+   The SVGs contain embedded media queries too, but
+   these container-based rules provide additional
+   control for the web app.
+   ============================================ */
+
+/* Auto-sizing SVG container */
+.svg-responsive {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.svg-responsive svg {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+}
+
+/* Container query for auto-adjusting detail levels */
+/* Note: Container queries require modern browsers */
+@container (max-width: 400px) {
+    .svg-responsive svg .detail-full {
+        display: none;
+    }
+}
+
+@container (max-width: 300px) {
+    .svg-responsive svg .detail-compact,
+    .svg-responsive svg .detail-full {
+        display: none;
+    }
+}
+
+/* Fallback media queries for browsers without container query support */
+@media (max-width: 400px) {
+    .diagram-fullwidth svg .detail-full,
+    .polar-diagram svg .detail-full,
+    .cartesian-diagram svg .detail-full {
+        display: none;
+    }
+}
+
+@media (max-width: 300px) {
+    .diagram-fullwidth svg .detail-compact,
+    .diagram-fullwidth svg .detail-full,
+    .polar-diagram svg .detail-compact,
+    .polar-diagram svg .detail-full,
+    .cartesian-diagram svg .detail-compact,
+    .cartesian-diagram svg .detail-full {
+        display: none;
+    }
+}
+
 /* Zoomable diagram with overlay controls */
 .diagram-zoomable {
     position: relative;
@@ -820,6 +1369,13 @@ textarea::placeholder {
     font-style: italic;
 }
 
+/* Responsive zoom hint */
+@media (max-width: 600px) {
+    .zoom-hint {
+        font-size: 0.65rem;
+    }
+}
+
 /* Diagram Zoom Component */
 .diagram-zoom-container {
     position: relative;
@@ -833,6 +1389,20 @@ textarea::placeholder {
 
 .diagram-zoom-container:active {
     cursor: grabbing;
+}
+
+/* Responsive diagram zoom container */
+@media (max-width: 768px) {
+    .diagram-zoom-container {
+        min-height: 450px;
+    }
+}
+
+@media (max-width: 480px) {
+    .diagram-zoom-container {
+        min-height: 350px;
+        border-radius: 6px;
+    }
 }
 
 .diagram-zoom-content {
@@ -1574,6 +2144,85 @@ textarea::placeholder {
     text-align: center;
 }
 
+/* Cone Diagram Tab */
+.cone-tab {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cone-diagram {
+    width: 100%;
+    aspect-ratio: 5/4;
+    background: var(--surface);
+    border-radius: 8px;
+}
+
+.cone-diagram svg {
+    width: 100%;
+    height: 100%;
+}
+
+.mounting-height-control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--background);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.mounting-height-control label {
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.mounting-height-control input[type="range"] {
+    width: 120px;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.mounting-height-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.mounting-height-control input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.mounting-height-control .value-display {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 50px;
+}
+
+@media (max-width: 600px) {
+    .mounting-height-control {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .mounting-height-control input[type="range"] {
+        width: 100%;
+        order: 3;
+    }
+}
+
 /* 3D Diagram Tab */
 .diagram-3d-tab {
     display: flex;
@@ -1726,6 +2375,65 @@ textarea::placeholder {
     background: var(--background);
 }
 
+/* Responsive 3D canvas */
+@media (max-width: 768px) {
+    .butterfly-3d-canvas {
+        height: 450px;
+    }
+
+    .butterfly-3d-overlay {
+        font-size: 10px;
+    }
+
+    .butterfly-3d-controls button {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .butterfly-3d-canvas {
+        height: 350px;
+    }
+
+    .butterfly-3d-controls {
+        bottom: 5px;
+        right: 5px;
+        gap: 3px;
+    }
+
+    .butterfly-3d-controls button {
+        padding: 3px 6px;
+        font-size: 9px;
+    }
+}
+
+/* Scene container responsive */
+.scene-container {
+    width: 100%;
+    min-height: 400px;
+}
+
+@media (max-width: 768px) {
+    .scene-container {
+        min-height: 350px;
+    }
+
+    .scene-controls {
+        font-size: 0.7rem;
+    }
+
+    .scene-controls p {
+        word-break: break-word;
+    }
+}
+
+@media (max-width: 480px) {
+    .scene-container {
+        min-height: 280px;
+    }
+}
+
 /* ============================================
    CALCULATED PHOTOMETRIC SUMMARY
    ============================================ */
@@ -1782,4 +2490,168 @@ textarea::placeholder {
 .calculated-summary .info-value.mono {
     font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
     letter-spacing: 0.05em;
+}
+
+/* ============================================
+   LANGUAGE SELECTOR
+   ============================================ */
+.language-selector {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.language-selector:hover {
+    border-color: var(--primary-color);
+}
+
+.language-selector:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Compact language selector (dropdown style) */
+.language-selector-compact {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    min-width: 100px;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.4rem center;
+    background-size: 1em;
+    padding-right: 1.8rem;
+}
+
+.language-selector-compact:hover {
+    border-color: var(--primary-color);
+}
+
+.language-selector-compact:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Header language selector - styles moved to main header section */
+
+/* ============================================
+   ABOUT MODAL
+   ============================================ */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: modal-appear 0.2s ease-out;
+}
+
+@keyframes modal-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.about-modal h2 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.about-subtitle {
+    margin: 0 0 1.25rem 0;
+    color: var(--primary-color);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.about-description {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    background: var(--background);
+    border-radius: 8px;
+    border-left: 3px solid var(--primary-color);
+}
+
+.about-description p {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.about-description p:last-child {
+    margin-bottom: 0;
+}
+
+.about-highlight {
+    color: var(--text-primary) !important;
+    font-weight: 600;
+    margin-top: 0.75rem !important;
+}
+
+.about-links {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.about-links a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.about-links a:hover {
+    text-decoration: underline;
+}
+
+.about-version {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-family: monospace;
+}
+
+.about-modal .btn {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
 }

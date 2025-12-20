@@ -3,12 +3,17 @@ use eulumdat::{Eulumdat, IesParser};
 use leptos::ev;
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlInputElement, HtmlSelectElement};
+use web_sys::HtmlInputElement;
 
+use crate::i18n::{use_locale, LanguageSelectorCompact};
+use eulumdat_i18n::Locale;
+
+use super::beam_angle_diagram::BeamAngleDiagram;
 use super::bevy_scene::BevySceneViewer;
 use super::bug_rating::BugRating;
 use super::butterfly_3d::Butterfly3D;
 use super::cartesian_diagram::CartesianDiagram;
+use super::cone_diagram::ConeDiagramView;
 use super::data_table::DataTable;
 use super::diagram_zoom::DiagramZoom;
 use super::greenhouse_diagram::GreenhouseDiagramView;
@@ -17,7 +22,7 @@ use super::lcs_classification::LcsClassification;
 use super::polar_diagram::PolarDiagram;
 use super::spectral_diagram::SpectralDiagramView;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
-use super::templates::{TemplateFormat, ALL_TEMPLATES};
+use super::templates::ALL_TEMPLATES;
 use super::theme::{ThemeMode, ThemeProvider};
 use super::validation_panel::ValidationPanel;
 
@@ -114,23 +119,86 @@ fn log_color_data_from_ldt(filename: &str, ldt: &Eulumdat, doc: &LuminaireOptica
     web_sys::console::group_end();
 }
 
+/// Main tab groups
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub enum MainTab {
+    #[default]
+    Info,
+    Data,
+    Diagrams,
+    Analysis,
+    Validation,
+    Scene3D,
+}
+
+/// Sub-tabs within each main tab group
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum Tab {
+    // Info group
     #[default]
     General,
     Dimensions,
     LampSets,
     DirectRatios,
+    // Data group
     Intensity,
+    // Diagrams group
     Diagram2D,
     Diagram3D,
     Heatmap,
+    Cone,
+    // Analysis group
     Spectral,
     Greenhouse,
     BugRating,
     Lcs,
-    Validation,
-    Scene3D,
+    // Validation group (single tab, no sub-tabs)
+    ValidationTab,
+    // Scene 3D group (single tab, no sub-tabs)
+    Scene3DTab,
+}
+
+impl Tab {
+    /// Get the main tab group this sub-tab belongs to
+    pub fn main_tab(&self) -> MainTab {
+        match self {
+            Tab::General | Tab::Dimensions | Tab::LampSets | Tab::DirectRatios => MainTab::Info,
+            Tab::Intensity => MainTab::Data,
+            Tab::Diagram2D | Tab::Diagram3D | Tab::Heatmap | Tab::Cone => MainTab::Diagrams,
+            Tab::Spectral | Tab::Greenhouse | Tab::BugRating | Tab::Lcs => MainTab::Analysis,
+            Tab::ValidationTab => MainTab::Validation,
+            Tab::Scene3DTab => MainTab::Scene3D,
+        }
+    }
+
+    /// Get the default sub-tab for a main tab
+    pub fn default_for_main(main: MainTab) -> Tab {
+        match main {
+            MainTab::Info => Tab::General,
+            MainTab::Data => Tab::Intensity,
+            MainTab::Diagrams => Tab::Diagram2D,
+            MainTab::Analysis => Tab::Spectral,
+            MainTab::Validation => Tab::ValidationTab,
+            MainTab::Scene3D => Tab::Scene3DTab,
+        }
+    }
+
+    /// Get all sub-tabs for a main tab
+    pub fn tabs_for_main(main: MainTab) -> &'static [Tab] {
+        match main {
+            MainTab::Info => &[
+                Tab::General,
+                Tab::Dimensions,
+                Tab::LampSets,
+                Tab::DirectRatios,
+            ],
+            MainTab::Data => &[Tab::Intensity],
+            MainTab::Diagrams => &[Tab::Diagram2D, Tab::Diagram3D, Tab::Heatmap, Tab::Cone],
+            MainTab::Analysis => &[Tab::Spectral, Tab::Greenhouse, Tab::BugRating, Tab::Lcs],
+            MainTab::Validation => &[Tab::ValidationTab],
+            MainTab::Scene3D => &[Tab::Scene3DTab],
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -138,6 +206,7 @@ pub enum DiagramType {
     #[default]
     Polar,
     Cartesian,
+    BeamAngle,
 }
 
 /// Create a default ATLA document for new files
@@ -177,6 +246,80 @@ fn create_default_atla() -> LuminaireOpticalData {
 
 fn detect_system_theme() -> ThemeMode {
     super::theme::detect_system_theme()
+}
+
+use super::templates::Template;
+
+/// Load a template file
+fn load_template(
+    template: &Template,
+    set_atla_doc: WriteSignal<LuminaireOpticalData>,
+    set_current_file: WriteSignal<Option<String>>,
+    set_selected_lamp_set: WriteSignal<usize>,
+) {
+    use super::templates::TemplateFormat;
+
+    let ext = match template.format {
+        TemplateFormat::Ldt => "ldt",
+        TemplateFormat::AtlaXml => "xml",
+        TemplateFormat::AtlaJson => "json",
+    };
+    let filename = format!(
+        "{}.{}",
+        template
+            .name
+            .to_lowercase()
+            .replace(' ', "_")
+            .replace("(", "")
+            .replace(")", ""),
+        ext
+    );
+
+    match template.format {
+        TemplateFormat::Ldt => {
+            if let Ok(ldt) = Eulumdat::parse(template.content) {
+                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                set_atla_doc.set(doc);
+                set_current_file.set(Some(filename));
+                set_selected_lamp_set.set(0);
+            }
+        }
+        TemplateFormat::AtlaXml => {
+            if let Ok(doc) = atla::xml::parse(template.content) {
+                set_atla_doc.set(doc);
+                set_current_file.set(Some(filename));
+                set_selected_lamp_set.set(0);
+            }
+        }
+        TemplateFormat::AtlaJson => {
+            if let Ok(doc) = atla::json::parse(template.content) {
+                set_atla_doc.set(doc);
+                set_current_file.set(Some(filename));
+                set_selected_lamp_set.set(0);
+            }
+        }
+    }
+}
+
+/// Get localized template name
+fn get_template_name(template_name: &str, locale: &Locale) -> String {
+    match template_name {
+        "Downlight" => locale.ui.template.downlight.clone(),
+        "Projector" => locale.ui.template.projector.clone(),
+        "Linear Luminaire" => locale.ui.template.linear.clone(),
+        "Fluorescent Luminaire" => locale.ui.template.fluorescent.clone(),
+        "Road Luminaire" => locale.ui.template.road.clone(),
+        "Floor Uplight" => locale.ui.template.uplight.clone(),
+        "_atla Fluorescent (XML)" => locale.ui.template.atla_fluorescent_xml.clone(),
+        "_atla Fluorescent (JSON)" => locale.ui.template.atla_fluorescent_json.clone(),
+        "_atla Grow Light (Full Spectrum)" => locale.ui.template.atla_grow_light_fs.clone(),
+        "_atla Grow Light (Red/Blue)" => locale.ui.template.atla_grow_light_rb.clone(),
+        "_atla Halogen Lamp (IR)" => locale.ui.template.halogen.clone(),
+        "_atla Incandescent (IR)" => locale.ui.template.incandescent.clone(),
+        "_atla Heat Lamp (High IR)" => locale.ui.template.heat_lamp.clone(),
+        "_atla UV Blacklight (UV-A)" => locale.ui.template.uv_blacklight.clone(),
+        _ => template_name.to_string(),
+    }
 }
 
 /// Replace file extension with a new one
@@ -232,9 +375,18 @@ pub fn App() -> impl IntoView {
     let (current_file, set_current_file) = signal::<Option<String>>(None);
     let (active_tab, set_active_tab) = signal(Tab::default());
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
+
+    // Derive the active main tab from the active sub-tab
+    let active_main_tab = Memo::new(move |_| active_tab.get().main_tab());
+
+    // i18n locale for UI strings
+    let locale = use_locale();
     let (drag_active, set_drag_active) = signal(false);
     let (diagram_type, set_diagram_type) = signal(DiagramType::default());
+    let (mounting_height, set_mounting_height) = signal(3.0_f64); // Default 3m mounting height for cone diagram
+    let (greenhouse_height, set_greenhouse_height) = signal(2.0_f64); // Default 2m for greenhouse PPFD
     let (theme_mode, set_theme_mode) = signal(detect_system_theme());
+    let (show_about, set_show_about) = signal(false);
 
     // Save to localStorage whenever ATLA doc changes
     Effect::new(move |_| {
@@ -368,6 +520,135 @@ pub fn App() -> impl IntoView {
         }
     };
 
+    // Helper to generate SVG for the current diagram
+    let generate_current_svg = move || -> Option<(String, String)> {
+        let current_tab = active_tab.get();
+        let ldt_val = ldt.get();
+        let theme = eulumdat::diagram::SvgTheme::light(); // Use light theme for export
+
+        match current_tab {
+            Tab::Diagram2D => {
+                // Use the current diagram type (Polar, Cartesian, or BeamAngle)
+                match diagram_type.get() {
+                    DiagramType::Polar => {
+                        let polar = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldt_val);
+                        let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldt_val);
+                        let svg = polar.to_svg_with_summary(600.0, 600.0, &theme, &summary);
+                        Some((svg, "polar_diagram.svg".to_string()))
+                    }
+                    DiagramType::Cartesian => {
+                        let cartesian = eulumdat::diagram::CartesianDiagram::from_eulumdat(
+                            &ldt_val, 600.0, 450.0, 8,
+                        );
+                        let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldt_val);
+                        let svg = cartesian.to_svg_with_summary(600.0, 450.0, &theme, &summary);
+                        Some((svg, "cartesian_diagram.svg".to_string()))
+                    }
+                    DiagramType::BeamAngle => {
+                        let polar = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldt_val);
+                        let analysis =
+                            eulumdat::PhotometricCalculations::beam_field_analysis(&ldt_val);
+                        let show_both = analysis.is_batwing;
+                        let svg = polar.to_svg_with_beam_field_angles(
+                            600.0, 600.0, &theme, &analysis, show_both,
+                        );
+                        Some((svg, "beam_angle_diagram.svg".to_string()))
+                    }
+                }
+            }
+            Tab::Diagram3D => {
+                // Butterfly/3D diagram
+                let butterfly = eulumdat::diagram::ButterflyDiagram::from_eulumdat(
+                    &ldt_val, 600.0, 500.0, 60.0,
+                );
+                let svg = butterfly.to_svg(600.0, 500.0, &theme);
+                Some((svg, "butterfly_3d_diagram.svg".to_string()))
+            }
+            Tab::Heatmap => {
+                let heatmap =
+                    eulumdat::diagram::HeatmapDiagram::from_eulumdat(&ldt_val, 700.0, 500.0);
+                let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldt_val);
+                let svg = heatmap.to_svg_with_summary(700.0, 500.0, &theme, &summary);
+                Some((svg, "intensity_heatmap.svg".to_string()))
+            }
+            Tab::Cone => {
+                let height = mounting_height.get();
+                let cone = eulumdat::diagram::ConeDiagram::from_eulumdat(&ldt_val, height);
+                let svg = cone.to_svg(600.0, 450.0, &theme);
+                Some((svg, "cone_diagram.svg".to_string()))
+            }
+            Tab::Spectral => {
+                // Spectral diagram from ATLA doc
+                let doc = atla_doc.get();
+                let atla_theme = atla::spectral::SpectralTheme::light();
+
+                // Try to get spectral data
+                if let Some(spd) = doc
+                    .emitters
+                    .iter()
+                    .filter_map(|e| e.spectral_distribution.as_ref())
+                    .next()
+                {
+                    let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+                    let svg = diagram.to_svg(700.0, 400.0, &atla_theme);
+                    Some((svg, "spectral_diagram.svg".to_string()))
+                } else if let Some(emitter) = doc.emitters.first() {
+                    if let Some(cct) = emitter.cct {
+                        let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
+                        let spd = atla::spectral::synthesize_spectrum(cct, cri);
+                        let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+                        let svg = diagram.to_svg(700.0, 400.0, &atla_theme);
+                        Some((svg, "spectral_diagram.svg".to_string()))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            Tab::Greenhouse => {
+                let doc = atla_doc.get();
+                let height = greenhouse_height.get();
+                let diagram =
+                    atla::greenhouse::GreenhouseDiagram::from_atla_with_height(&doc, height);
+                let gh_theme = atla::greenhouse::GreenhouseTheme::light();
+                let svg = diagram.to_svg(600.0, 450.0, &gh_theme);
+                Some((svg, "greenhouse_ppfd.svg".to_string()))
+            }
+            Tab::BugRating => {
+                let diagram = eulumdat::BugDiagram::from_eulumdat(&ldt_val);
+                let svg = diagram.to_svg_with_details(600.0, 400.0, &theme);
+                Some((svg, "bug_rating.svg".to_string()))
+            }
+            Tab::Lcs => {
+                let diagram = eulumdat::BugDiagram::from_eulumdat(&ldt_val);
+                let svg = diagram.to_lcs_svg(600.0, 400.0, &theme);
+                Some((svg, "lcs_classification.svg".to_string()))
+            }
+            // Non-diagram tabs - no SVG export available
+            Tab::General
+            | Tab::Dimensions
+            | Tab::LampSets
+            | Tab::DirectRatios
+            | Tab::Intensity
+            | Tab::ValidationTab
+            | Tab::Scene3DTab => None,
+        }
+    };
+
+    let on_export_svg = move |_| {
+        if let Some((svg_content, default_filename)) = generate_current_svg() {
+            let filename = current_file
+                .get()
+                .map(|f| replace_extension(&f, "svg"))
+                .unwrap_or(default_filename);
+            super::file_handler::download_svg(&filename, &svg_content);
+        } else {
+            // No diagram to export - show alert or log
+            web_sys::console::warn_1(&"No diagram to export on this tab".into());
+        }
+    };
+
     let on_toggle_theme = move |_| {
         set_theme_mode.update(|m| *m = m.toggle());
     };
@@ -384,75 +665,6 @@ pub fn App() -> impl IntoView {
                         load_content(name, content);
                     }
                 });
-            }
-        }
-    };
-
-    let on_template_select = move |ev: ev::Event| {
-        let select: HtmlSelectElement = ev.target().unwrap().unchecked_into();
-        let idx = select.selected_index();
-        select.set_selected_index(0);
-        if idx > 0 {
-            if let Some(template) = ALL_TEMPLATES.get((idx - 1) as usize) {
-                let ext = match template.format {
-                    TemplateFormat::Ldt => "ldt",
-                    TemplateFormat::AtlaXml => "xml",
-                    TemplateFormat::AtlaJson => "json",
-                };
-                let filename = format!(
-                    "{}.{}",
-                    template
-                        .name
-                        .to_lowercase()
-                        .replace(' ', "_")
-                        .replace("(", "")
-                        .replace(")", ""),
-                    ext
-                );
-
-                // Parse template based on format (with raw value logging for LDT)
-                match template.format {
-                    TemplateFormat::Ldt => match Eulumdat::parse(template.content) {
-                        Ok(ldt) => {
-                            let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                            log_color_data_from_ldt(&filename, &ldt, &doc);
-                            set_atla_doc.set(doc);
-                            set_current_file.set(Some(filename));
-                            set_selected_lamp_set.set(0);
-                        }
-                        Err(e) => {
-                            web_sys::console::error_1(
-                                &format!("Failed to parse template: {}", e).into(),
-                            );
-                        }
-                    },
-                    TemplateFormat::AtlaXml => match atla::xml::parse(template.content) {
-                        Ok(doc) => {
-                            log_color_data(&filename, &doc);
-                            set_atla_doc.set(doc);
-                            set_current_file.set(Some(filename));
-                            set_selected_lamp_set.set(0);
-                        }
-                        Err(e) => {
-                            web_sys::console::error_1(
-                                &format!("Failed to parse template: {}", e).into(),
-                            );
-                        }
-                    },
-                    TemplateFormat::AtlaJson => match atla::json::parse(template.content) {
-                        Ok(doc) => {
-                            log_color_data(&filename, &doc);
-                            set_atla_doc.set(doc);
-                            set_current_file.set(Some(filename));
-                            set_selected_lamp_set.set(0);
-                        }
-                        Err(e) => {
-                            web_sys::console::error_1(
-                                &format!("Failed to parse template: {}", e).into(),
-                            );
-                        }
-                    },
-                }
             }
         }
     };
@@ -486,12 +698,6 @@ pub fn App() -> impl IntoView {
         }
     };
 
-    let on_tab_click = move |tab: Tab| {
-        move |_| {
-            set_active_tab.set(tab);
-        }
-    };
-
     // Note: Child components use the `ldt` Memo which derives from atla_doc.
     // When they call set_ldt, it converts back to ATLA internally.
 
@@ -500,48 +706,120 @@ pub fn App() -> impl IntoView {
             <div class=move || format!("app {}", theme_mode.get().class_name())>
                 // Header
                 <header class="header">
-                    <h1>"Eulumdat Editor"</h1>
+                    <h1>{move || locale.get().ui.header.title.clone()}</h1>
                     <div class="header-actions">
-                        <button class="btn btn-secondary" on:click=on_new_file>
-                            "New"
-                        </button>
-                        <select class="btn btn-secondary" on:change=on_template_select>
-                            <option value="">"Templates..."</option>
-                            {ALL_TEMPLATES.iter().enumerate().map(|(i, t)| {
-                                view! {
-                                    <option value=i.to_string() title=t.description>
-                                        {t.name}
-                                    </option>
-                                }
-                            }).collect_view()}
-                        </select>
-                        <label class="btn btn-secondary">
-                            "Open"
-                            <input
-                                type="file"
-                                accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON"
-                                style="display: none;"
-                                on:change=on_file_input
-                            />
-                        </label>
-                        <button class="btn btn-primary" on:click=on_save_ldt>
-                            "Save LDT"
-                        </button>
-                        <button class="btn btn-success" on:click=on_export_ies>
-                            "Export IES"
-                        </button>
-                        <button class="btn btn-info" on:click=on_export_atla_xml title="Export as ATLA/TM-33 XML">
-                            "ATLA XML"
-                        </button>
-                        <button class="btn btn-info" on:click=on_export_atla_json title="Export as ATLA/TM-33 JSON">
-                            "ATLA JSON"
-                        </button>
+                        // File menu dropdown
+                        <div class="file-menu">
+                            <button class="btn btn-secondary file-menu-toggle">
+                                {move || locale.get().ui.header.file.clone()}
+                                <span class="dropdown-arrow">" ▾"</span>
+                            </button>
+                            <div class="file-menu-dropdown">
+                                <button class="menu-item" on:click=on_new_file>
+                                    {move || locale.get().ui.header.new.clone()}
+                                </button>
+                                <label class="menu-item">
+                                    {move || locale.get().ui.header.open.clone()}
+                                    <input
+                                        type="file"
+                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON"
+                                        style="display: none;"
+                                        on:change=on_file_input
+                                    />
+                                </label>
+                                <div class="menu-divider"></div>
+                                <button class="menu-item" on:click=on_save_ldt>
+                                    {move || locale.get().ui.header.save_ldt.clone()}
+                                </button>
+                                <button class="menu-item" on:click=on_export_ies>
+                                    {move || locale.get().ui.header.export_ies.clone()}
+                                </button>
+                                <button class="menu-item" on:click=on_export_atla_xml>
+                                    {move || locale.get().ui.header.atla_xml.clone()}
+                                </button>
+                                <button class="menu-item" on:click=on_export_atla_json>
+                                    {move || locale.get().ui.header.atla_json.clone()}
+                                </button>
+                                <div class="menu-divider"></div>
+                                <button
+                                    class=move || {
+                                        if generate_current_svg().is_some() { "menu-item" } else { "menu-item disabled" }
+                                    }
+                                    on:click=on_export_svg
+                                    disabled=move || generate_current_svg().is_none()
+                                >
+                                    {move || {
+                                        let tab = active_tab.get();
+                                        match tab {
+                                            Tab::Diagram2D => match diagram_type.get() {
+                                                DiagramType::Polar => "Export SVG (Polar)",
+                                                DiagramType::Cartesian => "Export SVG (Cartesian)",
+                                                DiagramType::BeamAngle => "Export SVG (Beam Angle)",
+                                            },
+                                            Tab::Diagram3D => "Export SVG (3D Butterfly)",
+                                            Tab::Heatmap => "Export SVG (Heatmap)",
+                                            Tab::Cone => "Export SVG (Cone)",
+                                            Tab::Spectral => "Export SVG (Spectral)",
+                                            Tab::Greenhouse => "Export SVG (Greenhouse)",
+                                            Tab::BugRating => "Export SVG (BUG Rating)",
+                                            Tab::Lcs => "Export SVG (LCS)",
+                                            _ => "Export SVG",
+                                        }
+                                    }}
+                                </button>
+                                <div class="menu-divider"></div>
+                                <a
+                                    class="menu-item"
+                                    href="https://github.com/holg/eulumdat-rs"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    "GitHub"
+                                </a>
+                                <button
+                                    class="menu-item"
+                                    on:click=move |_| set_show_about.set(true)
+                                >
+                                    "About"
+                                </button>
+                            </div>
+                        </div>
+                        // Templates dropdown (separate)
+                        <div class="file-menu">
+                            <button class="btn btn-secondary file-menu-toggle">
+                                {move || locale.get().ui.header.templates.clone()}
+                                <span class="dropdown-arrow">" ▾"</span>
+                            </button>
+                            <div class="file-menu-dropdown templates-dropdown">
+                                {move || {
+                                    let l = locale.get();
+                                    ALL_TEMPLATES.iter().enumerate().map(|(i, t)| {
+                                        let name = get_template_name(t.name, &l);
+                                        let idx = i;
+                                        view! {
+                                            <button
+                                                class="menu-item"
+                                                title=t.description
+                                                on:click=move |_| {
+                                                    if let Some(template) = ALL_TEMPLATES.get(idx) {
+                                                        load_template(template, set_atla_doc, set_current_file, set_selected_lamp_set);
+                                                    }
+                                                }
+                                            >
+                                                {name}
+                                            </button>
+                                        }
+                                    }).collect_view()
+                                }}
+                            </div>
+                        </div>
+                        // Settings
                         <button
                             class="btn btn-secondary theme-toggle"
                             on:click=on_toggle_theme
                             title=move || match theme_mode.get() {
-                                ThemeMode::Light => "Switch to dark mode",
-                                ThemeMode::Dark => "Switch to light mode",
+                                ThemeMode::Light => locale.get().ui.header.switch_to_dark.clone(),
+                                ThemeMode::Dark => locale.get().ui.header.switch_to_light.clone(),
                             }
                         >
                             {move || match theme_mode.get() {
@@ -549,13 +827,14 @@ pub fn App() -> impl IntoView {
                                 ThemeMode::Dark => "☀️",
                             }}
                         </button>
+                        <LanguageSelectorCompact />
                     </div>
                 </header>
 
                 // File info
                 {move || current_file.get().map(|filename| view! {
                     <div class="file-info">
-                        "Current file: "<strong>{filename}</strong>
+                        {locale.get().ui.dropzone.current_file.clone()}" "<strong>{filename}</strong>
                     </div>
                 })}
 
@@ -566,41 +845,92 @@ pub fn App() -> impl IntoView {
                     on:dragleave=on_dragleave
                     on:drop=on_drop
                 >
-                    <p>"Drag and drop an LDT, IES, or ATLA (XML/JSON) file here, or use the Open button above"</p>
+                    <p>{move || locale.get().ui.dropzone.text.clone()}</p>
                 </div>
 
                 // Main content
                 <div class="main-content">
                     <div class="panel">
-                        // Tabs
-                        <div class="tabs">
-                            <TabButton tab=Tab::General active_tab=active_tab on_click=on_tab_click(Tab::General) label="General" />
-                            <TabButton tab=Tab::Dimensions active_tab=active_tab on_click=on_tab_click(Tab::Dimensions) label="Dimensions" />
-                            <TabButton tab=Tab::LampSets active_tab=active_tab on_click=on_tab_click(Tab::LampSets) label="Lamp Sets" />
-                            <TabButton tab=Tab::DirectRatios active_tab=active_tab on_click=on_tab_click(Tab::DirectRatios) label="Direct Ratios" />
-                            <TabButton tab=Tab::Intensity active_tab=active_tab on_click=on_tab_click(Tab::Intensity) label="Intensity" />
-                            <TabButton tab=Tab::Diagram2D active_tab=active_tab on_click=on_tab_click(Tab::Diagram2D) label="2D Diagram" />
-                            <TabButton tab=Tab::Diagram3D active_tab=active_tab on_click=on_tab_click(Tab::Diagram3D) label="3D Diagram" />
-                            <TabButton tab=Tab::Heatmap active_tab=active_tab on_click=on_tab_click(Tab::Heatmap) label="Heatmap" />
-                            {move || {
-                                let doc = atla_doc.get();
-                                let has_spectral_or_cct = doc.emitters.iter().any(|e| {
-                                    e.spectral_distribution.is_some() || e.cct.is_some()
-                                });
-                                if has_spectral_or_cct {
-                                    Some(view! {
-                                        <TabButton tab=Tab::Spectral active_tab=active_tab on_click=on_tab_click(Tab::Spectral) label="Spectral" />
-                                    })
-                                } else {
-                                    None
-                                }
-                            }}
-                            <TabButton tab=Tab::Greenhouse active_tab=active_tab on_click=on_tab_click(Tab::Greenhouse) label="Greenhouse" />
-                            <TabButton tab=Tab::BugRating active_tab=active_tab on_click=on_tab_click(Tab::BugRating) label="BUG Rating" />
-                            <TabButton tab=Tab::Lcs active_tab=active_tab on_click=on_tab_click(Tab::Lcs) label="LCS" />
-                            <TabButton tab=Tab::Validation active_tab=active_tab on_click=on_tab_click(Tab::Validation) label="Validation" />
-                            <TabButton tab=Tab::Scene3D active_tab=active_tab on_click=on_tab_click(Tab::Scene3D) label="3D Scene" />
+                        // Main Tabs
+                        <div class="tabs main-tabs">
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::Info { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Info))
+                            >
+                                {move || locale.get().ui.tabs.info.clone()}
+                            </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::Data { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Data))
+                            >
+                                {move || locale.get().ui.tabs.data.clone()}
+                            </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::Diagrams { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Diagrams))
+                            >
+                                {move || locale.get().ui.tabs.diagrams.clone()}
+                            </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::Analysis { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Analysis))
+                            >
+                                {move || locale.get().ui.tabs.analysis.clone()}
+                            </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::Validation { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Validation))
+                            >
+                                {move || locale.get().ui.tabs.validation.clone()}
+                            </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::Scene3D { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Scene3D))
+                            >
+                                {move || locale.get().ui.tabs.scene_3d.clone()}
+                            </button>
                         </div>
+
+                        // Sub-tabs (shown only when main tab has multiple sub-tabs)
+                        {move || {
+                            let main = active_main_tab.get();
+                            let sub_tabs = Tab::tabs_for_main(main);
+                            if sub_tabs.len() > 1 {
+                                Some(view! {
+                                    <div class="tabs sub-tabs">
+                                        {sub_tabs.iter().map(|&tab| {
+                                            let label = match tab {
+                                                Tab::General => locale.get().ui.tabs.general.clone(),
+                                                Tab::Dimensions => locale.get().ui.tabs.dimensions.clone(),
+                                                Tab::LampSets => locale.get().ui.tabs.lamp_sets.clone(),
+                                                Tab::DirectRatios => locale.get().ui.tabs.direct_ratios.clone(),
+                                                Tab::Intensity => locale.get().ui.tabs.intensity.clone(),
+                                                Tab::Diagram2D => locale.get().ui.tabs.diagram_2d.clone(),
+                                                Tab::Diagram3D => locale.get().ui.tabs.diagram_3d.clone(),
+                                                Tab::Heatmap => locale.get().ui.tabs.heatmap.clone(),
+                                                Tab::Cone => locale.get().ui.tabs.cone.clone(),
+                                                Tab::Spectral => locale.get().ui.tabs.spectral.clone(),
+                                                Tab::Greenhouse => locale.get().ui.tabs.greenhouse.clone(),
+                                                Tab::BugRating => locale.get().ui.tabs.bug_rating.clone(),
+                                                Tab::Lcs => locale.get().ui.tabs.lcs.clone(),
+                                                Tab::ValidationTab => locale.get().ui.tabs.validation.clone(),
+                                                Tab::Scene3DTab => locale.get().ui.tabs.scene_3d.clone(),
+                                            };
+                                            view! {
+                                                <button
+                                                    class=move || format!("tab{}", if active_tab.get() == tab { " active" } else { "" })
+                                                    on:click=move |_| set_active_tab.set(tab)
+                                                >
+                                                    {label}
+                                                </button>
+                                            }
+                                        }).collect_view()}
+                                    </div>
+                                })
+                            } else {
+                                None
+                            }
+                        }}
 
                         // Tab content
                         <div class="tab-content">
@@ -621,11 +951,13 @@ pub fn App() -> impl IntoView {
                                     <div class="intensity-tab">
                                         <div class="intensity-table-section">
                                             <div class="table-header">
-                                                <span>"Luminous Intensity (cd/klm)"</span>
+                                                <span>{move || locale.get().ui.intensity.title.clone()}</span>
                                                 <span class="table-info">
                                                     {move || {
                                                         let l = ldt.get();
-                                                        format!("{} C-planes × {} γ-angles", l.c_angles.len(), l.g_angles.len())
+                                                        let template = locale.get().ui.intensity.table_info.clone();
+                                                        template.replace("{c_planes}", &l.c_angles.len().to_string())
+                                                            .replace("{g_angles}", &l.g_angles.len().to_string())
                                                     }}
                                                 </span>
                                             </div>
@@ -636,23 +968,30 @@ pub fn App() -> impl IntoView {
                                 Tab::Diagram2D => view! {
                                     <div class="diagram-2d-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"2D Intensity Distribution"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_2d.clone()}</span>
                                             <div class="diagram-controls">
                                                 <div class="diagram-toggle">
                                                     <button
                                                         class=move || format!("btn-toggle{}", if diagram_type.get() == DiagramType::Polar { " active" } else { "" })
                                                         on:click=move |_| set_diagram_type.set(DiagramType::Polar)
                                                     >
-                                                        "Polar"
+                                                        {move || locale.get().ui.diagram.polar.clone()}
                                                     </button>
                                                     <button
                                                         class=move || format!("btn-toggle{}", if diagram_type.get() == DiagramType::Cartesian { " active" } else { "" })
                                                         on:click=move |_| set_diagram_type.set(DiagramType::Cartesian)
                                                     >
-                                                        "Cartesian"
+                                                        {move || locale.get().ui.diagram.cartesian.clone()}
+                                                    </button>
+                                                    <button
+                                                        class=move || format!("btn-toggle{}", if diagram_type.get() == DiagramType::BeamAngle { " active" } else { "" })
+                                                        on:click=move |_| set_diagram_type.set(DiagramType::BeamAngle)
+                                                        title="IES vs CIE beam angle comparison (Wikipedia style)"
+                                                    >
+                                                        "Beam Angle"
                                                     </button>
                                                 </div>
-                                                <span class="zoom-hint">"Scroll to zoom | Drag to pan"</span>
+                                                <span class="zoom-hint">{move || locale.get().ui.diagram.zoom_hint.clone()}</span>
                                             </div>
                                         </div>
                                         <DiagramZoom>
@@ -660,6 +999,7 @@ pub fn App() -> impl IntoView {
                                                 {move || match diagram_type.get() {
                                                     DiagramType::Polar => view! { <PolarDiagram ldt=ldt /> }.into_any(),
                                                     DiagramType::Cartesian => view! { <CartesianDiagram ldt=ldt /> }.into_any(),
+                                                    DiagramType::BeamAngle => view! { <BeamAngleDiagram ldt=ldt /> }.into_any(),
                                                 }}
                                             </div>
                                         </DiagramZoom>
@@ -668,8 +1008,8 @@ pub fn App() -> impl IntoView {
                                 Tab::Diagram3D => view! {
                                     <div class="diagram-3d-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"3D Butterfly Diagram"</span>
-                                            <span class="text-muted">"Drag to rotate | Scroll to zoom | Auto-rotates on load"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_3d.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.diagram.rotate_hint.clone()}</span>
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
@@ -681,12 +1021,43 @@ pub fn App() -> impl IntoView {
                                 Tab::Heatmap => view! {
                                     <div class="heatmap-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"Intensity Heatmap"</span>
-                                            <span class="text-muted">"Scroll to zoom | Drag to pan"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_heatmap.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.diagram.zoom_hint.clone()}</span>
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
                                                 <IntensityHeatmap ldt=ldt />
+                                            </div>
+                                        </DiagramZoom>
+                                    </div>
+                                }.into_any(),
+                                Tab::Cone => view! {
+                                    <div class="cone-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">{move || locale.get().diagram.title.cone.clone()}</span>
+                                            <div class="mounting-height-control">
+                                                <label>{move || locale.get().diagram.cone.mounting_height.clone()}</label>
+                                                <input
+                                                    type="range"
+                                                    min="1"
+                                                    max="15"
+                                                    step="0.5"
+                                                    prop:value=move || mounting_height.get()
+                                                    on:input=move |ev| {
+                                                        if let Ok(value) = event_target_value(&ev).parse::<f64>() {
+                                                            set_mounting_height.set(value);
+                                                        }
+                                                    }
+                                                />
+                                                <span class="value-display">
+                                                    {move || format!("{:.1}", mounting_height.get())}
+                                                    {move || locale.get().diagram.cone.meter.clone()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <DiagramZoom>
+                                            <div class="diagram-fullwidth">
+                                                <ConeDiagramView ldt=ldt mounting_height=mounting_height />
                                             </div>
                                         </DiagramZoom>
                                     </div>
@@ -696,8 +1067,8 @@ pub fn App() -> impl IntoView {
                                     view! {
                                         <div class="spectral-tab">
                                             <div class="diagram-header">
-                                                <span class="diagram-title">"Spectral Power Distribution"</span>
-                                                <span class="text-muted">"ATLA S001 spectral data | CCT/CRI synthesis"</span>
+                                                <span class="diagram-title">{move || locale.get().ui.diagram.title_spectral.clone()}</span>
+                                                <span class="text-muted">{move || locale.get().ui.spectral.subtitle.clone()}</span>
                                             </div>
                                             <DiagramZoom>
                                                 <div class="diagram-fullwidth">
@@ -712,12 +1083,30 @@ pub fn App() -> impl IntoView {
                                     view! {
                                         <div class="greenhouse-tab">
                                             <div class="diagram-header">
-                                                <span class="diagram-title">"Greenhouse PPFD"</span>
-                                                <span class="text-muted">"µmol/m²/s at mounting distances"</span>
+                                                <span class="diagram-title">{move || locale.get().ui.diagram.title_greenhouse.clone()}</span>
+                                                <div class="mounting-height-control">
+                                                    <label>{move || locale.get().diagram.greenhouse.max_height.clone()}</label>
+                                                    <input
+                                                        type="range"
+                                                        min="0.5"
+                                                        max="6"
+                                                        step="0.5"
+                                                        prop:value=move || greenhouse_height.get()
+                                                        on:input=move |ev| {
+                                                            if let Ok(value) = event_target_value(&ev).parse::<f64>() {
+                                                                set_greenhouse_height.set(value);
+                                                            }
+                                                        }
+                                                    />
+                                                    <span class="value-display">
+                                                        {move || format!("{:.1}", greenhouse_height.get())}
+                                                        {move || locale.get().diagram.cone.meter.clone()}
+                                                    </span>
+                                                </div>
                                             </div>
                                             <DiagramZoom>
                                                 <div class="diagram-fullwidth">
-                                                    <GreenhouseDiagramView atla_doc=atla_doc dark=is_dark />
+                                                    <GreenhouseDiagramView atla_doc=atla_doc dark=is_dark max_height=greenhouse_height />
                                                 </div>
                                             </DiagramZoom>
                                         </div>
@@ -726,8 +1115,8 @@ pub fn App() -> impl IntoView {
                                 Tab::BugRating => view! {
                                     <div class="bug-rating-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"BUG Rating Analysis"</span>
-                                            <span class="text-muted">"IES TM-15-11 | Scroll to zoom | Drag to pan"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_bug.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.spectral.bug_subtitle.clone()}</span>
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
@@ -739,8 +1128,8 @@ pub fn App() -> impl IntoView {
                                 Tab::Lcs => view! {
                                     <div class="lcs-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"Luminaire Classification System"</span>
-                                            <span class="text-muted">"IES TM-15-07 | Scroll to zoom | Drag to pan"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_lcs.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.spectral.lcs_subtitle.clone()}</span>
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
@@ -749,23 +1138,23 @@ pub fn App() -> impl IntoView {
                                         </DiagramZoom>
                                     </div>
                                 }.into_any(),
-                                Tab::Validation => view! {
+                                Tab::ValidationTab => view! {
                                     <div class="validation-tab">
-                                        <h3>"Validation Results"</h3>
+                                        <h3>{move || locale.get().ui.validation.title.clone()}</h3>
                                         <ValidationPanel ldt=ldt />
                                     </div>
                                 }.into_any(),
-                                Tab::Scene3D => view! {
+                                Tab::Scene3DTab => view! {
                                     <div class="scene-3d-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"3D Scene Viewer"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_scene.clone()}</span>
                                         </div>
                                         <div class="scene-container" style="height: 600px; position: relative;">
                                             <BevySceneViewer />
                                         </div>
                                         <div class="scene-controls">
                                             <p class="text-muted">
-                                                "Controls: WASD/Arrows to move • Q/E up/down • Right-click+drag to look • R to reset view • 1-4 for scene types • P for photometric solid • L for luminaire"
+                                                {move || locale.get().ui.diagram.scene_controls.clone()}
                                             </p>
                                         </div>
                                     </div>
@@ -775,23 +1164,37 @@ pub fn App() -> impl IntoView {
                     </div>
                 </div>
             </div>
-        </ThemeProvider>
-    }
-}
 
-#[component]
-fn TabButton(
-    tab: Tab,
-    active_tab: ReadSignal<Tab>,
-    on_click: impl Fn(ev::MouseEvent) + 'static,
-    label: &'static str,
-) -> impl IntoView {
-    view! {
-        <button
-            class=move || format!("tab{}", if active_tab.get() == tab { " active" } else { "" })
-            on:click=on_click
-        >
-            {label}
-        </button>
+            // About Modal
+            {move || {
+                if show_about.get() {
+                    view! {
+                        <div class="modal-overlay" on:click=move |_| set_show_about.set(false)>
+                            <div class="modal-content about-modal" on:click=|e| e.stop_propagation()>
+                                <h2>"Eulumdat"</h2>
+                                <p class="about-subtitle">"Rust/WASM Lighting Data Toolkit"</p>
+                                <div class="about-description">
+                                    <p>"Parses EULUMDAT (.ldt), IES, TM-33, ATLA-S001 files."</p>
+                                    <p>"Generates SVG diagrams: polar, cartesian, spectral, heatmap."</p>
+                                    <p class="about-highlight">"One Rust codebase → Web, CLI, iOS, Android, Python"</p>
+                                </div>
+                                <div class="about-links">
+                                    <a href="https://github.com/holg/eulumdat-rs" target="_blank" rel="noopener noreferrer">
+                                        "GitHub"
+                                    </a>
+                                    <span class="about-version">"v0.4.0"</span>
+                                </div>
+                                <button class="btn btn-primary" on:click=move |_| set_show_about.set(false)>
+                                    "Close"
+                                </button>
+                            </div>
+                        </div>
+                    }.into_any()
+                } else {
+                    // Empty fragment when modal is hidden
+                    view! { <div style="display:none"></div> }.into_any()
+                }
+            }}
+        </ThemeProvider>
     }
 }

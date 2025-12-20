@@ -1,8 +1,10 @@
 //! Python bindings for the eulumdat photometric file library.
 //!
 //! This module provides PyO3-based Python bindings for parsing, writing,
-//! and analyzing EULUMDAT (LDT) and IES photometric files.
+//! and analyzing EULUMDAT (LDT) and IES photometric files, as well as
+//! ATLA (Advanced Technical Lighting Application) format support.
 
+pub mod atla_types;
 pub mod batch;
 pub mod bug_rating;
 pub mod calculations;
@@ -13,6 +15,7 @@ pub mod validation;
 
 use pyo3::prelude::*;
 
+use atla_types::{AtlaDocument, ColorRendering, Emitter, SpectralDistribution};
 use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 use bug_rating::{BugRating, ZoneLumens};
 use calculations::{
@@ -25,7 +28,13 @@ use validation::ValidationWarning;
 /// Python bindings for the eulumdat photometric file library.
 #[pymodule]
 fn eulumdat(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Core types
+    // ATLA types (primary data structure)
+    m.add_class::<AtlaDocument>()?;
+    m.add_class::<Emitter>()?;
+    m.add_class::<SpectralDistribution>()?;
+    m.add_class::<ColorRendering>()?;
+
+    // Legacy Eulumdat types (for backward compatibility)
     m.add_class::<Eulumdat>()?;
     m.add_class::<TypeIndicator>()?;
     m.add_class::<Symmetry>()?;

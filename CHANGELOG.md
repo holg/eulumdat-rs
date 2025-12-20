@@ -5,6 +5,101 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-20
+
+### Added
+
+#### atla (NEW - Unified Photometric Data Model)
+- **ATLA-S001 Implementation** - Advanced Transfer Language for photometric Applications:
+  - `Atla` struct - Unified data model for all photometric formats
+  - XML parsing/writing with full TM-33-23 compatibility
+  - JSON serialization for web and API use
+  - Lossless conversion between LDT, IES, and ATLA formats
+
+- **Spectral Data Support**:
+  - `SpectralData` struct - Wavelength-based intensity distributions (380-780nm)
+  - `SpectralPoint` - Individual wavelength/intensity pairs
+  - CCT (Correlated Color Temperature) calculation
+  - CRI (Color Rendering Index) support
+  - Spectral power distribution visualization
+
+- **Horticultural Lighting Metrics** (IES TM-33-23):
+  - PPF (Photosynthetic Photon Flux) calculation
+  - PPFD (Photosynthetic Photon Flux Density)
+  - YPF (Yield Photon Flux) with McCree curve weighting
+  - Phytochrome photoequilibrium ratios (Pfr/Ptotal)
+  - PAR (Photosynthetically Active Radiation) 400-700nm
+  - Far-red (700-800nm) and UV (280-400nm) regions
+
+- **Greenhouse Metrics**:
+  - `GreenhouseMetrics` struct with all horticultural calculations
+  - DLI (Daily Light Integral) estimation
+  - Spectral quality ratios (Red:Far-red, Blue:Red)
+
+#### eulumdat (core library)
+- **Full ANSI/IES LM-63-2019 Support** - Comprehensive parsing and export for the latest IES standard:
+  - `IesVersion` enum - Support for LM-63-1991, 1995, 2002, and 2019 formats
+  - `FileGenerationType` enum - Accredited lab, simulation, scaled, interpolated variants (Section 5.13, Table 2)
+  - `LuminousShape` enum - 15 luminous opening shapes from negative dimensions (Section 5.11, Table 1)
+  - `TiltData` struct - TILT=INCLUDE parsing with lamp geometry and angle/factor pairs (Annex F)
+  - `LampPosition` struct - Lamp position angles from [LAMPPOSITION] keyword (Annex E)
+  - `IesData` struct - Complete parsed IES data with all keywords and photometric parameters
+  - `IesParser::parse_to_ies_data()` - Parse IES to structured data before Eulumdat conversion
+  - `[MORE]` continuation support - Multi-line keyword values (Annex A)
+  - Version-specific header parsing (`IES:LM-63-2019`, `IESNA:LM-63-2002`, `IESNA91`)
+
+- **IES-Specific Validation** - 71 validation rules for IES files:
+  - Required keywords: [TEST], [TESTLAB], [ISSUEDATE], [MANUFAC]
+  - File generation type validation
+  - Photometric data consistency checks
+  - `validate_ies()` and `validate_ies_strict()` functions
+  - `IesValidationWarning` with severity levels
+
+- **IES Export Options**:
+  - `IesExportOptions` struct for customizable export
+  - `IesExporter::export()` - Default LM-63-2019 format
+  - `IesExporter::export_2002()` - Legacy LM-63-2002 format
+  - `IesExporter::export_with_options()` - Custom export settings
+
+- **IesMetadata for GLDF Integration** - New struct capturing IES-specific data for GLDF:
+  - File provenance: version, test_report, test_lab, issue_date, manufacturer
+  - Generation type flags: is_accredited, is_simulation, is_scaled, is_interpolated
+  - Luminous shape: dimensions, is_rectangular, is_circular
+  - TILT data: has_tilt_data, lamp_geometry, angle_count
+  - `to_gldf_properties()` - Export as key-value pairs
+  - `to_gldf_emitter_geometry()` - GLDF SimpleGeometry compatible output
+
+- **BeamFieldAnalysis** - Comprehensive beam/field angle analysis:
+  - IES definition (based on maximum intensity)
+  - CIE/NEMA definition (based on center-beam intensity)
+  - Batwing distribution detection
+  - `distribution_type()` - Classification: Standard, Mild/Moderate/Strong batwing
+
+#### eulumdat-py (Python bindings)
+- `IesVersion`, `FileGenerationType`, `LuminousShape` enums exposed
+- `IesMetadata` class with all LM-63-2019 specific fields
+- `parse_ies_to_data()` function for structured IES parsing
+
+#### gldf-rs Integration
+- `LdtMetadata` enhanced with `ies_metadata` and `photometric_data` fields
+- `from_ies_data()` method for IES-specific metadata extraction
+- `ldt_to_gldf()` now populates `DescriptivePhotometry` with calculated values:
+  - CIE flux code, light output ratio, luminous efficacy
+  - Downward/upward flux fractions, DLOR/ULOR
+  - Half-peak and tenth-peak divergence angles
+  - Cut-off angle, photometric code, BUG rating
+  - UGR table values (4H×8H, 70/50/20)
+
+### Changed
+- Default IES export format changed from LM-63-2002 to LM-63-2019
+- IES header now uses `IES:LM-63-2019` instead of `IESNA:LM-63-2002`
+- `[ISSUEDATE]` keyword now required for LM-63-2019 exports
+
+### Fixed
+- serde derives added to `PhotometricType` and `UnitType` enums for GLDF integration
+
+---
+
 ## [0.3.0] - 2025-12-16
 
 ### Added

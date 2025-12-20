@@ -1,0 +1,15 @@
+[package]
+name = "eulumdat-i18n"
+version = "0.4.0"
+edition = "2021"
+description = "Internationalization for Eulumdat/ATLA photometric libraries"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/holg/eulumdat-rs"
+keywords = ["i18n", "localization", "photometry", "eulumdat"]
+categories = ["internationalization", "localization"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]

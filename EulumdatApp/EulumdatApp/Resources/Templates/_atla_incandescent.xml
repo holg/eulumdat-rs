@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LuminaireOpticalData version="1.0" xmlns="http://www.ies.org/tm-33">
+    <Header>
+        <Manufacturer>ATLA Test Manufacturer</Manufacturer>
+        <CatalogNumber>INC-100W-A19</CatalogNumber>
+        <Description>100W Incandescent A19 Bulb with Full IR Spectrum</Description>
+        <Laboratory>Spectral Test Laboratory</Laboratory>
+        <ReportNumber>SPEC-2024-IR-002</ReportNumber>
+        <TestDate>2024-01-20</TestDate>
+        <LuminaireType>General Service</LuminaireType>
+        <Comments>Traditional incandescent lamp with extended spectral data to 1100nm. Demonstrates high infrared content typical of tungsten filament lamps. About 90% of input energy is emitted as heat/IR.</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>60</Length>
+            <Width>60</Width>
+            <Height>110</Height>
+        </Dimensions>
+        <Mounting>Pendant</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Goniometer>
+            <Manufacturer>Spectral Equipment Co</Manufacturer>
+            <Model>SP-IR-3000</Model>
+            <GoniometerType>Type C</GoniometerType>
+            <Distance>10.0</Distance>
+        </Goniometer>
+    </Equipment>
+    <Emitter>
+        <ID>incandescent-1</ID>
+        <Description>100W A19 E26 Incandescent</Description>
+        <Quantity>1</Quantity>
+        <RatedLumens>1600</RatedLumens>
+        <InputWatts>100</InputWatts>
+        <CCT>2700</CCT>
+        <ColorRendering>
+            <Ra>100</Ra>
+        </ColorRendering>
+        <SpectralDistribution>
+            <Wavelengths>380 390 400 410 420 430 440 450 460 470 480 490 500 510 520 530 540 550 560 570 580 590 600 610 620 630 640 650 660 670 680 690 700 720 740 760 780 800 820 840 860 880 900 920 940 960 980 1000 1020 1040 1060 1080 1100</Wavelengths>
+            <Values>0.008 0.011 0.015 0.020 0.026 0.034 0.042 0.052 0.063 0.075 0.088 0.103 0.118 0.135 0.153 0.172 0.192 0.213 0.235 0.258 0.282 0.307 0.333 0.360 0.388 0.416 0.446 0.476 0.506 0.537 0.569 0.601 0.633 0.698 0.762 0.824 0.883 0.937 0.978 1.000 0.998 0.976 0.938 0.888 0.832 0.773 0.714 0.656 0.602 0.551 0.504 0.461 0.421</Values>
+            <Units>Relative</Units>
+        </SpectralDistribution>
+        <IntensityDistribution>
+            <PhotometryType>C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <IntensityData horz="0" vert="0">80</IntensityData>
+            <IntensityData horz="0" vert="15">80</IntensityData>
+            <IntensityData horz="0" vert="30">79</IntensityData>
+            <IntensityData horz="0" vert="45">77</IntensityData>
+            <IntensityData horz="0" vert="60">74</IntensityData>
+            <IntensityData horz="0" vert="75">70</IntensityData>
+            <IntensityData horz="0" vert="90">65</IntensityData>
+            <IntensityData horz="0" vert="105">70</IntensityData>
+            <IntensityData horz="0" vert="120">74</IntensityData>
+            <IntensityData horz="0" vert="135">77</IntensityData>
+            <IntensityData horz="0" vert="150">79</IntensityData>
+            <IntensityData horz="0" vert="165">80</IntensityData>
+            <IntensityData horz="0" vert="180">80</IntensityData>
+        </IntensityDistribution>
+    </Emitter>
+</LuminaireOpticalData>

@@ -175,9 +175,9 @@ fn test_calculations() {
     let max = ldt.max_intensity();
     assert!((max - 386.8106).abs() < 0.001);
 
-    // Beam angle
+    // Beam angle (full angle per CIE S 017:2020)
     let beam = PhotometricCalculations::beam_angle(&ldt);
-    assert!(beam > 0.0 && beam < 90.0, "Beam angle: {}", beam);
+    assert!(beam > 0.0 && beam < 180.0, "Beam angle: {}", beam);
 }
 
 #[test]
@@ -185,9 +185,10 @@ fn test_ies_export() {
     let ldt = Eulumdat::parse(TEST_LDT).unwrap();
     let ies = IesExporter::export(&ldt);
 
-    // Check IES header
-    assert!(ies.contains("IESNA:LM-63-2002"));
+    // Default export is now LM-63-2019
+    assert!(ies.contains("IES:LM-63-2019"));
     assert!(ies.contains("[LUMINAIRE] SY-D-1500-195-30-5-ACW"));
+    assert!(ies.contains("[ISSUEDATE]")); // Required in LM-63-2019
     assert!(ies.contains("TILT=NONE"));
 
     // Check that intensity data is present (absolute candela: 386.8 cd/klm * 19.8 = 7658.65 cd)
@@ -195,6 +196,11 @@ fn test_ies_export() {
         ies.contains("7658"),
         "IES should contain absolute candela values"
     );
+
+    // Test legacy 2002 export
+    let ies_2002 = IesExporter::export_2002(&ldt);
+    assert!(ies_2002.contains("IESNA:LM-63-2002"));
+    assert!(!ies_2002.contains("[ISSUEDATE]")); // Not required in 2002
 }
 
 #[test]

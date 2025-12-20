@@ -524,6 +524,414 @@ fileprivate struct FfiConverterString: FfiConverter {
 }
 
 
+
+
+/**
+ * ATLA Document - comprehensive photometric data structure
+ *
+ * This is the primary data structure used internally, supporting:
+ * - Spectral data (SPD)
+ * - Color rendering metrics (Ra, R9, Rf, Rg)
+ * - Multiple emitters
+ * - XML and JSON serialization
+ */
+public protocol AtlaDocumentProtocol : AnyObject {
+    
+    /**
+     * Catalog number
+     */
+    func catalogNumber()  -> String?
+    
+    /**
+     * Get CCT from primary emitter
+     */
+    func cct()  -> Double?
+    
+    /**
+     * Get CRI (Ra) from primary emitter
+     */
+    func cri()  -> Double?
+    
+    /**
+     * Description/luminaire name
+     */
+    func description()  -> String?
+    
+    /**
+     * System efficacy in lm/W
+     */
+    func efficacy()  -> Double?
+    
+    /**
+     * Get all emitters
+     */
+    func emitters()  -> [Emitter]
+    
+    /**
+     * Check if spectral data is available
+     */
+    func hasSpectralData()  -> Bool
+    
+    /**
+     * Manufacturer name
+     */
+    func manufacturer()  -> String?
+    
+    /**
+     * Get the primary (first) emitter
+     */
+    func primaryEmitter()  -> Emitter?
+    
+    /**
+     * Export to IES string
+     */
+    func toIes()  -> String
+    
+    /**
+     * Export to ATLA JSON string
+     */
+    func toJson() throws  -> String
+    
+    /**
+     * Export to LDT string
+     */
+    func toLdt()  -> String
+    
+    /**
+     * Export to ATLA XML string
+     */
+    func toXml() throws  -> String
+    
+    /**
+     * Total input power from all emitters
+     */
+    func totalInputWatts()  -> Double
+    
+    /**
+     * Total luminous flux from all emitters
+     */
+    func totalLuminousFlux()  -> Double
+    
+}
+
+/**
+ * ATLA Document - comprehensive photometric data structure
+ *
+ * This is the primary data structure used internally, supporting:
+ * - Spectral data (SPD)
+ * - Color rendering metrics (Ra, R9, Rf, Rg)
+ * - Multiple emitters
+ * - XML and JSON serialization
+ */
+open class AtlaDocument:
+    AtlaDocumentProtocol {
+    fileprivate let pointer: UnsafeMutableRawPointer!
+
+    /// Used to instantiate a [FFIObject] without an actual pointer, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoPointer {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+    required public init(unsafeFromRawPointer pointer: UnsafeMutableRawPointer) {
+        self.pointer = pointer
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noPointer: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing [Pointer] the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noPointer: NoPointer) {
+        self.pointer = nil
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiClonePointer() -> UnsafeMutableRawPointer {
+        return try! rustCall { uniffi_eulumdat_ffi_fn_clone_atladocument(self.pointer, $0) }
+    }
+    /**
+     * Create a new empty ATLA document
+     */
+public convenience init() {
+    let pointer =
+        try! rustCall() {
+    uniffi_eulumdat_ffi_fn_constructor_atladocument_new($0
+    )
+}
+    self.init(unsafeFromRawPointer: pointer)
+}
+
+    deinit {
+        guard let pointer = pointer else {
+            return
+        }
+
+        try! rustCall { uniffi_eulumdat_ffi_fn_free_atladocument(pointer, $0) }
+    }
+
+    
+    /**
+     * Parse from IES string (converts to ATLA internally)
+     */
+public static func fromIes(content: String)throws  -> AtlaDocument {
+    return try  FfiConverterTypeAtlaDocument.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_constructor_atladocument_from_ies(
+        FfiConverterString.lower(content),$0
+    )
+})
+}
+    
+    /**
+     * Parse from LDT string (converts to ATLA internally)
+     */
+public static func fromLdt(content: String)throws  -> AtlaDocument {
+    return try  FfiConverterTypeAtlaDocument.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_constructor_atladocument_from_ldt(
+        FfiConverterString.lower(content),$0
+    )
+})
+}
+    
+    /**
+     * Parse from ATLA JSON string
+     */
+public static func parseJson(content: String)throws  -> AtlaDocument {
+    return try  FfiConverterTypeAtlaDocument.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_constructor_atladocument_parse_json(
+        FfiConverterString.lower(content),$0
+    )
+})
+}
+    
+    /**
+     * Parse from ATLA XML string
+     */
+public static func parseXml(content: String)throws  -> AtlaDocument {
+    return try  FfiConverterTypeAtlaDocument.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_constructor_atladocument_parse_xml(
+        FfiConverterString.lower(content),$0
+    )
+})
+}
+    
+
+    
+    /**
+     * Catalog number
+     */
+open func catalogNumber() -> String? {
+    return try!  FfiConverterOptionString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_catalog_number(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Get CCT from primary emitter
+     */
+open func cct() -> Double? {
+    return try!  FfiConverterOptionDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_cct(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Get CRI (Ra) from primary emitter
+     */
+open func cri() -> Double? {
+    return try!  FfiConverterOptionDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_cri(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Description/luminaire name
+     */
+open func description() -> String? {
+    return try!  FfiConverterOptionString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_description(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * System efficacy in lm/W
+     */
+open func efficacy() -> Double? {
+    return try!  FfiConverterOptionDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_efficacy(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Get all emitters
+     */
+open func emitters() -> [Emitter] {
+    return try!  FfiConverterSequenceTypeEmitter.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_emitters(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Check if spectral data is available
+     */
+open func hasSpectralData() -> Bool {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_has_spectral_data(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Manufacturer name
+     */
+open func manufacturer() -> String? {
+    return try!  FfiConverterOptionString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_manufacturer(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Get the primary (first) emitter
+     */
+open func primaryEmitter() -> Emitter? {
+    return try!  FfiConverterOptionTypeEmitter.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_primary_emitter(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Export to IES string
+     */
+open func toIes() -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_to_ies(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Export to ATLA JSON string
+     */
+open func toJson()throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_method_atladocument_to_json(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Export to LDT string
+     */
+open func toLdt() -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_to_ldt(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Export to ATLA XML string
+     */
+open func toXml()throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_method_atladocument_to_xml(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Total input power from all emitters
+     */
+open func totalInputWatts() -> Double {
+    return try!  FfiConverterDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_total_input_watts(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+    /**
+     * Total luminous flux from all emitters
+     */
+open func totalLuminousFlux() -> Double {
+    return try!  FfiConverterDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_method_atladocument_total_luminous_flux(self.uniffiClonePointer(),$0
+    )
+})
+}
+    
+
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeAtlaDocument: FfiConverter {
+
+    typealias FfiType = UnsafeMutableRawPointer
+    typealias SwiftType = AtlaDocument
+
+    public static func lift(_ pointer: UnsafeMutableRawPointer) throws -> AtlaDocument {
+        return AtlaDocument(unsafeFromRawPointer: pointer)
+    }
+
+    public static func lower(_ value: AtlaDocument) -> UnsafeMutableRawPointer {
+        return value.uniffiClonePointer()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AtlaDocument {
+        let v: UInt64 = try readInt(&buf)
+        // The Rust code won't compile if a pointer won't fit in a UInt64.
+        // We have to go via `UInt` because that's the thing that's the size of a pointer.
+        let ptr = UnsafeMutableRawPointer(bitPattern: UInt(truncatingIfNeeded: v))
+        if (ptr == nil) {
+            throw UniffiInternalError.unexpectedNullPointer
+        }
+        return try lift(ptr!)
+    }
+
+    public static func write(_ value: AtlaDocument, into buf: inout [UInt8]) {
+        // This fiddling is because `Int` is the thing that's the same size as a pointer.
+        // The Rust code won't compile if a pointer won't fit in a `UInt64`.
+        writeInt(&buf, UInt64(bitPattern: Int64(Int(bitPattern: lower(value)))))
+    }
+}
+
+
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAtlaDocument_lift(_ pointer: UnsafeMutableRawPointer) throws -> AtlaDocument {
+    return try FfiConverterTypeAtlaDocument.lift(pointer)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAtlaDocument_lower(_ value: AtlaDocument) -> UnsafeMutableRawPointer {
+    return FfiConverterTypeAtlaDocument.lower(value)
+}
+
+
 /**
  * Statistics for batch conversion
  */
@@ -1562,6 +1970,115 @@ public func FfiConverterTypeColor_lower(_ value: Color) -> RustBuffer {
 
 
 /**
+ * Color rendering metrics
+ */
+public struct ColorRendering {
+    /**
+     * CRI Ra value (0-100)
+     */
+    public var ra: Double?
+    /**
+     * CRI R9 value (red rendering, can be negative)
+     */
+    public var r9: Double?
+    /**
+     * TM-30 Fidelity index Rf
+     */
+    public var rf: Double?
+    /**
+     * TM-30 Gamut index Rg
+     */
+    public var rg: Double?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * CRI Ra value (0-100)
+         */ra: Double?, 
+        /**
+         * CRI R9 value (red rendering, can be negative)
+         */r9: Double?, 
+        /**
+         * TM-30 Fidelity index Rf
+         */rf: Double?, 
+        /**
+         * TM-30 Gamut index Rg
+         */rg: Double?) {
+        self.ra = ra
+        self.r9 = r9
+        self.rf = rf
+        self.rg = rg
+    }
+}
+
+
+
+extension ColorRendering: Equatable, Hashable {
+    public static func ==(lhs: ColorRendering, rhs: ColorRendering) -> Bool {
+        if lhs.ra != rhs.ra {
+            return false
+        }
+        if lhs.r9 != rhs.r9 {
+            return false
+        }
+        if lhs.rf != rhs.rf {
+            return false
+        }
+        if lhs.rg != rhs.rg {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(ra)
+        hasher.combine(r9)
+        hasher.combine(rf)
+        hasher.combine(rg)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeColorRendering: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ColorRendering {
+        return
+            try ColorRendering(
+                ra: FfiConverterOptionDouble.read(from: &buf), 
+                r9: FfiConverterOptionDouble.read(from: &buf), 
+                rf: FfiConverterOptionDouble.read(from: &buf), 
+                rg: FfiConverterOptionDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ColorRendering, into buf: inout [UInt8]) {
+        FfiConverterOptionDouble.write(value.ra, into: &buf)
+        FfiConverterOptionDouble.write(value.r9, into: &buf)
+        FfiConverterOptionDouble.write(value.rf, into: &buf)
+        FfiConverterOptionDouble.write(value.rg, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeColorRendering_lift(_ buf: RustBuffer) throws -> ColorRendering {
+    return try FfiConverterTypeColorRendering.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeColorRendering_lower(_ value: ColorRendering) -> RustBuffer {
+    return FfiConverterTypeColorRendering.lower(value)
+}
+
+
+/**
  * Result of converting a single file
  */
 public struct ConversionResult {
@@ -1717,6 +2234,171 @@ public func FfiConverterTypeDiagramScale_lift(_ buf: RustBuffer) throws -> Diagr
 #endif
 public func FfiConverterTypeDiagramScale_lower(_ value: DiagramScale) -> RustBuffer {
     return FfiConverterTypeDiagramScale.lower(value)
+}
+
+
+/**
+ * Emitter (light source) data
+ */
+public struct Emitter {
+    /**
+     * Description of the emitter
+     */
+    public var description: String?
+    /**
+     * Number of identical emitters
+     */
+    public var quantity: UInt32
+    /**
+     * Rated luminous flux in lumens
+     */
+    public var ratedLumens: Double?
+    /**
+     * Measured luminous flux in lumens
+     */
+    public var measuredLumens: Double?
+    /**
+     * Input power in watts
+     */
+    public var inputWatts: Double?
+    /**
+     * Correlated color temperature in Kelvin
+     */
+    public var cct: Double?
+    /**
+     * Color rendering metrics
+     */
+    public var colorRendering: ColorRendering?
+    /**
+     * Spectral distribution (if available)
+     */
+    public var spectralDistribution: SpectralDistribution?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Description of the emitter
+         */description: String?, 
+        /**
+         * Number of identical emitters
+         */quantity: UInt32, 
+        /**
+         * Rated luminous flux in lumens
+         */ratedLumens: Double?, 
+        /**
+         * Measured luminous flux in lumens
+         */measuredLumens: Double?, 
+        /**
+         * Input power in watts
+         */inputWatts: Double?, 
+        /**
+         * Correlated color temperature in Kelvin
+         */cct: Double?, 
+        /**
+         * Color rendering metrics
+         */colorRendering: ColorRendering?, 
+        /**
+         * Spectral distribution (if available)
+         */spectralDistribution: SpectralDistribution?) {
+        self.description = description
+        self.quantity = quantity
+        self.ratedLumens = ratedLumens
+        self.measuredLumens = measuredLumens
+        self.inputWatts = inputWatts
+        self.cct = cct
+        self.colorRendering = colorRendering
+        self.spectralDistribution = spectralDistribution
+    }
+}
+
+
+
+extension Emitter: Equatable, Hashable {
+    public static func ==(lhs: Emitter, rhs: Emitter) -> Bool {
+        if lhs.description != rhs.description {
+            return false
+        }
+        if lhs.quantity != rhs.quantity {
+            return false
+        }
+        if lhs.ratedLumens != rhs.ratedLumens {
+            return false
+        }
+        if lhs.measuredLumens != rhs.measuredLumens {
+            return false
+        }
+        if lhs.inputWatts != rhs.inputWatts {
+            return false
+        }
+        if lhs.cct != rhs.cct {
+            return false
+        }
+        if lhs.colorRendering != rhs.colorRendering {
+            return false
+        }
+        if lhs.spectralDistribution != rhs.spectralDistribution {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(description)
+        hasher.combine(quantity)
+        hasher.combine(ratedLumens)
+        hasher.combine(measuredLumens)
+        hasher.combine(inputWatts)
+        hasher.combine(cct)
+        hasher.combine(colorRendering)
+        hasher.combine(spectralDistribution)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeEmitter: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Emitter {
+        return
+            try Emitter(
+                description: FfiConverterOptionString.read(from: &buf), 
+                quantity: FfiConverterUInt32.read(from: &buf), 
+                ratedLumens: FfiConverterOptionDouble.read(from: &buf), 
+                measuredLumens: FfiConverterOptionDouble.read(from: &buf), 
+                inputWatts: FfiConverterOptionDouble.read(from: &buf), 
+                cct: FfiConverterOptionDouble.read(from: &buf), 
+                colorRendering: FfiConverterOptionTypeColorRendering.read(from: &buf), 
+                spectralDistribution: FfiConverterOptionTypeSpectralDistribution.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: Emitter, into buf: inout [UInt8]) {
+        FfiConverterOptionString.write(value.description, into: &buf)
+        FfiConverterUInt32.write(value.quantity, into: &buf)
+        FfiConverterOptionDouble.write(value.ratedLumens, into: &buf)
+        FfiConverterOptionDouble.write(value.measuredLumens, into: &buf)
+        FfiConverterOptionDouble.write(value.inputWatts, into: &buf)
+        FfiConverterOptionDouble.write(value.cct, into: &buf)
+        FfiConverterOptionTypeColorRendering.write(value.colorRendering, into: &buf)
+        FfiConverterOptionTypeSpectralDistribution.write(value.spectralDistribution, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeEmitter_lift(_ buf: RustBuffer) throws -> Emitter {
+    return try FfiConverterTypeEmitter.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeEmitter_lower(_ value: Emitter) -> RustBuffer {
+    return FfiConverterTypeEmitter.lower(value)
 }
 
 
@@ -2795,6 +3477,101 @@ public func FfiConverterTypePolarPoint_lower(_ value: PolarPoint) -> RustBuffer 
 
 
 /**
+ * Spectral distribution data (SPD)
+ */
+public struct SpectralDistribution {
+    /**
+     * Wavelengths in nanometers
+     */
+    public var wavelengths: [Double]
+    /**
+     * Spectral power values
+     */
+    public var values: [Double]
+    /**
+     * Whether values are relative (normalized) or absolute (W/nm)
+     */
+    public var isRelative: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Wavelengths in nanometers
+         */wavelengths: [Double], 
+        /**
+         * Spectral power values
+         */values: [Double], 
+        /**
+         * Whether values are relative (normalized) or absolute (W/nm)
+         */isRelative: Bool) {
+        self.wavelengths = wavelengths
+        self.values = values
+        self.isRelative = isRelative
+    }
+}
+
+
+
+extension SpectralDistribution: Equatable, Hashable {
+    public static func ==(lhs: SpectralDistribution, rhs: SpectralDistribution) -> Bool {
+        if lhs.wavelengths != rhs.wavelengths {
+            return false
+        }
+        if lhs.values != rhs.values {
+            return false
+        }
+        if lhs.isRelative != rhs.isRelative {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(wavelengths)
+        hasher.combine(values)
+        hasher.combine(isRelative)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSpectralDistribution: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SpectralDistribution {
+        return
+            try SpectralDistribution(
+                wavelengths: FfiConverterSequenceDouble.read(from: &buf), 
+                values: FfiConverterSequenceDouble.read(from: &buf), 
+                isRelative: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SpectralDistribution, into buf: inout [UInt8]) {
+        FfiConverterSequenceDouble.write(value.wavelengths, into: &buf)
+        FfiConverterSequenceDouble.write(value.values, into: &buf)
+        FfiConverterBool.write(value.isRelative, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSpectralDistribution_lift(_ buf: RustBuffer) throws -> SpectralDistribution {
+    return try FfiConverterTypeSpectralDistribution.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSpectralDistribution_lower(_ value: SpectralDistribution) -> RustBuffer {
+    return FfiConverterTypeSpectralDistribution.lower(value)
+}
+
+
+/**
  * A validation error (fatal issue)
  */
 public struct ValidationError {
@@ -3360,6 +4137,8 @@ public enum EulumdatError {
     )
     case ValidationError(String
     )
+    case ExportError(String
+    )
     case IoError(String
     )
 }
@@ -3384,7 +4163,10 @@ public struct FfiConverterTypeEulumdatError: FfiConverterRustBuffer {
         case 2: return .ValidationError(
             try FfiConverterString.read(from: &buf)
             )
-        case 3: return .IoError(
+        case 3: return .ExportError(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 4: return .IoError(
             try FfiConverterString.read(from: &buf)
             )
 
@@ -3409,8 +4191,13 @@ public struct FfiConverterTypeEulumdatError: FfiConverterRustBuffer {
             FfiConverterString.write(v1, into: &buf)
             
         
-        case let .IoError(v1):
+        case let .ExportError(v1):
             writeInt(&buf, Int32(3))
+            FfiConverterString.write(v1, into: &buf)
+            
+        
+        case let .IoError(v1):
+            writeInt(&buf, Int32(4))
             FfiConverterString.write(v1, into: &buf)
             
         }
@@ -3490,6 +4277,115 @@ public func FfiConverterTypeInputFormat_lower(_ value: InputFormat) -> RustBuffe
 
 
 extension InputFormat: Equatable, Hashable {}
+
+
+
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+/**
+ * Supported UI languages for localization
+ */
+
+public enum Language {
+    
+    case english
+    case german
+    case chinese
+    case french
+    case italian
+    case russian
+    case spanish
+    case portugueseBrazil
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeLanguage: FfiConverterRustBuffer {
+    typealias SwiftType = Language
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Language {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .english
+        
+        case 2: return .german
+        
+        case 3: return .chinese
+        
+        case 4: return .french
+        
+        case 5: return .italian
+        
+        case 6: return .russian
+        
+        case 7: return .spanish
+        
+        case 8: return .portugueseBrazil
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: Language, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .english:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .german:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .chinese:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .french:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .italian:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .russian:
+            writeInt(&buf, Int32(6))
+        
+        
+        case .spanish:
+            writeInt(&buf, Int32(7))
+        
+        
+        case .portugueseBrazil:
+            writeInt(&buf, Int32(8))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLanguage_lift(_ buf: RustBuffer) throws -> Language {
+    return try FfiConverterTypeLanguage.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeLanguage_lower(_ value: Language) -> RustBuffer {
+    return FfiConverterTypeLanguage.lower(value)
+}
+
+
+
+extension Language: Equatable, Hashable {}
 
 
 
@@ -3826,6 +4722,30 @@ extension WatchFaceStyleType: Equatable, Hashable {}
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterOptionDouble: FfiConverterRustBuffer {
+    typealias SwiftType = Double?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterDouble.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterDouble.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
     typealias SwiftType = String?
 
@@ -3842,6 +4762,78 @@ fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterString.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeColorRendering: FfiConverterRustBuffer {
+    typealias SwiftType = ColorRendering?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeColorRendering.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeColorRendering.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeEmitter: FfiConverterRustBuffer {
+    typealias SwiftType = Emitter?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeEmitter.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeEmitter.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterOptionTypeSpectralDistribution: FfiConverterRustBuffer {
+    typealias SwiftType = SpectralDistribution?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeSpectralDistribution.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeSpectralDistribution.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -4066,6 +5058,31 @@ fileprivate struct FfiConverterSequenceTypeConversionResult: FfiConverterRustBuf
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeConversionResult.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeEmitter: FfiConverterRustBuffer {
+    typealias SwiftType = [Emitter]
+
+    public static func write(_ value: [Emitter], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeEmitter.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [Emitter] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [Emitter]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeEmitter.read(from: &buf))
         }
         return seq
     }
@@ -4370,6 +5387,159 @@ public func exportLdt(ldt: Eulumdat) -> String {
 })
 }
 /**
+ * Generate beam angle diagram SVG from ATLA document
+ */
+public func generateAtlaBeamAngleSvg(doc: AtlaDocument, width: Double, height: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_beam_angle_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate BUG rating diagram SVG from ATLA document
+ */
+public func generateAtlaBugSvg(doc: AtlaDocument, width: Double, height: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_bug_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate butterfly diagram SVG from ATLA document
+ */
+public func generateAtlaButterflySvg(doc: AtlaDocument, width: Double, height: Double, tiltDegrees: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_butterfly_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(tiltDegrees),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate cartesian diagram SVG from ATLA document
+ */
+public func generateAtlaCartesianSvg(doc: AtlaDocument, width: Double, height: Double, maxCurves: UInt32, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_cartesian_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterUInt32.lower(maxCurves),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate cone diagram SVG from ATLA document
+ */
+public func generateAtlaConeSvg(doc: AtlaDocument, width: Double, height: Double, mountingHeight: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_cone_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(mountingHeight),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate heatmap diagram SVG from ATLA document
+ */
+public func generateAtlaHeatmapSvg(doc: AtlaDocument, width: Double, height: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_heatmap_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate LCS classification diagram SVG from ATLA document
+ */
+public func generateAtlaLcsSvg(doc: AtlaDocument, width: Double, height: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_lcs_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate polar diagram SVG from ATLA document
+ */
+public func generateAtlaPolarSvg(doc: AtlaDocument, width: Double, height: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_atla_polar_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate beam angle diagram as SVG comparing IES and CIE definitions
+ *
+ * Shows 50% (beam) and 10% (field) intensity angles with annotations.
+ * For batwing distributions, shows both main and secondary peaks.
+ *
+ * # Arguments
+ * * `ldt` - The luminaire data
+ * * `width` - SVG width in pixels
+ * * `height` - SVG height in pixels
+ * * `theme` - SVG color theme
+ */
+public func generateBeamAngleSvg(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_beam_angle_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate beam angle diagram as SVG with localized labels
+ *
+ * Shows 50% (beam) and 10% (field) intensity angles with annotations.
+ * For batwing distributions, shows both main and secondary peaks.
+ *
+ * # Arguments
+ * * `ldt` - The luminaire data
+ * * `width` - SVG width in pixels
+ * * `height` - SVG height in pixels
+ * * `theme` - SVG color theme
+ * * `language` - Language for labels
+ */
+public func generateBeamAngleSvgLocalized(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_beam_angle_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
  * Generate BUG diagram data
  */
 public func generateBugDiagram(ldt: Eulumdat) -> BugDiagramData {
@@ -4389,6 +5559,20 @@ public func generateBugSvg(ldt: Eulumdat, width: Double, height: Double, theme: 
         FfiConverterDouble.lower(width),
         FfiConverterDouble.lower(height),
         FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate BUG rating diagram as SVG with localized labels (TM-15-11 view)
+ */
+public func generateBugSvgLocalized(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_bug_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
     )
 })
 }
@@ -4420,6 +5604,21 @@ public func generateButterflySvg(ldt: Eulumdat, width: Double, height: Double, t
 })
 }
 /**
+ * Generate butterfly diagram as SVG string with localized labels
+ */
+public func generateButterflySvgLocalized(ldt: Eulumdat, width: Double, height: Double, tiltDegrees: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_butterfly_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(tiltDegrees),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
  * Generate cartesian diagram data
  */
 public func generateCartesianDiagram(ldt: Eulumdat, width: Double, height: Double, maxCurves: UInt32) -> CartesianDiagramData {
@@ -4447,6 +5646,21 @@ public func generateCartesianSvg(ldt: Eulumdat, width: Double, height: Double, m
 })
 }
 /**
+ * Generate cartesian diagram as SVG string with localized labels
+ */
+public func generateCartesianSvgLocalized(ldt: Eulumdat, width: Double, height: Double, maxCurves: UInt32, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterUInt32.lower(maxCurves),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
  * Generate complication SVG (120x120 max for accessoryCircular)
  */
 public func generateComplicationSvg(ldt: Eulumdat, size: UInt32) -> String {
@@ -4454,6 +5668,83 @@ public func generateComplicationSvg(ldt: Eulumdat, size: UInt32) -> String {
     uniffi_eulumdat_ffi_fn_func_generate_complication_svg(
         FfiConverterTypeEulumdat.lower(ldt),
         FfiConverterUInt32.lower(size),$0
+    )
+})
+}
+/**
+ * Generate cone diagram as SVG string showing beam/field angle spread at mounting height
+ *
+ * # Arguments
+ * * `ldt` - The luminaire data
+ * * `width` - SVG width in pixels
+ * * `height` - SVG height in pixels
+ * * `mounting_height` - Mounting height in meters
+ * * `theme` - SVG color theme
+ */
+public func generateConeSvg(ldt: Eulumdat, width: Double, height: Double, mountingHeight: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cone_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(mountingHeight),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate cone diagram as SVG string with localized labels
+ *
+ * # Arguments
+ * * `ldt` - The luminaire data
+ * * `width` - SVG width in pixels
+ * * `height` - SVG height in pixels
+ * * `mounting_height` - Mounting height in meters
+ * * `theme` - SVG color theme
+ * * `language` - Language for labels
+ */
+public func generateConeSvgLocalized(ldt: Eulumdat, width: Double, height: Double, mountingHeight: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cone_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(mountingHeight),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
+ * Generate greenhouse/PPFD diagram SVG from ATLA document
+ *
+ * Shows PPFD at various mounting distances for horticultural lighting.
+ */
+public func generateGreenhouseSvg(doc: AtlaDocument, width: Double, height: Double, maxHeight: Double, dark: Bool) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_greenhouse_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(maxHeight),
+        FfiConverterBool.lower(dark),$0
+    )
+})
+}
+/**
+ * Generate localized greenhouse/PPFD diagram SVG from ATLA document
+ *
+ * Shows PPFD at various mounting distances for horticultural lighting.
+ */
+public func generateGreenhouseSvgLocalized(doc: AtlaDocument, width: Double, height: Double, maxHeight: Double, dark: Bool, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_greenhouse_svg_localized(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(maxHeight),
+        FfiConverterBool.lower(dark),
+        FfiConverterTypeLanguage.lower(language),$0
     )
 })
 }
@@ -4483,6 +5774,20 @@ public func generateHeatmapSvg(ldt: Eulumdat, width: Double, height: Double, the
 })
 }
 /**
+ * Generate heatmap diagram as SVG string with localized labels
+ */
+public func generateHeatmapSvgLocalized(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_heatmap_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
  * Generate LCS diagram as SVG (TM-15-07 view)
  */
 public func generateLcsSvg(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType) -> String {
@@ -4492,6 +5797,20 @@ public func generateLcsSvg(ldt: Eulumdat, width: Double, height: Double, theme: 
         FfiConverterDouble.lower(width),
         FfiConverterDouble.lower(height),
         FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate LCS diagram as SVG with localized labels (TM-15-07 view)
+ */
+public func generateLcsSvgLocalized(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_lcs_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
     )
 })
 }
@@ -4534,6 +5853,51 @@ public func generatePolarSvg(ldt: Eulumdat, width: Double, height: Double, theme
         FfiConverterDouble.lower(width),
         FfiConverterDouble.lower(height),
         FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate polar diagram as SVG string with localized labels
+ */
+public func generatePolarSvgLocalized(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_polar_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
+ * Generate spectral diagram SVG from ATLA document
+ *
+ * Uses actual spectral data if available, otherwise synthesizes from CCT/CRI.
+ */
+public func generateSpectralSvg(doc: AtlaDocument, width: Double, height: Double, dark: Bool)throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_func_generate_spectral_svg(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterBool.lower(dark),$0
+    )
+})
+}
+/**
+ * Generate spectral diagram SVG from ATLA document with localized labels
+ *
+ * Uses actual spectral data if available, otherwise synthesizes from CCT/CRI.
+ */
+public func generateSpectralSvgLocalized(doc: AtlaDocument, width: Double, height: Double, dark: Bool, language: Language)throws  -> String {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_func_generate_spectral_svg_localized(
+        FfiConverterTypeAtlaDocument.lower(doc),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterBool.lower(dark),
+        FfiConverterTypeLanguage.lower(language),$0
     )
 })
 }
@@ -4693,10 +6057,43 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_export_ldt() != 19768) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_beam_angle_svg() != 14184) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_bug_svg() != 60594) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_butterfly_svg() != 45276) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_cartesian_svg() != 59285) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_cone_svg() != 51602) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_heatmap_svg() != 48212) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_lcs_svg() != 58785) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_atla_polar_svg() != 61669) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_beam_angle_svg() != 56394) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_beam_angle_svg_localized() != 20395) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_bug_diagram() != 34423) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_bug_svg() != 63921) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_bug_svg_localized() != 59830) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_butterfly_diagram() != 60884) {
@@ -4705,13 +6102,31 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg() != 24398) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg_localized() != 57034) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_diagram() != 14573) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg() != 18468) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_localized() != 63910) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_complication_svg() != 12814) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cone_svg() != 49144) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cone_svg_localized() != 12182) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_greenhouse_svg() != 59229) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_greenhouse_svg_localized() != 60581) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_heatmap_diagram() != 2153) {
@@ -4720,7 +6135,13 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg() != 53812) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg_localized() != 6199) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_lcs_svg() != 35133) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_lcs_svg_localized() != 24752) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_photos_face_svg() != 40674) {
@@ -4730,6 +6151,15 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg() != 39828) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_localized() != 49970) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_spectral_svg() != 1629) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_spectral_svg_localized() != 47519) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_watch_face_svg() != 47412) {
@@ -4757,6 +6187,66 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_validate_ldt_strict() != 21146) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_catalog_number() != 22693) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_cct() != 34117) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_cri() != 24493) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_description() != 43053) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_efficacy() != 837) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_emitters() != 64815) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_has_spectral_data() != 64393) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_manufacturer() != 21335) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_primary_emitter() != 12988) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_to_ies() != 1894) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_to_json() != 31120) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_to_ldt() != 30588) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_to_xml() != 35320) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_total_input_watts() != 18467) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_method_atladocument_total_luminous_flux() != 16537) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_constructor_atladocument_from_ies() != 8067) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_constructor_atladocument_from_ldt() != 15983) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_constructor_atladocument_new() != 24823) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_constructor_atladocument_parse_json() != 39997) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_constructor_atladocument_parse_xml() != 48517) {
         return InitializationResult.apiChecksumMismatch
     }
 

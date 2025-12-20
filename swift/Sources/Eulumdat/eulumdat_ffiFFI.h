@@ -251,6 +251,117 @@ typedef void (*UniffiForeignFutureCompleteVoid)(uint64_t, UniffiForeignFutureStr
     );
 
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CLONE_ATLADOCUMENT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CLONE_ATLADOCUMENT
+void*_Nonnull uniffi_eulumdat_ffi_fn_clone_atladocument(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FREE_ATLADOCUMENT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FREE_ATLADOCUMENT
+void uniffi_eulumdat_ffi_fn_free_atladocument(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_FROM_IES
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_FROM_IES
+void*_Nonnull uniffi_eulumdat_ffi_fn_constructor_atladocument_from_ies(RustBuffer content, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_FROM_LDT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_FROM_LDT
+void*_Nonnull uniffi_eulumdat_ffi_fn_constructor_atladocument_from_ldt(RustBuffer content, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_NEW
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_NEW
+void*_Nonnull uniffi_eulumdat_ffi_fn_constructor_atladocument_new(RustCallStatus *_Nonnull out_status
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_PARSE_JSON
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_PARSE_JSON
+void*_Nonnull uniffi_eulumdat_ffi_fn_constructor_atladocument_parse_json(RustBuffer content, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_PARSE_XML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_CONSTRUCTOR_ATLADOCUMENT_PARSE_XML
+void*_Nonnull uniffi_eulumdat_ffi_fn_constructor_atladocument_parse_xml(RustBuffer content, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_CATALOG_NUMBER
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_CATALOG_NUMBER
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_catalog_number(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_CCT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_CCT
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_cct(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_CRI
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_CRI
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_cri(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_DESCRIPTION
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_DESCRIPTION
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_description(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_EFFICACY
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_EFFICACY
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_efficacy(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_EMITTERS
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_EMITTERS
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_emitters(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_HAS_SPECTRAL_DATA
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_HAS_SPECTRAL_DATA
+int8_t uniffi_eulumdat_ffi_fn_method_atladocument_has_spectral_data(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_MANUFACTURER
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_MANUFACTURER
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_manufacturer(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_PRIMARY_EMITTER
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_PRIMARY_EMITTER
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_primary_emitter(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_IES
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_IES
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_to_ies(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_JSON
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_JSON
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_to_json(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_LDT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_LDT
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_to_ldt(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_XML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TO_XML
+RustBuffer uniffi_eulumdat_ffi_fn_method_atladocument_to_xml(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TOTAL_INPUT_WATTS
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TOTAL_INPUT_WATTS
+double uniffi_eulumdat_ffi_fn_method_atladocument_total_input_watts(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TOTAL_LUMINOUS_FLUX
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_METHOD_ATLADOCUMENT_TOTAL_LUMINOUS_FLUX
+double uniffi_eulumdat_ffi_fn_method_atladocument_total_luminous_flux(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_BATCH_CONVERT_CONTENTS
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_BATCH_CONVERT_CONTENTS
 RustBuffer uniffi_eulumdat_ffi_fn_func_batch_convert_contents(RustBuffer files, RustBuffer format, RustCallStatus *_Nonnull out_status
@@ -286,6 +397,56 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_export_ies(RustBuffer ldt, RustCallStatus
 RustBuffer uniffi_eulumdat_ffi_fn_func_export_ldt(RustBuffer ldt, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_BEAM_ANGLE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_BEAM_ANGLE_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_beam_angle_svg(void*_Nonnull doc, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_BUG_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_BUG_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_bug_svg(void*_Nonnull doc, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_BUTTERFLY_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_BUTTERFLY_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_butterfly_svg(void*_Nonnull doc, double width, double height, double tilt_degrees, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_CARTESIAN_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_CARTESIAN_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_cartesian_svg(void*_Nonnull doc, double width, double height, uint32_t max_curves, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_CONE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_CONE_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_cone_svg(void*_Nonnull doc, double width, double height, double mounting_height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_HEATMAP_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_HEATMAP_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_heatmap_svg(void*_Nonnull doc, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_LCS_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_LCS_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_lcs_svg(void*_Nonnull doc, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_POLAR_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ATLA_POLAR_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_atla_polar_svg(void*_Nonnull doc, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BEAM_ANGLE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BEAM_ANGLE_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_beam_angle_svg(RustBuffer ldt, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BEAM_ANGLE_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BEAM_ANGLE_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_beam_angle_svg_localized(RustBuffer ldt, double width, double height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUG_DIAGRAM
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUG_DIAGRAM
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_bug_diagram(RustBuffer ldt, RustCallStatus *_Nonnull out_status
@@ -294,6 +455,11 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_bug_diagram(RustBuffer ldt, Rust
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUG_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUG_SVG
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_bug_svg(RustBuffer ldt, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUG_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUG_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_bug_svg_localized(RustBuffer ldt, double width, double height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUTTERFLY_DIAGRAM
@@ -306,6 +472,11 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_butterfly_diagram(RustBuffer ldt
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_butterfly_svg(RustBuffer ldt, double width, double height, double tilt_degrees, RustBuffer theme, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUTTERFLY_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUTTERFLY_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_butterfly_svg_localized(RustBuffer ldt, double width, double height, double tilt_degrees, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_DIAGRAM
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_DIAGRAM
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_diagram(RustBuffer ldt, double width, double height, uint32_t max_curves, RustCallStatus *_Nonnull out_status
@@ -316,9 +487,34 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_diagram(RustBuffer ldt
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg(RustBuffer ldt, double width, double height, uint32_t max_curves, RustBuffer theme, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_localized(RustBuffer ldt, double width, double height, uint32_t max_curves, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_COMPLICATION_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_COMPLICATION_SVG
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_complication_svg(RustBuffer ldt, uint32_t size, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CONE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CONE_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cone_svg(RustBuffer ldt, double width, double height, double mounting_height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CONE_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CONE_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cone_svg_localized(RustBuffer ldt, double width, double height, double mounting_height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_GREENHOUSE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_GREENHOUSE_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_greenhouse_svg(void*_Nonnull doc, double width, double height, double max_height, int8_t dark, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_GREENHOUSE_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_GREENHOUSE_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_greenhouse_svg_localized(void*_Nonnull doc, double width, double height, double max_height, int8_t dark, RustBuffer language, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_HEATMAP_DIAGRAM
@@ -331,9 +527,19 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_heatmap_diagram(RustBuffer ldt, 
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_heatmap_svg(RustBuffer ldt, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_heatmap_svg_localized(RustBuffer ldt, double width, double height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_LCS_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_LCS_SVG
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_lcs_svg(RustBuffer ldt, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_LCS_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_LCS_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_lcs_svg_localized(RustBuffer ldt, double width, double height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_PHOTOS_FACE_SVG
@@ -349,6 +555,21 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_polar_diagram(RustBuffer ldt, Ru
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_polar_svg(RustBuffer ldt, double width, double height, RustBuffer theme, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_polar_svg_localized(RustBuffer ldt, double width, double height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_SPECTRAL_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_SPECTRAL_SVG
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_spectral_svg(void*_Nonnull doc, double width, double height, int8_t dark, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_SPECTRAL_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_SPECTRAL_SVG_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_spectral_svg_localized(void*_Nonnull doc, double width, double height, int8_t dark, RustBuffer language, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_WATCH_FACE_SVG
@@ -718,6 +939,66 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_export_ldt(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_BEAM_ANGLE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_BEAM_ANGLE_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_beam_angle_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_BUG_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_BUG_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_bug_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_BUTTERFLY_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_BUTTERFLY_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_butterfly_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_CARTESIAN_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_CARTESIAN_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_cartesian_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_CONE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_CONE_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_cone_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_HEATMAP_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_HEATMAP_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_heatmap_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_LCS_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_LCS_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_lcs_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_POLAR_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_ATLA_POLAR_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_atla_polar_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BEAM_ANGLE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BEAM_ANGLE_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_beam_angle_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BEAM_ANGLE_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BEAM_ANGLE_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_beam_angle_svg_localized(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUG_DIAGRAM
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUG_DIAGRAM
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_bug_diagram(void
@@ -727,6 +1008,12 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_bug_diagram(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUG_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUG_SVG
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_bug_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUG_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUG_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_bug_svg_localized(void
     
 );
 #endif
@@ -742,6 +1029,12 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUTTERFLY_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUTTERFLY_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg_localized(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_DIAGRAM
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_DIAGRAM
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_diagram(void
@@ -754,9 +1047,39 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_localized(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_COMPLICATION_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_COMPLICATION_SVG
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_complication_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CONE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CONE_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cone_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CONE_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CONE_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cone_svg_localized(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_GREENHOUSE_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_GREENHOUSE_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_greenhouse_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_GREENHOUSE_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_GREENHOUSE_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_greenhouse_svg_localized(void
     
 );
 #endif
@@ -772,9 +1095,21 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg_localized(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_LCS_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_LCS_SVG
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_lcs_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_LCS_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_LCS_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_lcs_svg_localized(void
     
 );
 #endif
@@ -793,6 +1128,24 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_polar_diagram(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_polar_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_localized(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_SPECTRAL_SVG
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_SPECTRAL_SVG
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_spectral_svg(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_SPECTRAL_SVG_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_SPECTRAL_SVG_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_spectral_svg_localized(void
     
 );
 #endif
@@ -847,6 +1200,126 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_validate_ldt(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_VALIDATE_LDT_STRICT
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_VALIDATE_LDT_STRICT
 uint16_t uniffi_eulumdat_ffi_checksum_func_validate_ldt_strict(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_CATALOG_NUMBER
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_CATALOG_NUMBER
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_catalog_number(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_CCT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_CCT
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_cct(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_CRI
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_CRI
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_cri(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_DESCRIPTION
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_DESCRIPTION
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_description(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_EFFICACY
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_EFFICACY
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_efficacy(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_EMITTERS
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_EMITTERS
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_emitters(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_HAS_SPECTRAL_DATA
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_HAS_SPECTRAL_DATA
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_has_spectral_data(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_MANUFACTURER
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_MANUFACTURER
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_manufacturer(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_PRIMARY_EMITTER
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_PRIMARY_EMITTER
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_primary_emitter(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_IES
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_IES
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_to_ies(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_JSON
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_JSON
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_to_json(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_LDT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_LDT
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_to_ldt(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_XML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TO_XML
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_to_xml(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TOTAL_INPUT_WATTS
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TOTAL_INPUT_WATTS
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_total_input_watts(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TOTAL_LUMINOUS_FLUX
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_METHOD_ATLADOCUMENT_TOTAL_LUMINOUS_FLUX
+uint16_t uniffi_eulumdat_ffi_checksum_method_atladocument_total_luminous_flux(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_FROM_IES
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_FROM_IES
+uint16_t uniffi_eulumdat_ffi_checksum_constructor_atladocument_from_ies(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_FROM_LDT
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_FROM_LDT
+uint16_t uniffi_eulumdat_ffi_checksum_constructor_atladocument_from_ldt(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_NEW
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_NEW
+uint16_t uniffi_eulumdat_ffi_checksum_constructor_atladocument_new(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_PARSE_JSON
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_PARSE_JSON
+uint16_t uniffi_eulumdat_ffi_checksum_constructor_atladocument_parse_json(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_PARSE_XML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_CONSTRUCTOR_ATLADOCUMENT_PARSE_XML
+uint16_t uniffi_eulumdat_ffi_checksum_constructor_atladocument_parse_xml(void
     
 );
 #endif

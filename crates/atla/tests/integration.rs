@@ -359,3 +359,497 @@ fn test_uv_spectral_template() {
         metrics.uv_a_percent, metrics.visible_percent, metrics.uv_warning
     );
 }
+
+// ===========================================
+// TM-33-23 Schema Tests
+// ===========================================
+
+fn tm33_samples_dir() -> PathBuf {
+    samples_dir().join("tm33-23")
+}
+
+#[test]
+fn test_schema_detection() {
+    use atla::SchemaVersion;
+
+    // ATLA S001 format
+    let s001_xml = r#"<LuminaireOpticalData version="1.0"></LuminaireOpticalData>"#;
+    assert_eq!(
+        atla::detect_schema_version(s001_xml),
+        SchemaVersion::AtlaS001
+    );
+
+    // TM-33-23 format
+    let tm33_xml = r#"<IESTM33-22><Version>1.1</Version></IESTM33-22>"#;
+    assert_eq!(atla::detect_schema_version(tm33_xml), SchemaVersion::Tm3323);
+}
+
+#[test]
+fn test_parse_tm33_23_minimal() {
+    let path = tm33_samples_dir().join("minimal.xml");
+    if !path.exists() {
+        eprintln!(
+            "Skipping test: TM-33-23 minimal sample not found at {:?}",
+            path
+        );
+        return;
+    }
+
+    let doc = atla::parse_file(&path).expect("Failed to parse TM-33-23 minimal file");
+
+    // Check schema version was detected
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Check version string
+    assert_eq!(doc.version, "1.1");
+
+    // Check header fields
+    assert_eq!(
+        doc.header.manufacturer,
+        Some("ATLA Test Manufacturer".to_string())
+    );
+    assert_eq!(
+        doc.header.description,
+        Some("Minimal TM-33-23 Test Luminaire".to_string())
+    );
+    assert_eq!(doc.header.laboratory, Some("Test Laboratory".to_string()));
+    assert_eq!(doc.header.report_number, Some("RPT-2024-001".to_string()));
+    assert_eq!(doc.header.report_date, Some("2024-01-15".to_string()));
+    assert!(doc.header.unique_identifier.is_some());
+
+    // Check emitter
+    assert_eq!(doc.emitters.len(), 1);
+    let emitter = &doc.emitters[0];
+    assert_eq!(emitter.description, Some("LED Panel Module".to_string()));
+    assert_eq!(emitter.quantity, 1);
+    assert_eq!(emitter.rated_lumens, Some(4000.0));
+    assert_eq!(emitter.input_watts, Some(40.0));
+    assert_eq!(emitter.cct, Some(4000.0));
+
+    // Check intensity distribution
+    let dist = emitter.intensity_distribution.as_ref().unwrap();
+    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Full));
+    assert_eq!(dist.multiplier, Some(1.0));
+    assert!(!dist.horizontal_angles.is_empty());
+    assert!(!dist.vertical_angles.is_empty());
+}
+
+#[test]
+fn test_parse_tm33_23_with_custom_data() {
+    let path = tm33_samples_dir().join("with_custom_data.xml");
+    if !path.exists() {
+        eprintln!(
+            "Skipping test: TM-33-23 custom data sample not found at {:?}",
+            path
+        );
+        return;
+    }
+
+    let doc = atla::parse_file(&path).expect("Failed to parse TM-33-23 with custom data");
+
+    // Check schema version
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Check header with multiple comments
+    assert!(
+        !doc.header.comments_list.is_empty(),
+        "Should have multiple comments"
+    );
+    assert!(doc.header.document_creator.is_some());
+
+    // Check emitter has TM-33-23 specific fields
+    let emitter = &doc.emitters[0];
+    assert!(emitter.ballast_factor.is_some());
+    assert!(emitter.duv.is_some());
+    assert!(emitter.catalog_number.is_some());
+
+    // Check CustomData items
+    assert!(
+        !doc.custom_data_items.is_empty(),
+        "Should have CustomData items"
+    );
+    for item in &doc.custom_data_items {
+        assert!(!item.name.is_empty(), "CustomData.Name should not be empty");
+        assert!(
+            !item.unique_identifier.is_empty(),
+            "CustomData.UniqueIdentifier should not be empty"
+        );
+    }
+}
+
+#[test]
+fn test_tm33_23_validation() {
+    use atla::validate::{validate_with_schema, ValidationSchema};
+
+    let path = tm33_samples_dir().join("minimal.xml");
+    if !path.exists() {
+        eprintln!("Skipping test: TM-33-23 minimal sample not found");
+        return;
+    }
+
+    let doc = atla::parse_file(&path).unwrap();
+
+    // Should pass TM-33-23 validation
+    let result = validate_with_schema(&doc, ValidationSchema::Tm3323);
+    assert!(
+        result.is_valid(),
+        "TM-33-23 minimal should be valid: {:?}",
+        result.errors
+    );
+
+    // Should also pass auto-detection (since schema_version is Tm3323)
+    let result_auto = validate_with_schema(&doc, ValidationSchema::Auto);
+    assert!(result_auto.is_valid());
+}
+
+#[test]
+fn test_tm33_23_to_s001_conversion() {
+    let path = tm33_samples_dir().join("minimal.xml");
+    if !path.exists() {
+        eprintln!("Skipping test: TM-33-23 minimal sample not found");
+        return;
+    }
+
+    let doc = atla::parse_file(&path).unwrap();
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Convert to S001
+    #[cfg(feature = "eulumdat")]
+    {
+        use atla::convert::tm33_to_atla;
+        let (s001_doc, log) = tm33_to_atla(&doc);
+
+        // Should have S001 schema version
+        assert_eq!(s001_doc.schema_version, atla::SchemaVersion::AtlaS001);
+
+        // Core data should be preserved
+        assert_eq!(s001_doc.header.manufacturer, doc.header.manufacturer);
+        assert_eq!(s001_doc.emitters.len(), doc.emitters.len());
+        assert_eq!(
+            s001_doc.emitters[0].rated_lumens,
+            doc.emitters[0].rated_lumens
+        );
+
+        println!("Conversion log entries: {}", log.len());
+        for entry in &log {
+            println!("  {}: {:?}", entry.field, entry.action);
+        }
+    }
+}
+
+#[test]
+fn test_s001_to_tm33_23_conversion() {
+    let path = samples_dir().join("fluorescent.xml");
+    let doc = atla::parse_file(&path).unwrap();
+
+    #[cfg(feature = "eulumdat")]
+    {
+        use atla::convert::{atla_to_tm33, ConversionPolicy};
+
+        // Convert with compatible policy (apply defaults)
+        let (tm33_doc, log) = atla_to_tm33(&doc, ConversionPolicy::Compatible).unwrap();
+
+        // Should have TM-33-23 schema version
+        assert_eq!(tm33_doc.schema_version, atla::SchemaVersion::Tm3323);
+
+        // Core data should be preserved
+        assert_eq!(tm33_doc.header.manufacturer, doc.header.manufacturer);
+        assert_eq!(tm33_doc.emitters.len(), doc.emitters.len());
+        assert_eq!(
+            tm33_doc.emitters[0].rated_lumens,
+            doc.emitters[0].rated_lumens
+        );
+
+        // Should have defaults applied for required TM-33-23 fields
+        assert!(
+            tm33_doc.header.report_date.is_some(),
+            "ReportDate should be defaulted"
+        );
+        assert!(
+            tm33_doc.emitters[0].description.is_some(),
+            "Emitter description should be preserved/defaulted"
+        );
+
+        println!("Conversion log entries: {}", log.len());
+        for entry in &log {
+            println!(
+                "  {}: {:?} ({:?} -> {:?})",
+                entry.field, entry.action, entry.original_value, entry.new_value
+            );
+        }
+    }
+}
+
+#[test]
+fn test_tm33_23_write_roundtrip() {
+    let path = tm33_samples_dir().join("minimal.xml");
+    if !path.exists() {
+        eprintln!("Skipping test: TM-33-23 minimal sample not found");
+        return;
+    }
+
+    let original = atla::parse_file(&path).unwrap();
+
+    // Write as TM-33-23
+    let xml_output =
+        atla::xml::write_with_schema(&original, atla::SchemaVersion::Tm3323, Some(2)).unwrap();
+
+    // Should have TM-33-23 root element
+    assert!(
+        xml_output.contains("<IESTM33-22>"),
+        "Output should have TM-33-23 root element"
+    );
+    assert!(
+        xml_output.contains("<Version>1.1</Version>"),
+        "Output should have version 1.1"
+    );
+
+    // Parse back
+    let reparsed = atla::xml::parse(&xml_output).unwrap();
+
+    // Schema version should be preserved
+    assert_eq!(reparsed.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Core data should match
+    assert_eq!(original.header.manufacturer, reparsed.header.manufacturer);
+    assert_eq!(original.emitters.len(), reparsed.emitters.len());
+    assert_eq!(
+        original.emitters[0].rated_lumens,
+        reparsed.emitters[0].rated_lumens
+    );
+}
+
+// ===========================================
+// TM-33-23 Horticultural Tests
+// ===========================================
+
+#[test]
+fn test_parse_horticultural_led() {
+    let path = tm33_samples_dir().join("horticultural_led.xml");
+    if !path.exists() {
+        eprintln!(
+            "Skipping test: horticultural_led.xml not found at {:?}",
+            path
+        );
+        return;
+    }
+
+    let doc = atla::parse_file(&path).expect("Failed to parse horticultural LED file");
+
+    // Check schema version
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.version, "1.1");
+
+    // Check header
+    assert_eq!(
+        doc.header.manufacturer,
+        Some("GrowLight Technologies".to_string())
+    );
+    assert!(doc
+        .header
+        .description
+        .as_ref()
+        .unwrap()
+        .contains("Horticultural"));
+
+    // Check emitter
+    let emitter = &doc.emitters[0];
+    assert_eq!(emitter.rated_lumens, Some(42000.0));
+    assert_eq!(emitter.input_watts, Some(600.0));
+    assert_eq!(emitter.cct, Some(4000.0));
+    assert!(emitter.ballast_factor.is_some());
+    assert!(emitter.duv.is_some());
+
+    // Check intensity distribution with symmetry
+    let dist = emitter.intensity_distribution.as_ref().unwrap();
+    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Quad));
+    assert_eq!(dist.multiplier, Some(1.0));
+
+    // Check spectral distribution is present
+    assert!(
+        emitter.spectral_distribution.is_some(),
+        "Should have spectral data"
+    );
+    let spd = emitter.spectral_distribution.as_ref().unwrap();
+    assert!(!spd.wavelengths.is_empty(), "Should have wavelength data");
+
+    // Check custom data for horticultural metrics
+    assert!(
+        !doc.custom_data_items.is_empty(),
+        "Should have CustomData items"
+    );
+    let hort_metrics = doc
+        .custom_data_items
+        .iter()
+        .find(|c| c.name == "HorticulturalMetrics");
+    assert!(
+        hort_metrics.is_some(),
+        "Should have HorticulturalMetrics CustomData"
+    );
+}
+
+#[test]
+fn test_parse_far_red_supplemental() {
+    let path = tm33_samples_dir().join("far_red_supplemental.xml");
+    if !path.exists() {
+        eprintln!("Skipping test: far_red_supplemental.xml not found");
+        return;
+    }
+
+    let doc = atla::parse_file(&path).expect("Failed to parse far-red supplemental file");
+
+    // Check schema version
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Check emitter
+    let emitter = &doc.emitters[0];
+    assert_eq!(emitter.input_watts, Some(120.0));
+
+    // Check bilateral symmetry
+    let dist = emitter.intensity_distribution.as_ref().unwrap();
+    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Bi90));
+
+    // Check spectral distribution for far-red peak
+    let spd = emitter.spectral_distribution.as_ref().unwrap();
+    assert!(!spd.wavelengths.is_empty());
+
+    // Find peak wavelength (should be around 730nm)
+    let max_idx = spd
+        .values
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .map(|(i, _)| i);
+    if let Some(idx) = max_idx {
+        let peak_wavelength = spd.wavelengths[idx];
+        assert!(
+            (peak_wavelength - 730.0).abs() < 10.0,
+            "Peak wavelength should be near 730nm, got {}",
+            peak_wavelength
+        );
+    }
+
+    // Check multiple comments
+    assert!(
+        doc.header.comments_list.len() >= 2,
+        "Should have multiple comments"
+    );
+}
+
+#[test]
+fn test_parse_uv_supplemental() {
+    use atla::SpectralMetrics;
+
+    let path = tm33_samples_dir().join("uv_supplemental.xml");
+    if !path.exists() {
+        eprintln!("Skipping test: uv_supplemental.xml not found");
+        return;
+    }
+
+    let doc = atla::parse_file(&path).expect("Failed to parse UV supplemental file");
+
+    // Check schema version
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Check full symmetry
+    let dist = doc.emitters[0].intensity_distribution.as_ref().unwrap();
+    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Full));
+
+    // Check spectral distribution has UV
+    let spd = doc.emitters[0].spectral_distribution.as_ref().unwrap();
+    let metrics = SpectralMetrics::from_spd(spd);
+
+    assert!(metrics.has_uv, "UV supplemental should have UV data");
+    assert!(
+        metrics.wavelength_min < 400.0,
+        "Should have wavelengths below 400nm"
+    );
+    assert!(metrics.uv_a_percent > 0.0, "Should have UV-A content");
+
+    // Check for safety CustomData
+    let safety_data = doc
+        .custom_data_items
+        .iter()
+        .find(|c| c.name == "UVSafetyMetrics");
+    assert!(
+        safety_data.is_some(),
+        "Should have UVSafetyMetrics CustomData"
+    );
+}
+
+#[test]
+fn test_parse_seedling_propagation() {
+    let path = tm33_samples_dir().join("seedling_propagation.xml");
+    if !path.exists() {
+        eprintln!("Skipping test: seedling_propagation.xml not found");
+        return;
+    }
+
+    let doc = atla::parse_file(&path).expect("Failed to parse seedling propagation file");
+
+    // Check schema version
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Check emitter with high CCT (blue-shifted)
+    let emitter = &doc.emitters[0];
+    assert_eq!(emitter.cct, Some(6500.0));
+    assert_eq!(emitter.input_watts, Some(200.0));
+
+    // Check quadrilateral symmetry
+    let dist = emitter.intensity_distribution.as_ref().unwrap();
+    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Quad));
+
+    // Verify spectral data has blue peak
+    let spd = emitter.spectral_distribution.as_ref().unwrap();
+
+    // Find peak wavelength (should be around 450nm for high blue)
+    let max_idx = spd
+        .values
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .map(|(i, _)| i);
+    if let Some(idx) = max_idx {
+        let peak_wavelength = spd.wavelengths[idx];
+        assert!(
+            peak_wavelength < 500.0,
+            "Peak wavelength should be in blue range (<500nm), got {}",
+            peak_wavelength
+        );
+    }
+
+    // Check for multiple CustomData blocks
+    assert!(
+        doc.custom_data_items.len() >= 2,
+        "Should have multiple CustomData items"
+    );
+}
+
+#[test]
+fn test_horticultural_validation() {
+    use atla::validate::{validate_with_schema, ValidationSchema};
+
+    let files = [
+        "horticultural_led.xml",
+        "far_red_supplemental.xml",
+        "uv_supplemental.xml",
+        "seedling_propagation.xml",
+    ];
+
+    for filename in &files {
+        let path = tm33_samples_dir().join(filename);
+        if !path.exists() {
+            continue;
+        }
+
+        let doc = atla::parse_file(&path).unwrap();
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3323);
+
+        assert!(
+            result.is_valid(),
+            "Horticultural file {} should be valid TM-33-23, errors: {:?}",
+            filename,
+            result.errors
+        );
+    }
+}

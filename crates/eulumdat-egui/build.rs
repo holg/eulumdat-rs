@@ -35,7 +35,11 @@ fn main() {
     for entry in fs::read_dir(&templates_src).expect("Failed to read templates directory") {
         let entry = entry.expect("Failed to read entry");
         let path = entry.path();
-        if path.extension().is_some_and(|ext| ext == "ldt") {
+        // Copy both LDT and ATLA XML templates
+        if path
+            .extension()
+            .is_some_and(|ext| ext == "ldt" || ext == "xml")
+        {
             let file_name = path.file_name().unwrap();
             let dest_path = templates_dest.join(file_name);
             fs::copy(&path, &dest_path).expect("Failed to copy template file");

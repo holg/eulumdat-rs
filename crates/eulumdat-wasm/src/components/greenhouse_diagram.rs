@@ -11,10 +11,13 @@ use leptos::prelude::*;
 pub fn GreenhouseDiagramView(
     atla_doc: ReadSignal<LuminaireOpticalData>,
     dark: Memo<bool>,
+    /// Maximum mounting height in meters
+    max_height: ReadSignal<f64>,
 ) -> impl IntoView {
     let svg_content = move || {
         let doc = atla_doc.get();
-        let diagram = GreenhouseDiagram::from_atla(&doc);
+        let height = max_height.get();
+        let diagram = GreenhouseDiagram::from_atla_with_height(&doc, height);
         let theme = if dark.get() {
             GreenhouseTheme::dark()
         } else {

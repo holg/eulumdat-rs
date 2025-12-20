@@ -21,6 +21,19 @@
 		21B842E82EE2235B00502C5E /* 1-1-0.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842DE2EE2235B00502C5E /* 1-1-0.ldt */; };
 		21B842E92EE2235B00502C5E /* projector.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842E12EE2235B00502C5E /* projector.ldt */; };
 		21B842EA2EE2235B00502C5E /* fluorescent_luminaire.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21B842E02EE2235B00502C5E /* fluorescent_luminaire.ldt */; };
+		21C00001C0DEFACE00000001 /* wiki-batwing.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000001 /* wiki-batwing.ldt */; };
+		21C00001C0DEFACE00000002 /* wiki-spotlight.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000002 /* wiki-spotlight.ldt */; };
+		21C00001C0DEFACE00000003 /* wiki-flood.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000003 /* wiki-flood.ldt */; };
+		21C00001C0DEFACE00000004 /* _atla_grow_light.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000004 /* _atla_grow_light.xml */; };
+		21C00001C0DEFACE00000005 /* _atla_grow_light_rb.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000005 /* _atla_grow_light_rb.xml */; };
+		21C00001C0DEFACE00000006 /* _atla_fluorescent.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000006 /* _atla_fluorescent.xml */; };
+		21C00001C0DEFACE00000007 /* _atla_halogen_lamp.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000007 /* _atla_halogen_lamp.xml */; };
+		21C00001C0DEFACE00000008 /* _atla_incandescent.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000008 /* _atla_incandescent.xml */; };
+		21C00001C0DEFACE00000009 /* _atla_heat_lamp.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */; };
+		21C00001C0DEFACE0000000A /* _atla_uv_blacklight.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */; };
+		21D00001D0DEFACE00000001 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D00002D0DEFACE00000001 /* Localization.swift */; };
+		21D00001D0DEFACE00000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 21D00002D0DEFACE00000002 /* Localizable.xcstrings */; };
+		21D00001D0DEFACE00000003 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 21D00002D0DEFACE00000003 /* InfoPlist.xcstrings */; };
 		21F18DD02EE4AA810076746A /* EulumdatKit in Frameworks */ = {isa = PBXBuildFile; productRef = A3000001 /* EulumdatKit */; };
 		A1000001 /* EulumdatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001 /* EulumdatApp.swift */; };
 		A1000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* ContentView.swift */; };
@@ -76,6 +89,19 @@
 		21B842E02EE2235B00502C5E /* fluorescent_luminaire.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = fluorescent_luminaire.ldt; sourceTree = "<group>"; };
 		21B842E12EE2235B00502C5E /* projector.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = projector.ldt; sourceTree = "<group>"; };
 		21B842E22EE2235B00502C5E /* road_luminaire.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = road_luminaire.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000001 /* wiki-batwing.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wiki-batwing.ldt"; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000002 /* wiki-spotlight.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wiki-spotlight.ldt"; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000003 /* wiki-flood.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wiki-flood.ldt"; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000004 /* _atla_grow_light.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_grow_light.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000005 /* _atla_grow_light_rb.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_grow_light_rb.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000006 /* _atla_fluorescent.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_fluorescent.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000007 /* _atla_halogen_lamp.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_halogen_lamp.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000008 /* _atla_incandescent.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_incandescent.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_heat_lamp.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_uv_blacklight.xml; sourceTree = "<group>"; };
+		21D00002D0DEFACE00000001 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		21D00002D0DEFACE00000002 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		21D00002D0DEFACE00000003 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		A2000001 /* EulumdatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EulumdatApp.swift; sourceTree = "<group>"; };
 		A2000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2000003 /* SVGView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGView.swift; sourceTree = "<group>"; };
@@ -146,6 +172,16 @@
 				21B842E02EE2235B00502C5E /* fluorescent_luminaire.ldt */,
 				21B842E12EE2235B00502C5E /* projector.ldt */,
 				21B842E22EE2235B00502C5E /* road_luminaire.ldt */,
+				21C00002C0DEFACE00000001 /* wiki-batwing.ldt */,
+				21C00002C0DEFACE00000002 /* wiki-spotlight.ldt */,
+				21C00002C0DEFACE00000003 /* wiki-flood.ldt */,
+				21C00002C0DEFACE00000004 /* _atla_grow_light.xml */,
+				21C00002C0DEFACE00000005 /* _atla_grow_light_rb.xml */,
+				21C00002C0DEFACE00000006 /* _atla_fluorescent.xml */,
+				21C00002C0DEFACE00000007 /* _atla_halogen_lamp.xml */,
+				21C00002C0DEFACE00000008 /* _atla_incandescent.xml */,
+				21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */,
+				21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */,
 			);
 			path = Templates;
 			sourceTree = "<group>";
@@ -181,6 +217,9 @@
 				21B842A92EE21A0400502C5E /* Templates.swift */,
 				21618C192EE31CAE0023823F /* ValidationView.swift */,
 				21B842DB2EE2230300502C5E /* BatchConvertView.swift */,
+				21D00002D0DEFACE00000001 /* Localization.swift */,
+				21D00002D0DEFACE00000002 /* Localizable.xcstrings */,
+				21D00002D0DEFACE00000003 /* InfoPlist.xcstrings */,
 				A2000004 /* Assets.xcassets */,
 				A2000005 /* Info.plist */,
 				A2000006 /* EulumdatApp.entitlements */,
@@ -281,7 +320,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2610;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					213C0A842EE44458008B665C = {
 						CreatedOnToolsVersion = 26.1.1;
@@ -338,6 +377,18 @@
 				21B842E82EE2235B00502C5E /* 1-1-0.ldt in Resources */,
 				21B842E92EE2235B00502C5E /* projector.ldt in Resources */,
 				21B842EA2EE2235B00502C5E /* fluorescent_luminaire.ldt in Resources */,
+				21C00001C0DEFACE00000001 /* wiki-batwing.ldt in Resources */,
+				21C00001C0DEFACE00000002 /* wiki-spotlight.ldt in Resources */,
+				21C00001C0DEFACE00000003 /* wiki-flood.ldt in Resources */,
+				21C00001C0DEFACE00000004 /* _atla_grow_light.xml in Resources */,
+				21C00001C0DEFACE00000005 /* _atla_grow_light_rb.xml in Resources */,
+				21C00001C0DEFACE00000006 /* _atla_fluorescent.xml in Resources */,
+				21C00001C0DEFACE00000007 /* _atla_halogen_lamp.xml in Resources */,
+				21C00001C0DEFACE00000008 /* _atla_incandescent.xml in Resources */,
+				21C00001C0DEFACE00000009 /* _atla_heat_lamp.xml in Resources */,
+				21C00001C0DEFACE0000000A /* _atla_uv_blacklight.xml in Resources */,
+				21D00001D0DEFACE00000002 /* Localizable.xcstrings in Resources */,
+				21D00001D0DEFACE00000003 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -371,6 +422,7 @@
 				21B842AA2EE21A0400502C5E /* Templates.swift in Sources */,
 				21B842DC2EE2230300502C5E /* BatchConvertView.swift in Sources */,
 				218980FF2EE8CE1E00BC4390 /* Packages.swift in Sources */,
+				21D00001D0DEFACE00000001 /* Localization.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -403,7 +455,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -417,7 +469,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -440,7 +492,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -454,7 +506,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -478,6 +530,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -507,7 +560,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -529,6 +584,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -539,6 +595,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -568,7 +625,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = U4GT5CZ7J7;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -583,6 +642,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -595,9 +655,11 @@
 				CODE_SIGN_ENTITLEMENTS = EulumdatApp/EulumdatApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EulumdatApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Eulumdat;
@@ -615,7 +677,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
@@ -634,9 +696,11 @@
 				CODE_SIGN_ENTITLEMENTS = EulumdatApp/EulumdatApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = EulumdatApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Eulumdat;
@@ -654,7 +718,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
@@ -670,7 +734,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
@@ -691,7 +755,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = U4GT5CZ7J7;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;

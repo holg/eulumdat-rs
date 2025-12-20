@@ -7,9 +7,10 @@ use ::eulumdat as core;
 use core::{
     diagram::{
         ButterflyDiagram as CoreButterflyDiagram, CartesianDiagram as CoreCartesianDiagram,
-        HeatmapDiagram as CoreHeatmapDiagram, PolarDiagram as CorePolarDiagram,
+        ConeDiagram as CoreConeDiagram, HeatmapDiagram as CoreHeatmapDiagram,
+        PolarDiagram as CorePolarDiagram,
     },
-    BugDiagram as CoreBugDiagram, IesExporter, IesParser,
+    BugDiagram as CoreBugDiagram, IesExporter, IesParser, PhotometricCalculations,
 };
 
 use crate::{
@@ -785,6 +786,43 @@ impl Eulumdat {
     fn heatmap_svg(&self, width: f64, height: f64, theme: SvgTheme) -> String {
         let diagram = CoreHeatmapDiagram::from_eulumdat(&self.inner, width, height);
         diagram.to_svg(width, height, &theme.to_core())
+    }
+
+    /// Generate a cone diagram SVG showing beam and field angle spread at a mounting height.
+    ///
+    /// Args:
+    ///     width: SVG width in pixels
+    ///     height: SVG height in pixels
+    ///     mounting_height: Mounting height in meters
+    ///     theme: SVG color theme
+    ///
+    /// Returns:
+    ///     SVG string
+    #[pyo3(signature = (width=600.0, height=450.0, mounting_height=3.0, theme=SvgTheme::Light))]
+    fn cone_svg(&self, width: f64, height: f64, mounting_height: f64, theme: SvgTheme) -> String {
+        let diagram = CoreConeDiagram::from_eulumdat(&self.inner, mounting_height);
+        diagram.to_svg(width, height, &theme.to_core())
+    }
+
+    /// Generate a beam angle diagram SVG comparing IES and CIE definitions.
+    ///
+    /// Shows 50% (beam) and 10% (field) intensity angles with annotations
+    /// explaining the differences between IES and CIE standards.
+    /// For batwing distributions, shows both main and secondary peaks.
+    ///
+    /// Args:
+    ///     width: SVG width in pixels
+    ///     height: SVG height in pixels
+    ///     theme: SVG color theme
+    ///
+    /// Returns:
+    ///     SVG string
+    #[pyo3(signature = (width=600.0, height=600.0, theme=SvgTheme::Light))]
+    fn beam_angle_svg(&self, width: f64, height: f64, theme: SvgTheme) -> String {
+        let diagram = CorePolarDiagram::from_eulumdat(&self.inner);
+        let analysis = PhotometricCalculations::beam_field_analysis(&self.inner);
+        let show_both = analysis.is_batwing;
+        diagram.to_svg_with_beam_field_angles(width, height, &theme.to_core(), &analysis, show_both)
     }
 
     /// Generate a BUG rating diagram SVG.

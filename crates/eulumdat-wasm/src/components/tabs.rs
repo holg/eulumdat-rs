@@ -1,3 +1,4 @@
+use crate::i18n::use_locale;
 use eulumdat::{
     Eulumdat, GldfPhotometricData, LampSet, PhotometricSummary, Symmetry, TypeIndicator,
 };
@@ -12,6 +13,8 @@ use web_sys::{HtmlInputElement, HtmlSelectElement};
 
 #[component]
 pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
+    let locale = use_locale();
+
     let on_iden_change = move |e: ev::Event| {
         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
         set_ldt.update(|ldt| ldt.identification = input.value());
@@ -62,7 +65,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
 
     view! {
         <div class="form-group">
-            <label>"Identification"</label>
+            <label>{move || locale.get().luminaire.info.identification.clone()}</label>
             <input
                 type="text"
                 prop:value=move || ldt.get().identification.clone()
@@ -73,47 +76,47 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
 
         <div class="form-row">
             <div class="form-group">
-                <label>"Type Indicator"</label>
+                <label>{move || locale.get().luminaire.info.type_indicator.clone()}</label>
                 <select prop:value=move || ldt.get().type_indicator.as_int().to_string() on:change=on_type_change>
-                    <option value="1">"1 - Point source (vertical symmetry)"</option>
-                    <option value="2">"2 - Linear luminaire"</option>
-                    <option value="3">"3 - Point source (other symmetry)"</option>
+                    <option value="1">{move || locale.get().luminaire.info.type_indicator_1.clone()}</option>
+                    <option value="2">{move || locale.get().luminaire.info.type_indicator_2.clone()}</option>
+                    <option value="3">{move || locale.get().luminaire.info.type_indicator_3.clone()}</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label>"Symmetry"</label>
+                <label>{move || locale.get().luminaire.info.symmetry.clone()}</label>
                 <select prop:value=move || ldt.get().symmetry.as_int().to_string() on:change=on_sym_change>
-                    <option value="0">"0 - No symmetry"</option>
-                    <option value="1">"1 - Vertical axis"</option>
-                    <option value="2">"2 - C0-C180 plane"</option>
-                    <option value="3">"3 - C90-C270 plane"</option>
-                    <option value="4">"4 - Both planes"</option>
+                    <option value="0">{move || locale.get().luminaire.info.symmetry_0.clone()}</option>
+                    <option value="1">{move || locale.get().luminaire.info.symmetry_1.clone()}</option>
+                    <option value="2">{move || locale.get().luminaire.info.symmetry_2.clone()}</option>
+                    <option value="3">{move || locale.get().luminaire.info.symmetry_3.clone()}</option>
+                    <option value="4">{move || locale.get().luminaire.info.symmetry_4.clone()}</option>
                 </select>
             </div>
         </div>
 
         <div class="form-row">
             <div class="form-group">
-                <label>"Number of C-Planes (Nc)"</label>
+                <label>{move || locale.get().luminaire.info.num_c_planes.clone()}</label>
                 <input type="text" prop:value=move || ldt.get().num_c_planes.to_string() readonly />
             </div>
             <div class="form-group">
-                <label>"C-Plane Distance (Dc)"</label>
+                <label>{move || locale.get().luminaire.info.c_plane_distance.clone()}</label>
                 <input type="text" prop:value=move || format!("{:.1}°", ldt.get().c_plane_distance) readonly />
             </div>
             <div class="form-group">
-                <label>"Number of G-Planes (Ng)"</label>
+                <label>{move || locale.get().luminaire.info.num_g_planes.clone()}</label>
                 <input type="text" prop:value=move || ldt.get().num_g_planes.to_string() readonly />
             </div>
             <div class="form-group">
-                <label>"G-Plane Distance (Dg)"</label>
+                <label>{move || locale.get().luminaire.info.g_plane_distance.clone()}</label>
                 <input type="text" prop:value=move || format!("{:.1}°", ldt.get().g_plane_distance) readonly />
             </div>
         </div>
 
         <div class="form-group">
-            <label>"Measurement Report Number"</label>
+            <label>{move || locale.get().luminaire.info.measurement_report.clone()}</label>
             <input
                 type="text"
                 prop:value=move || ldt.get().measurement_report_number.clone()
@@ -124,7 +127,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
 
         <div class="form-row">
             <div class="form-group">
-                <label>"Luminaire Name"</label>
+                <label>{move || locale.get().luminaire.info.luminaire_name.clone()}</label>
                 <input
                     type="text"
                     prop:value=move || ldt.get().luminaire_name.clone()
@@ -133,7 +136,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                 />
             </div>
             <div class="form-group">
-                <label>"Luminaire Number"</label>
+                <label>{move || locale.get().luminaire.info.luminaire_number.clone()}</label>
                 <input
                     type="text"
                     prop:value=move || ldt.get().luminaire_number.clone()
@@ -145,7 +148,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
 
         <div class="form-row">
             <div class="form-group">
-                <label>"File Name"</label>
+                <label>{move || locale.get().luminaire.info.file_name.clone()}</label>
                 <input
                     type="text"
                     prop:value=move || ldt.get().file_name.clone()
@@ -154,7 +157,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                 />
             </div>
             <div class="form-group">
-                <label>"Date / User"</label>
+                <label>{move || locale.get().luminaire.info.date_user.clone()}</label>
                 <input
                     type="text"
                     prop:value=move || ldt.get().date_user.clone()
@@ -166,32 +169,32 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
 
         // Photometric Summary (Calculated Values)
         <div class="calculated-summary">
-            <h4 class="summary-header">"Calculated Photometric Summary"</h4>
-            <p class="text-muted text-small">"Values below are calculated from the intensity distribution data"</p>
+            <h4 class="summary-header">{move || locale.get().luminaire.summary.title.clone()}</h4>
+            <p class="text-muted text-small">{move || locale.get().luminaire.summary.description.clone()}</p>
 
             <div class="info-grid-wide">
                 // Flux & Efficiency
                 <div class="info-item">
-                    <div class="info-label">"Total Lamp Flux"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.total_lamp_flux.clone()}</div>
                     <div class="info-value">{move || format!("{:.0} lm", ldt.get().total_luminous_flux())}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Total Wattage"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.total_wattage.clone()}</div>
                     <div class="info-value">{move || format!("{:.1} W", ldt.get().total_wattage())}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Lamp Efficacy"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.lamp_efficacy.clone()}</div>
                     <div class="info-value">{move || format!("{:.1} lm/W", ldt.get().luminous_efficacy())}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Luminaire Efficacy"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.luminaire_efficacy.clone()}</div>
                     <div class="info-value">{move || {
                         let summary = PhotometricSummary::from_eulumdat(&ldt.get());
                         format!("{:.1} lm/W", summary.luminaire_efficacy)
                     }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"LOR"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.lor.clone()}</div>
                     <div class="info-value">{move || format!("{:.1}%", ldt.get().light_output_ratio)}</div>
                 </div>
                 <div class="info-item">
@@ -203,28 +206,28 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                 </div>
             </div>
 
-            <h5 class="subsection-header">"Beam Characteristics"</h5>
+            <h5 class="subsection-header">{move || locale.get().luminaire.summary.beam_characteristics.clone()}</h5>
             <div class="info-grid-wide">
                 <div class="info-item">
-                    <div class="info-label">"Max Intensity"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.max_intensity.clone()}</div>
                     <div class="info-value">{move || format!("{:.1} cd/klm", ldt.get().max_intensity())}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Beam Angle (50%)"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.beam_angle_50.clone()}</div>
                     <div class="info-value">{move || {
                         let summary = PhotometricSummary::from_eulumdat(&ldt.get());
                         format!("{:.1}°", summary.beam_angle)
                     }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Field Angle (10%)"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.field_angle_10.clone()}</div>
                     <div class="info-value">{move || {
                         let summary = PhotometricSummary::from_eulumdat(&ldt.get());
                         format!("{:.1}°", summary.field_angle)
                     }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Spacing Criterion"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.spacing_criterion.clone()}</div>
                     <div class="info-value">{move || {
                         let summary = PhotometricSummary::from_eulumdat(&ldt.get());
                         format!("{:.2} × {:.2}", summary.spacing_c0, summary.spacing_c90)
@@ -232,7 +235,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                 </div>
             </div>
 
-            <h5 class="subsection-header">"CIE Classification"</h5>
+            <h5 class="subsection-header">{move || locale.get().luminaire.photometric.cie_class.clone()}</h5>
             <div class="info-grid-wide">
                 <div class="info-item" style="grid-column: span 2;">
                     <div class="info-label">"CIE Flux Code"</div>
@@ -242,14 +245,14 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                     }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Photometric Code"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.photometric_code.clone()}</div>
                     <div class="info-value">{move || {
                         let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
                         gldf.photometric_code
                     }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Cut-off Angle"</div>
+                    <div class="info-label">{move || locale.get().luminaire.photometric.cutoff_angle.clone()}</div>
                     <div class="info-value">{move || {
                         let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
                         format!("{:.1}°", gldf.cut_off_angle)
@@ -257,7 +260,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                 </div>
             </div>
 
-            <h5 class="subsection-header">"Zonal Lumens"</h5>
+            <h5 class="subsection-header">{move || locale.get().luminaire.summary.zonal_lumens.clone()}</h5>
             <div class="info-grid-wide">
                 <div class="info-item">
                     <div class="info-label">"0-30°"</div>
@@ -281,7 +284,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                     }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"90-180° (upward)"</div>
+                    <div class="info-label">"90-180°"</div>
                     <div class="info-value">{move || {
                         let summary = PhotometricSummary::from_eulumdat(&ldt.get());
                         format!("{:.1}%", summary.zonal_lumens.upward_total())
@@ -289,16 +292,16 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                 </div>
             </div>
 
-            <h5 class="subsection-header">"Glare Assessment"</h5>
+            <h5 class="subsection-header">{move || locale.get().luminaire.summary.glare_assessment.clone()}</h5>
             <div class="info-grid-wide">
                 <div class="info-item">
-                    <div class="info-label">"Luminaire Luminance (65°)"</div>
+                    <div class="info-label">{move || locale.get().luminaire.summary.luminaire_luminance.clone()}</div>
                     <div class="info-value">{move || {
                         let gldf = GldfPhotometricData::from_eulumdat(&ldt.get());
                         if gldf.luminaire_luminance > 0.0 {
                             format!("{:.0} cd/m²", gldf.luminaire_luminance)
                         } else {
-                            "N/A (no luminous area)".to_string()
+                            "N/A".to_string()
                         }
                     }}</div>
                 </div>
@@ -323,7 +326,7 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                     }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">"Room Config"</div>
+                    <div class="info-label">{move || locale.get().luminaire.summary.room_config.clone()}</div>
                     <div class="info-value text-muted">"4H×8H, 70/50/20"</div>
                 </div>
             </div>
@@ -337,11 +340,13 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
 
 #[component]
 pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
+    let locale = use_locale();
+
     view! {
-        <h4 class="mb-1">"Luminaire Dimensions (mm)"</h4>
+        <h4 class="mb-1">{move || locale.get().luminaire.physical.dimensions_mm.clone()}</h4>
         <div class="form-row">
             <div class="form-group">
-                <label>"Length / Diameter (L)"</label>
+                <label>{move || locale.get().luminaire.physical.length_diameter.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().length.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -349,7 +354,7 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
                     } />
             </div>
             <div class="form-group">
-                <label>"Width (B)"</label>
+                <label>{move || locale.get().luminaire.physical.width_b.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().width.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -357,7 +362,7 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
                     } />
             </div>
             <div class="form-group">
-                <label>"Height (H)"</label>
+                <label>{move || locale.get().luminaire.physical.height_h.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().height.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -366,10 +371,10 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
             </div>
         </div>
 
-        <h4 class="mb-1 mt-1">"Luminous Area (mm)"</h4>
+        <h4 class="mb-1 mt-1">{move || locale.get().luminaire.physical.luminous_area_mm.clone()}</h4>
         <div class="form-row">
             <div class="form-group">
-                <label>"Length / Diameter (La)"</label>
+                <label>{move || locale.get().luminaire.physical.luminous_length.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().luminous_area_length.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -377,7 +382,7 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
                     } />
             </div>
             <div class="form-group">
-                <label>"Width (B1)"</label>
+                <label>{move || locale.get().luminaire.physical.luminous_width.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().luminous_area_width.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -386,7 +391,7 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
             </div>
         </div>
 
-        <h4 class="mb-1 mt-1">"Luminous Area Height at C-Planes (mm)"</h4>
+        <h4 class="mb-1 mt-1">{move || locale.get().luminaire.physical.luminous_height_c_planes.clone()}</h4>
         <div class="form-row">
             <div class="form-group">
                 <label>"HC0"</label>
@@ -422,10 +427,10 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
             </div>
         </div>
 
-        <h4 class="mb-1 mt-1">"Optical Properties"</h4>
+        <h4 class="mb-1 mt-1">{move || locale.get().luminaire.optical.title.clone()}</h4>
         <div class="form-row">
             <div class="form-group">
-                <label>"Downward Flux Fraction (%)"</label>
+                <label>{move || locale.get().luminaire.optical.downward_flux_fraction.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().downward_flux_fraction.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -433,7 +438,7 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
                     } />
             </div>
             <div class="form-group">
-                <label>"Light Output Ratio (%)"</label>
+                <label>{move || locale.get().luminaire.optical.light_output_ratio.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().light_output_ratio.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -441,7 +446,7 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
                     } />
             </div>
             <div class="form-group">
-                <label>"Conversion Factor"</label>
+                <label>{move || locale.get().luminaire.optical.conversion_factor.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().conversion_factor.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -449,7 +454,7 @@ pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) 
                     } />
             </div>
             <div class="form-group">
-                <label>"Tilt Angle (°)"</label>
+                <label>{move || locale.get().luminaire.optical.tilt_angle.clone()}</label>
                 <input type="number" step="0.1" prop:value=move || ldt.get().tilt_angle.to_string()
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -471,6 +476,8 @@ pub fn LampSetsTab(
     selected: ReadSignal<usize>,
     set_selected: WriteSignal<usize>,
 ) -> impl IntoView {
+    let locale = use_locale();
+
     let on_add = move |_: ev::MouseEvent| {
         set_ldt.update(|ldt| {
             ldt.lamp_sets.push(LampSet {
@@ -510,13 +517,13 @@ pub fn LampSetsTab(
                             class=move || format!("lamp-set-tab{}", if i == selected.get() { " active" } else { "" })
                             on:click=on_select
                         >
-                            {format!("Set {}", i + 1)}
+                            {move || locale.get().luminaire.lamp_set.set_n.replace("{n}", &(i + 1).to_string())}
                         </button>
                     }
                 }).collect_view()}
             </div>
             <button class="btn btn-primary btn-add-lamp" on:click=on_add>
-                "+ Add Lamp Set"
+                "+ Add"
             </button>
         </div>
 
@@ -528,7 +535,7 @@ pub fn LampSetsTab(
                 view! {
                     <div class="form-row">
                         <div class="form-group">
-                            <label>"Number of Lamps"</label>
+                            <label>{move || locale.get().luminaire.lamp_set.num_lamps.clone()}</label>
                             <input
                                 type="number"
                                 prop:value=ls.num_lamps.to_string()
@@ -545,7 +552,7 @@ pub fn LampSetsTab(
                             />
                         </div>
                         <div class="form-group">
-                            <label>"Total Luminous Flux (lm)"</label>
+                            <label>{move || locale.get().luminaire.lamp_set.luminous_flux.clone()}</label>
                             <input
                                 type="number"
                                 step="1"
@@ -563,7 +570,7 @@ pub fn LampSetsTab(
                             />
                         </div>
                         <div class="form-group">
-                            <label>"Wattage incl. Ballast (W)"</label>
+                            <label>{move || locale.get().luminaire.lamp_set.wattage.clone()}</label>
                             <input
                                 type="number"
                                 step="0.1"
@@ -583,7 +590,7 @@ pub fn LampSetsTab(
                     </div>
 
                     <div class="form-group">
-                        <label>"Lamp Type"</label>
+                        <label>{move || locale.get().luminaire.lamp_set.lamp_type.clone()}</label>
                         <input
                             type="text"
                             prop:value=ls.lamp_type.clone()
@@ -601,7 +608,7 @@ pub fn LampSetsTab(
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>"Color Appearance / CCT"</label>
+                            <label>{move || locale.get().luminaire.lamp_set.color_appearance.clone()}</label>
                             <input
                                 type="text"
                                 prop:value=ls.color_appearance.clone()
@@ -617,7 +624,7 @@ pub fn LampSetsTab(
                             />
                         </div>
                         <div class="form-group">
-                            <label>"Color Rendering Group / CRI"</label>
+                            <label>{move || locale.get().luminaire.lamp_set.color_rendering.clone()}</label>
                             <input
                                 type="text"
                                 prop:value=ls.color_rendering_group.clone()
@@ -637,7 +644,7 @@ pub fn LampSetsTab(
                     {if ldt_val.lamp_sets.len() > 1 {
                         Some(view! {
                             <button class="btn btn-secondary mt-1" on:click=on_remove>
-                                "Remove this lamp set"
+                                {move || locale.get().luminaire.lamp_set.remove.clone()}
                             </button>
                         })
                     } else {
@@ -655,6 +662,8 @@ pub fn LampSetsTab(
 
 #[component]
 pub fn DirectRatiosTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
+    let locale = use_locale();
+
     let k_values = [
         "0.60", "0.80", "1.00", "1.25", "1.50", "2.00", "2.50", "3.00", "4.00", "5.00",
     ];
@@ -673,7 +682,7 @@ pub fn DirectRatiosTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>
 
     view! {
         <p class="text-muted mb-1">
-            "Direct ratios for room indices (k values). These are utilization factors."
+            {move || locale.get().luminaire.direct_ratios.description.clone()}
         </p>
 
         <div class="ratios-grid">
@@ -705,7 +714,7 @@ pub fn DirectRatiosTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>
 
         <div class="mt-1">
             <button class="btn btn-secondary" on:click=on_calculate>
-                "Calculate from intensity data"
+                {move || locale.get().luminaire.direct_ratios.calculate.clone()}
             </button>
         </div>
     }

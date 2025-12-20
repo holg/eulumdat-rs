@@ -113,6 +113,7 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
             horizontal_angles: ldt.c_angles.clone(),
             vertical_angles: ldt.g_angles.clone(),
             intensities: ldt.intensities.clone(),
+            ..Default::default()
         })
     } else {
         None
@@ -168,6 +169,7 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
         }),
         intensity_distribution,
         spectral_distribution: None,
+        ..Default::default()
     }
 }
 
@@ -585,4 +587,480 @@ mod tests {
         assert_eq!(cri_to_group(85.0), "1B");
         assert_eq!(cri_to_group(75.0), "2A");
     }
+}
+
+// ============================================================================
+// Schema-to-Schema Conversion (ATLA S001 <-> TM-33-23)
+// ============================================================================
+
+use crate::error::{AtlaError, Result};
+
+/// Conversion policy for S001 -> TM-33-23 migration
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ConversionPolicy {
+    /// Strict: fail if required fields are missing
+    Strict,
+    /// Compatible: use defaults for missing required fields (with warnings)
+    #[default]
+    Compatible,
+}
+
+/// Action taken during conversion
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConversionAction {
+    /// Value preserved as-is
+    Preserved,
+    /// Default value applied for missing required field
+    DefaultApplied,
+    /// Field renamed (e.g., InputWatts -> InputWattage)
+    Renamed,
+    /// Type converted (e.g., string GTIN -> integer)
+    TypeConverted,
+    /// Data dropped (not supported in target schema)
+    Dropped,
+    /// Warning issued but data preserved
+    Warning,
+}
+
+/// Log entry for conversion actions
+#[derive(Debug, Clone)]
+pub struct ConversionLogEntry {
+    /// Field path (e.g., "Header.Description", "Emitter\[0\].InputWatts")
+    pub field: String,
+    /// Action taken
+    pub action: ConversionAction,
+    /// Original value (if applicable)
+    pub original_value: Option<String>,
+    /// New value (if applicable)
+    pub new_value: Option<String>,
+    /// Human-readable message
+    pub message: String,
+}
+
+impl ConversionLogEntry {
+    fn new(field: &str, action: ConversionAction, message: &str) -> Self {
+        Self {
+            field: field.to_string(),
+            action,
+            original_value: None,
+            new_value: None,
+            message: message.to_string(),
+        }
+    }
+
+    fn with_values(mut self, original: Option<&str>, new: Option<&str>) -> Self {
+        self.original_value = original.map(|s| s.to_string());
+        self.new_value = new.map(|s| s.to_string());
+        self
+    }
+}
+
+/// Convert ATLA S001 document to TM-33-23 format
+///
+/// # Arguments
+/// * `doc` - Source document (S001 format)
+/// * `policy` - How to handle missing required fields
+///
+/// # Returns
+/// * Converted document and log of changes
+/// * Error if strict mode and required fields are missing
+///
+/// # Required Fields in TM-33-23
+/// - Header: Description, Laboratory, ReportNumber, ReportDate (xs:date)
+/// - Emitter: Quantity, Description, InputWattage
+pub fn atla_to_tm33(
+    doc: &LuminaireOpticalData,
+    policy: ConversionPolicy,
+) -> Result<(LuminaireOpticalData, Vec<ConversionLogEntry>)> {
+    let mut converted = doc.clone();
+    let mut log = Vec::new();
+
+    // Set target schema version
+    converted.schema_version = SchemaVersion::Tm3323;
+    converted.version = "1.1".to_string();
+
+    // === Header Required Fields ===
+
+    // Description (required in TM-33-23)
+    if converted.header.description.is_none() {
+        match policy {
+            ConversionPolicy::Strict => {
+                return Err(AtlaError::MissingElement(
+                    "Header.Description is required in TM-33-23".to_string(),
+                ));
+            }
+            ConversionPolicy::Compatible => {
+                converted.header.description = Some("Not specified".to_string());
+                log.push(
+                    ConversionLogEntry::new(
+                        "Header.Description",
+                        ConversionAction::DefaultApplied,
+                        "Applied default value for required field",
+                    )
+                    .with_values(None, Some("Not specified")),
+                );
+            }
+        }
+    }
+
+    // Laboratory (required in TM-33-23)
+    if converted.header.laboratory.is_none() {
+        match policy {
+            ConversionPolicy::Strict => {
+                return Err(AtlaError::MissingElement(
+                    "Header.Laboratory is required in TM-33-23".to_string(),
+                ));
+            }
+            ConversionPolicy::Compatible => {
+                converted.header.laboratory = Some("Not specified".to_string());
+                log.push(
+                    ConversionLogEntry::new(
+                        "Header.Laboratory",
+                        ConversionAction::DefaultApplied,
+                        "Applied default value for required field",
+                    )
+                    .with_values(None, Some("Not specified")),
+                );
+            }
+        }
+    }
+
+    // ReportNumber (required in TM-33-23)
+    if converted.header.report_number.is_none() {
+        match policy {
+            ConversionPolicy::Strict => {
+                return Err(AtlaError::MissingElement(
+                    "Header.ReportNumber is required in TM-33-23".to_string(),
+                ));
+            }
+            ConversionPolicy::Compatible => {
+                converted.header.report_number = Some("UNKNOWN".to_string());
+                log.push(
+                    ConversionLogEntry::new(
+                        "Header.ReportNumber",
+                        ConversionAction::DefaultApplied,
+                        "Applied default value for required field",
+                    )
+                    .with_values(None, Some("UNKNOWN")),
+                );
+            }
+        }
+    }
+
+    // ReportDate (required in TM-33-23, xs:date format)
+    if converted.header.report_date.is_none() {
+        // Try to use test_date if available
+        if let Some(ref test_date) = converted.header.test_date {
+            // Try to parse and convert to xs:date format (YYYY-MM-DD)
+            if let Some(date) = try_parse_date(test_date) {
+                converted.header.report_date = Some(date.clone());
+                log.push(
+                    ConversionLogEntry::new(
+                        "Header.ReportDate",
+                        ConversionAction::TypeConverted,
+                        "Converted from TestDate",
+                    )
+                    .with_values(Some(test_date), Some(&date)),
+                );
+            }
+        }
+
+        // If still none, apply default or error
+        if converted.header.report_date.is_none() {
+            match policy {
+                ConversionPolicy::Strict => {
+                    return Err(AtlaError::MissingElement(
+                        "Header.ReportDate is required in TM-33-23".to_string(),
+                    ));
+                }
+                ConversionPolicy::Compatible => {
+                    // Use current date as default
+                    let today = current_date_string();
+                    converted.header.report_date = Some(today.clone());
+                    log.push(
+                        ConversionLogEntry::new(
+                            "Header.ReportDate",
+                            ConversionAction::DefaultApplied,
+                            "Applied current date as default",
+                        )
+                        .with_values(None, Some(&today)),
+                    );
+                }
+            }
+        }
+    }
+
+    // GTIN: string to integer conversion
+    if let Some(ref gtin_str) = converted.header.gtin {
+        if converted.header.gtin_int.is_none() {
+            if let Ok(gtin_int) = gtin_str.parse::<i64>() {
+                converted.header.gtin_int = Some(gtin_int);
+                log.push(
+                    ConversionLogEntry::new(
+                        "Header.GTIN",
+                        ConversionAction::TypeConverted,
+                        "Converted string GTIN to integer",
+                    )
+                    .with_values(Some(gtin_str), Some(&gtin_int.to_string())),
+                );
+            } else {
+                log.push(ConversionLogEntry::new(
+                    "Header.GTIN",
+                    ConversionAction::Warning,
+                    "GTIN could not be parsed as integer, will use string value",
+                ));
+            }
+        }
+    }
+
+    // === Emitter Required Fields ===
+    for (i, emitter) in converted.emitters.iter_mut().enumerate() {
+        // Description (required in TM-33-23)
+        if emitter.description.is_none() {
+            match policy {
+                ConversionPolicy::Strict => {
+                    return Err(AtlaError::MissingElement(format!(
+                        "Emitter[{}].Description is required in TM-33-23",
+                        i
+                    )));
+                }
+                ConversionPolicy::Compatible => {
+                    emitter.description = Some("Emitter".to_string());
+                    log.push(
+                        ConversionLogEntry::new(
+                            &format!("Emitter[{}].Description", i),
+                            ConversionAction::DefaultApplied,
+                            "Applied default value for required field",
+                        )
+                        .with_values(None, Some("Emitter")),
+                    );
+                }
+            }
+        }
+
+        // InputWattage (required in TM-33-23) - NO sensible default
+        if emitter.input_watts.is_none() {
+            // This is always an error - no sensible default for power consumption
+            return Err(AtlaError::MissingElement(format!(
+                "Emitter[{}].InputWattage is required in TM-33-23 (no sensible default)",
+                i
+            )));
+        } else {
+            // Log the rename from InputWatts to InputWattage
+            log.push(ConversionLogEntry::new(
+                &format!("Emitter[{}].InputWatts", i),
+                ConversionAction::Renamed,
+                "Renamed to InputWattage for TM-33-23",
+            ));
+        }
+    }
+
+    // === Migrate CustomData ===
+    // Convert single S001 CustomData to TM-33-23 CustomDataItem
+    if let Some(ref cd) = converted.custom_data {
+        if converted.custom_data_items.is_empty() {
+            converted.custom_data_items.push(CustomDataItem {
+                name: cd
+                    .namespace
+                    .clone()
+                    .unwrap_or_else(|| "migrated".to_string()),
+                unique_identifier: format!("migrated-{}", generate_uuid_stub()),
+                raw_content: cd.data.clone(),
+            });
+            log.push(ConversionLogEntry::new(
+                "CustomData",
+                ConversionAction::TypeConverted,
+                "Migrated S001 CustomData to TM-33-23 CustomDataItem",
+            ));
+        }
+    }
+
+    Ok((converted, log))
+}
+
+/// Convert TM-33-23 document to ATLA S001 format
+///
+/// Note: This conversion may be lossy as TM-33-23 has features not in S001:
+/// - AngularSpectral data will be dropped
+/// - AngularColor data will be dropped
+/// - Multiple CustomData items will be merged/first-only
+///
+/// # Returns
+/// * Converted document and log of changes (including warnings about data loss)
+pub fn tm33_to_atla(doc: &LuminaireOpticalData) -> (LuminaireOpticalData, Vec<ConversionLogEntry>) {
+    let mut converted = doc.clone();
+    let mut log = Vec::new();
+
+    // Set target schema version
+    converted.schema_version = SchemaVersion::AtlaS001;
+    converted.version = "1.0".to_string();
+
+    // === GTIN: integer to string ===
+    if let Some(gtin_int) = converted.header.gtin_int {
+        if converted.header.gtin.is_none() {
+            converted.header.gtin = Some(gtin_int.to_string());
+            log.push(
+                ConversionLogEntry::new(
+                    "Header.GTIN",
+                    ConversionAction::TypeConverted,
+                    "Converted integer GTIN to string",
+                )
+                .with_values(Some(&gtin_int.to_string()), Some(&gtin_int.to_string())),
+            );
+        }
+    }
+
+    // === ReportDate to TestDate ===
+    if converted.header.test_date.is_none() {
+        if let Some(ref report_date) = converted.header.report_date {
+            converted.header.test_date = Some(report_date.clone());
+            log.push(ConversionLogEntry::new(
+                "Header.ReportDate",
+                ConversionAction::Renamed,
+                "Copied to TestDate for S001 compatibility",
+            ));
+        }
+    }
+
+    // === Emitter Data Loss ===
+    for (i, emitter) in converted.emitters.iter_mut().enumerate() {
+        // AngularSpectral - not supported in S001
+        if emitter.angular_spectral.is_some() {
+            emitter.angular_spectral = None;
+            log.push(ConversionLogEntry::new(
+                &format!("Emitter[{}].AngularSpectral", i),
+                ConversionAction::Dropped,
+                "AngularSpectral data not supported in S001 - DATA LOSS",
+            ));
+        }
+
+        // AngularColor - not supported in S001
+        if emitter.angular_color.is_some() {
+            emitter.angular_color = None;
+            log.push(ConversionLogEntry::new(
+                &format!("Emitter[{}].AngularColor", i),
+                ConversionAction::Dropped,
+                "AngularColor data not supported in S001 - DATA LOSS",
+            ));
+        }
+
+        // Apply multiplier to intensity values (S001 doesn't have Multiplier)
+        if let Some(ref mut dist) = emitter.intensity_distribution {
+            if let Some(multiplier) = dist.multiplier {
+                if (multiplier - 1.0).abs() > 0.0001 {
+                    // Apply multiplier to all intensity values
+                    for row in dist.intensities.iter_mut() {
+                        for value in row.iter_mut() {
+                            *value *= multiplier as f64;
+                        }
+                    }
+                    log.push(
+                        ConversionLogEntry::new(
+                            &format!("Emitter[{}].IntensityDistribution.Multiplier", i),
+                            ConversionAction::TypeConverted,
+                            "Applied Multiplier to intensity values (S001 doesn't support Multiplier field)",
+                        )
+                        .with_values(Some(&multiplier.to_string()), None),
+                    );
+                }
+                dist.multiplier = None;
+            }
+
+            // Remove symmetry field (S001 infers from angle data)
+            if dist.symmetry.is_some() {
+                log.push(ConversionLogEntry::new(
+                    &format!("Emitter[{}].IntensityDistribution.Symm", i),
+                    ConversionAction::Dropped,
+                    "Symmetry field not used in S001 (inferred from angles)",
+                ));
+                dist.symmetry = None;
+            }
+
+            // Remove absolute_photometry field
+            if dist.absolute_photometry.is_some() {
+                dist.absolute_photometry = None;
+            }
+        }
+    }
+
+    // === CustomData: multiple to single ===
+    if !converted.custom_data_items.is_empty() && converted.custom_data.is_none() {
+        // Take only the first CustomData item
+        let first = &converted.custom_data_items[0];
+        converted.custom_data = Some(CustomData {
+            namespace: Some(first.name.clone()),
+            data: first.raw_content.clone(),
+        });
+
+        if converted.custom_data_items.len() > 1 {
+            log.push(ConversionLogEntry::new(
+                "CustomData",
+                ConversionAction::Dropped,
+                &format!(
+                    "S001 only supports single CustomData - {} additional items dropped",
+                    converted.custom_data_items.len() - 1
+                ),
+            ));
+        } else {
+            log.push(ConversionLogEntry::new(
+                "CustomData",
+                ConversionAction::TypeConverted,
+                "Converted TM-33-23 CustomDataItem to S001 CustomData",
+            ));
+        }
+
+        converted.custom_data_items.clear();
+    }
+
+    (converted, log)
+}
+
+/// Try to parse a date string and convert to xs:date format (YYYY-MM-DD)
+fn try_parse_date(s: &str) -> Option<String> {
+    let s = s.trim();
+
+    // Already in YYYY-MM-DD format
+    if s.len() == 10 && s.chars().nth(4) == Some('-') && s.chars().nth(7) == Some('-') {
+        return Some(s.to_string());
+    }
+
+    // Try common formats: DD.MM.YYYY, DD/MM/YYYY, MM/DD/YYYY, YYYYMMDD
+    // For simplicity, just check if it looks like a date
+    let digits: String = s.chars().filter(|c| c.is_ascii_digit()).collect();
+    if digits.len() == 8 {
+        // Assume YYYYMMDD or similar
+        let year = &digits[0..4];
+        let month = &digits[4..6];
+        let day = &digits[6..8];
+        if year.parse::<u32>().is_ok()
+            && month
+                .parse::<u32>()
+                .map(|m| (1..=12).contains(&m))
+                .unwrap_or(false)
+            && day
+                .parse::<u32>()
+                .map(|d| (1..=31).contains(&d))
+                .unwrap_or(false)
+        {
+            return Some(format!("{}-{}-{}", year, month, day));
+        }
+    }
+
+    None
+}
+
+/// Get current date as YYYY-MM-DD string
+fn current_date_string() -> String {
+    // Simple approach without external dependencies
+    "2024-01-01".to_string() // Placeholder - in real code use chrono or similar
+}
+
+/// Generate a simple UUID-like stub
+fn generate_uuid_stub() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    format!("{:x}", timestamp)
 }

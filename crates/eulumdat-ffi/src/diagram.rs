@@ -1,10 +1,45 @@
 //! Diagram types and functions for FFI
 
 use eulumdat::diagram::{
-    ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram, SvgTheme, WatchFaceStyle,
+    ButterflyDiagram, CartesianDiagram, ConeDiagram, HeatmapDiagram, PolarDiagram, SvgTheme,
+    WatchFaceStyle,
 };
+use eulumdat::{PhotometricCalculations, PhotometricSummary};
+use eulumdat_i18n::{Language as CoreLanguage, Locale};
 
 use crate::types::{to_core_eulumdat, Eulumdat, Symmetry};
+
+/// Supported UI languages for localization
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum Language {
+    English,
+    German,
+    Chinese,
+    French,
+    Italian,
+    Russian,
+    Spanish,
+    PortugueseBrazil,
+}
+
+impl Language {
+    fn to_core(self) -> CoreLanguage {
+        match self {
+            Language::English => CoreLanguage::English,
+            Language::German => CoreLanguage::German,
+            Language::Chinese => CoreLanguage::Chinese,
+            Language::French => CoreLanguage::French,
+            Language::Italian => CoreLanguage::Italian,
+            Language::Russian => CoreLanguage::Russian,
+            Language::Spanish => CoreLanguage::Spanish,
+            Language::PortugueseBrazil => CoreLanguage::PortugueseBrazil,
+        }
+    }
+
+    pub(crate) fn to_locale(self) -> Locale {
+        Locale::for_language(self.to_core())
+    }
+}
 
 // Base diagram types
 
@@ -229,6 +264,14 @@ impl SvgThemeType {
             SvgThemeType::CssVariables => SvgTheme::css_variables(),
         }
     }
+
+    pub(crate) fn to_core_with_locale(self, locale: &Locale) -> SvgTheme {
+        match self {
+            SvgThemeType::Light => SvgTheme::light_with_locale(locale),
+            SvgThemeType::Dark => SvgTheme::dark_with_locale(locale),
+            SvgThemeType::CssVariables => SvgTheme::css_variables_with_locale(locale),
+        }
+    }
 }
 
 // FFI functions for diagrams
@@ -379,6 +422,22 @@ pub fn generate_polar_svg(ldt: &Eulumdat, width: f64, height: f64, theme: SvgThe
     polar.to_svg(width, height, &theme.to_core())
 }
 
+/// Generate polar diagram as SVG string with localized labels
+#[uniffi::export]
+pub fn generate_polar_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let polar = PolarDiagram::from_eulumdat(&core_ldt);
+    let summary = PhotometricSummary::from_eulumdat(&core_ldt);
+    let locale = language.to_locale();
+    polar.to_svg_with_summary(width, height, &theme.to_core_with_locale(&locale), &summary)
+}
+
 /// Generate cartesian diagram as SVG string
 #[uniffi::export]
 pub fn generate_cartesian_svg(
@@ -391,6 +450,23 @@ pub fn generate_cartesian_svg(
     let core_ldt = to_core_eulumdat(ldt);
     let cartesian = CartesianDiagram::from_eulumdat(&core_ldt, width, height, max_curves as usize);
     cartesian.to_svg(width, height, &theme.to_core())
+}
+
+/// Generate cartesian diagram as SVG string with localized labels
+#[uniffi::export]
+pub fn generate_cartesian_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    max_curves: u32,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let cartesian = CartesianDiagram::from_eulumdat(&core_ldt, width, height, max_curves as usize);
+    let summary = PhotometricSummary::from_eulumdat(&core_ldt);
+    let locale = language.to_locale();
+    cartesian.to_svg_with_summary(width, height, &theme.to_core_with_locale(&locale), &summary)
 }
 
 /// Generate heatmap diagram as SVG string
@@ -406,6 +482,22 @@ pub fn generate_heatmap_svg(
     heatmap.to_svg(width, height, &theme.to_core())
 }
 
+/// Generate heatmap diagram as SVG string with localized labels
+#[uniffi::export]
+pub fn generate_heatmap_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let heatmap = HeatmapDiagram::from_eulumdat(&core_ldt, width, height);
+    let summary = PhotometricSummary::from_eulumdat(&core_ldt);
+    let locale = language.to_locale();
+    heatmap.to_svg_with_summary(width, height, &theme.to_core_with_locale(&locale), &summary)
+}
+
 /// Generate butterfly diagram as SVG string
 #[uniffi::export]
 pub fn generate_butterfly_svg(
@@ -419,6 +511,137 @@ pub fn generate_butterfly_svg(
     let butterfly = ButterflyDiagram::from_eulumdat(&core_ldt, width, height, tilt_degrees);
     butterfly.to_svg(width, height, &theme.to_core())
 }
+
+/// Generate cone diagram as SVG string showing beam/field angle spread at mounting height
+///
+/// # Arguments
+/// * `ldt` - The luminaire data
+/// * `width` - SVG width in pixels
+/// * `height` - SVG height in pixels
+/// * `mounting_height` - Mounting height in meters
+/// * `theme` - SVG color theme
+#[uniffi::export]
+pub fn generate_cone_svg(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    mounting_height: f64,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let cone = ConeDiagram::from_eulumdat(&core_ldt, mounting_height);
+    cone.to_svg(width, height, &theme.to_core())
+}
+
+/// Generate cone diagram as SVG string with localized labels
+///
+/// # Arguments
+/// * `ldt` - The luminaire data
+/// * `width` - SVG width in pixels
+/// * `height` - SVG height in pixels
+/// * `mounting_height` - Mounting height in meters
+/// * `theme` - SVG color theme
+/// * `language` - Language for labels
+#[uniffi::export]
+pub fn generate_cone_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    mounting_height: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    use eulumdat::diagram::ConeDiagramLabels;
+
+    let core_ldt = to_core_eulumdat(ldt);
+    let cone = ConeDiagram::from_eulumdat(&core_ldt, mounting_height);
+    let labels = match language {
+        Language::German => ConeDiagramLabels::german(),
+        Language::Chinese => ConeDiagramLabels::chinese(),
+        Language::French => ConeDiagramLabels::french(),
+        Language::Italian => ConeDiagramLabels::italian(),
+        Language::Russian => ConeDiagramLabels::russian(),
+        Language::Spanish => ConeDiagramLabels::spanish(),
+        Language::PortugueseBrazil => ConeDiagramLabels::portuguese_brazil(),
+        Language::English => ConeDiagramLabels::default(),
+    };
+    cone.to_svg_with_labels(width, height, &theme.to_core(), &labels)
+}
+
+/// Generate beam angle diagram as SVG comparing IES and CIE definitions
+///
+/// Shows 50% (beam) and 10% (field) intensity angles with annotations.
+/// For batwing distributions, shows both main and secondary peaks.
+///
+/// # Arguments
+/// * `ldt` - The luminaire data
+/// * `width` - SVG width in pixels
+/// * `height` - SVG height in pixels
+/// * `theme` - SVG color theme
+#[uniffi::export]
+pub fn generate_beam_angle_svg(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let polar = PolarDiagram::from_eulumdat(&core_ldt);
+    let analysis = PhotometricCalculations::beam_field_analysis(&core_ldt);
+    let show_both = analysis.is_batwing;
+    polar.to_svg_with_beam_field_angles(width, height, &theme.to_core(), &analysis, show_both)
+}
+
+/// Generate beam angle diagram as SVG with localized labels
+///
+/// Shows 50% (beam) and 10% (field) intensity angles with annotations.
+/// For batwing distributions, shows both main and secondary peaks.
+///
+/// # Arguments
+/// * `ldt` - The luminaire data
+/// * `width` - SVG width in pixels
+/// * `height` - SVG height in pixels
+/// * `theme` - SVG color theme
+/// * `language` - Language for labels
+#[uniffi::export]
+pub fn generate_beam_angle_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let polar = PolarDiagram::from_eulumdat(&core_ldt);
+    let analysis = PhotometricCalculations::beam_field_analysis(&core_ldt);
+    let show_both = analysis.is_batwing;
+    let locale = language.to_locale();
+    polar.to_svg_with_beam_field_angles(
+        width,
+        height,
+        &theme.to_core_with_locale(&locale),
+        &analysis,
+        show_both,
+    )
+}
+
+/// Generate butterfly diagram as SVG string with localized labels
+#[uniffi::export]
+pub fn generate_butterfly_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    tilt_degrees: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let butterfly = ButterflyDiagram::from_eulumdat(&core_ldt, width, height, tilt_degrees);
+    let locale = language.to_locale();
+    butterfly.to_svg(width, height, &theme.to_core_with_locale(&locale))
+}
+
+// BUG and LCS diagram functions are in bug_rating.rs
 
 // Watch face types and functions
 

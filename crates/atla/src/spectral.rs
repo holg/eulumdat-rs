@@ -13,6 +13,64 @@
 use crate::types::{SpectralDistribution, SpectralUnits};
 
 // ============================================================================
+// Localized Labels for Spectral SVG
+// ============================================================================
+
+/// Localized labels for spectral diagram text
+#[derive(Debug, Clone, PartialEq)]
+pub struct SpectralSvgLabels {
+    /// Wavelength axis label (e.g., "Wavelength (nm)")
+    pub wavelength_axis: String,
+    /// Relative power axis label (e.g., "Relative Power")
+    pub relative_power_axis: String,
+    /// SPD title (e.g., "Spectral Power Distribution")
+    pub spd_title: String,
+    /// UV-A region label
+    pub uv_a: String,
+    /// Near-IR region label
+    pub near_ir: String,
+    /// Watts per nm unit
+    pub watts_per_nm: String,
+    /// Relative unit
+    pub relative: String,
+}
+
+impl Default for SpectralSvgLabels {
+    fn default() -> Self {
+        Self::english()
+    }
+}
+
+impl SpectralSvgLabels {
+    /// English labels (default)
+    pub fn english() -> Self {
+        Self {
+            wavelength_axis: "Wavelength (nm)".to_string(),
+            relative_power_axis: "Relative Power".to_string(),
+            spd_title: "Spectral Power Distribution".to_string(),
+            uv_a: "UV-A".to_string(),
+            near_ir: "Near-IR".to_string(),
+            watts_per_nm: "W/nm".to_string(),
+            relative: "Relative".to_string(),
+        }
+    }
+
+    /// Create labels from eulumdat-i18n Locale
+    #[cfg(feature = "i18n")]
+    pub fn from_locale(locale: &eulumdat_i18n::Locale) -> Self {
+        Self {
+            wavelength_axis: locale.spectral.axis.wavelength.clone(),
+            relative_power_axis: locale.spectral.axis.relative_power.clone(),
+            spd_title: locale.spectral.title.spd.clone(),
+            uv_a: locale.spectral.region.uv_a.clone(),
+            near_ir: locale.spectral.region.near_ir.clone(),
+            watts_per_nm: locale.spectral.units.watts_per_nm.clone(),
+            relative: locale.spectral.units.relative.clone(),
+        }
+    }
+}
+
+// ============================================================================
 // Spectral Wavelength Regions (nm)
 // ============================================================================
 
@@ -257,6 +315,8 @@ pub struct SpectralTheme {
     pub show_uv_zone: bool,
     /// Show IR zone (when data includes IR wavelengths)
     pub show_ir_zone: bool,
+    /// Localized labels for diagram text
+    pub labels: SpectralSvgLabels,
 }
 
 impl Default for SpectralTheme {
@@ -279,6 +339,7 @@ impl SpectralTheme {
             show_par_zones: false,
             show_uv_zone: true, // Show UV/IR zones by default when data exists
             show_ir_zone: true,
+            labels: SpectralSvgLabels::default(),
         }
     }
 
@@ -295,7 +356,26 @@ impl SpectralTheme {
             show_par_zones: false,
             show_uv_zone: true,
             show_ir_zone: true,
+            labels: SpectralSvgLabels::default(),
         }
+    }
+
+    /// Set labels for this theme (for i18n)
+    pub fn with_labels(mut self, labels: SpectralSvgLabels) -> Self {
+        self.labels = labels;
+        self
+    }
+
+    /// Create theme with locale labels
+    #[cfg(feature = "i18n")]
+    pub fn light_with_locale(locale: &eulumdat_i18n::Locale) -> Self {
+        Self::light().with_labels(SpectralSvgLabels::from_locale(locale))
+    }
+
+    /// Create dark theme with locale labels
+    #[cfg(feature = "i18n")]
+    pub fn dark_with_locale(locale: &eulumdat_i18n::Locale) -> Self {
+        Self::dark().with_labels(SpectralSvgLabels::from_locale(locale))
     }
 
     /// Light theme with PAR zones for horticultural applications
@@ -474,6 +554,7 @@ impl SpectralDiagram {
                 min_wl,
                 wl_range,
                 is_dark,
+                &theme.labels,
             ));
         }
 
@@ -488,6 +569,7 @@ impl SpectralDiagram {
                 min_wl,
                 wl_range,
                 is_dark,
+                &theme.labels,
             ));
         }
 
@@ -615,22 +697,22 @@ impl SpectralDiagram {
 
         // X-axis title
         svg.push_str(&format!(
-            r#"  <text x="{}" y="{}" fill="{}" font-size="12" font-family="{}" text-anchor="middle">Wavelength (nm)</text>"#,
-            margin_left + plot_width / 2.0, height - 8.0, theme.foreground, theme.font_family
+            r#"  <text x="{}" y="{}" fill="{}" font-size="12" font-family="{}" text-anchor="middle">{}</text>"#,
+            margin_left + plot_width / 2.0, height - 8.0, theme.foreground, theme.font_family, theme.labels.wavelength_axis
         ));
         svg.push('\n');
 
         // Y-axis title
         svg.push_str(&format!(
-            r#"  <text x="15" y="{}" fill="{}" font-size="12" font-family="{}" text-anchor="middle" transform="rotate(-90 15 {})">Relative Power</text>"#,
-            margin_top + plot_height / 2.0, theme.foreground, theme.font_family, margin_top + plot_height / 2.0
+            r#"  <text x="15" y="{}" fill="{}" font-size="12" font-family="{}" text-anchor="middle" transform="rotate(-90 15 {})">{}</text>"#,
+            margin_top + plot_height / 2.0, theme.foreground, theme.font_family, margin_top + plot_height / 2.0, theme.labels.relative_power_axis
         ));
         svg.push('\n');
 
         // Title
         svg.push_str(&format!(
-            r#"  <text x="{}" y="18" fill="{}" font-size="14" font-family="{}" font-weight="bold" text-anchor="middle">Spectral Power Distribution</text>"#,
-            width / 2.0, theme.foreground, theme.font_family
+            r#"  <text x="{}" y="18" fill="{}" font-size="14" font-family="{}" font-weight="bold" text-anchor="middle">{}</text>"#,
+            width / 2.0, theme.foreground, theme.font_family, theme.labels.spd_title
         ));
         svg.push('\n');
 
@@ -726,6 +808,7 @@ fn generate_spectrum_gradient_stops() -> String {
 }
 
 /// Generate UV zone background (when data includes UV wavelengths)
+#[allow(clippy::too_many_arguments)]
 fn generate_uv_zone(
     margin_left: f64,
     margin_top: f64,
@@ -734,6 +817,7 @@ fn generate_uv_zone(
     min_wl: f64,
     wl_range: f64,
     is_dark: bool,
+    labels: &SpectralSvgLabels,
 ) -> String {
     let mut svg = String::new();
 
@@ -762,8 +846,8 @@ fn generate_uv_zone(
         // Zone label
         if uv_width > 30.0 {
             svg.push_str(&format!(
-                r#"  <text x="{:.1}" y="{}" fill="{}" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle" opacity="0.8">UV-A</text>"#,
-                uv_start + uv_width / 2.0, margin_top + 12.0, uv_border
+                r#"  <text x="{:.1}" y="{}" fill="{}" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle" opacity="0.8">{}</text>"#,
+                uv_start + uv_width / 2.0, margin_top + 12.0, uv_border, labels.uv_a
             ));
             svg.push('\n');
         }
@@ -790,6 +874,7 @@ fn generate_ir_zone(
     min_wl: f64,
     wl_range: f64,
     is_dark: bool,
+    labels: &SpectralSvgLabels,
 ) -> String {
     let mut svg = String::new();
 
@@ -826,8 +911,8 @@ fn generate_ir_zone(
         // Zone label
         if ir_width > 30.0 {
             svg.push_str(&format!(
-                r#"  <text x="{:.1}" y="{}" fill="{}" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle" opacity="0.8">Near-IR</text>"#,
-                ir_start + ir_width / 2.0, margin_top + 12.0, ir_border
+                r#"  <text x="{:.1}" y="{}" fill="{}" font-size="9" font-family="system-ui, sans-serif" text-anchor="middle" opacity="0.8">{}</text>"#,
+                ir_start + ir_width / 2.0, margin_top + 12.0, ir_border, labels.near_ir
             ));
             svg.push('\n');
         }

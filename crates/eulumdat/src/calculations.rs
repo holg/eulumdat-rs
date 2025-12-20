@@ -262,14 +262,128 @@ impl PhotometricCalculations {
         }
     }
 
-    /// Calculate beam angle (angle where intensity drops to 50% of maximum).
+    /// Calculate beam angle (full angle where intensity drops to 50% of maximum).
+    ///
+    /// Uses the IES definition: angle between directions where intensity is 50%
+    /// of the **maximum** intensity (FWHM - Full Width at Half Maximum).
+    ///
+    /// **Important**: Per CIE S 017:2020 (17-27-077), beam angle is defined as a
+    /// **full angle**, not a half angle. This function returns the full angle
+    /// (2× the half-angle from nadir).
+    ///
+    /// Reference: <https://cie.co.at/eilvterm/17-27-077>
     pub fn beam_angle(ldt: &Eulumdat) -> f64 {
+        // Return full angle (2× half angle) per CIE definition
+        Self::angle_at_percentage(ldt, 0.5) * 2.0
+    }
+
+    /// Calculate field angle (full angle where intensity drops to 10% of maximum).
+    ///
+    /// Uses the IES definition: angle between directions where intensity is 10%
+    /// of the **maximum** intensity.
+    ///
+    /// **Important**: Per CIE S 017:2020, field angle is defined as a **full angle**,
+    /// not a half angle. This function returns the full angle (2× the half-angle from nadir).
+    pub fn field_angle(ldt: &Eulumdat) -> f64 {
+        // Return full angle (2× half angle) per CIE definition
+        Self::angle_at_percentage(ldt, 0.1) * 2.0
+    }
+
+    /// Calculate beam angle using CIE definition (center-beam intensity).
+    ///
+    /// Uses the CIE/NEMA definition: angle between directions where intensity
+    /// is 50% of the **center-beam** intensity (intensity at 0° gamma).
+    ///
+    /// **Important**: Per CIE S 017:2020 (17-27-077), beam angle is defined as a
+    /// **full angle**, not a half angle. This function returns the full angle.
+    ///
+    /// This can differ significantly from the IES (max-based) definition for luminaires
+    /// with "batwing" distributions where center-beam intensity is less than
+    /// maximum intensity.
+    pub fn beam_angle_cie(ldt: &Eulumdat) -> f64 {
+        // Return full angle (2× half angle) per CIE definition
+        Self::angle_at_percentage_of_center(ldt, 0.5) * 2.0
+    }
+
+    /// Calculate field angle using CIE definition (center-beam intensity).
+    ///
+    /// Uses the CIE/NEMA definition: angle between directions where intensity
+    /// is 10% of the **center-beam** intensity.
+    ///
+    /// **Important**: Per CIE S 017:2020, field angle is defined as a **full angle**,
+    /// not a half angle. This function returns the full angle.
+    pub fn field_angle_cie(ldt: &Eulumdat) -> f64 {
+        // Return full angle (2× half angle) per CIE definition
+        Self::angle_at_percentage_of_center(ldt, 0.1) * 2.0
+    }
+
+    /// Calculate half beam angle (angle from nadir to 50% intensity).
+    ///
+    /// This returns the **half angle** from nadir (0°) to where intensity drops
+    /// to 50% of maximum. For the full beam angle per CIE definition, use `beam_angle()`.
+    ///
+    /// This is useful for cone diagrams and coverage calculations where the
+    /// half-angle is needed.
+    pub fn half_beam_angle(ldt: &Eulumdat) -> f64 {
         Self::angle_at_percentage(ldt, 0.5)
     }
 
-    /// Calculate field angle (angle where intensity drops to 10% of maximum).
-    pub fn field_angle(ldt: &Eulumdat) -> f64 {
+    /// Calculate half field angle (angle from nadir to 10% intensity).
+    ///
+    /// This returns the **half angle** from nadir (0°) to where intensity drops
+    /// to 10% of maximum. For the full field angle per CIE definition, use `field_angle()`.
+    pub fn half_field_angle(ldt: &Eulumdat) -> f64 {
         Self::angle_at_percentage(ldt, 0.1)
+    }
+
+    /// Get detailed beam/field angle analysis comparing IES and CIE definitions.
+    ///
+    /// Returns a `BeamFieldAnalysis` struct containing:
+    /// - Beam and field angles using both IES (max) and CIE (center-beam) definitions
+    /// - Maximum intensity and center-beam intensity values
+    /// - Whether the distribution has a "batwing" pattern (center < max)
+    ///
+    /// This is useful for understanding luminaires like the examples in the
+    /// Wikipedia "Beam angle" article where the two definitions give different results.
+    pub fn beam_field_analysis(ldt: &Eulumdat) -> BeamFieldAnalysis {
+        if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
+            return BeamFieldAnalysis::default();
+        }
+
+        let intensities = &ldt.intensities[0];
+        let max_intensity = intensities.iter().copied().fold(0.0, f64::max);
+        let center_intensity = intensities.first().copied().unwrap_or(0.0);
+
+        // Find the gamma angle of maximum intensity
+        let max_gamma = ldt
+            .g_angles
+            .iter()
+            .zip(intensities.iter())
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .map(|(g, _)| *g)
+            .unwrap_or(0.0);
+
+        let is_batwing = center_intensity < max_intensity * 0.95;
+
+        BeamFieldAnalysis {
+            // IES definition (based on maximum intensity) - full angles per CIE S 017:2020
+            beam_angle_ies: Self::angle_at_percentage(ldt, 0.5) * 2.0,
+            field_angle_ies: Self::angle_at_percentage(ldt, 0.1) * 2.0,
+            // CIE definition (based on center-beam intensity) - full angles per CIE S 017:2020
+            beam_angle_cie: Self::angle_at_percentage_of_center(ldt, 0.5) * 2.0,
+            field_angle_cie: Self::angle_at_percentage_of_center(ldt, 0.1) * 2.0,
+            // Reference intensities
+            max_intensity,
+            center_intensity,
+            max_intensity_gamma: max_gamma,
+            // Distribution type
+            is_batwing,
+            // Threshold values for diagram overlays
+            beam_threshold_ies: max_intensity * 0.5,
+            beam_threshold_cie: center_intensity * 0.5,
+            field_threshold_ies: max_intensity * 0.1,
+            field_threshold_cie: center_intensity * 0.1,
+        }
     }
 
     /// Find the angle at which intensity drops to a given percentage of maximum.
@@ -304,6 +418,42 @@ impl PhotometricCalculations {
         }
 
         // If never drops below threshold, return last angle
+        *ldt.g_angles.last().unwrap_or(&0.0)
+    }
+
+    /// Find the angle at which intensity drops to a given percentage of center-beam intensity.
+    ///
+    /// This implements the CIE/NEMA definition which uses center-beam (nadir) intensity
+    /// as the reference rather than maximum intensity.
+    fn angle_at_percentage_of_center(ldt: &Eulumdat, percentage: f64) -> f64 {
+        if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
+            return 0.0;
+        }
+
+        let intensities = &ldt.intensities[0];
+        let center_intensity = intensities.first().copied().unwrap_or(0.0);
+
+        if center_intensity <= 0.0 {
+            // If center intensity is zero, fall back to max-based calculation
+            return Self::angle_at_percentage(ldt, percentage);
+        }
+
+        let threshold = center_intensity * percentage;
+
+        // Find where intensity drops below threshold
+        for (i, &intensity) in intensities.iter().enumerate() {
+            if intensity < threshold && i > 0 {
+                let prev_intensity = intensities[i - 1];
+                let prev_angle = ldt.g_angles[i - 1];
+                let curr_angle = ldt.g_angles[i];
+
+                if prev_intensity > threshold {
+                    let ratio = (prev_intensity - threshold) / (prev_intensity - intensity);
+                    return prev_angle + ratio * (curr_angle - prev_angle);
+                }
+            }
+        }
+
         *ldt.g_angles.last().unwrap_or(&0.0)
     }
 
@@ -696,11 +846,19 @@ pub struct PhotometricSummary {
     /// CIE flux codes (N1-N5)
     pub cie_flux_codes: CieFluxCodes,
 
-    // Beam characteristics
-    /// Beam angle - 50% intensity (degrees)
+    // Beam characteristics (IES definition - based on maximum intensity)
+    /// Beam angle - 50% of max intensity (degrees) - IES definition
     pub beam_angle: f64,
-    /// Field angle - 10% intensity (degrees)
+    /// Field angle - 10% of max intensity (degrees) - IES definition
     pub field_angle: f64,
+
+    // Beam characteristics (CIE definition - based on center-beam intensity)
+    /// Beam angle - 50% of center intensity (degrees) - CIE definition
+    pub beam_angle_cie: f64,
+    /// Field angle - 10% of center intensity (degrees) - CIE definition
+    pub field_angle_cie: f64,
+    /// True if distribution is batwing (center < max, IES ≠ CIE)
+    pub is_batwing: bool,
 
     // Intensity statistics
     /// Maximum intensity (cd/klm)
@@ -743,9 +901,17 @@ impl PhotometricSummary {
             // CIE
             cie_flux_codes: cie_codes,
 
-            // Beam
+            // Beam (IES definition)
             beam_angle: PhotometricCalculations::beam_angle(ldt),
             field_angle: PhotometricCalculations::field_angle(ldt),
+
+            // Beam (CIE definition)
+            beam_angle_cie: PhotometricCalculations::beam_angle_cie(ldt),
+            field_angle_cie: PhotometricCalculations::field_angle_cie(ldt),
+            is_batwing: {
+                let analysis = PhotometricCalculations::beam_field_analysis(ldt);
+                analysis.is_batwing
+            },
 
             // Intensity
             max_intensity: ldt.max_intensity(),
@@ -947,6 +1113,226 @@ pub struct UgrTableValues {
     pub endwise: f64,
 }
 
+/// IES LM-63-19 specific metadata for GLDF integration.
+///
+/// Contains information from IES files that doesn't map directly to GLDF
+/// `DescriptivePhotometry` but is valuable for data provenance, validation,
+/// and geometry definition.
+#[derive(Debug, Clone, Default)]
+pub struct IesMetadata {
+    /// IES file format version
+    pub version: String,
+    /// Test report number (`[TEST]` keyword)
+    pub test_report: String,
+    /// Photometric testing laboratory (`[TESTLAB]`)
+    pub test_lab: String,
+    /// Date manufacturer issued the file (`[ISSUEDATE]`)
+    pub issue_date: String,
+    /// Manufacturer of luminaire (`[MANUFAC]`)
+    pub manufacturer: String,
+    /// Luminaire catalog number (`[LUMCAT]`)
+    pub luminaire_catalog: String,
+    /// Lamp catalog number (`[LAMPCAT]`)
+    pub lamp_catalog: String,
+    /// Ballast description (`[BALLAST]`)
+    pub ballast: String,
+
+    /// File generation type (LM-63-19 Section 5.13)
+    pub file_generation_type: String,
+    /// Whether data is from an accredited test lab
+    pub is_accredited: bool,
+    /// Whether luminous flux values were scaled
+    pub is_scaled: bool,
+    /// Whether angle values were interpolated
+    pub is_interpolated: bool,
+    /// Whether data is from computer simulation
+    pub is_simulation: bool,
+
+    /// Luminous opening shape (LM-63-19 Table 1)
+    pub luminous_shape: String,
+    /// Luminous opening width in meters (absolute value, negative in IES = curved)
+    pub luminous_width: f64,
+    /// Luminous opening length in meters
+    pub luminous_length: f64,
+    /// Luminous opening height in meters
+    pub luminous_height: f64,
+    /// Whether the shape is rectangular (positive dims) or curved (negative dims)
+    pub is_rectangular: bool,
+    /// Whether the shape is circular (|width| == |length|, both negative)
+    pub is_circular: bool,
+
+    /// Photometric type (A/B/C)
+    pub photometric_type: String,
+    /// Unit type (Feet/Meters)
+    pub unit_type: String,
+
+    /// TILT information present
+    pub has_tilt_data: bool,
+    /// Lamp geometry (1-3) if TILT data present
+    pub tilt_lamp_geometry: i32,
+    /// Number of TILT angle/factor pairs
+    pub tilt_angle_count: usize,
+
+    /// IES maintenance category (1-6)
+    pub maintenance_category: Option<i32>,
+    /// Ballast factor
+    pub ballast_factor: f64,
+    /// Input watts
+    pub input_watts: f64,
+    /// Number of lamps
+    pub num_lamps: i32,
+    /// Lumens per lamp (-1 = absolute photometry)
+    pub lumens_per_lamp: f64,
+    /// Is this absolute photometry (lumens = -1)?
+    pub is_absolute_photometry: bool,
+}
+
+impl IesMetadata {
+    /// Create IesMetadata from parsed IesData.
+    pub fn from_ies_data(ies: &crate::ies::IesData) -> Self {
+        use crate::ies::{FileGenerationType, LuminousShape, PhotometricType, UnitType};
+
+        let shape = &ies.luminous_shape;
+        let gen_type = &ies.file_generation_type;
+
+        Self {
+            version: ies.version.header().to_string(),
+            test_report: ies.test.clone(),
+            test_lab: ies.test_lab.clone(),
+            issue_date: ies.issue_date.clone(),
+            manufacturer: ies.manufacturer.clone(),
+            luminaire_catalog: ies.luminaire_catalog.clone(),
+            lamp_catalog: ies.lamp_catalog.clone(),
+            ballast: ies.ballast.clone(),
+
+            file_generation_type: gen_type.title().to_string(),
+            is_accredited: gen_type.is_accredited(),
+            is_scaled: gen_type.is_scaled(),
+            is_interpolated: gen_type.is_interpolated(),
+            is_simulation: matches!(gen_type, FileGenerationType::ComputerSimulation),
+
+            luminous_shape: shape.description().to_string(),
+            luminous_width: ies.width.abs(),
+            luminous_length: ies.length.abs(),
+            luminous_height: ies.height.abs(),
+            is_rectangular: matches!(
+                shape,
+                LuminousShape::Rectangular | LuminousShape::RectangularWithSides
+            ),
+            is_circular: matches!(
+                shape,
+                LuminousShape::Circular | LuminousShape::Sphere | LuminousShape::VerticalCylinder
+            ),
+
+            photometric_type: match ies.photometric_type {
+                PhotometricType::TypeC => "C".to_string(),
+                PhotometricType::TypeB => "B".to_string(),
+                PhotometricType::TypeA => "A".to_string(),
+            },
+            unit_type: match ies.unit_type {
+                UnitType::Feet => "Feet".to_string(),
+                UnitType::Meters => "Meters".to_string(),
+            },
+
+            has_tilt_data: ies.tilt_data.is_some(),
+            tilt_lamp_geometry: ies.tilt_data.as_ref().map_or(0, |t| t.lamp_geometry),
+            tilt_angle_count: ies.tilt_data.as_ref().map_or(0, |t| t.angles.len()),
+
+            maintenance_category: ies.maintenance_category,
+            ballast_factor: ies.ballast_factor,
+            input_watts: ies.input_watts,
+            num_lamps: ies.num_lamps,
+            lumens_per_lamp: ies.lumens_per_lamp,
+            is_absolute_photometry: ies.lumens_per_lamp < 0.0,
+        }
+    }
+
+    /// Export as key-value pairs for GLDF integration.
+    pub fn to_gldf_properties(&self) -> Vec<(&'static str, String)> {
+        let mut props = vec![];
+
+        if !self.version.is_empty() {
+            props.push(("ies_version", self.version.clone()));
+        }
+        if !self.test_report.is_empty() {
+            props.push(("test_report", self.test_report.clone()));
+        }
+        if !self.test_lab.is_empty() {
+            props.push(("test_lab", self.test_lab.clone()));
+        }
+        if !self.issue_date.is_empty() {
+            props.push(("issue_date", self.issue_date.clone()));
+        }
+        if !self.manufacturer.is_empty() {
+            props.push(("manufacturer", self.manufacturer.clone()));
+        }
+        if !self.luminaire_catalog.is_empty() {
+            props.push(("luminaire_catalog", self.luminaire_catalog.clone()));
+        }
+
+        props.push(("file_generation_type", self.file_generation_type.clone()));
+        props.push(("is_accredited", self.is_accredited.to_string()));
+        props.push(("is_scaled", self.is_scaled.to_string()));
+        props.push(("is_interpolated", self.is_interpolated.to_string()));
+        props.push(("is_simulation", self.is_simulation.to_string()));
+
+        props.push(("luminous_shape", self.luminous_shape.clone()));
+        if self.luminous_width > 0.0 {
+            props.push(("luminous_width_m", format!("{:.4}", self.luminous_width)));
+        }
+        if self.luminous_length > 0.0 {
+            props.push(("luminous_length_m", format!("{:.4}", self.luminous_length)));
+        }
+        if self.luminous_height > 0.0 {
+            props.push(("luminous_height_m", format!("{:.4}", self.luminous_height)));
+        }
+
+        props.push(("photometric_type", self.photometric_type.clone()));
+
+        if self.has_tilt_data {
+            props.push(("has_tilt_data", "true".to_string()));
+            props.push(("tilt_lamp_geometry", self.tilt_lamp_geometry.to_string()));
+            props.push(("tilt_angle_count", self.tilt_angle_count.to_string()));
+        }
+
+        if let Some(cat) = self.maintenance_category {
+            props.push(("maintenance_category", cat.to_string()));
+        }
+
+        if self.ballast_factor != 1.0 {
+            props.push(("ballast_factor", format!("{:.3}", self.ballast_factor)));
+        }
+
+        props.push(("input_watts", format!("{:.1}", self.input_watts)));
+        props.push(("num_lamps", self.num_lamps.to_string()));
+
+        if self.is_absolute_photometry {
+            props.push(("absolute_photometry", "true".to_string()));
+        } else {
+            props.push(("lumens_per_lamp", format!("{:.1}", self.lumens_per_lamp)));
+        }
+
+        props
+    }
+
+    /// Get GLDF-compatible emitter geometry info.
+    ///
+    /// Returns (shape_type, width_mm, length_mm, diameter_mm) for GLDF SimpleGeometry.
+    pub fn to_gldf_emitter_geometry(&self) -> (&'static str, i32, i32, i32) {
+        let width_mm = (self.luminous_width * 1000.0).round() as i32;
+        let length_mm = (self.luminous_length * 1000.0).round() as i32;
+        let diameter_mm = width_mm.max(length_mm);
+
+        if self.is_circular {
+            ("circular", 0, 0, diameter_mm)
+        } else if self.is_rectangular {
+            ("rectangular", width_mm, length_mm, 0)
+        } else {
+            ("point", 0, 0, 0)
+        }
+    }
+}
+
 impl GldfPhotometricData {
     /// Calculate GLDF-compatible photometric data from Eulumdat.
     pub fn from_eulumdat(ldt: &Eulumdat) -> Self {
@@ -1127,12 +1513,32 @@ impl std::fmt::Display for GldfPhotometricData {
 
 impl PhotometricCalculations {
     /// Calculate beam angle (50% intensity) for a specific C-plane.
+    ///
+    /// Returns the **full angle** per CIE S 017:2020 definition.
     pub fn beam_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
-        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.5)
+        // Return full angle (2× half angle) per CIE definition
+        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.5) * 2.0
     }
 
     /// Calculate field angle (10% intensity) for a specific C-plane.
+    ///
+    /// Returns the **full angle** per CIE S 017:2020 definition.
     pub fn field_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
+        // Return full angle (2× half angle) per CIE definition
+        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.1) * 2.0
+    }
+
+    /// Calculate half beam angle for a specific C-plane.
+    ///
+    /// Returns the half angle from nadir to 50% intensity point.
+    pub fn half_beam_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
+        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.5)
+    }
+
+    /// Calculate half field angle for a specific C-plane.
+    ///
+    /// Returns the half angle from nadir to 10% intensity point.
+    pub fn half_field_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
         Self::angle_at_percentage_for_plane(ldt, c_plane, 0.1)
     }
 
@@ -1321,18 +1727,18 @@ impl PhotometricCalculations {
             "I" // Indirect
         };
 
-        // Beam classification
+        // Beam classification (using full angle per CIE S 017:2020)
         let beam_angle = Self::beam_angle(ldt);
-        let beam_class = if beam_angle < 20.0 {
-            "VN" // Very narrow
-        } else if beam_angle < 30.0 {
-            "N" // Narrow
-        } else if beam_angle < 45.0 {
-            "M" // Medium
+        let beam_class = if beam_angle < 40.0 {
+            "VN" // Very narrow (< 20° half angle)
         } else if beam_angle < 60.0 {
-            "W" // Wide
+            "N" // Narrow (20-30° half angle)
+        } else if beam_angle < 90.0 {
+            "M" // Medium (30-45° half angle)
+        } else if beam_angle < 120.0 {
+            "W" // Wide (45-60° half angle)
         } else {
-            "VW" // Very wide
+            "VW" // Very wide (> 60° half angle)
         };
 
         format!("{}-{}", dist_type, beam_class)
@@ -1342,6 +1748,117 @@ impl PhotometricCalculations {
 // ============================================================================
 // Supporting Types
 // ============================================================================
+
+/// Comprehensive beam and field angle analysis.
+///
+/// Compares IES (maximum intensity based) and CIE (center-beam intensity based)
+/// definitions of beam angle and field angle. This is important for luminaires
+/// with non-standard distributions like "batwing" patterns.
+///
+/// See Wikipedia "Beam angle" article for the distinction between these definitions.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct BeamFieldAnalysis {
+    // IES definition (based on maximum intensity)
+    /// Beam angle using IES definition (50% of max intensity) in degrees
+    pub beam_angle_ies: f64,
+    /// Field angle using IES definition (10% of max intensity) in degrees
+    pub field_angle_ies: f64,
+
+    // CIE/NEMA definition (based on center-beam intensity)
+    /// Beam angle using CIE definition (50% of center-beam intensity) in degrees
+    pub beam_angle_cie: f64,
+    /// Field angle using CIE definition (10% of center-beam intensity) in degrees
+    pub field_angle_cie: f64,
+
+    // Reference intensity values
+    /// Maximum intensity anywhere in the distribution (cd/klm)
+    pub max_intensity: f64,
+    /// Center-beam intensity at nadir/0° gamma (cd/klm)
+    pub center_intensity: f64,
+    /// Gamma angle at which maximum intensity occurs (degrees)
+    pub max_intensity_gamma: f64,
+
+    // Distribution type
+    /// True if this is a "batwing" distribution (center < max)
+    pub is_batwing: bool,
+
+    // Threshold values for diagram overlays
+    /// 50% of max intensity (IES beam threshold)
+    pub beam_threshold_ies: f64,
+    /// 50% of center intensity (CIE beam threshold)
+    pub beam_threshold_cie: f64,
+    /// 10% of max intensity (IES field threshold)
+    pub field_threshold_ies: f64,
+    /// 10% of center intensity (CIE field threshold)
+    pub field_threshold_cie: f64,
+}
+
+impl BeamFieldAnalysis {
+    /// Returns the difference between CIE and IES beam angles.
+    ///
+    /// A large positive value indicates a batwing distribution where
+    /// the CIE definition gives a wider beam angle.
+    pub fn beam_angle_difference(&self) -> f64 {
+        self.beam_angle_cie - self.beam_angle_ies
+    }
+
+    /// Returns the difference between CIE and IES field angles.
+    pub fn field_angle_difference(&self) -> f64 {
+        self.field_angle_cie - self.field_angle_ies
+    }
+
+    /// Returns the ratio of center intensity to max intensity.
+    ///
+    /// A value less than 1.0 indicates a batwing or off-axis peak distribution.
+    pub fn center_to_max_ratio(&self) -> f64 {
+        if self.max_intensity > 0.0 {
+            self.center_intensity / self.max_intensity
+        } else {
+            0.0
+        }
+    }
+
+    /// Get descriptive classification of the distribution type.
+    pub fn distribution_type(&self) -> &'static str {
+        let ratio = self.center_to_max_ratio();
+        if ratio >= 0.95 {
+            "Standard (center-peak)"
+        } else if ratio >= 0.7 {
+            "Mild batwing"
+        } else if ratio >= 0.4 {
+            "Moderate batwing"
+        } else {
+            "Strong batwing"
+        }
+    }
+
+    /// Format for display with both IES and CIE values.
+    pub fn to_string_detailed(&self) -> String {
+        format!(
+            "Beam: IES {:.1}° / CIE {:.1}° (Δ{:+.1}°)\n\
+             Field: IES {:.1}° / CIE {:.1}° (Δ{:+.1}°)\n\
+             Center/Max: {:.1}% ({})",
+            self.beam_angle_ies,
+            self.beam_angle_cie,
+            self.beam_angle_difference(),
+            self.field_angle_ies,
+            self.field_angle_cie,
+            self.field_angle_difference(),
+            self.center_to_max_ratio() * 100.0,
+            self.distribution_type()
+        )
+    }
+}
+
+impl std::fmt::Display for BeamFieldAnalysis {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Beam: {:.1}° (IES) / {:.1}° (CIE), Field: {:.1}° (IES) / {:.1}° (CIE)",
+            self.beam_angle_ies, self.beam_angle_cie, self.field_angle_ies, self.field_angle_cie
+        )
+    }
+}
 
 /// CIE Flux Code values
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -1522,8 +2039,15 @@ mod tests {
     fn test_beam_angle() {
         let ldt = create_test_ldt();
         let beam = PhotometricCalculations::beam_angle(&ldt);
-        // Beam angle should be positive and less than 90° for a downlight
-        assert!(beam > 0.0 && beam <= 90.0, "Beam angle was {}", beam);
+        // Beam angle is full angle per CIE S 017:2020, should be positive and <= 180°
+        assert!(beam > 0.0 && beam <= 180.0, "Beam angle was {}", beam);
+
+        // Half beam angle should be half of full angle
+        let half_beam = PhotometricCalculations::half_beam_angle(&ldt);
+        assert!(
+            (beam - half_beam * 2.0).abs() < 0.01,
+            "Half beam should be half of full beam"
+        );
     }
 
     #[test]

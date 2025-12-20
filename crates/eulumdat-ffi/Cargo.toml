@@ -21,6 +21,8 @@ path = "uniffi-bindgen.rs"
 default = []
 
 [dependencies]
-eulumdat.workspace = true
+atla = { workspace = true, features = ["eulumdat", "xml", "json", "i18n"] }
+eulumdat = { workspace = true, features = ["i18n"] }
+eulumdat-i18n.workspace = true
 thiserror.workspace = true
 uniffi = { version = "0.28", features = ["cli"] }

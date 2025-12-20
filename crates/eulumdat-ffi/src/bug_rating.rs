@@ -1,6 +1,6 @@
 //! BUG rating types and functions for FFI
 
-use crate::diagram::SvgThemeType;
+use crate::diagram::{Language, SvgThemeType};
 use crate::types::{to_core_eulumdat, Eulumdat};
 
 /// Zone lumens data for BUG rating
@@ -88,10 +88,40 @@ pub fn generate_bug_svg(ldt: &Eulumdat, width: f64, height: f64, theme: SvgTheme
     diagram.to_svg(width, height, &theme.to_core())
 }
 
+/// Generate BUG rating diagram as SVG with localized labels (TM-15-11 view)
+#[uniffi::export]
+pub fn generate_bug_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let diagram = eulumdat::BugDiagram::from_eulumdat(&core_ldt);
+    let locale = language.to_locale();
+    diagram.to_svg(width, height, &theme.to_core_with_locale(&locale))
+}
+
 /// Generate LCS diagram as SVG (TM-15-07 view)
 #[uniffi::export]
 pub fn generate_lcs_svg(ldt: &Eulumdat, width: f64, height: f64, theme: SvgThemeType) -> String {
     let core_ldt = to_core_eulumdat(ldt);
     let diagram = eulumdat::BugDiagram::from_eulumdat(&core_ldt);
     diagram.to_lcs_svg(width, height, &theme.to_core())
+}
+
+/// Generate LCS diagram as SVG with localized labels (TM-15-07 view)
+#[uniffi::export]
+pub fn generate_lcs_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let diagram = eulumdat::BugDiagram::from_eulumdat(&core_ldt);
+    let locale = language.to_locale();
+    diagram.to_lcs_svg(width, height, &theme.to_core_with_locale(&locale))
 }

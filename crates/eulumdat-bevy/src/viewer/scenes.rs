@@ -1,38 +1,46 @@
-//! Scene geometry generation
+//! Scene geometry generation for the viewer.
+//!
+//! Provides pre-built demo scenes: Room, Road, Parking, Outdoor.
 
-use crate::SceneSettings;
+use super::ViewerSettings;
 use bevy::pbr::NotShadowCaster;
 use bevy::prelude::*;
 
+/// Plugin for scene geometry.
 pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        // Initialize default SceneSettings if not already present
-        app.init_resource::<SceneSettings>();
+        app.init_resource::<ViewerSettings>();
         app.add_systems(
             Startup,
-            setup_scene.run_if(resource_exists::<SceneSettings>),
+            setup_scene.run_if(resource_exists::<ViewerSettings>),
         )
         .add_systems(
             Update,
-            rebuild_scene_on_change.run_if(resource_exists::<SceneSettings>),
+            rebuild_scene_on_change.run_if(resource_exists::<ViewerSettings>),
         );
     }
 }
 
+/// Scene type for demo scenes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SceneType {
+    /// Indoor room scene (4×5×2.8m)
     #[default]
     Room,
+    /// Street lighting scene (10×30m road)
     Road,
+    /// Parking lot scene (20×30m lot)
     Parking,
+    /// Outdoor/garden scene (10×15m)
     Outdoor,
 }
 
 impl SceneType {
+    /// Get default dimensions for this scene type.
+    /// Returns (width, length, height, mount_height)
     pub fn default_dimensions(&self) -> (f32, f32, f32, f32) {
-        // (width, length, height, mount_height)
         match self {
             SceneType::Room => (4.0, 5.0, 2.8, 2.5),
             SceneType::Road => (10.0, 30.0, 0.0, 8.0),
@@ -42,6 +50,7 @@ impl SceneType {
     }
 }
 
+/// Marker component for scene geometry entities.
 #[derive(Component)]
 pub struct SceneGeometry;
 
@@ -49,7 +58,7 @@ fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    settings: Res<SceneSettings>,
+    settings: Res<ViewerSettings>,
 ) {
     build_scene(&mut commands, &mut meshes, &mut materials, &settings);
 }
@@ -58,7 +67,7 @@ fn rebuild_scene_on_change(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    settings: Res<SceneSettings>,
+    settings: Res<ViewerSettings>,
     query: Query<Entity, With<SceneGeometry>>,
 ) {
     if !settings.is_changed() {
@@ -78,7 +87,7 @@ fn build_scene(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-    settings: &SceneSettings,
+    settings: &ViewerSettings,
 ) {
     match settings.scene_type {
         SceneType::Room => build_room(commands, meshes, materials, settings),
@@ -98,7 +107,7 @@ fn build_room(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-    settings: &SceneSettings,
+    settings: &ViewerSettings,
 ) {
     let w = settings.room_width;
     let l = settings.room_length;
@@ -175,13 +184,16 @@ fn build_room(
             .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
         SceneGeometry,
     ));
+
+    // Pendulum/suspension cable (if pendulum_length > 0)
+    spawn_pendulum_cable(commands, meshes, materials, settings, w / 2.0, l / 2.0);
 }
 
 fn build_road(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-    settings: &SceneSettings,
+    settings: &ViewerSettings,
 ) {
     let w = settings.room_width;
     let l = settings.room_length;
@@ -239,7 +251,7 @@ fn build_road(
         SceneGeometry,
     ));
 
-    // Light pole - on the right sidewalk, not on the road!
+    // Light pole - on the right sidewalk
     spawn_pole(
         commands,
         meshes,
@@ -253,7 +265,7 @@ fn build_parking(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-    settings: &SceneSettings,
+    settings: &ViewerSettings,
 ) {
     let w = settings.room_width;
     let l = settings.room_length;
@@ -311,7 +323,7 @@ fn build_outdoor(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
-    settings: &SceneSettings,
+    settings: &ViewerSettings,
 ) {
     let w = settings.room_width;
     let l = settings.room_length;
@@ -403,6 +415,41 @@ fn spawn_pole(
         MeshMaterial3d(pole_material),
         Transform::from_xyz(position.x - 0.05, height - 0.2, position.z)
             .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
+        SceneGeometry,
+        NotShadowCaster,
+    ));
+}
+
+/// Spawn a pendulum/suspension cable for ceiling-mounted luminaires.
+/// Only spawns if pendulum_length > 0.
+fn spawn_pendulum_cable(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    settings: &ViewerSettings,
+    x: f32,
+    z: f32,
+) {
+    if settings.pendulum_length <= 0.0 {
+        return;
+    }
+
+    let cable_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.2, 0.2, 0.2),
+        metallic: 0.3,
+        perceptual_roughness: 0.6,
+        ..default()
+    });
+
+    // Cable hangs from ceiling (room_height) down by pendulum_length
+    let cable_top = settings.room_height;
+    let cable_bottom = settings.room_height - settings.pendulum_length;
+    let cable_center_y = (cable_top + cable_bottom) / 2.0;
+
+    commands.spawn((
+        Mesh3d(meshes.add(Cylinder::new(0.01, settings.pendulum_length))),
+        MeshMaterial3d(cable_material),
+        Transform::from_xyz(x, cable_center_y, z),
         SceneGeometry,
         NotShadowCaster,
     ));

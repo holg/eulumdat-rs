@@ -957,13 +957,31 @@ impl BugDiagram {
         let mut row = 0;
 
         // Forward Light
-        result.push_str(&format!(r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">Forward Light</text>"#, x, y + lh * row as f64, theme.text_secondary));
+        result.push_str(&format!(
+            r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">{}</text>"#,
+            x,
+            y + lh * row as f64,
+            theme.text_secondary,
+            theme.labels.bug_forward_light
+        ));
         row += 1;
         for (label, value) in [
-            ("Low (0-30°)", self.zones.fl),
-            ("Medium (30-60°)", self.zones.fm),
-            ("High (60-80°)", self.zones.fh),
-            ("Very High (80-90°)", self.zones.fvh),
+            (
+                format!("{} (0-30°)", theme.labels.bug_zone_low),
+                self.zones.fl,
+            ),
+            (
+                format!("{} (30-60°)", theme.labels.bug_zone_medium),
+                self.zones.fm,
+            ),
+            (
+                format!("{} (60-80°)", theme.labels.bug_zone_high),
+                self.zones.fh,
+            ),
+            (
+                format!("{} (80-90°)", theme.labels.bug_zone_very_high),
+                self.zones.fvh,
+            ),
         ] {
             result.push_str(&format!(
                 r#"<text x="{}" y="{}" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text>"#,
@@ -976,17 +994,30 @@ impl BugDiagram {
 
         // Back Light
         result.push_str(&format!(
-            r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">Back Light</text>"#,
+            r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">{}</text>"#,
             x,
             y + lh * row as f64,
-            theme.text_secondary
+            theme.text_secondary,
+            theme.labels.bug_back_light
         ));
         row += 1;
         for (label, value) in [
-            ("Low (0-30°)", self.zones.bl),
-            ("Medium (30-60°)", self.zones.bm),
-            ("High (60-80°)", self.zones.bh),
-            ("Very High (80-90°)", self.zones.bvh),
+            (
+                format!("{} (0-30°)", theme.labels.bug_zone_low),
+                self.zones.bl,
+            ),
+            (
+                format!("{} (30-60°)", theme.labels.bug_zone_medium),
+                self.zones.bm,
+            ),
+            (
+                format!("{} (60-80°)", theme.labels.bug_zone_high),
+                self.zones.bh,
+            ),
+            (
+                format!("{} (80-90°)", theme.labels.bug_zone_very_high),
+                self.zones.bvh,
+            ),
         ] {
             result.push_str(&format!(
                 r#"<text x="{}" y="{}" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text>"#,
@@ -999,15 +1030,22 @@ impl BugDiagram {
 
         // Uplight
         result.push_str(&format!(
-            r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">Uplight</text>"#,
+            r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">{}</text>"#,
             x,
             y + lh * row as f64,
-            theme.text_secondary
+            theme.text_secondary,
+            theme.labels.bug_uplight
         ));
         row += 1;
         for (label, value) in [
-            ("Low (90-100°)", self.zones.ul),
-            ("High (100-180°)", self.zones.uh),
+            (
+                format!("{} (90-100°)", theme.labels.bug_zone_low),
+                self.zones.ul,
+            ),
+            (
+                format!("{} (100-180°)", theme.labels.bug_zone_high),
+                self.zones.uh,
+            ),
         ] {
             result.push_str(&format!(
                 r#"<text x="{}" y="{}" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text>"#,
@@ -1020,15 +1058,16 @@ impl BugDiagram {
 
         // Total
         result.push_str(&format!(
-            r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">Total</text>"#,
+            r#"<text x="{}" y="{}" font-size="9" fill="{}" font-weight="bold">{}</text>"#,
             x,
             y + lh * row as f64,
-            theme.text_secondary
+            theme.text_secondary,
+            theme.labels.bug_total
         ));
         row += 1;
         result.push_str(&format!(
-            r#"<text x="{}" y="{}" font-size="9" fill="{}">Sum</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">100%</text>"#,
-            x, y + lh * row as f64, theme.text_secondary,
+            r#"<text x="{}" y="{}" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">{}</text><text x="{}" y="{}" text-anchor="end" font-size="9" fill="{}">100%</text>"#,
+            x, y + lh * row as f64, theme.text_secondary, theme.labels.bug_sum,
             col_lumens, y + lh * row as f64, theme.text_secondary, format_lumens(self.total_lumens),
             col_percent, y + lh * row as f64, theme.text_secondary
         ));

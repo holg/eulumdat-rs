@@ -5,6 +5,152 @@
 
 use crate::types::{LuminaireOpticalData, SpectralDistribution};
 
+/// Localized labels for greenhouse/PPFD diagram
+#[derive(Debug, Clone)]
+pub struct GreenhouseLabels {
+    /// Title: "Greenhouse PPFD at Distance"
+    pub title: String,
+    /// Unit: "µmol/m²/s"
+    pub unit: String,
+    /// "PPF" label
+    pub ppf: String,
+    /// "Efficacy" label
+    pub efficacy: String,
+    /// "Beam" label
+    pub beam: String,
+    /// "Power" label
+    pub power: String,
+    /// "Flowering" growth stage
+    pub flowering: String,
+    /// "Veg" / "Vegetative" growth stage
+    pub vegetative: String,
+    /// "Seedling" growth stage
+    pub seedling: String,
+}
+
+impl Default for GreenhouseLabels {
+    fn default() -> Self {
+        Self {
+            title: "Greenhouse PPFD at Distance".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "Efficacy".to_string(),
+            beam: "Beam".to_string(),
+            power: "Power".to_string(),
+            flowering: "Flowering".to_string(),
+            vegetative: "Veg".to_string(),
+            seedling: "Seedling".to_string(),
+        }
+    }
+}
+
+impl GreenhouseLabels {
+    /// German labels
+    pub fn german() -> Self {
+        Self {
+            title: "Gewächshaus PPFD nach Abstand".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "Effizienz".to_string(),
+            beam: "Strahl".to_string(),
+            power: "Leistung".to_string(),
+            flowering: "Blüte".to_string(),
+            vegetative: "Wachstum".to_string(),
+            seedling: "Sämling".to_string(),
+        }
+    }
+
+    /// Chinese labels
+    pub fn chinese() -> Self {
+        Self {
+            title: "温室PPFD随距离变化".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "效能".to_string(),
+            beam: "光束".to_string(),
+            power: "功率".to_string(),
+            flowering: "开花".to_string(),
+            vegetative: "营养".to_string(),
+            seedling: "幼苗".to_string(),
+        }
+    }
+
+    /// French labels
+    pub fn french() -> Self {
+        Self {
+            title: "PPFD Serre par Distance".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "Efficacité".to_string(),
+            beam: "Faisceau".to_string(),
+            power: "Puissance".to_string(),
+            flowering: "Floraison".to_string(),
+            vegetative: "Croissance".to_string(),
+            seedling: "Semis".to_string(),
+        }
+    }
+
+    /// Italian labels
+    pub fn italian() -> Self {
+        Self {
+            title: "PPFD Serra per Distanza".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "Efficienza".to_string(),
+            beam: "Fascio".to_string(),
+            power: "Potenza".to_string(),
+            flowering: "Fioritura".to_string(),
+            vegetative: "Crescita".to_string(),
+            seedling: "Piantina".to_string(),
+        }
+    }
+
+    /// Russian labels
+    pub fn russian() -> Self {
+        Self {
+            title: "PPFD теплицы по расстоянию".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "Эффективность".to_string(),
+            beam: "Луч".to_string(),
+            power: "Мощность".to_string(),
+            flowering: "Цветение".to_string(),
+            vegetative: "Рост".to_string(),
+            seedling: "Рассада".to_string(),
+        }
+    }
+
+    /// Spanish labels
+    pub fn spanish() -> Self {
+        Self {
+            title: "PPFD Invernadero por Distancia".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "Eficacia".to_string(),
+            beam: "Haz".to_string(),
+            power: "Potencia".to_string(),
+            flowering: "Floración".to_string(),
+            vegetative: "Crecimiento".to_string(),
+            seedling: "Plántula".to_string(),
+        }
+    }
+
+    /// Portuguese (Brazil) labels
+    pub fn portuguese_brazil() -> Self {
+        Self {
+            title: "PPFD Estufa por Distância".to_string(),
+            unit: "µmol/m²/s".to_string(),
+            ppf: "PPF".to_string(),
+            efficacy: "Eficácia".to_string(),
+            beam: "Feixe".to_string(),
+            power: "Potência".to_string(),
+            flowering: "Floração".to_string(),
+            vegetative: "Crescimento".to_string(),
+            seedling: "Muda".to_string(),
+        }
+    }
+}
+
 /// Theme for greenhouse diagram
 #[derive(Debug, Clone)]
 pub struct GreenhouseTheme {
@@ -84,8 +230,13 @@ pub struct GreenhouseDiagram {
 }
 
 impl GreenhouseDiagram {
-    /// Create greenhouse diagram from ATLA document
+    /// Create greenhouse diagram from ATLA document with default max height (2.0m)
     pub fn from_atla(doc: &LuminaireOpticalData) -> Self {
+        Self::from_atla_with_height(doc, 2.0)
+    }
+
+    /// Create greenhouse diagram from ATLA document with custom max height
+    pub fn from_atla_with_height(doc: &LuminaireOpticalData, max_height: f64) -> Self {
         let emitter = doc.emitters.first();
 
         // Get power and lumens
@@ -111,8 +262,9 @@ impl GreenhouseDiagram {
             .map(estimate_beam_angle)
             .unwrap_or(120.0);
 
-        // Calculate PPFD at various distances
-        let distances = [0.3, 0.5, 0.75, 1.0, 1.5, 2.0];
+        // Calculate PPFD at various distances based on max_height
+        // Generate 6-7 distance levels from 0.15*max to max
+        let distances = Self::generate_distances(max_height);
         let ppfd_levels: Vec<PpfdAtDistance> = distances
             .iter()
             .map(|&d| {
@@ -144,8 +296,56 @@ impl GreenhouseDiagram {
         }
     }
 
+    /// Generate distance levels based on max height
+    fn generate_distances(max_height: f64) -> Vec<f64> {
+        if max_height <= 1.0 {
+            // For short distances, use finer steps
+            vec![0.1, 0.2, 0.3, 0.5, 0.75, max_height]
+                .into_iter()
+                .filter(|&d| d <= max_height)
+                .collect()
+        } else if max_height <= 2.0 {
+            // Standard range
+            vec![0.3, 0.5, 0.75, 1.0, 1.5, max_height]
+                .into_iter()
+                .filter(|&d| d <= max_height)
+                .collect()
+        } else if max_height <= 4.0 {
+            // Extended range
+            vec![0.5, 1.0, 1.5, 2.0, 3.0, max_height]
+                .into_iter()
+                .filter(|&d| d <= max_height)
+                .collect()
+        } else {
+            // Very tall (industrial)
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, max_height]
+                .into_iter()
+                .filter(|&d| d <= max_height)
+                .collect()
+        }
+    }
+
+    /// Get max distance from ppfd_levels
+    pub fn max_distance(&self) -> f64 {
+        self.ppfd_levels
+            .iter()
+            .map(|l| l.distance_m)
+            .fold(0.0_f64, f64::max)
+    }
+
     /// Generate SVG visualization
     pub fn to_svg(&self, width: f64, height: f64, theme: &GreenhouseTheme) -> String {
+        self.to_svg_with_labels(width, height, theme, &GreenhouseLabels::default())
+    }
+
+    /// Generate SVG visualization with localized labels
+    pub fn to_svg_with_labels(
+        &self,
+        width: f64,
+        height: f64,
+        theme: &GreenhouseTheme,
+        labels: &GreenhouseLabels,
+    ) -> String {
         let margin = 40.0;
         let plot_width = width - 2.0 * margin;
         let plot_height = height - 2.0 * margin - 60.0; // Extra space for legend
@@ -159,8 +359,8 @@ impl GreenhouseDiagram {
 
         // Title
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"25\" fill=\"{}\" font-size=\"14\" font-family=\"{}\" font-weight=\"bold\" text-anchor=\"middle\">Greenhouse PPFD at Distance</text>\n",
-            width / 2.0, theme.foreground, theme.font_family
+            "  <text x=\"{}\" y=\"25\" fill=\"{}\" font-size=\"14\" font-family=\"{}\" font-weight=\"bold\" text-anchor=\"middle\">{}</text>\n",
+            width / 2.0, theme.foreground, theme.font_family, labels.title
         ));
 
         // Draw greenhouse outline
@@ -223,7 +423,7 @@ impl GreenhouseDiagram {
         ));
 
         // Distance markers and PPFD values
-        let max_distance = 2.0;
+        let max_distance = self.max_distance();
         for level in &self.ppfd_levels {
             if level.distance_m <= max_distance {
                 let y = greenhouse_y
@@ -260,8 +460,8 @@ impl GreenhouseDiagram {
 
         // Unit label
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\" text-anchor=\"end\">µmol/m²/s</text>\n",
-            margin + plot_width + 45.0, greenhouse_y + 15.0, theme.foreground, theme.font_family
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\" text-anchor=\"end\">{}</text>\n",
+            margin + plot_width + 45.0, greenhouse_y + 15.0, theme.foreground, theme.font_family, labels.unit
         ));
 
         // Info box at bottom
@@ -273,20 +473,20 @@ impl GreenhouseDiagram {
 
         // PPF, Efficacy, Beam Angle
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">PPF:</tspan> {:.0} µmol/s</text>\n",
-            margin + 10.0, info_y + 18.0, theme.foreground, theme.font_family, self.ppf
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">{}:</tspan> {:.0} µmol/s</text>\n",
+            margin + 10.0, info_y + 18.0, theme.foreground, theme.font_family, labels.ppf, self.ppf
         ));
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">Efficacy:</tspan> {:.2} µmol/J</text>\n",
-            margin + 10.0, info_y + 35.0, theme.foreground, theme.font_family, self.efficacy
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">{}:</tspan> {:.2} µmol/J</text>\n",
+            margin + 10.0, info_y + 35.0, theme.foreground, theme.font_family, labels.efficacy, self.efficacy
         ));
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">Beam:</tspan> {:.0}°</text>\n",
-            margin + 150.0, info_y + 18.0, theme.foreground, theme.font_family, self.beam_angle
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">{}:</tspan> {:.0}°</text>\n",
+            margin + 150.0, info_y + 18.0, theme.foreground, theme.font_family, labels.beam, self.beam_angle
         ));
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">Power:</tspan> {:.0}W</text>\n",
-            margin + 150.0, info_y + 35.0, theme.foreground, theme.font_family, self.watts
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"11\" font-family=\"{}\"><tspan font-weight=\"bold\">{}:</tspan> {:.0}W</text>\n",
+            margin + 150.0, info_y + 35.0, theme.foreground, theme.font_family, labels.power, self.watts
         ));
 
         // PPFD legend
@@ -297,8 +497,8 @@ impl GreenhouseDiagram {
             theme.ppfd_high
         ));
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">&gt;800 (Flowering)</text>\n",
-            margin + 290.0, info_y + 18.0, theme.foreground, theme.font_family
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">&gt;800 ({})</text>\n",
+            margin + 290.0, info_y + 18.0, theme.foreground, theme.font_family, labels.flowering
         ));
         svg.push_str(&format!(
             "  <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\"/>\n",
@@ -307,8 +507,8 @@ impl GreenhouseDiagram {
             theme.ppfd_medium
         ));
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">400-800 (Veg)</text>\n",
-            margin + 290.0, info_y + 34.0, theme.foreground, theme.font_family
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">400-800 ({})</text>\n",
+            margin + 290.0, info_y + 34.0, theme.foreground, theme.font_family, labels.vegetative
         ));
         svg.push_str(&format!(
             "  <circle cx=\"{}\" cy=\"{}\" r=\"5\" fill=\"{}\"/>\n",
@@ -317,8 +517,8 @@ impl GreenhouseDiagram {
             theme.ppfd_low
         ));
         svg.push_str(&format!(
-            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">&lt;400 (Seedling)</text>\n",
-            margin + 290.0, info_y + 50.0, theme.foreground, theme.font_family
+            "  <text x=\"{}\" y=\"{}\" fill=\"{}\" font-size=\"9\" font-family=\"{}\">&lt;400 ({})</text>\n",
+            margin + 290.0, info_y + 50.0, theme.foreground, theme.font_family, labels.seedling
         ));
 
         svg.push_str("</svg>");

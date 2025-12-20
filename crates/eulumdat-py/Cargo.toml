@@ -1,6 +1,6 @@
 [package]
 name = "eulumdat-py"
-version = "0.3.0"  # Must be explicit for maturin (workspace inheritance not supported)
+version = "0.4.0"  # Must be explicit for maturin (workspace inheritance not supported)
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/holg/eulumdat-rs"
@@ -11,5 +11,6 @@ name = "eulumdat"
 crate-type = ["cdylib"]
 
 [dependencies]
+atla = { workspace = true, features = ["eulumdat", "xml", "json"] }
 eulumdat.workspace = true
 pyo3 = { version = "0.27", features = ["extension-module"] }

@@ -28,7 +28,9 @@
 mod butterfly;
 mod cartesian;
 mod color;
+mod cone;
 mod heatmap;
+mod labels;
 mod polar;
 mod projection;
 mod svg;
@@ -37,10 +39,12 @@ mod watchface;
 pub use butterfly::{ButterflyDiagram, ButterflyWing, CPlaneData};
 pub use cartesian::{CartesianCurve, CartesianDiagram, CartesianPoint};
 pub use color::{heatmap_color, hsl_to_rgb, Color, ColorPalette};
+pub use cone::ConeDiagram;
 pub use heatmap::{HeatmapCell, HeatmapDiagram};
+pub use labels::DiagramLabels;
 pub use polar::{PolarCurve, PolarDiagram, PolarPoint};
 pub use projection::IsometricProjection;
-pub use svg::SvgTheme;
+pub use svg::{ConeDiagramLabels, DetailLevel, SvgLabels, SvgTheme};
 pub use watchface::WatchFaceStyle;
 
 /// Common 2D point used across diagram types

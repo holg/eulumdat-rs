@@ -1,6 +1,7 @@
 //! IESNA BUG Rating Component
 //! Uses eulumdat-core bug_rating module for calculations and SVG generation
 
+use crate::i18n::use_locale;
 use eulumdat::{diagram::SvgTheme, BugDiagram, Eulumdat};
 use leptos::ev;
 use leptos::prelude::*;
@@ -17,6 +18,7 @@ pub enum BugViewMode {
 
 #[component]
 pub fn BugRating(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+    let locale = use_locale();
     let (view_mode, set_view_mode) = signal(BugViewMode::default());
 
     // Calculate rating from LDT
@@ -38,15 +40,21 @@ pub fn BugRating(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     view! {
         <div class="bug-rating-container">
             <div class="bug-rating-header">
-                <h3>{move || match view_mode.get() {
-                    BugViewMode::Basic => "IESNA TM-15-11 BUG Rating",
-                    BugViewMode::Detailed => "IESNA TM-15-11 BUG Rating (Detailed)",
+                <h3>{move || {
+                    let l = locale.get();
+                    match view_mode.get() {
+                        BugViewMode::Basic => l.ui.bug_rating.title.clone(),
+                        BugViewMode::Detailed => l.ui.bug_rating.title_detailed.clone(),
+                    }
                 }}</h3>
                 <div class="bug-rating-controls">
                     <button class="btn btn-sm btn-secondary" on:click=toggle_view>
-                        {move || match view_mode.get() {
-                            BugViewMode::Basic => "Show Details",
-                            BugViewMode::Detailed => "Hide Details",
+                        {move || {
+                            let l = locale.get();
+                            match view_mode.get() {
+                                BugViewMode::Basic => l.ui.bug_rating.show_details.clone(),
+                                BugViewMode::Detailed => l.ui.bug_rating.hide_details.clone(),
+                            }
                         }}
                     </button>
                 </div>
@@ -70,7 +78,7 @@ pub fn BugRating(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             <div class="bug-rating-content" inner_html=move || {
                 let ldt = ldt.get();
                 let diagram = BugDiagram::from_eulumdat(&ldt);
-                let theme = SvgTheme::css_variables();
+                let theme = SvgTheme::css_variables_with_locale(&locale.get());
                 match view_mode.get() {
                     BugViewMode::Basic => diagram.to_svg(400.0, 350.0, &theme),
                     BugViewMode::Detailed => diagram.to_svg_with_details(550.0, 350.0, &theme),
@@ -78,9 +86,12 @@ pub fn BugRating(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             } />
 
             <div class="bug-rating-footer">
-                {move || match view_mode.get() {
-                    BugViewMode::Basic => "IESNA TM-15-11 Backlight, Uplight, Glare Rating",
-                    BugViewMode::Detailed => "IESNA TM-15-11 BUG Rating with Zone Lumens Breakdown",
+                {move || {
+                    let l = locale.get();
+                    match view_mode.get() {
+                        BugViewMode::Basic => l.ui.bug_rating.footer_basic.clone(),
+                        BugViewMode::Detailed => l.ui.bug_rating.footer_detailed.clone(),
+                    }
                 }}
             </div>
         </div>

@@ -1,0 +1,571 @@
+{
+  "meta": {
+    "language": "Русский",
+    "code": "ru",
+    "direction": "ltr"
+  },
+  "diagram": {
+    "units": {
+      "intensity": "кд/1000лм",
+      "intensity_short": "кд/клм",
+      "candela": "Кандела",
+      "lumen": "лм",
+      "watt": "Вт",
+      "lux": "лк"
+    },
+    "bug": {
+      "forward_light": "Передний свет",
+      "back_light": "Задний свет",
+      "uplight": "Верхний свет",
+      "total": "Итого",
+      "sum": "Сумма",
+      "zone_low": "Низкая",
+      "zone_medium": "Средняя",
+      "zone_high": "Высокая",
+      "zone_very_high": "Очень высокая",
+      "lumens": "Люмен",
+      "percent": "%"
+    },
+    "axis": {
+      "gamma": "Гамма (γ)",
+      "intensity": "Сила света (кд/клм)",
+      "c_plane": "Угол C-плоскости (°)",
+      "gamma_angle": "Угол гамма (°)"
+    },
+    "plane": {
+      "c0_c180": "C0-C180",
+      "c90_c270": "C90-C270"
+    },
+    "angle": {
+      "beam": "Луч",
+      "field": "Поле",
+      "beam_50": "Луч 50%",
+      "field_10": "Поле 10%"
+    },
+    "metrics": {
+      "cie": "CIE:",
+      "efficacy": "Эфф:",
+      "max": "Макс:",
+      "sh_ratio": "О/В:"
+    },
+    "title": {
+      "heatmap": "Тепловая карта силы света (Кандела)",
+      "polar": "Полярная диаграмма",
+      "cartesian": "Декартова диаграмма",
+      "cone": "Коническая диаграмма"
+    },
+    "placeholder": {
+      "no_data": "Нет данных"
+    },
+    "cone": {
+      "beam_angle": "Угол луча",
+      "field_angle": "Угол поля",
+      "mounting_height": "Высота установки",
+      "beam_diameter": "Луч ⌀",
+      "field_diameter": "Поле ⌀",
+      "intensity_50": "50%",
+      "intensity_10": "10%",
+      "floor": "Пол",
+      "meter": "м",
+      "classification": {
+        "very_narrow_spot": "Очень узкий пучок",
+        "narrow_spot": "Узкий пучок",
+        "spot": "Направленный",
+        "medium_flood": "Средний заливающий",
+        "wide_flood": "Широкий заливающий",
+        "very_wide_flood": "Очень широкий заливающий"
+      }
+    },
+    "greenhouse": {
+      "max_height": "Макс. высота"
+    }
+  },
+  "spectral": {
+    "axis": {
+      "wavelength": "Длина волны (нм)",
+      "relative_power": "Относительная мощность"
+    },
+    "title": {
+      "spd": "Спектральное распределение мощности",
+      "cvg": "Цветовая векторная графика",
+      "hue": "Точность цветового тона"
+    },
+    "region": {
+      "uv_a": "УФ-А",
+      "visible": "Видимый",
+      "near_ir": "Ближний ИК",
+      "blue": "Синий",
+      "green": "Зелёный",
+      "red": "Красный"
+    },
+    "warning": {
+      "uv_thermal": "УФ + тепловая опасность",
+      "uv_exposure": "Риск УФ-облучения",
+      "high_thermal": "Высокая тепловая мощность"
+    },
+    "units": {
+      "watts_per_nm": "Вт/нм",
+      "relative": "Относительный"
+    },
+    "tm30": {
+      "rf": "Rf",
+      "rg": "Rg",
+      "reference": "Эталон",
+      "test": "Тест"
+    },
+    "metrics": {
+      "energy_distribution": "Распределение энергии",
+      "uv_percent": "УФ",
+      "visible_percent": "Видимый",
+      "ir_percent": "ИК",
+      "r_fr_ratio": "Соотношение К:ДК"
+    }
+  },
+  "luminaire": {
+    "info": {
+      "manufacturer": "Производитель",
+      "catalog_number": "Каталожный номер",
+      "description": "Описание",
+      "luminaire_name": "Название светильника",
+      "luminaire_number": "Номер светильника",
+      "luminaire_type": "Тип светильника",
+      "lamp_type": "Тип лампы",
+      "test_date": "Дата испытания",
+      "report_number": "Номер отчёта",
+      "laboratory": "Лаборатория",
+      "identification": "Идентификация",
+      "type_indicator": "Индикатор типа",
+      "type_indicator_1": "1 - Точечный источник (вертикальная симметрия)",
+      "type_indicator_2": "2 - Линейный светильник",
+      "type_indicator_3": "3 - Точечный источник (другая симметрия)",
+      "symmetry": "Симметрия",
+      "symmetry_0": "0 - Без симметрии",
+      "symmetry_1": "1 - Вертикальная ось",
+      "symmetry_2": "2 - Плоскость C0-C180",
+      "symmetry_3": "3 - Плоскость C90-C270",
+      "symmetry_4": "4 - Обе плоскости",
+      "num_c_planes": "Количество C-плоскостей (Nc)",
+      "c_plane_distance": "Расстояние C-плоскостей (Dc)",
+      "num_g_planes": "Количество G-плоскостей (Ng)",
+      "g_plane_distance": "Расстояние G-плоскостей (Dg)",
+      "measurement_report": "Номер отчёта измерений",
+      "file_name": "Имя файла",
+      "date_user": "Дата / Пользователь"
+    },
+    "physical": {
+      "dimensions": "Размеры",
+      "dimensions_mm": "Размеры светильника (мм)",
+      "length": "Длина",
+      "length_diameter": "Длина / Диаметр (L)",
+      "width": "Ширина",
+      "width_b": "Ширина (B)",
+      "height": "Высота",
+      "height_h": "Высота (H)",
+      "luminous_area": "Светящаяся площадь",
+      "luminous_area_mm": "Светящаяся площадь (мм)",
+      "luminous_length": "Длина / Диаметр (La)",
+      "luminous_width": "Ширина (B1)",
+      "luminous_height_c_planes": "Высота светящейся площади при C-плоскостях (мм)",
+      "mounting": "Монтаж"
+    },
+    "optical": {
+      "title": "Оптические свойства",
+      "downward_flux_fraction": "Доля нижнего светового потока (%)",
+      "light_output_ratio": "КПД светильника (%)",
+      "conversion_factor": "Коэффициент преобразования",
+      "tilt_angle": "Угол наклона (°)"
+    },
+    "photometric": {
+      "total_flux": "Общий световой поток",
+      "total_lamp_flux": "Общий поток ламп",
+      "total_wattage": "Общая мощность",
+      "lamp_efficacy": "Эффективность ламп",
+      "luminaire_efficacy": "Эффективность светильника",
+      "efficacy": "Световая отдача",
+      "lor": "КПД светильника",
+      "dlor": "Нижний КПД",
+      "ulor": "Верхний КПД",
+      "cct": "Цветовая температура",
+      "cri": "Индекс цветопередачи",
+      "beam_angle": "Угол луча",
+      "beam_angle_50": "Угол луча (50%)",
+      "field_angle": "Угол поля",
+      "field_angle_10": "Угол поля (10%)",
+      "cie_class": "Классификация CIE",
+      "symmetry": "Симметрия",
+      "max_intensity": "Максимальная сила света",
+      "spacing_criterion": "Критерий расстояния",
+      "photometric_code": "Фотометрический код",
+      "cutoff_angle": "Угол отсечки"
+    },
+    "electrical": {
+      "power": "Потребляемая мощность",
+      "voltage": "Напряжение",
+      "current": "Ток",
+      "power_factor": "Коэффициент мощности"
+    },
+    "lamp_set": {
+      "title": "Набор ламп",
+      "set_n": "Набор {n}",
+      "num_lamps": "Количество ламп",
+      "luminous_flux": "Общий световой поток (лм)",
+      "wattage": "Мощность с ПРА (Вт)",
+      "lamp_type": "Тип лампы",
+      "color_appearance": "Цветность / CCT",
+      "color_rendering": "Цветопередача / CRI",
+      "remove": "Удалить этот набор ламп"
+    },
+    "summary": {
+      "title": "Расчётная фотометрическая сводка",
+      "description": "Значения ниже рассчитаны из данных распределения силы света",
+      "beam_characteristics": "Характеристики луча",
+      "zonal_lumens": "Зональные люмены",
+      "glare_assessment": "Оценка слепимости",
+      "luminaire_luminance": "Яркость светильника (65°)",
+      "room_config": "Конфигурация помещения"
+    },
+    "direct_ratios": {
+      "description": "Прямые коэффициенты для индексов помещения (k-значения). Это коэффициенты использования.",
+      "calculate": "Рассчитать из данных интенсивности"
+    }
+  },
+  "validation": {
+    "level": {
+      "error": "Ошибка",
+      "warning": "Предупреждение",
+      "info": "Информация"
+    },
+    "messages": {
+      "missing_manufacturer": "Отсутствует информация о производителе",
+      "missing_flux": "Отсутствуют данные светового потока",
+      "invalid_angles": "Недопустимые значения углов",
+      "intensity_mismatch": "Несоответствие данных силы света",
+      "symmetry_violation": "Нарушение условия симметрии"
+    }
+  },
+  "ui": {
+    "header": {
+      "title": "Редактор Eulumdat",
+      "file": "Файл",
+      "new": "Новый",
+      "open": "Открыть...",
+      "templates": "Шаблоны",
+      "save_ldt": "Сохранить как LDT",
+      "export_ies": "Экспорт в IES",
+      "atla_xml": "Экспорт в ATLA XML",
+      "atla_json": "Экспорт в ATLA JSON",
+      "switch_to_dark": "Переключить на тёмную тему",
+      "switch_to_light": "Переключить на светлую тему"
+    },
+    "tabs": {
+      "general": "Общие",
+      "dimensions": "Размеры",
+      "lamp_sets": "Лампы",
+      "direct_ratios": "Прямые коэффициенты",
+      "intensity": "Сила света",
+      "diagram_2d": "2D",
+      "diagram_3d": "3D",
+      "heatmap": "Тепловая карта",
+      "spectral": "Спектр",
+      "greenhouse": "Теплица",
+      "bug_rating": "BUG",
+      "lcs": "LCS",
+      "validation": "Проверка",
+      "scene_3d": "3D-сцена",
+      "info": "Инфо",
+      "data": "Данные",
+      "diagrams": "Диаграммы",
+      "analysis": "Анализ",
+      "polar": "Полярная",
+      "cartesian": "Декартова",
+      "cone": "Конус",
+      "export": "Экспорт"
+    },
+    "subtabs": {
+      "spd": "СРМ",
+      "tm30_cvg": "TM-30 CVG",
+      "tm30_hue": "TM-30 Тон",
+      "metrics": "Метрики"
+    },
+    "dropzone": {
+      "text": "Перетащите файл LDT, IES или ATLA (XML/JSON) сюда или используйте кнопку Открыть выше",
+      "current_file": "Текущий файл:"
+    },
+    "diagram": {
+      "title_2d": "2D-распределение силы света",
+      "title_3d": "3D-диаграмма \"бабочка\"",
+      "title_heatmap": "Тепловая карта силы света",
+      "title_spectral": "Спектральное распределение мощности",
+      "title_greenhouse": "PPFD для теплиц",
+      "title_bug": "Анализ рейтинга BUG",
+      "title_lcs": "Классификация светильников",
+      "title_scene": "3D-просмотр сцены",
+      "polar": "Полярная",
+      "cartesian": "Декартова",
+      "zoom_hint": "Прокрутка для масштаба | Перетаскивание для панорамы",
+      "rotate_hint": "Перетаскивание для вращения | Прокрутка для масштаба | Автовращение при загрузке",
+      "scene_controls": "Управление: WASD/Стрелки движение • Q/E вверх/вниз • ПКМ+перетаскивание осмотр • R сброс вида • 1-4 типы сцен • P фотометрическое тело • L светильник"
+    },
+    "intensity": {
+      "title": "Сила света (кд/клм)",
+      "table_info": "{c_planes} C-плоскостей × {g_angles} γ-углов"
+    },
+    "validation": {
+      "title": "Результаты проверки"
+    },
+    "spectral": {
+      "subtitle": "Спектральные данные ATLA S001 | Синтез CCT/CRI",
+      "greenhouse_subtitle": "мкмоль/м²/с на высотах монтажа",
+      "bug_subtitle": "IES TM-15-11 | Прокрутка для масштаба | Перетаскивание для панорамы",
+      "lcs_subtitle": "IES TM-15-07 | Прокрутка для масштаба | Перетаскивание для панорамы",
+      "direct_spd": "Прямые СРМ",
+      "sample": "Образец",
+      "load_hint": "Загрузите шаблон ATLA со спектральными данными для анализа TM-30",
+      "wavelength_range": "Диапазон длин волн",
+      "peak": "Пик",
+      "energy_distribution": "Распределение энергии",
+      "par_distribution": "Распределение ФАР (400-700нм)",
+      "par_total": "Всего ФАР",
+      "hort_metrics": "Агрометрики",
+      "far_red": "Дальний красный (700-780нм)",
+      "r_fr_hint": "Соотношение R:FR влияет на морфологию растений (>1.0 = компактный рост)",
+      "warnings": "Предупреждения",
+      "thermal_warning": "Высокое содержание ИК — значительный тепловой выход",
+      "uv_warning": "Повышенное содержание УФ-А — возможная деградация материалов",
+      "cvg_legend1": "Векторная диаграмма цвета показывает сдвиги тона и хромы для 16 тоновых зон.",
+      "cvg_legend2": "Пунктирный круг = эталонный источник. Закрашенная форма = тестируемый источник.",
+      "hue_table": {
+        "hue": "Тон",
+        "rf": "Rf",
+        "rcs": "Rcs",
+        "rhs": "Rhs"
+      },
+      "hue_legend": {
+        "rf": "Точность (0-100, выше = лучше соответствие)",
+        "rcs": "Сдвиг хромы (+ve = более насыщенный)",
+        "rhs": "Сдвиг тона (градусы)"
+      }
+    },
+    "butterfly": {
+      "pause": "Пауза",
+      "auto": "Авто",
+      "reset": "Сброс",
+      "drag_hint": "Перетащите для вращения",
+      "max": "Макс"
+    },
+    "bevy_scene": {
+      "title": "3D-просмотр сцены",
+      "click_to_load": "Нажмите для загрузки (~22МБ)",
+      "load_button": "Загрузить 3D-просмотр",
+      "loading": "Загрузка 3D-просмотра...",
+      "downloading": "Загрузка ~22МБ",
+      "load_failed": "Не удалось загрузить 3D-просмотр",
+      "try_again": "Повторить",
+      "scene_type": "Тип сцены",
+      "scene_room": "Комната",
+      "scene_road": "Дорога",
+      "scene_parking": "Парковка",
+      "scene_outdoor": "Улица",
+      "room_width": "Ширина (м)",
+      "room_length": "Длина (м)",
+      "room_height": "Высота (м)",
+      "mounting_height": "Высота монтажа (м)",
+      "pendulum_length": "Длина подвеса (м)",
+      "show_luminaire": "Показать светильник",
+      "show_solid": "Фотометрическое тело",
+      "show_shadows": "Тени",
+      "controls_hint": "WASD: Движение, Мышь: Обзор, R: Сброс, 1-4: Сцена"
+    },
+    "bug_rating": {
+      "title": "Рейтинг BUG по IESNA TM-15-11",
+      "title_detailed": "Рейтинг BUG по IESNA TM-15-11 (подробно)",
+      "show_details": "Показать детали",
+      "hide_details": "Скрыть детали",
+      "footer_basic": "IESNA TM-15-11 Оценка заднего, верхнего света и ослепления",
+      "footer_detailed": "Рейтинг BUG по IESNA TM-15-11 с разбивкой по зонам"
+    },
+    "lcs": {
+      "footer": "IES TM-15-07 Система классификации наружных светильников"
+    },
+    "data_table": {
+      "no_data": "Данные интенсивности отсутствуют",
+      "copy_to_clipboard": "Копировать в буфер"
+    },
+    "validation_panel": {
+      "all_passed": "Все проверки пройдены",
+      "error_count": "{errors} ошибок, {warnings} предупреждений"
+    },
+    "spectral_badges": {
+      "ir": "ИК",
+      "uv": "УФ",
+      "ir_high_title": "Высокое содержание ИК — тепловая опасность",
+      "ir_title": "Содержит инфракрасные данные",
+      "uv_high_title": "Высокое содержание УФ — риск облучения",
+      "uv_title": "Содержит ультрафиолетовые данные",
+      "rg": "Rg",
+      "duv": "Duv"
+    },
+    "actions": {
+      "load": "Загрузить",
+      "save": "Сохранить",
+      "export": "Экспорт",
+      "import": "Импорт",
+      "clear": "Очистить",
+      "reset": "Сбросить",
+      "apply": "Применить",
+      "cancel": "Отмена",
+      "close": "Закрыть",
+      "download": "Скачать"
+    },
+    "file": {
+      "open": "Открыть файл",
+      "save_as": "Сохранить как",
+      "export_ldt": "Экспорт в LDT",
+      "export_ies": "Экспорт в IES",
+      "export_atla": "Экспорт в ATLA",
+      "export_svg": "Экспорт в SVG",
+      "export_pdf": "Экспорт в PDF"
+    },
+    "theme": {
+      "light": "Светлая",
+      "dark": "Тёмная",
+      "system": "Системная"
+    },
+    "language": {
+      "select": "Выбрать язык"
+    },
+    "template": {
+      "select": "Выбрать шаблон",
+      "downlight": "Даунлайт",
+      "projector": "Прожектор",
+      "linear": "Линейный светильник",
+      "fluorescent": "Люминесцентный светильник",
+      "road": "Дорожный светильник",
+      "uplight": "Напольный аплайт",
+      "atla_fluorescent_xml": "ATLA Люминесцентный (XML)",
+      "atla_fluorescent_json": "ATLA Люминесцентный (JSON)",
+      "atla_grow_light_fs": "ATLA Фитолампа (полный спектр)",
+      "atla_grow_light_rb": "ATLA Фитолампа (красный/синий)",
+      "halogen": "ATLA Галогенная (ИК)",
+      "incandescent": "ATLA Накаливания (ИК)",
+      "heat_lamp": "ATLA Инфракрасная (высокий ИК)",
+      "uv_blacklight": "ATLA УФ-лампа чёрного света"
+    },
+    "messages": {
+      "loading": "Загрузка...",
+      "saving": "Сохранение...",
+      "error": "Произошла ошибка",
+      "success": "Успешно",
+      "file_loaded": "Файл успешно загружен",
+      "file_saved": "Файл успешно сохранён",
+      "invalid_file": "Недопустимый формат файла",
+      "no_file": "Файл не выбран"
+    }
+  },
+  "report": {
+    "title": "Фотометрический отчёт",
+    "generated": "Дата создания",
+    "page": "Страница",
+    "of": "из",
+    "summary": "Сводка",
+    "details": "Подробности",
+    "appendix": "Приложение"
+  },
+  "app": {
+    "welcome": {
+      "title": "Добро пожаловать в Eulumdat",
+      "subtitle": "Откройте файл LDT/IES или выберите шаблон",
+      "openFile": "Открыть файл",
+      "newFromTemplate": "Создать из шаблона",
+      "dropFile": "Перетащите файл сюда"
+    },
+    "settings": {
+      "language": "Язык",
+      "language_system": "Системный по умолчанию",
+      "appearance": "Внешний вид",
+      "darkTheme": "Тёмная тема для диаграмм",
+      "defaultDiagram": "Диаграмма по умолчанию",
+      "mountingHeight": "Высота монтажа",
+      "mountingHeight_description": "Для диаграмм конуса и PPFD",
+      "export": "Экспорт",
+      "about": "О программе"
+    },
+    "toolbar": {
+      "open": "Открыть",
+      "export": "Экспорт",
+      "exportSVG": "Экспорт SVG...",
+      "exportIES": "Экспорт IES...",
+      "exportLDT": "Экспорт LDT...",
+      "dark": "Тёмная тема"
+    },
+    "nav": {
+      "title": "Eulumdat"
+    },
+    "error": {
+      "ok": "OK"
+    },
+    "fullscreen": {
+      "darkTheme": "Тёмная тема",
+      "done": "Готово"
+    },
+    "tab": {
+      "general": "Общее",
+      "dimensions": "Размеры",
+      "lampSets": "Лампы",
+      "optical": "Оптика",
+      "intensity": "Интенсивность",
+      "diagram": "Диаграмма"
+    },
+    "validation": {
+      "title": "Проверка"
+    },
+    "diagram": {
+      "polar": "Полярная",
+      "cartesian": "Декартова",
+      "butterfly": "Бабочка",
+      "3d": "3D",
+      "room": "Комната",
+      "heatmap": "Тепловая карта",
+      "cone": "Конус",
+      "beam": "Луч",
+      "spectral": "Спектральная",
+      "ppfd": "PPFD",
+      "bug": "BUG",
+      "lcs": "LCS"
+    },
+    "template": {
+      "downlight": "Даунлайт",
+      "downlight_desc": "Простой даунлайт с вертикальной осевой симметрией",
+      "projector": "Прожектор",
+      "projector_desc": "Прожектор CDM-TD 70W с асимметричным лучом",
+      "linear": "Линейный светильник",
+      "linear_desc": "Линейный светильник с симметрией C0-C180",
+      "fluorescent": "Люминесцентный светильник",
+      "fluorescent_desc": "Линейный светильник T16 G5 54W с двусторонней симметрией",
+      "roadLuminaire": "Уличный светильник",
+      "roadLuminaire_desc": "Уличное освещение SON-TPP 250W с симметрией C90-C270",
+      "floorUplight": "Торшер-аплайт",
+      "floorUplight_desc": "Торшер HIT-DE 250W",
+      "wikiBatwing": "Крыло летучей мыши (Wiki)",
+      "wikiBatwing_desc": "Распределение для равномерной освещённости",
+      "wikiSpotlight": "Прожектор (Wiki)",
+      "wikiSpotlight_desc": "Распределение узкого луча",
+      "wikiFlood": "Заливающий (Wiki)",
+      "wikiFlood_desc": "Распределение широкого луча",
+      "atlaGrowLight": "Фитолампа (ATLA)",
+      "atlaGrowLight_desc": "LED фитолампа со спектром PPF красный/синий",
+      "atlaGrowLightRB": "Фитолампа R/B (ATLA)",
+      "atlaGrowLightRB_desc": "LED красно/синяя лампа для растений",
+      "atlaFluorescent": "Люминесцентная (ATLA)",
+      "atlaFluorescent_desc": "Люминесцентная лампа со спектральными данными",
+      "atlaHalogen": "Галогенная (ATLA)",
+      "atlaHalogen_desc": "Галогенная лампа с непрерывным спектром",
+      "atlaIncandescent": "Лампа накаливания (ATLA)",
+      "atlaIncandescent_desc": "Лампа накаливания с тёплым спектром",
+      "atlaHeatLamp": "Инфракрасная лампа (ATLA)",
+      "atlaHeatLamp_desc": "Инфракрасная нагревательная лампа",
+      "atlaUvBlacklight": "УФ-лампа (ATLA)",
+      "atlaUvBlacklight_desc": "УФ чёрный свет со спектром UV-A"
+    }
+  }
+}

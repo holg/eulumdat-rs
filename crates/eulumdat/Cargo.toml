@@ -14,10 +14,12 @@ documentation = "https://docs.rs/eulumdat"
 
 [features]
 default = []
+i18n = ["dep:eulumdat-i18n"]
 serde = ["dep:serde"]
 
 [dependencies]
 anyhow.workspace = true
+eulumdat-i18n = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]

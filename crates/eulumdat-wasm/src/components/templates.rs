@@ -66,6 +66,32 @@ pub const LINEAR: Template = Template {
     content: include_str!("../../templates/0-2-0.ldt"),
 };
 
+// === Wikipedia Beam Angle Demo Templates ===
+
+/// Batwing distribution - shows IES vs CIE beam angle difference
+pub const WIKI_BATWING: Template = Template {
+    name: "Wiki: Batwing (IES vs CIE)",
+    description: "Batwing distribution demonstrating IES vs CIE beam angle difference",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/wiki-batwing.ldt"),
+};
+
+/// Narrow spotlight - standard center-peak distribution
+pub const WIKI_SPOTLIGHT: Template = Template {
+    name: "Wiki: Spotlight (30°)",
+    description: "Narrow 30° beam spotlight with center-peak distribution",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/wiki-spotlight.ldt"),
+};
+
+/// Wide flood - cosine distribution
+pub const WIKI_FLOOD: Template = Template {
+    name: "Wiki: Flood (120°)",
+    description: "Wide flood with ~60° beam and ~120° field angle",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/wiki-flood.ldt"),
+};
+
 // === ATLA Templates ===
 
 /// ATLA XML fluorescent template
@@ -132,14 +158,70 @@ pub const ATLA_UV_BLACKLIGHT: Template = Template {
     content: include_str!("../../templates/_atla_uv_blacklight.xml"),
 };
 
+// === TM-33-23 Templates (Horticultural) ===
+
+/// TM-33-23 Minimal valid document
+pub const TM33_MINIMAL: Template = Template {
+    name: "tm-33-23 Minimal",
+    description: "Minimal valid TM-33-23 document with all required fields",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-33-23_minimal.xml"),
+};
+
+/// TM-33-23 with CustomData
+pub const TM33_CUSTOM_DATA: Template = Template {
+    name: "tm-33-23 Custom Data",
+    description: "TM-33-23 with multiple CustomData blocks and extended fields",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-33-23_with_custom_data.xml"),
+};
+
+/// TM-33-23 Full spectrum horticultural LED
+pub const TM33_HORT_LED: Template = Template {
+    name: "tm-33-23 Horticultural LED",
+    description: "600W full spectrum LED panel with PPFD metrics and spectral data",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-33-23_horticultural_led.xml"),
+};
+
+/// TM-33-23 Far-red supplemental LED
+pub const TM33_FAR_RED: Template = Template {
+    name: "tm-33-23 Far-Red (730nm)",
+    description: "120W far-red supplemental for flowering enhancement",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-33-23_far_red_supplemental.xml"),
+};
+
+/// TM-33-23 UV supplemental LED
+pub const TM33_UV: Template = Template {
+    name: "tm-33-23 UV-A/B Supplemental",
+    description: "60W UV-A/UV-B for secondary metabolite enhancement",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-33-23_uv_supplemental.xml"),
+};
+
+/// TM-33-23 Seedling propagation LED
+pub const TM33_SEEDLING: Template = Template {
+    name: "tm-33-23 Seedling/Clone",
+    description: "200W high-blue LED for seedling and clone propagation",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-33-23_seedling_propagation.xml"),
+};
+
 /// All available templates
 pub const ALL_TEMPLATES: &[&Template] = &[
+    // Wikipedia beam angle demos (put first for visibility)
+    &WIKI_BATWING,
+    &WIKI_SPOTLIGHT,
+    &WIKI_FLOOD,
+    // Standard LDT templates
     &DOWNLIGHT,
     &PROJECTOR,
     &LINEAR,
     &FLUORESCENT,
     &ROAD_LUMINAIRE,
     &FLOOR_UPLIGHT,
+    // ATLA S001 format templates
     &ATLA_FLUORESCENT_XML,
     &ATLA_FLUORESCENT_JSON,
     &ATLA_GROW_LIGHT_FS,
@@ -148,4 +230,11 @@ pub const ALL_TEMPLATES: &[&Template] = &[
     &ATLA_INCANDESCENT,
     &ATLA_HEAT_LAMP,
     &ATLA_UV_BLACKLIGHT,
+    // TM-33-23 format templates (horticultural)
+    &TM33_MINIMAL,
+    &TM33_CUSTOM_DATA,
+    &TM33_HORT_LED,
+    &TM33_FAR_RED,
+    &TM33_UV,
+    &TM33_SEEDLING,
 ];

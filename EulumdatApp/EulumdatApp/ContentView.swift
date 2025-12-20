@@ -26,16 +26,35 @@ extension SwiftUI.Color {
 
 struct ContentView: View {
     @State private var ldt: Eulumdat?
+    @State private var atlaDoc: AtlaDocument?  // For spectral data access
     @State private var errorMessage: String?
     @State private var isImporting = false
     @State private var isExporting = false
     @State private var selectedTab: AppTab = .diagram
     @State private var selectedDiagram: DiagramType = .polar
     @AppStorage("isDarkTheme") private var isDarkTheme = false
+
+    /// Get app language from system locale
+    private var appLanguage: String { L10n.currentLanguage }
+
+    /// Get the current language for diagram localization
+    private var currentLanguage: Language {
+        switch appLanguage {
+        case "de": return .german
+        case "zh": return .chinese
+        case "fr": return .french
+        case "it": return .italian
+        case "ru": return .russian
+        case "es": return .spanish
+        case "pt-BR": return .portugueseBrazil
+        default: return .english
+        }
+    }
     @State private var showValidation = false
     @State private var isTargeted = false
     @State private var currentFileName: String = ""
     @AppStorage("svgExportSize") private var svgExportSize = 600.0
+    @AppStorage("mountingHeight") private var mountingHeight = 3.0
     @Environment(\.openWindow) private var openWindow
 
     #if os(macOS)
@@ -46,7 +65,7 @@ struct ContentView: View {
     @State private var exportDocument: ExportDocument?
 
     enum ExportType {
-        case svg, ies, ldt
+        case svg, ies, ldt, atla
     }
 
     struct ExportDocument {
@@ -76,6 +95,22 @@ struct ContentView: View {
             case .validation: return "checkmark.shield"
             }
         }
+
+        var localizationKey: String {
+            switch self {
+            case .general: return "tab.general"
+            case .dimensions: return "tab.dimensions"
+            case .lamps: return "tab.lampSets"
+            case .optical: return "tab.optical"
+            case .intensity: return "tab.intensity"
+            case .diagram: return "tab.diagram"
+            case .validation: return "validation.title"
+            }
+        }
+
+        func localizedName(_ language: String) -> String {
+            L10n.string(localizationKey, language: language)
+        }
     }
 
     enum DiagramType: String, CaseIterable, Identifiable {
@@ -85,10 +120,35 @@ struct ContentView: View {
         case butterfly3D = "3D"
         case room3D = "Room"
         case heatmap = "Heatmap"
+        case cone = "Cone"
+        case beamAngle = "Beam"
+        case spectral = "Spectral"
+        case greenhouse = "PPFD"
         case bug = "BUG"
         case lcs = "LCS"
 
         var id: String { rawValue }
+
+        var localizationKey: String {
+            switch self {
+            case .polar: return "diagram.polar"
+            case .cartesian: return "diagram.cartesian"
+            case .butterfly: return "diagram.butterfly"
+            case .butterfly3D: return "diagram.3d"
+            case .room3D: return "diagram.room"
+            case .heatmap: return "diagram.heatmap"
+            case .cone: return "diagram.cone"
+            case .beamAngle: return "diagram.beam"
+            case .spectral: return "diagram.spectral"
+            case .greenhouse: return "diagram.ppfd"
+            case .bug: return "diagram.bug"
+            case .lcs: return "diagram.lcs"
+            }
+        }
+
+        func localizedName(_ language: String) -> String {
+            L10n.string(localizationKey, language: language)
+        }
     }
 
     var body: some View {
@@ -96,7 +156,7 @@ struct ContentView: View {
             NavigationStack { contentVStack }
             Color.clear.background(notifications)
         }
-        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.ldt, .ies], allowsMultipleSelection: false, onCompletion: handleFileImport)
+        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.ldt, .ies, .xml], allowsMultipleSelection: false, onCompletion: handleFileImport)
         .background(exporterViews)
     }
 
@@ -137,6 +197,17 @@ struct ContentView: View {
                     handleExportResult(result)
                     exportDocument = nil
                 }
+            case .atla:
+                Color.clear.fileExporter(
+                    isPresented: $isExporting,
+                    document: ATLADocument(content: doc.content),
+                    contentType: .xml,
+                    defaultFilename: atlaExportFilename
+                ) { result in
+                    print("DEBUG: ATLA fileExporter completion: \(result)")
+                    handleExportResult(result)
+                    exportDocument = nil
+                }
             }
         }
     }
@@ -161,6 +232,10 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .exportLDT)) { _ in
                 print("DEBUG: Received exportLDT notification")
                 triggerLDTExport()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .exportATLA)) { _ in
+                print("DEBUG: Received exportATLA notification")
+                triggerATLAExport()
             }
             .onReceive(NotificationCenter.default.publisher(for: .newFromTemplate)) { n in handleTemplate(n) }
             .onReceive(NotificationCenter.default.publisher(for: .openBatchConvert)) { _ in openWindow(id: "batch-convert") }
@@ -195,13 +270,13 @@ struct ContentView: View {
                 emptyStateView
             }
         }
-        .navigationTitle(currentFileName.isEmpty ? "Eulumdat Editor" : currentFileName)
+        .navigationTitle(currentFileName.isEmpty ? L10n.string("nav.title", language: appLanguage) : currentFileName)
         #if os(macOS)
         .navigationSubtitle(ldt != nil ? "\(ldt!.luminaireName)" : "")
         #endif
         .toolbar { toolbarContent }
         .alert("Error", isPresented: .constant(errorMessage != nil)) {
-            Button("OK") { errorMessage = nil }
+            Button(L10n.string("error.ok", language: appLanguage)) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
@@ -211,7 +286,9 @@ struct ContentView: View {
     private func handleTemplate(_ notification: Notification) {
         if let template = notification.object as? LuminaireTemplate {
             ldt = template.createEulumdat()
-            currentFileName = template.rawValue + ".ldt"
+            atlaDoc = template.createAtlaDocument()
+            let ext = template.format == .atlaXml ? ".xml" : ".ldt"
+            currentFileName = template.displayName + ext
             selectedTab = .diagram
         }
     }
@@ -243,7 +320,7 @@ struct ContentView: View {
             HStack(spacing: 6) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 12))
-                Text(tab.rawValue)
+                Text(tab.localizedName(appLanguage))
                     .font(.system(size: 13))
             }
             .padding(.horizontal, 12)
@@ -290,11 +367,11 @@ struct ContentView: View {
                 .foregroundStyle(.tertiary)
 
             VStack(spacing: 8) {
-                Text("No LDT File Loaded")
+                Text(L10n.string("welcome.title", language: appLanguage))
                     .font(.title2)
                     .fontWeight(.medium)
 
-                Text("Open an LDT or IES file, or create from template")
+                Text(L10n.string("welcome.subtitle", language: appLanguage))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -303,25 +380,27 @@ struct ContentView: View {
                 Button {
                     isImporting = true
                 } label: {
-                    Label("Open File", systemImage: "folder")
+                    Label(L10n.string("welcome.openFile", language: appLanguage), systemImage: "folder")
                 }
                 .buttonStyle(.borderedProminent)
 
                 Menu {
                     ForEach(LuminaireTemplate.allCases) { template in
-                        Button(template.rawValue) {
+                        Button(template.displayName) {
                             ldt = template.createEulumdat()
-                            currentFileName = template.rawValue + ".ldt"
+                            atlaDoc = template.createAtlaDocument()
+                            let ext = template.format == .atlaXml ? ".xml" : ".ldt"
+                            currentFileName = template.displayName + ext
                         }
                     }
                 } label: {
-                    Label("New from Template", systemImage: "doc.badge.plus")
+                    Label(L10n.string("welcome.newFromTemplate", language: appLanguage), systemImage: "doc.badge.plus")
                 }
                 .menuStyle(.borderlessButton)
             }
 
             if isTargeted {
-                Text("Drop file here")
+                Text(L10n.string("welcome.dropFile", language: appLanguage))
                     .font(.headline)
                     .foregroundColor(.accentColor)
                     .padding()
@@ -347,29 +426,29 @@ struct ContentView: View {
             Button {
                 isImporting = true
             } label: {
-                Label("Open", systemImage: "folder")
+                Label(L10n.string("toolbar.open", language: appLanguage), systemImage: "folder")
             }
 
             if ldt != nil {
                 Menu {
-                    Button("Export SVG...") {
+                    Button(L10n.string("toolbar.exportSVG", language: appLanguage)) {
                         print("DEBUG: Export SVG button clicked")
                         triggerSVGExport()
                     }
-                    Button("Export IES...") {
+                    Button(L10n.string("toolbar.exportIES", language: appLanguage)) {
                         print("DEBUG: Export IES button clicked")
                         triggerIESExport()
                     }
-                    Button("Export LDT...") {
+                    Button(L10n.string("toolbar.exportLDT", language: appLanguage)) {
                         print("DEBUG: Export LDT button clicked")
                         triggerLDTExport()
                     }
                 } label: {
-                    Label("Export", systemImage: "square.and.arrow.up")
+                    Label(L10n.string("toolbar.export", language: appLanguage), systemImage: "square.and.arrow.up")
                 }
 
                 Toggle(isOn: $isDarkTheme) {
-                    Label("Dark", systemImage: isDarkTheme ? "moon.fill" : "sun.max.fill")
+                    Label(L10n.string("toolbar.dark", language: appLanguage), systemImage: isDarkTheme ? "moon.fill" : "sun.max.fill")
                 }
             }
         }
@@ -390,6 +469,15 @@ struct ContentView: View {
         let baseName = currentFileName
             .replacingOccurrences(of: ".ldt", with: "")
             .replacingOccurrences(of: ".LDT", with: "")
+        return baseName.isEmpty ? "export" : baseName
+    }
+
+    private var atlaExportFilename: String {
+        let baseName = currentFileName
+            .replacingOccurrences(of: ".ldt", with: "")
+            .replacingOccurrences(of: ".LDT", with: "")
+            .replacingOccurrences(of: ".xml", with: "")
+            .replacingOccurrences(of: ".XML", with: "")
         return baseName.isEmpty ? "export" : baseName
     }
 
@@ -426,6 +514,32 @@ struct ContentView: View {
         print("DEBUG: Generated LDT length: \(ldtContent.count) characters")
         exportDocument = ExportDocument(type: .ldt, content: ldtContent)
         print("DEBUG: Set exportDocument to LDT")
+        isExporting = true
+    }
+
+    private func triggerATLAExport() {
+        // Use stored atlaDoc if available, otherwise create from LDT
+        let doc: AtlaDocument
+        if let existingDoc = atlaDoc {
+            doc = existingDoc
+        } else if let ldt = ldt {
+            guard let newDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) else {
+                errorMessage = "Failed to create ATLA document"
+                return
+            }
+            doc = newDoc
+        } else {
+            return
+        }
+
+        print("DEBUG: Generating ATLA XML for export")
+        guard let xmlContent = try? doc.toXml() else {
+            errorMessage = "Failed to export ATLA XML"
+            return
+        }
+        print("DEBUG: Generated ATLA XML length: \(xmlContent.count) characters")
+        exportDocument = ExportDocument(type: .atla, content: xmlContent)
+        print("DEBUG: Set exportDocument to ATLA")
         isExporting = true
     }
 
@@ -512,19 +626,40 @@ struct ContentView: View {
     #endif
 
     private func generateSVG(ldt: Eulumdat, size: Double, theme: SvgThemeType) -> String {
+        let lang = currentLanguage
         switch selectedDiagram {
         case .polar:
-            return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generatePolarSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         case .cartesian:
-            return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
+            return generateCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme, language: lang)
         case .butterfly, .butterfly3D, .room3D:
-            return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
+            return generateButterflySvgLocalized(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme, language: lang)
         case .heatmap:
-            return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
+            return generateHeatmapSvgLocalized(ldt: ldt, width: size, height: size * 0.7, theme: theme, language: lang)
+        case .cone:
+            return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
+        case .beamAngle:
+            return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .spectral:
+            // Spectral diagram requires AtlaDocument - use stored one if available
+            if let doc = atlaDoc {
+                return (try? generateSpectralSvgLocalized(doc: doc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
+            } else if let doc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return (try? generateSpectralSvgLocalized(doc: doc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
+            }
+            return ""
+        case .greenhouse:
+            // Greenhouse/PPFD diagram requires AtlaDocument - use stored one if available
+            if let doc = atlaDoc {
+                return generateGreenhouseSvgLocalized(doc: doc, width: size, height: size * 0.7, maxHeight: mountingHeight, dark: theme == .dark, language: currentLanguage)
+            } else if let doc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return generateGreenhouseSvgLocalized(doc: doc, width: size, height: size * 0.7, maxHeight: mountingHeight, dark: theme == .dark, language: currentLanguage)
+            }
+            return ""
         case .bug:
-            return generateBugSvg(ldt: ldt, width: size, height: size * 0.85, theme: theme)
+            return generateBugSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
         case .lcs:
-            return generateLcsSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generateLcsSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         }
     }
 
@@ -579,7 +714,7 @@ struct ContentView: View {
 
     private func loadFileContents(url: URL) {
         currentFileName = url.lastPathComponent
-        let isIesFile = url.pathExtension.lowercased() == "ies"
+        let ext = url.pathExtension.lowercased()
 
         do {
             // Try ISO Latin-1 first (common for LDT files), then UTF-8
@@ -590,10 +725,21 @@ struct ContentView: View {
                 content = try String(contentsOf: url, encoding: .utf8)
             }
 
-            if isIesFile {
+            switch ext {
+            case "ies":
                 ldt = try parseIes(content: content)
-            } else {
+                atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt!))
+            case "xml":
+                // ATLA XML format - parse and convert to Eulumdat
+                let doc = try AtlaDocument.parseXml(content: content)
+                atlaDoc = doc
+                // Convert to Eulumdat for compatibility with existing views
+                let ldtContent = doc.toLdt()
+                ldt = try parseLdt(content: ldtContent)
+            default:
+                // LDT format
                 ldt = try parseLdt(content: content)
+                atlaDoc = try? AtlaDocument.fromLdt(content: content)
             }
             selectedTab = .diagram
         } catch {
@@ -606,14 +752,15 @@ struct ContentView: View {
 
 struct GeneralTabView: View {
     @Binding var ldt: Eulumdat
+    private var appLanguage: String { L10n.currentLanguage }
 
     var body: some View {
         Form {
-            Section("Identification") {
-                TextField("Manufacturer/ID", text: $ldt.identification)
-                TextField("Luminaire Name", text: $ldt.luminaireName)
-                TextField("Luminaire Number", text: $ldt.luminaireNumber)
-                TextField("File Name", text: $ldt.fileName)
+            Section(L10n.string("general.identification", language: appLanguage)) {
+                TextField(L10n.string("general.manufacturer", language: appLanguage), text: $ldt.identification)
+                TextField(L10n.string("general.luminaireName", language: appLanguage), text: $ldt.luminaireName)
+                TextField(L10n.string("general.luminaireNumber", language: appLanguage), text: $ldt.luminaireNumber)
+                TextField(L10n.string("general.fileName", language: appLanguage), text: $ldt.fileName)
                 TextField("Date/User", text: $ldt.dateUser)
                 TextField("Report Number", text: $ldt.measurementReportNumber)
             }
@@ -642,34 +789,35 @@ struct GeneralTabView: View {
 
 struct DimensionsTabView: View {
     @Binding var ldt: Eulumdat
+    private var appLanguage: String { L10n.currentLanguage }
 
     var body: some View {
         Form {
-            Section("Luminaire Dimensions (mm)") {
-                LabeledContent("Length") {
+            Section(L10n.string("dimensions.luminaire", language: appLanguage) + " (mm)") {
+                LabeledContent(L10n.string("dimensions.length", language: appLanguage)) {
                     TextField("", value: $ldt.length, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 100)
                 }
-                LabeledContent("Width") {
+                LabeledContent(L10n.string("dimensions.width", language: appLanguage)) {
                     TextField("", value: $ldt.width, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 100)
                 }
-                LabeledContent("Height") {
+                LabeledContent(L10n.string("dimensions.height", language: appLanguage)) {
                     TextField("", value: $ldt.height, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 100)
                 }
             }
 
-            Section("Luminous Area (mm)") {
-                LabeledContent("Length") {
+            Section(L10n.string("dimensions.luminousArea", language: appLanguage) + " (mm)") {
+                LabeledContent(L10n.string("dimensions.length", language: appLanguage)) {
                     TextField("", value: $ldt.luminousAreaLength, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 100)
                 }
-                LabeledContent("Width") {
+                LabeledContent(L10n.string("dimensions.width", language: appLanguage)) {
                     TextField("", value: $ldt.luminousAreaWidth, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 100)
@@ -677,22 +825,22 @@ struct DimensionsTabView: View {
             }
 
             Section("Height to Luminous Area (mm)") {
-                LabeledContent("C0") {
+                LabeledContent(L10n.string("dimensions.luminousOpeningC0", language: appLanguage)) {
                     TextField("", value: $ldt.heightC0, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
-                LabeledContent("C90") {
+                LabeledContent(L10n.string("dimensions.luminousOpeningC90", language: appLanguage)) {
                     TextField("", value: $ldt.heightC90, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
-                LabeledContent("C180") {
+                LabeledContent(L10n.string("dimensions.luminousOpeningC180", language: appLanguage)) {
                     TextField("", value: $ldt.heightC180, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
-                LabeledContent("C270") {
+                LabeledContent(L10n.string("dimensions.luminousOpeningC270", language: appLanguage)) {
                     TextField("", value: $ldt.heightC270, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
@@ -707,6 +855,7 @@ struct DimensionsTabView: View {
 
 struct LampSetsTabView: View {
     @Binding var ldt: Eulumdat
+    private var appLanguage: String { L10n.currentLanguage }
 
     var body: some View {
         List {
@@ -732,7 +881,7 @@ struct LampSetsTabView: View {
                         wattageWithBallast: 10
                     ))
                 } label: {
-                    Label("Add Lamp Set", systemImage: "plus.circle")
+                    Label(L10n.string("lampSets.add", language: appLanguage), systemImage: "plus.circle")
                 }
             }
         }
@@ -743,42 +892,43 @@ struct LampSetSection: View {
     @Binding var lampSet: LampSet
     let index: Int
     let onDelete: () -> Void
+    private var appLanguage: String { L10n.currentLanguage }
 
     var body: some View {
-        Section("Lamp Set \(index + 1)") {
-            LabeledContent("Number of Lamps") {
+        Section(L10n.string("lampSets.title", language: appLanguage) + " \(index + 1)") {
+            LabeledContent(L10n.string("lampSets.numLamps", language: appLanguage)) {
                 TextField("", value: $lampSet.numLamps, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 60)
             }
-            LabeledContent("Type") {
+            LabeledContent(L10n.string("lampSets.type", language: appLanguage)) {
                 TextField("", text: $lampSet.lampType)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 150)
             }
-            LabeledContent("Luminous Flux (lm)") {
+            LabeledContent(L10n.string("lampSets.luminousFlux", language: appLanguage)) {
                 TextField("", value: $lampSet.totalLuminousFlux, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 100)
             }
-            LabeledContent("Color Temp (K)") {
+            LabeledContent(L10n.string("lampSets.colorTemp", language: appLanguage)) {
                 TextField("", text: $lampSet.colorAppearance)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 80)
             }
-            LabeledContent("CRI Group") {
+            LabeledContent(L10n.string("lampSets.criGroup", language: appLanguage)) {
                 TextField("", text: $lampSet.colorRenderingGroup)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 60)
             }
-            LabeledContent("Wattage (W)") {
+            LabeledContent(L10n.string("lampSets.wattage", language: appLanguage)) {
                 TextField("", value: $lampSet.wattageWithBallast, format: .number)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 80)
             }
 
             Button(role: .destructive, action: onDelete) {
-                Label("Remove Lamp Set", systemImage: "trash")
+                Label(L10n.string("lampSets.remove", language: appLanguage), systemImage: "trash")
             }
         }
     }
@@ -788,38 +938,39 @@ struct LampSetSection: View {
 
 struct OpticalTabView: View {
     @Binding var ldt: Eulumdat
+    private var appLanguage: String { L10n.currentLanguage }
 
     var body: some View {
         Form {
-            Section("Light Output") {
-                LabeledContent("Light Output Ratio (%)") {
+            Section(L10n.string("optical.lightOutput", language: appLanguage)) {
+                LabeledContent(L10n.string("optical.lor", language: appLanguage)) {
                     TextField("", value: $ldt.lightOutputRatio, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
-                LabeledContent("Downward Flux (%)") {
+                LabeledContent(L10n.string("optical.downwardFlux", language: appLanguage)) {
                     TextField("", value: $ldt.downwardFluxFraction, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
-                LabeledContent("Tilt Angle (°)") {
+                LabeledContent(L10n.string("optical.tiltAngle", language: appLanguage)) {
                     TextField("", value: $ldt.tiltAngle, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
-                LabeledContent("Conversion Factor") {
+                LabeledContent(L10n.string("optical.conversionFactor", language: appLanguage)) {
                     TextField("", value: $ldt.conversionFactor, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                 }
             }
 
-            Section("Computed Values") {
-                LabeledContent("Max Intensity", value: String(format: "%.1f cd/klm", ldt.maxIntensity))
-                LabeledContent("Total Flux", value: String(format: "%.0f lm", ldt.totalLuminousFlux))
+            Section(L10n.string("optical.photometricData", language: appLanguage)) {
+                LabeledContent(L10n.string("optical.maxIntensity", language: appLanguage), value: String(format: "%.1f cd/klm", ldt.maxIntensity))
+                LabeledContent(L10n.string("optical.totalFlux", language: appLanguage), value: String(format: "%.0f lm", ldt.totalLuminousFlux))
             }
 
-            Section("Direct Ratios (Room Index k)") {
+            Section(L10n.string("optical.directRatios", language: appLanguage) + " (Room Index k)") {
                 let indices = ["0.60", "0.80", "1.00", "1.25", "1.50", "2.00", "2.50", "3.00", "4.00", "5.00"]
                 ForEach(Array(ldt.directRatios.enumerated()), id: \.offset) { index, _ in
                     if index < indices.count {
@@ -844,12 +995,13 @@ struct OpticalTabView: View {
 struct IntensityTabView: View {
     @Binding var ldt: Eulumdat
     @State private var showColors = true
+    private var appLanguage: String { L10n.currentLanguage }
 
     var body: some View {
         VStack(spacing: 0) {
             // Header with toolbar
             HStack {
-                Text("Intensities (cd/klm)")
+                Text(L10n.string("intensity.title", language: appLanguage) + " (cd/klm)")
                     .font(.headline)
                 Spacer()
 
@@ -863,7 +1015,7 @@ struct IntensityTabView: View {
                     UIPasteboard.general.string = csv
                     #endif
                 } label: {
-                    Label("Copy CSV", systemImage: "doc.on.clipboard")
+                    Label(L10n.string("intensity.copyCSV", language: appLanguage), systemImage: "doc.on.clipboard")
                         .font(.caption)
                 }
                 .buttonStyle(.bordered)
@@ -1310,6 +1462,22 @@ struct DiagramTabView: View {
     @State private var lastZoomScale: CGFloat = 1.0
     @State private var scrollOffset: CGSize = .zero
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("mountingHeight") private var mountingHeight = 3.0
+
+    private var appLanguage: String { L10n.currentLanguage }
+
+    private var currentLanguage: Language {
+        switch appLanguage {
+        case "de": return .german
+        case "zh": return .chinese
+        case "fr": return .french
+        case "it": return .italian
+        case "ru": return .russian
+        case "es": return .spanish
+        case "pt-BR": return .portugueseBrazil
+        default: return .english
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1348,7 +1516,7 @@ struct DiagramTabView: View {
                         Button {
                             selectedDiagram = type
                         } label: {
-                            Text(type.rawValue)
+                            Text(type.localizedName(appLanguage))
                                 .font(.system(size: 12, weight: selectedDiagram == type ? .semibold : .regular))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
@@ -1366,7 +1534,26 @@ struct DiagramTabView: View {
             }
             .background(Color.controlBackground)
 
-            Divider()
+            // Mounting height control for Cone and PPFD diagrams
+            if selectedDiagram == .cone || selectedDiagram == .greenhouse {
+                HStack(spacing: 12) {
+                    Image(systemName: "arrow.up.and.down")
+                        .foregroundStyle(.secondary)
+                    Text(L10n.string("settings.mountingHeight", language: appLanguage))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Slider(value: $mountingHeight, in: 1...10, step: 0.5)
+                        .frame(maxWidth: 200)
+                    Text("\(mountingHeight, specifier: "%.1f")m")
+                        .font(.caption.monospacedDigit())
+                        .frame(width: 45, alignment: .trailing)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+                .background(Color.controlBackground)
+
+                Divider()
+            }
 
             // Diagram content
             GeometryReader { geometry in
@@ -1564,29 +1751,45 @@ struct DiagramTabView: View {
     }
 
     private func generateSVG(type: ContentView.DiagramType, ldt: Eulumdat, size: Double, theme: SvgThemeType) -> String {
+        let lang = currentLanguage
         switch type {
         case .polar:
-            return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generatePolarSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         case .cartesian:
-            return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
+            return generateCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme, language: lang)
         case .butterfly, .butterfly3D, .room3D:
-            return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
+            return generateButterflySvgLocalized(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme, language: lang)
         case .heatmap:
-            return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
+            return generateHeatmapSvgLocalized(ldt: ldt, width: size, height: size * 0.7, theme: theme, language: lang)
+        case .cone:
+            return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
+        case .beamAngle:
+            return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .spectral:
+            if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return (try? generateSpectralSvgLocalized(doc: atlaDoc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
+            }
+            return ""
+        case .greenhouse:
+            if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return generateGreenhouseSvgLocalized(doc: atlaDoc, width: size, height: size * 0.7, maxHeight: mountingHeight, dark: theme == .dark, language: currentLanguage)
+            }
+            return ""
         case .bug:
-            return generateBugSvg(ldt: ldt, width: size, height: size * 0.85, theme: theme)
+            return generateBugSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
         case .lcs:
-            return generateLcsSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generateLcsSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         }
     }
 
     private func aspectRatio(for diagram: ContentView.DiagramType) -> Double {
         switch diagram {
-        case .polar, .lcs: return 1.0
+        case .polar, .lcs, .beamAngle: return 1.0
         case .bug: return 0.85
-        case .butterfly, .butterfly3D, .room3D: return 0.8
-        case .cartesian: return 0.75
+        case .butterfly, .butterfly3D, .room3D, .cone: return 0.8
+        case .cartesian, .greenhouse: return 0.75
         case .heatmap: return 0.7
+        case .spectral: return 0.6
         }
     }
 }
@@ -1761,6 +1964,11 @@ extension UTType {
     static var svgExport: UTType {
         UTType(filenameExtension: "svg", conformingTo: .xml) ?? UTType(exportedAs: "public.svg-image")
     }
+
+    static var atlaXml: UTType {
+        // ATLA XML files use .xml extension
+        .xml
+    }
 }
 
 // MARK: - Document Types
@@ -1815,6 +2023,23 @@ struct LDTDocument: FileDocument {
     }
 }
 
+struct ATLADocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.xml] }
+    static var writableContentTypes: [UTType] { [.xml] }
+    var content: String
+
+    init(content: String) { self.content = content }
+
+    init(configuration: ReadConfiguration) throws {
+        content = configuration.file.regularFileContents.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        print("DEBUG: ATLADocument fileWrapper called, content length: \(content.count)")
+        return FileWrapper(regularFileWithContents: content.data(using: .utf8) ?? Data())
+    }
+}
+
 // MARK: - Diagram Window View (Standalone Window)
 
 #if os(macOS)
@@ -1822,6 +2047,22 @@ struct DiagramWindowView: View {
     @ObservedObject var model = DiagramWindowModel.shared
     @State private var zoomScale: CGFloat = 1.0
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("mountingHeight") private var mountingHeight = 3.0
+
+    private var appLanguage: String { L10n.currentLanguage }
+
+    private var currentLanguage: Language {
+        switch appLanguage {
+        case "de": return .german
+        case "zh": return .chinese
+        case "fr": return .french
+        case "it": return .italian
+        case "ru": return .russian
+        case "es": return .spanish
+        case "pt-BR": return .portugueseBrazil
+        default: return .english
+        }
+    }
 
     var body: some View {
         if let ldt = model.ldt {
@@ -1835,7 +2076,7 @@ struct DiagramWindowView: View {
                     .toolbar {
                         ToolbarItem(placement: .primaryAction) {
                             Toggle(isOn: $model.isDarkTheme) {
-                                Label("Dark Theme", systemImage: model.isDarkTheme ? "moon.fill" : "sun.max.fill")
+                                Label(L10n.string("fullscreen.darkTheme", language: appLanguage), systemImage: model.isDarkTheme ? "moon.fill" : "sun.max.fill")
                             }
                         }
                     }
@@ -1942,12 +2183,12 @@ struct DiagramWindowView: View {
                         }
                     }
                 }
-                .navigationTitle("\(model.selectedDiagram.rawValue) - \(ldt.luminaireName)")
+                .navigationTitle("\(model.selectedDiagram.localizedName(appLanguage)) - \(ldt.luminaireName)")
                 .navigationSubtitle("Max: \(Int(ldt.maxIntensity)) cd/klm • Total: \(Int(ldt.totalLuminousFlux)) lm")
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Toggle(isOn: $model.isDarkTheme) {
-                            Label("Dark Theme", systemImage: model.isDarkTheme ? "moon.fill" : "sun.max.fill")
+                            Label(L10n.string("fullscreen.darkTheme", language: appLanguage), systemImage: model.isDarkTheme ? "moon.fill" : "sun.max.fill")
                         }
                     }
                 }
@@ -1966,29 +2207,45 @@ struct DiagramWindowView: View {
     }
 
     private func generateSVG(type: ContentView.DiagramType, ldt: Eulumdat, size: Double, theme: SvgThemeType) -> String {
+        let lang = currentLanguage
         switch type {
         case .polar:
-            return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generatePolarSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         case .cartesian:
-            return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
+            return generateCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme, language: lang)
         case .butterfly, .butterfly3D, .room3D:
-            return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
+            return generateButterflySvgLocalized(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme, language: lang)
         case .heatmap:
-            return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
+            return generateHeatmapSvgLocalized(ldt: ldt, width: size, height: size * 0.7, theme: theme, language: lang)
+        case .cone:
+            return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
+        case .beamAngle:
+            return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .spectral:
+            if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return (try? generateSpectralSvgLocalized(doc: atlaDoc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
+            }
+            return ""
+        case .greenhouse:
+            if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return generateGreenhouseSvgLocalized(doc: atlaDoc, width: size, height: size * 0.7, maxHeight: mountingHeight, dark: theme == .dark, language: currentLanguage)
+            }
+            return ""
         case .bug:
-            return generateBugSvg(ldt: ldt, width: size, height: size * 0.85, theme: theme)
+            return generateBugSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
         case .lcs:
-            return generateLcsSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generateLcsSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         }
     }
 
     private func aspectRatio(for diagram: ContentView.DiagramType) -> Double {
         switch diagram {
-        case .polar, .lcs: return 1.0
+        case .polar, .lcs, .beamAngle: return 1.0
         case .bug: return 0.85
-        case .butterfly, .butterfly3D, .room3D: return 0.8
-        case .cartesian: return 0.75
+        case .butterfly, .butterfly3D, .room3D, .cone: return 0.8
+        case .cartesian, .greenhouse: return 0.75
         case .heatmap: return 0.7
+        case .spectral: return 0.6
         }
     }
 }
@@ -2003,6 +2260,22 @@ struct DiagramFullscreenView: View {
     @Binding var isDarkTheme: Bool
     @Binding var isPresented: Bool
     @State private var zoomScale: CGFloat = 1.0
+    @AppStorage("mountingHeight") private var mountingHeight = 3.0
+
+    private var appLanguage: String { L10n.currentLanguage }
+
+    private var currentLanguage: Language {
+        switch appLanguage {
+        case "de": return .german
+        case "zh": return .chinese
+        case "fr": return .french
+        case "it": return .italian
+        case "ru": return .russian
+        case "es": return .spanish
+        case "pt-BR": return .portugueseBrazil
+        default: return .english
+        }
+    }
 
     var body: some View {
         // Room3D has its own controls, render without navigation chrome
@@ -2053,8 +2326,21 @@ struct DiagramFullscreenView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
+                        Button(L10n.string("fullscreen.done", language: appLanguage)) {
                             isPresented = false
+                        }
+                    }
+                    // Mounting height control for Cone and PPFD
+                    if selectedDiagram == .cone || selectedDiagram == .greenhouse {
+                        ToolbarItem(placement: .principal) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.up.and.down")
+                                    .font(.caption)
+                                Slider(value: $mountingHeight, in: 1...10, step: 0.5)
+                                    .frame(width: 100)
+                                Text("\(mountingHeight, specifier: "%.1f")m")
+                                    .font(.caption.monospacedDigit())
+                            }
                         }
                     }
                     ToolbarItem(placement: .primaryAction) {
@@ -2083,29 +2369,45 @@ struct DiagramFullscreenView: View {
     }
 
     private func generateSVG(type: ContentView.DiagramType, ldt: Eulumdat, size: Double, theme: SvgThemeType) -> String {
+        let lang = currentLanguage
         switch type {
         case .polar:
-            return generatePolarSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generatePolarSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         case .cartesian:
-            return generateCartesianSvg(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme)
+            return generateCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme, language: lang)
         case .butterfly, .butterfly3D, .room3D:
-            return generateButterflySvg(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme)
+            return generateButterflySvgLocalized(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme, language: lang)
         case .heatmap:
-            return generateHeatmapSvg(ldt: ldt, width: size, height: size * 0.7, theme: theme)
+            return generateHeatmapSvgLocalized(ldt: ldt, width: size, height: size * 0.7, theme: theme, language: lang)
+        case .cone:
+            return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
+        case .beamAngle:
+            return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .spectral:
+            if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return (try? generateSpectralSvgLocalized(doc: atlaDoc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
+            }
+            return ""
+        case .greenhouse:
+            if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
+                return generateGreenhouseSvgLocalized(doc: atlaDoc, width: size, height: size * 0.7, maxHeight: mountingHeight, dark: theme == .dark, language: currentLanguage)
+            }
+            return ""
         case .bug:
-            return generateBugSvg(ldt: ldt, width: size, height: size * 0.85, theme: theme)
+            return generateBugSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
         case .lcs:
-            return generateLcsSvg(ldt: ldt, width: size, height: size, theme: theme)
+            return generateLcsSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         }
     }
 
     private func aspectRatio(for diagram: ContentView.DiagramType) -> Double {
         switch diagram {
-        case .polar, .lcs: return 1.0
+        case .polar, .lcs, .beamAngle: return 1.0
         case .bug: return 0.85
-        case .butterfly, .butterfly3D, .room3D: return 0.8
-        case .cartesian: return 0.75
+        case .butterfly, .butterfly3D, .room3D, .cone: return 0.8
+        case .cartesian, .greenhouse: return 0.75
         case .heatmap: return 0.7
+        case .spectral: return 0.6
         }
     }
 }

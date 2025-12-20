@@ -1,6 +1,7 @@
 //! Command implementations for the CLI
 
 use anyhow::{Context, Result};
+use atla::LuminaireOpticalData;
 use eulumdat::{
     batch::{self, BatchInput, ConversionFormat},
     diagram::SvgTheme,
@@ -9,7 +10,9 @@ use eulumdat::{
 };
 use std::path::PathBuf;
 
-use crate::cli::{CalcType, DiagramType, OutputFormat, SummaryFormat};
+use crate::cli::{
+    AtlaSchemaType, CalcType, ConversionPolicyArg, DiagramType, OutputFormat, SummaryFormat,
+};
 
 pub fn load_file(path: &PathBuf) -> Result<Eulumdat> {
     let ext = path
@@ -25,6 +28,28 @@ pub fn load_file(path: &PathBuf) -> Result<Eulumdat> {
             // Parse ATLA format and convert to Eulumdat
             let atla_doc = atla::parse_file(path).context("Failed to parse ATLA file")?;
             Ok(atla_doc.to_eulumdat())
+        }
+        _ => anyhow::bail!("Unknown file extension: .{ext} (expected .ldt, .ies, .xml, or .json)"),
+    }
+}
+
+/// Load file as ATLA document (preserves spectral data)
+pub fn load_atla(path: &PathBuf) -> Result<LuminaireOpticalData> {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    match ext.as_str() {
+        "xml" | "json" => atla::parse_file(path).context("Failed to parse ATLA file"),
+        "ldt" => {
+            let ldt = Eulumdat::from_file(path).context("Failed to parse LDT file")?;
+            Ok(LuminaireOpticalData::from_eulumdat(&ldt))
+        }
+        "ies" => {
+            let ldt = IesParser::parse_file(path).context("Failed to parse IES file")?;
+            Ok(LuminaireOpticalData::from_eulumdat(&ldt))
         }
         _ => anyhow::bail!("Unknown file extension: .{ext} (expected .ldt, .ies, .xml, or .json)"),
     }
@@ -224,10 +249,10 @@ pub fn diagram(
     dark: bool,
     width: f64,
     height: f64,
+    mounting_height: f64,
 ) -> Result<()> {
     use eulumdat::diagram::*;
 
-    let ldt = load_file(input)?;
     let theme = if dark {
         SvgTheme::dark()
     } else {
@@ -236,20 +261,85 @@ pub fn diagram(
 
     let svg = match diagram_type {
         DiagramType::Polar => {
+            let ldt = load_file(input)?;
             let diagram = PolarDiagram::from_eulumdat(&ldt);
             diagram.to_svg(width, height, &theme)
         }
         DiagramType::Butterfly => {
+            let ldt = load_file(input)?;
             let diagram = ButterflyDiagram::from_eulumdat(&ldt, width, height, 60.0);
             diagram.to_svg(width, height, &theme)
         }
         DiagramType::Cartesian => {
+            let ldt = load_file(input)?;
             let diagram = CartesianDiagram::from_eulumdat(&ldt, width, height, 8);
             diagram.to_svg(width, height, &theme)
         }
         DiagramType::Heatmap => {
+            let ldt = load_file(input)?;
             let diagram = HeatmapDiagram::from_eulumdat(&ldt, width, height);
             diagram.to_svg(width, height, &theme)
+        }
+        DiagramType::Cone => {
+            let ldt = load_file(input)?;
+            let diagram = ConeDiagram::from_eulumdat(&ldt, mounting_height);
+            diagram.to_svg(width, height, &theme)
+        }
+        DiagramType::BeamAngle => {
+            let ldt = load_file(input)?;
+            let diagram = PolarDiagram::from_eulumdat(&ldt);
+            let analysis = PhotometricCalculations::beam_field_analysis(&ldt);
+            let show_both = analysis.is_batwing;
+            diagram.to_svg_with_beam_field_angles(width, height, &theme, &analysis, show_both)
+        }
+        DiagramType::Lcs => {
+            let ldt = load_file(input)?;
+            let diagram = BugDiagram::from_eulumdat(&ldt);
+            diagram.to_lcs_svg(width, height, &theme)
+        }
+        DiagramType::Spectral => {
+            let atla_doc = load_atla(input)?;
+            let atla_theme = if dark {
+                atla::spectral::SpectralTheme::dark()
+            } else {
+                atla::spectral::SpectralTheme::light()
+            };
+
+            // Try to get spectral data from emitters
+            if let Some(spd) = atla_doc
+                .emitters
+                .iter()
+                .filter_map(|e| e.spectral_distribution.as_ref())
+                .next()
+            {
+                let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+                diagram.to_svg(width, height, &atla_theme)
+            } else if let Some(emitter) = atla_doc.emitters.first() {
+                // Try to synthesize from CCT/CRI
+                if let Some(cct) = emitter.cct {
+                    let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
+                    let spd = atla::spectral::synthesize_spectrum(cct, cri);
+                    let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+                    diagram.to_svg(width, height, &atla_theme)
+                } else {
+                    anyhow::bail!("No spectral data or CCT found in file. Spectral diagram requires spectral distribution or CCT.")
+                }
+            } else {
+                anyhow::bail!("No emitter data found in file. Spectral diagram requires emitter with spectral distribution or CCT.")
+            }
+        }
+        DiagramType::Greenhouse => {
+            let atla_doc = load_atla(input)?;
+            let gh_theme = if dark {
+                atla::greenhouse::GreenhouseTheme::dark()
+            } else {
+                atla::greenhouse::GreenhouseTheme::light()
+            };
+            let diagram = atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
+                &atla_doc,
+                mounting_height,
+            );
+            diagram.to_svg(width, height, &gh_theme)
         }
     };
 
@@ -591,8 +681,13 @@ pub fn calc(file: &PathBuf, calc_type: CalcType) -> Result<()> {
     Ok(())
 }
 
-pub fn validate_atla(file: &PathBuf, schema: Option<&PathBuf>, use_xsd: bool) -> Result<()> {
-    use atla::validate;
+pub fn validate_atla(
+    file: &PathBuf,
+    schema: Option<&PathBuf>,
+    schema_type: AtlaSchemaType,
+    use_xsd: bool,
+) -> Result<()> {
+    use atla::validate::{self, ValidationSchema};
 
     let ext = file
         .extension()
@@ -605,9 +700,15 @@ pub fn validate_atla(file: &PathBuf, schema: Option<&PathBuf>, use_xsd: bool) ->
 
     // For XML files, we can do XSD validation
     if ext == "xml" && use_xsd {
+        let schema_name = match schema_type {
+            AtlaSchemaType::Auto => "auto-detected",
+            AtlaSchemaType::S001 => "ATLA S001",
+            AtlaSchemaType::Tm3323 => "TM-33-23",
+        };
         println!(
-            "Validating {} against ATLA S001 XSD schema...",
-            file.display()
+            "Validating {} against {} XSD schema...",
+            file.display(),
+            schema_name
         );
         println!();
 
@@ -645,43 +746,275 @@ pub fn validate_atla(file: &PathBuf, schema: Option<&PathBuf>, use_xsd: bool) ->
     // Parse and do structural validation
     let doc = atla::parse(&content).context("Failed to parse ATLA file")?;
 
+    // Display detected schema version
+    let detected_version = match doc.schema_version {
+        atla::SchemaVersion::AtlaS001 => "ATLA S001 / TM-33-18",
+        atla::SchemaVersion::Tm3323 => "TM-33-23 (IESTM33-22)",
+        atla::SchemaVersion::Tm3324 => "TM-33-24",
+    };
+
     println!("Structural validation for {}:", file.display());
+    println!("  Detected schema: {}", detected_version);
     println!();
 
-    let result = validate::validate(&doc);
+    // For XML files with Auto mode, validate against BOTH schemas and show results
+    if ext == "xml" && schema_type == AtlaSchemaType::Auto {
+        println!("=== ATLA S001 Validation ===");
+        let s001_result = validate::validate_with_schema(&doc, ValidationSchema::AtlaS001);
+        print_validation_result(&s001_result, "ATLA S001");
 
-    if result.errors.is_empty() && result.warnings.is_empty() {
-        println!("  All checks passed!");
-    }
-
-    if !result.errors.is_empty() {
-        println!("Errors:");
-        for err in &result.errors {
-            println!("  {}", err);
-        }
-    }
-
-    if !result.warnings.is_empty() {
-        println!("Warnings:");
-        for warn in &result.warnings {
-            println!("  {}", warn);
-        }
-    }
-
-    println!();
-    println!("Summary:");
-    println!("  Version: {}", doc.version);
-    println!("  Emitters: {}", doc.emitters.len());
-    println!("  Total flux: {:.0} lm", doc.total_luminous_flux());
-    println!("  Total power: {:.1} W", doc.total_input_watts());
-
-    if result.is_valid() {
         println!();
-        println!("Result: VALID");
-        Ok(())
+        println!("=== TM-33-23 Validation ===");
+        let tm33_result = validate::validate_with_schema(&doc, ValidationSchema::Tm3323);
+        print_validation_result(&tm33_result, "TM-33-23");
+
+        println!();
+        println!("=== Summary ===");
+        println!("  Version: {}", doc.version);
+        println!("  Detected schema: {}", detected_version);
+        println!("  Emitters: {}", doc.emitters.len());
+        println!("  Total flux: {:.0} lm", doc.total_luminous_flux());
+        println!("  Total power: {:.1} W", doc.total_input_watts());
+        println!();
+
+        let s001_valid = s001_result.is_valid();
+        let tm33_valid = tm33_result.is_valid();
+
+        println!("Results:");
+        println!(
+            "  ATLA S001: {}",
+            if s001_valid { "VALID" } else { "INVALID" }
+        );
+        println!(
+            "  TM-33-23:  {}",
+            if tm33_valid { "VALID" } else { "INVALID" }
+        );
+
+        // Return success if valid for at least one schema (the detected one)
+        let detected_valid = match doc.schema_version {
+            atla::SchemaVersion::AtlaS001 => s001_valid,
+            atla::SchemaVersion::Tm3323 | atla::SchemaVersion::Tm3324 => tm33_valid,
+        };
+
+        if detected_valid {
+            Ok(())
+        } else {
+            anyhow::bail!(
+                "Validation failed for detected schema ({})",
+                detected_version
+            )
+        }
     } else {
+        // Single schema validation (explicit schema type or JSON input)
+        let validation_schema = match schema_type {
+            AtlaSchemaType::Auto => ValidationSchema::Auto,
+            AtlaSchemaType::S001 => ValidationSchema::AtlaS001,
+            AtlaSchemaType::Tm3323 => ValidationSchema::Tm3323,
+        };
+
+        let result = validate::validate_with_schema(&doc, validation_schema);
+
+        if result.errors.is_empty() && result.warnings.is_empty() {
+            println!("  All checks passed!");
+        }
+
+        if !result.errors.is_empty() {
+            println!("Errors:");
+            for err in &result.errors {
+                println!("  {}", err);
+            }
+        }
+
+        if !result.warnings.is_empty() {
+            println!("Warnings:");
+            for warn in &result.warnings {
+                println!("  {}", warn);
+            }
+        }
+
         println!();
-        println!("Result: INVALID ({} errors)", result.errors.len());
-        anyhow::bail!("Validation failed with {} errors", result.errors.len())
+        println!("Summary:");
+        println!("  Version: {}", doc.version);
+        println!("  Schema: {}", detected_version);
+        println!("  Emitters: {}", doc.emitters.len());
+        println!("  Total flux: {:.0} lm", doc.total_luminous_flux());
+        println!("  Total power: {:.1} W", doc.total_input_watts());
+
+        if result.is_valid() {
+            println!();
+            println!("Result: VALID");
+            Ok(())
+        } else {
+            println!();
+            println!("Result: INVALID ({} errors)", result.errors.len());
+            anyhow::bail!("Validation failed with {} errors", result.errors.len())
+        }
     }
+}
+
+/// Helper function to print validation results
+fn print_validation_result(result: &atla::validate::ValidationResult, schema_name: &str) {
+    if result.errors.is_empty() && result.warnings.is_empty() {
+        println!("  All {} checks passed!", schema_name);
+    } else {
+        if !result.errors.is_empty() {
+            println!("  Errors ({}):", result.errors.len());
+            for err in &result.errors {
+                println!("    {}", err);
+            }
+        }
+        if !result.warnings.is_empty() {
+            println!("  Warnings ({}):", result.warnings.len());
+            for warn in &result.warnings {
+                println!("    {}", warn);
+            }
+        }
+    }
+
+    let status = if result.is_valid() {
+        "VALID"
+    } else {
+        "INVALID"
+    };
+    println!("  Status: {}", status);
+}
+
+/// Convert ATLA document between schema versions
+pub fn atla_convert(
+    input: &PathBuf,
+    output: &PathBuf,
+    target: AtlaSchemaType,
+    policy: ConversionPolicyArg,
+    verbose: bool,
+    compact: bool,
+) -> Result<()> {
+    use atla::convert::{atla_to_tm33, tm33_to_atla, ConversionPolicy};
+
+    // Parse input file
+    let content = std::fs::read_to_string(input).context("Failed to read input file")?;
+    let doc = atla::parse(&content).context("Failed to parse ATLA file")?;
+
+    // Get source and target schema names
+    let source_name = match doc.schema_version {
+        atla::SchemaVersion::AtlaS001 => "ATLA S001",
+        atla::SchemaVersion::Tm3323 => "TM-33-23",
+        atla::SchemaVersion::Tm3324 => "TM-33-24",
+    };
+
+    let target_schema = match target {
+        AtlaSchemaType::Auto => {
+            // Auto: convert to the "other" format
+            match doc.schema_version {
+                atla::SchemaVersion::AtlaS001 => atla::SchemaVersion::Tm3323,
+                _ => atla::SchemaVersion::AtlaS001,
+            }
+        }
+        AtlaSchemaType::S001 => atla::SchemaVersion::AtlaS001,
+        AtlaSchemaType::Tm3323 => atla::SchemaVersion::Tm3323,
+    };
+
+    let target_name = match target_schema {
+        atla::SchemaVersion::AtlaS001 => "ATLA S001",
+        atla::SchemaVersion::Tm3323 => "TM-33-23",
+        atla::SchemaVersion::Tm3324 => "TM-33-24",
+    };
+
+    println!("Converting {} → {}", source_name, target_name);
+    println!("  Input: {}", input.display());
+    println!("  Output: {}", output.display());
+    println!();
+
+    // Perform conversion
+    let (converted_doc, log) = match (doc.schema_version, target_schema) {
+        (
+            atla::SchemaVersion::AtlaS001,
+            atla::SchemaVersion::Tm3323 | atla::SchemaVersion::Tm3324,
+        ) => {
+            let conversion_policy = match policy {
+                ConversionPolicyArg::Strict => ConversionPolicy::Strict,
+                ConversionPolicyArg::Compatible => ConversionPolicy::Compatible,
+            };
+            atla_to_tm33(&doc, conversion_policy)?
+        }
+        (
+            atla::SchemaVersion::Tm3323 | atla::SchemaVersion::Tm3324,
+            atla::SchemaVersion::AtlaS001,
+        ) => tm33_to_atla(&doc),
+        _ => {
+            // Same schema - just copy
+            println!("  Note: Source and target schemas are the same.");
+            (doc.clone(), vec![])
+        }
+    };
+
+    // Show conversion log if verbose
+    if verbose && !log.is_empty() {
+        println!("Conversion log:");
+        for entry in &log {
+            let action_str = match entry.action {
+                atla::convert::ConversionAction::Preserved => "Preserved",
+                atla::convert::ConversionAction::DefaultApplied => "Default applied",
+                atla::convert::ConversionAction::Renamed => "Renamed",
+                atla::convert::ConversionAction::TypeConverted => "Type converted",
+                atla::convert::ConversionAction::Dropped => "Dropped",
+                atla::convert::ConversionAction::Warning => "Warning",
+            };
+            println!(
+                "  [{}] {}: {} → {}",
+                action_str,
+                entry.field,
+                entry.original_value.as_deref().unwrap_or("(none)"),
+                entry.new_value.as_deref().unwrap_or("(none)")
+            );
+        }
+        println!();
+    }
+
+    // Determine output format from extension
+    let out_ext = output
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("xml")
+        .to_lowercase();
+
+    let indent = if compact { None } else { Some(2) };
+
+    let output_content = match out_ext.as_str() {
+        "json" => {
+            if compact {
+                atla::json::write_compact(&converted_doc)?
+            } else {
+                atla::json::write(&converted_doc)?
+            }
+        }
+        _ => {
+            // XML output - use target schema format
+            atla::xml::write_with_schema(&converted_doc, target_schema, indent)?
+        }
+    };
+
+    std::fs::write(output, &output_content).context("Failed to write output file")?;
+
+    // Summary
+    let defaults_count = log
+        .iter()
+        .filter(|e| matches!(e.action, atla::convert::ConversionAction::DefaultApplied))
+        .count();
+    let dropped_count = log
+        .iter()
+        .filter(|e| matches!(e.action, atla::convert::ConversionAction::Dropped))
+        .count();
+
+    println!("Conversion complete!");
+    if defaults_count > 0 {
+        println!("  {} default value(s) applied", defaults_count);
+    }
+    if dropped_count > 0 {
+        println!(
+            "  {} field(s) dropped (not supported in target schema)",
+            dropped_count
+        );
+    }
+
+    Ok(())
 }

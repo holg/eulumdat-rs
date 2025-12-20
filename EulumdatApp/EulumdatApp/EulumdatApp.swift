@@ -29,7 +29,7 @@ struct EulumdatApp: App {
                         Button {
                             NotificationCenter.default.post(name: .newFromTemplate, object: template)
                         } label: {
-                            Label(template.rawValue, systemImage: template.icon)
+                            Label(template.displayName, systemImage: template.icon)
                         }
                     }
                 }
@@ -66,6 +66,11 @@ struct EulumdatApp: App {
                     NotificationCenter.default.post(name: .exportLDT, object: nil)
                 }
                 .keyboardShortcut("l", modifiers: [.command, .shift])
+
+                Button("Export ATLA XML...") {
+                    NotificationCenter.default.post(name: .exportATLA, object: nil)
+                }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
 
                 Divider()
 
@@ -210,6 +215,7 @@ extension Notification.Name {
     static let openBatchConvert = Notification.Name("openBatchConvert")
     static let open3DViewer = Notification.Name("open3DViewer")
     static let setAppStoreSize = Notification.Name("setAppStoreSize")
+    static let exportATLA = Notification.Name("exportATLA")
 }
 
 // MARK: - Watch Face Export Configuration
@@ -276,40 +282,89 @@ struct SettingsView: View {
     @AppStorage("isDarkTheme") private var isDarkTheme = false
     @AppStorage("defaultDiagram") private var defaultDiagram = "polar"
     @AppStorage("svgExportSize") private var svgExportSize = 600.0
+    @AppStorage("mountingHeight") private var mountingHeight = 3.0
+    @AppStorage("appLanguage") private var appLanguage = "system"
+
+    /// Get effective language (respects "system" setting)
+    private var effectiveLanguage: String {
+        if appLanguage != "system" {
+            return appLanguage
+        }
+        // Fall back to system language
+        let preferred = Locale.preferredLanguages.first ?? "en"
+        if preferred.hasPrefix("de") { return "de" }
+        if preferred.hasPrefix("zh") { return "zh" }
+        if preferred.hasPrefix("fr") { return "fr" }
+        if preferred.hasPrefix("it") { return "it" }
+        if preferred.hasPrefix("ru") { return "ru" }
+        if preferred.hasPrefix("es") { return "es" }
+        if preferred.hasPrefix("pt") { return "pt-BR" }
+        return "en"
+    }
 
     var body: some View {
         Form {
-            Section("Appearance") {
-                Toggle("Use Dark Theme for Diagrams", isOn: $isDarkTheme)
+            Section(L10n.string("settings.language", language: effectiveLanguage)) {
+                Picker(L10n.string("settings.language", language: effectiveLanguage), selection: $appLanguage) {
+                    Text(L10n.string("settings.language.system", language: effectiveLanguage)).tag("system")
+                    Text("English").tag("en")
+                    Text("Deutsch").tag("de")
+                    Text("中文").tag("zh")
+                    Text("Français").tag("fr")
+                    Text("Italiano").tag("it")
+                    Text("Русский").tag("ru")
+                    Text("Español").tag("es")
+                    Text("Português (Brasil)").tag("pt-BR")
+                }
+                .pickerStyle(.menu)
             }
 
-            Section("Default Diagram") {
-                Picker("Default diagram type", selection: $defaultDiagram) {
-                    Text("Polar").tag("polar")
-                    Text("Cartesian").tag("cartesian")
-                    Text("Butterfly").tag("butterfly")
-                    Text("3D Butterfly").tag("3d butterfly")
-                    Text("Heatmap").tag("heatmap")
-                    Text("BUG Rating").tag("bug rating")
-                    Text("LCS").tag("lcs")
+            Section(L10n.string("settings.appearance", language: effectiveLanguage)) {
+                Toggle(L10n.string("settings.darkTheme", language: effectiveLanguage), isOn: $isDarkTheme)
+            }
+
+            Section(L10n.string("settings.defaultDiagram", language: effectiveLanguage)) {
+                Picker(L10n.string("settings.defaultDiagram", language: effectiveLanguage), selection: $defaultDiagram) {
+                    Text(L10n.string("diagram.polar", language: effectiveLanguage)).tag("polar")
+                    Text(L10n.string("diagram.cartesian", language: effectiveLanguage)).tag("cartesian")
+                    Text(L10n.string("diagram.butterfly", language: effectiveLanguage)).tag("butterfly")
+                    Text(L10n.string("diagram.3d", language: effectiveLanguage)).tag("3d butterfly")
+                    Text(L10n.string("diagram.heatmap", language: effectiveLanguage)).tag("heatmap")
+                    Text(L10n.string("diagram.cone", language: effectiveLanguage)).tag("cone")
+                    Text(L10n.string("diagram.beam", language: effectiveLanguage)).tag("beam angle")
+                    Text(L10n.string("diagram.spectral", language: effectiveLanguage)).tag("spectral")
+                    Text(L10n.string("diagram.ppfd", language: effectiveLanguage)).tag("greenhouse")
+                    Text(L10n.string("diagram.bug", language: effectiveLanguage)).tag("bug rating")
+                    Text(L10n.string("diagram.lcs", language: effectiveLanguage)).tag("lcs")
                 }
             }
 
-            Section("Export") {
+            Section(L10n.string("settings.mountingHeight", language: effectiveLanguage)) {
+                Slider(value: $mountingHeight, in: 1...10, step: 0.5) {
+                    Text("\(mountingHeight, specifier: "%.1f")m")
+                }
+                Text(L10n.string("settings.mountingHeight.description", language: effectiveLanguage))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section(L10n.string("settings.export", language: effectiveLanguage)) {
                 Slider(value: $svgExportSize, in: 400...1200, step: 100) {
                     Text("SVG Export Size: \(Int(svgExportSize))px")
                 }
             }
 
-            Section("About") {
-                LabeledContent("Version", value: "0.2.0")
+            Section(L10n.string("settings.about", language: effectiveLanguage)) {
+                LabeledContent("Version", value: "0.3.0")
                 LabeledContent("Library", value: "eulumdat-rs")
+                LabeledContent("Formats", value: "LDT, IES, ATLA XML")
 
                 Link("View on GitHub", destination: URL(string: "https://github.com/holg/eulumdat-rs")!)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: 350)
+        .frame(width: 400)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

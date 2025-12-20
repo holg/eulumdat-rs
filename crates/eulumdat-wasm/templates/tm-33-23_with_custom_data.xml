@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>ATLA Test Manufacturer</Manufacturer>
+        <CatalogNumber>TM33-CUSTOM-001</CatalogNumber>
+        <Description>TM-33-23 with CustomData Test</Description>
+        <Laboratory>Test Laboratory</Laboratory>
+        <ReportNumber>RPT-2024-002</ReportNumber>
+        <ReportDate>2024-02-20</ReportDate>
+        <UniqueIdentifier>urn:uuid:550e8400-e29b-41d4-a716-446655440001</UniqueIdentifier>
+        <DocumentCreator>Test Automation</DocumentCreator>
+        <DocumentCreationDate>2024-02-20</DocumentCreationDate>
+        <Comments>Test file with multiple CustomData elements</Comments>
+        <Comments>Second comment line</Comments>
+    </Header>
+    <Emitter>
+        <ID>led-1</ID>
+        <Description>LED Module with Custom Data</Description>
+        <CatalogNumber>LED-MODULE-001</CatalogNumber>
+        <Quantity>1</Quantity>
+        <RatedLumens>2000</RatedLumens>
+        <InputWattage>20</InputWattage>
+        <CCT>3000</CCT>
+        <BallastFactor>1.0</BallastFactor>
+        <Duv>0.002</Duv>
+        <ColorRendering>
+            <Ra>95</Ra>
+            <R9>80</R9>
+        </ColorRendering>
+        <LuminousData>
+            <PhotometryType>CIE _ C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <SymmType>Symm _ None</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <IntensityData horz="0" vert="0">200</IntensityData>
+            <IntensityData horz="0" vert="45">150</IntensityData>
+            <IntensityData horz="0" vert="90">20</IntensityData>
+            <IntensityData horz="90" vert="0">200</IntensityData>
+            <IntensityData horz="90" vert="45">140</IntensityData>
+            <IntensityData horz="90" vert="90">15</IntensityData>
+            <IntensityData horz="180" vert="0">200</IntensityData>
+            <IntensityData horz="180" vert="45">155</IntensityData>
+            <IntensityData horz="180" vert="90">25</IntensityData>
+            <IntensityData horz="270" vert="0">200</IntensityData>
+            <IntensityData horz="270" vert="45">145</IntensityData>
+            <IntensityData horz="270" vert="90">18</IntensityData>
+        </LuminousData>
+    </Emitter>
+    <CustomData>
+        <Name>ManufacturerExtensions</Name>
+        <UniqueIdentifier>urn:manufacturer:custom:extensions:v1</UniqueIdentifier>
+        <data xmlns="urn:manufacturer:custom">
+            <warranty-years>5</warranty-years>
+            <energy-rating>A++</energy-rating>
+        </data>
+    </CustomData>
+    <CustomData>
+        <Name>DimmingData</Name>
+        <UniqueIdentifier>urn:ies:dimming:data:v1</UniqueIdentifier>
+        <dimming xmlns="urn:ies:dimming">
+            <min-level>1</min-level>
+            <max-level>100</max-level>
+            <protocol>DALI</protocol>
+        </dimming>
+    </CustomData>
+</IESTM33-22>

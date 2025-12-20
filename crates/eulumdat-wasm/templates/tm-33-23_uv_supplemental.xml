@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>GrowLight Technologies</Manufacturer>
+        <CatalogNumber>GL-UV-60</CatalogNumber>
+        <Description>UV-A/UV-B Supplemental LED for Secondary Metabolite Enhancement</Description>
+        <Laboratory>Photometric Testing Laboratory</Laboratory>
+        <ReportNumber>RPT-HORT-2024-003</ReportNumber>
+        <ReportDate>2024-03-25</ReportDate>
+        <UniqueIdentifier>urn:uuid:c3d4e5f6-a7b8-9012-cdef-345678901234</UniqueIdentifier>
+        <DocumentCreator>ATLA Test Suite</DocumentCreator>
+        <DocumentCreationDate>2024-03-25</DocumentCreationDate>
+        <Comments>UV supplemental for terpene and flavonoid production</Comments>
+        <Comments>Contains UV-A (380nm) and UV-B (310nm) LEDs</Comments>
+        <Comments>WARNING: UV exposure - use appropriate eye protection</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>600</Length>
+            <Width>60</Width>
+            <Height>45</Height>
+        </Dimensions>
+        <Mounting>Suspended</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Gonioradiometer>
+            <Manufacturer>LightMeasure Inc</Manufacturer>
+            <Model>GM-3000 Spectral UV</Model>
+            <Type>CIE _ C</Type>
+            <Distance>5.0</Distance>
+        </Gonioradiometer>
+    </Equipment>
+    <Emitter>
+        <ID>uv-bar-1</ID>
+        <Description>UV-A/UV-B Horticultural LED Bar</Description>
+        <CatalogNumber>LED-UV-AB</CatalogNumber>
+        <Quantity>1</Quantity>
+        <RatedLumens>180</RatedLumens>
+        <InputWattage>60</InputWattage>
+        <PowerFactor>0.92</PowerFactor>
+        <BallastFactor>1.0</BallastFactor>
+        <ColorRendering>
+            <Ra>0</Ra>
+        </ColorRendering>
+        <LuminousData>
+            <PhotometryType>CIE _ C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <SymmType>Symm _ Full</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <!-- Relatively narrow beam for targeted UV application -->
+            <IntensityData horz="0" vert="0">85</IntensityData>
+            <IntensityData horz="0" vert="10">83</IntensityData>
+            <IntensityData horz="0" vert="20">78</IntensityData>
+            <IntensityData horz="0" vert="30">70</IntensityData>
+            <IntensityData horz="0" vert="40">58</IntensityData>
+            <IntensityData horz="0" vert="50">42</IntensityData>
+            <IntensityData horz="0" vert="60">25</IntensityData>
+            <IntensityData horz="0" vert="70">10</IntensityData>
+            <IntensityData horz="0" vert="80">3</IntensityData>
+            <IntensityData horz="0" vert="90">0</IntensityData>
+        </LuminousData>
+        <SpectralDistribution>
+            <!-- Dual-peak UV spectrum: UV-B at 310nm and UV-A at 380nm -->
+            <Wavelengths>280 290 300 305 310 315 320 330 340 350 360 370 375 380 385 390 400 410 420</Wavelengths>
+            <Values>0.00 0.02 0.15 0.35 0.45 0.38 0.20 0.08 0.05 0.10 0.30 0.70 0.90 1.00 0.88 0.65 0.25 0.05 0.01</Values>
+        </SpectralDistribution>
+    </Emitter>
+    <CustomData>
+        <Name>UVSafetyMetrics</Name>
+        <UniqueIdentifier>urn:growlight:uv-safety:v1</UniqueIdentifier>
+        <safety xmlns="urn:growlight:uv-safety">
+            <uv-a-output-mw-m2>1200</uv-a-output-mw-m2>
+            <uv-b-output-mw-m2>150</uv-b-output-mw-m2>
+            <max-exposure-hours>2</max-exposure-hours>
+            <recommended-height-cm>45</recommended-height-cm>
+            <eye-protection-required>true</eye-protection-required>
+        </safety>
+    </CustomData>
+    <CustomData>
+        <Name>HorticulturalBenefits</Name>
+        <UniqueIdentifier>urn:growlight:uv-benefits:v1</UniqueIdentifier>
+        <benefits xmlns="urn:growlight:benefits">
+            <terpene-enhancement-percent>25</terpene-enhancement-percent>
+            <flavonoid-enhancement-percent>40</flavonoid-enhancement-percent>
+            <anthocyanin-enhancement-percent>35</anthocyanin-enhancement-percent>
+            <pathogen-resistance-improvement>moderate</pathogen-resistance-improvement>
+        </benefits>
+    </CustomData>
+</IESTM33-22>

@@ -1,16 +1,199 @@
 //! Core types for ATLA S001 / ANSI/IES TM-33 / UNI 11733 luminaire optical data
 //!
 //! This module defines the data structures that represent luminaire optical data
-//! as specified in the ATLA S001 standard (equivalent to TM-33-18 / UNI 11733:2019).
+//! as specified in the ATLA S001 standard (equivalent to TM-33-18 / UNI 11733:2019)
+//! and TM-33-23 (IESTM33-22 v1.1).
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+// ============================================================================
+// Schema Version Types (TM-33-23 support)
+// ============================================================================
+
+/// Schema version for format detection and validation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum SchemaVersion {
+    /// ATLA S001 / TM-33-18 / UNI 11733:2019
+    #[default]
+    AtlaS001,
+    /// TM-33-23 (IESTM33-22 v1.1)
+    Tm3323,
+    /// Future TM-33-24 (placeholder for version detection)
+    Tm3324,
+}
+
+impl SchemaVersion {
+    /// Get the version string for this schema
+    pub fn version_string(&self) -> &'static str {
+        match self {
+            SchemaVersion::AtlaS001 => "1.0",
+            SchemaVersion::Tm3323 => "1.1",
+            SchemaVersion::Tm3324 => "1.2",
+        }
+    }
+
+    /// Get the root element name for this schema
+    pub fn root_element(&self) -> &'static str {
+        match self {
+            SchemaVersion::AtlaS001 => "LuminaireOpticalData",
+            SchemaVersion::Tm3323 | SchemaVersion::Tm3324 => "IESTM33-22",
+        }
+    }
+}
+
+/// Symmetry type enumeration (TM-33-23)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum SymmetryType {
+    /// No symmetry - full 360° data
+    #[default]
+    None,
+    /// Bilateral symmetry about 0° plane
+    Bi0,
+    /// Bilateral symmetry about 90° plane
+    Bi90,
+    /// Quadrilateral symmetry (90° data)
+    Quad,
+    /// Full rotational symmetry (single plane)
+    Full,
+    /// Arbitrary symmetry pattern
+    Arbitrary,
+}
+
+impl SymmetryType {
+    /// Parse from TM-33-23 string format (e.g., "Symm _ None")
+    pub fn from_tm33_str(s: &str) -> Self {
+        let normalized = s.trim().replace(" _ ", "_").replace(" ", "").to_uppercase();
+
+        match normalized.as_str() {
+            "SYMM_NONE" | "NONE" => SymmetryType::None,
+            "SYMM_BI_0" | "SYMM_BI0" | "BI0" | "BI_0" => SymmetryType::Bi0,
+            "SYMM_BI_90" | "SYMM_BI90" | "BI90" | "BI_90" => SymmetryType::Bi90,
+            "SYMM_QUAD" | "QUAD" => SymmetryType::Quad,
+            "SYMM_FULL" | "FULL" => SymmetryType::Full,
+            "SYMM_ARBITRARY" | "ARBITRARY" => SymmetryType::Arbitrary,
+            _ => SymmetryType::None,
+        }
+    }
+
+    /// Convert to TM-33-23 string format
+    pub fn to_tm33_str(&self) -> &'static str {
+        match self {
+            SymmetryType::None => "Symm _ None",
+            SymmetryType::Bi0 => "Symm _ Bi _ 0",
+            SymmetryType::Bi90 => "Symm _ Bi _90",
+            SymmetryType::Quad => "Symm _ Quad",
+            SymmetryType::Full => "Symm _ Full",
+            SymmetryType::Arbitrary => "Symm _ Arbitrary",
+        }
+    }
+}
+
+/// Gonioradiometer type with both naming conventions
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum GoniometerTypeEnum {
+    /// CIE Type A (vertical axis along luminaire)
+    CieA,
+    /// CIE Type B (horizontal axis along luminaire)
+    CieB,
+    /// CIE Type C (vertical axis through nadir) - most common
+    #[default]
+    CieC,
+    /// IES Type A
+    IesA,
+    /// IES Type B
+    IesB,
+    /// IES Type C
+    IesC,
+    /// Custom goniometer type
+    Custom,
+}
+
+impl GoniometerTypeEnum {
+    /// Parse from various string formats (TM-33-23 "CIE _ A" or legacy "TypeA")
+    pub fn parse(s: &str) -> Self {
+        let normalized = s.trim().replace(" _ ", "_").replace(" ", "").to_uppercase();
+
+        match normalized.as_str() {
+            "CIE_A" | "CIEA" | "TYPEA" | "A" => GoniometerTypeEnum::CieA,
+            "CIE_B" | "CIEB" | "TYPEB" | "B" => GoniometerTypeEnum::CieB,
+            "CIE_C" | "CIEC" | "TYPEC" | "C" => GoniometerTypeEnum::CieC,
+            "IES_A" | "IESA" => GoniometerTypeEnum::IesA,
+            "IES_B" | "IESB" => GoniometerTypeEnum::IesB,
+            "IES_C" | "IESC" => GoniometerTypeEnum::IesC,
+            "CUSTOM" => GoniometerTypeEnum::Custom,
+            _ => GoniometerTypeEnum::CieC,
+        }
+    }
+
+    /// Convert to TM-33-23 string format
+    pub fn to_tm33_str(&self) -> &'static str {
+        match self {
+            GoniometerTypeEnum::CieA => "CIE _ A",
+            GoniometerTypeEnum::CieB => "CIE _ B",
+            GoniometerTypeEnum::CieC => "CIE _ C",
+            GoniometerTypeEnum::IesA => "IES _ A",
+            GoniometerTypeEnum::IesB => "IES _ B",
+            GoniometerTypeEnum::IesC => "IES _ C",
+            GoniometerTypeEnum::Custom => "CUSTOM",
+        }
+    }
+
+    /// Convert to legacy ATLA S001 string format
+    pub fn to_atla_str(&self) -> &'static str {
+        match self {
+            GoniometerTypeEnum::CieA | GoniometerTypeEnum::IesA => "TypeA",
+            GoniometerTypeEnum::CieB | GoniometerTypeEnum::IesB => "TypeB",
+            GoniometerTypeEnum::CieC | GoniometerTypeEnum::IesC => "TypeC",
+            GoniometerTypeEnum::Custom => "CUSTOM",
+        }
+    }
+}
+
+/// Regulatory value type (TM-33-23)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum RegulatoryValue {
+    /// Actually measured value
+    Measured,
+    /// Nominal/typical value
+    Nominal,
+    /// Rated/specified value
+    Rated,
+}
+
+impl RegulatoryValue {
+    /// Parse from string
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_lowercase().as_str() {
+            "measured" => Some(RegulatoryValue::Measured),
+            "nominal" => Some(RegulatoryValue::Nominal),
+            "rated" => Some(RegulatoryValue::Rated),
+            _ => None,
+        }
+    }
+
+    /// Convert to string
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RegulatoryValue::Measured => "Measured",
+            RegulatoryValue::Nominal => "Nominal",
+            RegulatoryValue::Rated => "Rated",
+        }
+    }
+}
 
 /// Root document for ATLA S001 / TM-33 / UNI 11733 luminaire optical data
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct LuminaireOpticalData {
-    /// Schema version (e.g., "1.0")
+    /// Detected/target schema version
+    pub schema_version: SchemaVersion,
+
+    /// Schema version string (e.g., "1.0" for S001, "1.1" for TM-33-23)
     pub version: String,
 
     /// Required header information
@@ -25,8 +208,11 @@ pub struct LuminaireOpticalData {
     /// Required emitter(s) information - at least one
     pub emitters: Vec<Emitter>,
 
-    /// Optional application-specific custom data
+    /// Optional application-specific custom data (ATLA S001 style - single)
     pub custom_data: Option<CustomData>,
+
+    /// Multiple custom data items (TM-33-23 style)
+    pub custom_data_items: Vec<CustomDataItem>,
 }
 
 /// Header section containing general luminaire identification
@@ -39,38 +225,59 @@ pub struct Header {
     /// Catalog/product number
     pub catalog_number: Option<String>,
 
-    /// Product description
+    /// Product description (required in TM-33-23)
     pub description: Option<String>,
 
-    /// Global Trade Item Number (GTIN/UPC/EAN)
+    /// Global Trade Item Number (GTIN/UPC/EAN) as string
     pub gtin: Option<String>,
+
+    /// GTIN as integer (TM-33-23 requires xs:integer)
+    pub gtin_int: Option<i64>,
 
     /// Universally Unique Identifier for version control
     pub uuid: Option<String>,
 
-    /// Reference to related documents
+    /// Reference to related documents (single, for S001 compatibility)
     pub reference: Option<String>,
+
+    /// Multiple references (TM-33-23 allows unbounded)
+    pub references: Vec<String>,
 
     /// URI for additional product information
     pub more_info_uri: Option<String>,
 
-    /// Test laboratory name
+    /// Test laboratory name (required in TM-33-23)
     pub laboratory: Option<String>,
 
-    /// Test report number
+    /// Test report number (required in TM-33-23)
     pub report_number: Option<String>,
 
-    /// Test date (ISO 8601 format)
+    /// Report date in xs:date format YYYY-MM-DD (required in TM-33-23)
+    pub report_date: Option<String>,
+
+    /// Test date (ISO 8601 format) - legacy S001 field
     pub test_date: Option<String>,
 
     /// Document issue date
     pub issue_date: Option<String>,
 
+    /// Document creator (TM-33-23)
+    pub document_creator: Option<String>,
+
+    /// Document creation date (TM-33-23)
+    pub document_creation_date: Option<String>,
+
+    /// Unique identifier (TM-33-23)
+    pub unique_identifier: Option<String>,
+
     /// Luminaire type description
     pub luminaire_type: Option<String>,
 
-    /// Additional comments/notes
+    /// Additional comments/notes (single, for S001 compatibility)
     pub comments: Option<String>,
+
+    /// Multiple comments (TM-33-23 allows unbounded)
+    pub comments_list: Vec<String>,
 }
 
 /// Luminaire physical description
@@ -215,10 +422,13 @@ pub struct Emitter {
     /// Emitter identifier
     pub id: Option<String>,
 
-    /// Emitter description/name
+    /// Emitter description/name (required in TM-33-23)
     pub description: Option<String>,
 
-    /// Number of identical emitters
+    /// Catalog number (TM-33-23)
+    pub catalog_number: Option<String>,
+
+    /// Number of identical emitters (required in TM-33-23)
     pub quantity: u32,
 
     /// Rated luminous flux in lumens
@@ -227,17 +437,23 @@ pub struct Emitter {
     /// Measured luminous flux in lumens
     pub measured_lumens: Option<f64>,
 
-    /// Input power in watts
+    /// Input power in watts (required in TM-33-23 as InputWattage)
     pub input_watts: Option<f64>,
 
     /// Power factor (0.0 - 1.0)
     pub power_factor: Option<f64>,
+
+    /// Ballast factor (TM-33-23)
+    pub ballast_factor: Option<f64>,
 
     /// Correlated color temperature in Kelvin
     pub cct: Option<f64>,
 
     /// Color rendering metrics
     pub color_rendering: Option<ColorRendering>,
+
+    /// Duv color shift (TM-33-23)
+    pub duv: Option<f64>,
 
     /// Scotopic-to-photopic ratio (S/P)
     pub sp_ratio: Option<f64>,
@@ -250,6 +466,18 @@ pub struct Emitter {
 
     /// Spectral power distribution
     pub spectral_distribution: Option<SpectralDistribution>,
+
+    /// Angular spectral data - 4D intensity (TM-33-23)
+    pub angular_spectral: Option<AngularSpectralData>,
+
+    /// Angular color data - CIE x,y per angle (TM-33-23)
+    pub angular_color: Option<AngularColorData>,
+
+    /// Tilt angles (TM-33-23)
+    pub tilt_angles: Option<TiltAngles>,
+
+    /// Regulatory tracking flags (TM-33-23)
+    pub regulatory: Option<Regulatory>,
 }
 
 /// Color rendering metrics
@@ -314,6 +542,20 @@ pub struct IntensityDistribution {
     /// Intensity values - outer vec is horizontal angles, inner is vertical
     /// `intensities[h_index][v_index]` = intensity at `horizontal_angles[h_index]`, `vertical_angles[v_index]`
     pub intensities: Vec<Vec<f64>>,
+
+    // TM-33-23 specific fields
+    /// Symmetry type (TM-33-23)
+    pub symmetry: Option<SymmetryType>,
+
+    /// Multiplier for intensity values (TM-33-23)
+    /// When present, actual intensity = stored_value * multiplier
+    pub multiplier: Option<f32>,
+
+    /// Whether data is absolute photometry (TM-33-23)
+    pub absolute_photometry: Option<bool>,
+
+    /// Number of measured points (TM-33-23)
+    pub number_measured: Option<i32>,
 }
 
 /// Photometry coordinate system type
@@ -392,7 +634,7 @@ pub enum SpectralUnits {
     Relative,
 }
 
-/// Custom data container for application-specific extensions
+/// Custom data container for application-specific extensions (ATLA S001)
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CustomData {
@@ -400,6 +642,143 @@ pub struct CustomData {
     pub namespace: Option<String>,
     /// Raw custom data (preserved as-is)
     pub data: String,
+}
+
+// ============================================================================
+// TM-33-23 Specific Types
+// ============================================================================
+
+/// Custom data item (TM-33-23 style with Name and UniqueIdentifier)
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct CustomDataItem {
+    /// Name identifier for the custom data
+    pub name: String,
+    /// Unique identifier (UUID or similar)
+    pub unique_identifier: String,
+    /// Raw XML content preserved as-is for lossless round-trip
+    pub raw_content: String,
+}
+
+/// Angular spectral data - intensity as function of angle AND wavelength (TM-33-23)
+/// This is a 4D dataset: (horizontal, vertical, wavelength) -> intensity
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct AngularSpectralData {
+    /// Whether data is absolute (vs normalized)
+    pub absolute: Option<bool>,
+    /// Symmetry type
+    pub symmetry: Option<SymmetryType>,
+    /// Multiplier for values
+    pub multiplier: Option<f32>,
+    /// Number of measured points
+    pub number_measured: i32,
+    /// Number of horizontal angles
+    pub number_horz: i32,
+    /// Number of vertical angles
+    pub number_vert: i32,
+    /// Number of wavelengths
+    pub number_wavelength: i32,
+    /// Data points (h, v, w, value)
+    pub data_points: Vec<AngularSpectralPoint>,
+}
+
+/// Single data point in angular spectral data
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct AngularSpectralPoint {
+    /// Horizontal angle (degrees)
+    pub h: f64,
+    /// Vertical angle (degrees)
+    pub v: f64,
+    /// Wavelength (nm)
+    pub w: f64,
+    /// Intensity value
+    pub value: f32,
+}
+
+/// Angular color data - CIE x,y chromaticity as function of angle (TM-33-23)
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct AngularColorData {
+    /// Symmetry type
+    pub symmetry: Option<SymmetryType>,
+    /// Multiplier for values
+    pub multiplier: Option<f32>,
+    /// Number of measured points
+    pub number_measured: i32,
+    /// Number of horizontal angles
+    pub number_horz: i32,
+    /// Number of vertical angles
+    pub number_vert: i32,
+    /// Color data points with CIE x,y per angle
+    pub data_points: Vec<AngularColorPoint>,
+}
+
+/// Single data point in angular color data
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct AngularColorPoint {
+    /// Horizontal angle (degrees)
+    pub h: f64,
+    /// Vertical angle (degrees)
+    pub v: f64,
+    /// CIE x chromaticity coordinate
+    pub x: f64,
+    /// CIE y chromaticity coordinate
+    pub y: f64,
+}
+
+/// Tilt angles support (TM-33-23)
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct TiltAngles {
+    /// Number of tilt angles
+    pub number_angles: i32,
+    /// Tilt angle values in degrees
+    pub angles: Vec<f64>,
+}
+
+/// Regulatory tracking flags (TM-33-23)
+/// Indicates whether each value is Measured, Nominal, or Rated
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Regulatory {
+    pub input_wattage: Option<RegulatoryValue>,
+    pub power_factor: Option<RegulatoryValue>,
+    pub ballast_factor: Option<RegulatoryValue>,
+    pub color_temperature: Option<RegulatoryValue>,
+    pub cie_cri: Option<RegulatoryValue>,
+    pub ies_tm30: Option<RegulatoryValue>,
+    pub duv: Option<RegulatoryValue>,
+    pub sp_ratio: Option<RegulatoryValue>,
+    pub luminous_intensity: Option<RegulatoryValue>,
+    pub luminous_flux: Option<RegulatoryValue>,
+    pub radiant_intensity: Option<RegulatoryValue>,
+    pub radiant_flux: Option<RegulatoryValue>,
+    pub photon_intensity: Option<RegulatoryValue>,
+    pub photon_flux: Option<RegulatoryValue>,
+    pub spectral_power: Option<RegulatoryValue>,
+    pub spectral_intensity: Option<RegulatoryValue>,
+    pub angular_color: Option<RegulatoryValue>,
+    pub illuminance: Option<RegulatoryValue>,
+    pub irradiance: Option<RegulatoryValue>,
+    pub photon_flux_density: Option<RegulatoryValue>,
+    pub spectral_irradiance: Option<RegulatoryValue>,
+}
+
+/// Extended color rendering with full TM-30 hue bin data (TM-33-23)
+#[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Tm30ColorRendering {
+    /// Rf (fidelity index)
+    pub rf: i32,
+    /// Rg (gamut index)
+    pub rg: i32,
+    /// Rf per hue bin (01-16)
+    pub rfh: [Option<i32>; 16],
+    /// Rcs per hue bin (chroma shift, 01-16)
+    pub rcsh: [Option<i32>; 16],
 }
 
 impl LuminaireOpticalData {

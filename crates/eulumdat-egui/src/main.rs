@@ -2,6 +2,8 @@
 //!
 //! A native application for viewing and editing EULUMDAT/LDT and IES photometric files.
 
+#![allow(dead_code, clippy::too_many_arguments)]
+
 use eframe::egui;
 
 mod app;

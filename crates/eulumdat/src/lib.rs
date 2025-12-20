@@ -181,11 +181,15 @@ mod writer;
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 pub use bug_rating::{BugDiagram, BugRating, ZoneLumens};
 pub use calculations::{
-    CieFluxCodes, GldfPhotometricData, PhotometricCalculations, PhotometricSummary, UgrParams,
-    UgrTableValues, ZonalLumens30,
+    BeamFieldAnalysis, CieFluxCodes, GldfPhotometricData, IesMetadata, PhotometricCalculations,
+    PhotometricSummary, UgrParams, UgrTableValues, ZonalLumens30,
 };
 pub use error::{Error, Result};
 pub use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
-pub use ies::{IesExporter, IesParser, PhotometricType, UnitType};
+pub use ies::{
+    validate_ies, validate_ies_strict, FileGenerationType, IesData, IesExportOptions, IesExporter,
+    IesParser, IesValidationSeverity, IesValidationWarning, IesVersion, LampPosition,
+    LuminousShape, PhotometricType, TiltData, UnitType,
+};
 pub use symmetry::SymmetryHandler;
 pub use validation::{validate, validate_strict, ValidationError, ValidationWarning};

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LuminaireOpticalData version="1.0" xmlns="http://www.ies.org/tm-33">
+    <Header>
+        <Manufacturer>ATLA Test Manufacturer</Manufacturer>
+        <CatalogNumber>HEAT-250W-R40</CatalogNumber>
+        <Description>250W Infrared Heat Lamp - High IR Output</Description>
+        <Laboratory>Spectral Test Laboratory</Laboratory>
+        <ReportNumber>SPEC-2024-IR-003</ReportNumber>
+        <TestDate>2024-01-20</TestDate>
+        <LuminaireType>Heat Lamp</LuminaireType>
+        <Comments>Infrared heat lamp with very high IR content. Peak emission in near-IR region (800-1000nm). Used for heating, food warming, and therapeutic applications. Will trigger thermal hazard warning due to >25% IR content.</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>125</Length>
+            <Width>125</Width>
+            <Height>165</Height>
+        </Dimensions>
+        <Mounting>Surface</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Goniometer>
+            <Manufacturer>Spectral Equipment Co</Manufacturer>
+            <Model>SP-IR-3000</Model>
+            <GoniometerType>Type C</GoniometerType>
+            <Distance>10.0</Distance>
+        </Goniometer>
+    </Equipment>
+    <Emitter>
+        <ID>heat-1</ID>
+        <Description>250W R40 Infrared Heat Lamp</Description>
+        <Quantity>1</Quantity>
+        <RatedLumens>200</RatedLumens>
+        <InputWatts>250</InputWatts>
+        <CCT>2000</CCT>
+        <ColorRendering>
+            <Ra>95</Ra>
+        </ColorRendering>
+        <SpectralDistribution>
+            <Wavelengths>400 420 440 460 480 500 520 540 560 580 600 620 640 660 680 700 720 740 760 780 800 820 840 860 880 900 920 940 960 980 1000 1050 1100 1150 1200 1250 1300 1350 1400</Wavelengths>
+            <Values>0.002 0.003 0.005 0.008 0.012 0.017 0.024 0.032 0.042 0.054 0.068 0.085 0.104 0.127 0.152 0.181 0.213 0.249 0.289 0.333 0.381 0.432 0.487 0.544 0.603 0.664 0.726 0.788 0.850 0.910 0.967 1.000 0.970 0.895 0.795 0.685 0.575 0.470 0.375</Values>
+            <Units>Relative</Units>
+        </SpectralDistribution>
+        <IntensityDistribution>
+            <PhotometryType>C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <IntensityData horz="0" vert="0">30</IntensityData>
+            <IntensityData horz="0" vert="10">29</IntensityData>
+            <IntensityData horz="0" vert="20">27</IntensityData>
+            <IntensityData horz="0" vert="30">24</IntensityData>
+            <IntensityData horz="0" vert="40">20</IntensityData>
+            <IntensityData horz="0" vert="50">15</IntensityData>
+            <IntensityData horz="0" vert="60">10</IntensityData>
+            <IntensityData horz="0" vert="70">5</IntensityData>
+            <IntensityData horz="0" vert="80">2</IntensityData>
+            <IntensityData horz="0" vert="90">0</IntensityData>
+        </IntensityDistribution>
+    </Emitter>
+</LuminaireOpticalData>

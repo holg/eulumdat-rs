@@ -4,6 +4,6 @@ pub mod diagram_panel;
 mod info_panel;
 pub mod tabs;
 
-pub use diagram_panel::{render_diagram_panel, DiagramType};
+pub use diagram_panel::DiagramType;
 pub use info_panel::render_info_panel;
-pub use tabs::{render_tab_bar, AppTab};
+pub use tabs::{render_main_tab_bar, render_sub_tab_bar, MainTab, SubTab};

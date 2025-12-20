@@ -7,6 +7,8 @@ pub enum EulumdatError {
     ParseError(String),
     #[error("Validation error: {0}")]
     ValidationError(String),
+    #[error("Export error: {0}")]
+    ExportError(String),
     #[error("IO error: {0}")]
     IoError(String),
 }

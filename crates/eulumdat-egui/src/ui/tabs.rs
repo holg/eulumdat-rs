@@ -1,11 +1,171 @@
 //! Tab components and rendering
 
-use eframe::egui::{self, Color32, DragValue, RichText, ScrollArea, Sense, Ui};
+use eframe::egui::{self, Color32, DragValue, RichText, Rounding, ScrollArea, Sense, Ui};
 use eulumdat::{validate, validate_strict, Eulumdat, LampSet, Symmetry, TypeIndicator};
 
-/// Application tabs
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Main tab groups (top-level navigation)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MainTab {
+    #[default]
+    Info,
+    Data,
+    Diagrams,
+    Analysis,
+    Validation,
+}
+
+impl MainTab {
+    pub fn label(&self) -> &'static str {
+        match self {
+            MainTab::Info => "Info",
+            MainTab::Data => "Data",
+            MainTab::Diagrams => "Diagrams",
+            MainTab::Analysis => "Analysis",
+            MainTab::Validation => "Validation",
+        }
+    }
+
+    pub fn all() -> &'static [MainTab] {
+        &[
+            MainTab::Info,
+            MainTab::Data,
+            MainTab::Diagrams,
+            MainTab::Analysis,
+            MainTab::Validation,
+        ]
+    }
+}
+
+/// Sub-tabs within each main tab group
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SubTab {
+    // Info group
+    #[default]
+    General,
+    Dimensions,
+    LampSets,
+    Optical,
+    // Data group
+    Intensity,
+    // Diagrams group
+    Polar,
+    Cartesian,
+    BeamAngle,
+    Butterfly3D,
+    Heatmap,
+    Cone,
+    // Analysis group
+    Spectral,
+    Greenhouse,
+    BugRating,
+    Lcs,
+    // Validation group (single)
+    ValidationPanel,
+}
+
+impl SubTab {
+    pub fn label(&self) -> &'static str {
+        match self {
+            SubTab::General => "General",
+            SubTab::Dimensions => "Dimensions",
+            SubTab::LampSets => "Lamp Sets",
+            SubTab::Optical => "Optical",
+            SubTab::Intensity => "Intensity",
+            SubTab::Polar => "Polar",
+            SubTab::Cartesian => "Cartesian",
+            SubTab::BeamAngle => "Beam Angle",
+            SubTab::Butterfly3D => "3D Butterfly",
+            SubTab::Heatmap => "Heatmap",
+            SubTab::Cone => "Cone",
+            SubTab::Spectral => "Spectral",
+            SubTab::Greenhouse => "Greenhouse",
+            SubTab::BugRating => "BUG Rating",
+            SubTab::Lcs => "LCS",
+            SubTab::ValidationPanel => "Validation",
+        }
+    }
+
+    /// Get the main tab group this sub-tab belongs to
+    pub fn main_tab(&self) -> MainTab {
+        match self {
+            SubTab::General | SubTab::Dimensions | SubTab::LampSets | SubTab::Optical => {
+                MainTab::Info
+            }
+            SubTab::Intensity => MainTab::Data,
+            SubTab::Polar
+            | SubTab::Cartesian
+            | SubTab::BeamAngle
+            | SubTab::Butterfly3D
+            | SubTab::Heatmap
+            | SubTab::Cone => MainTab::Diagrams,
+            SubTab::Spectral | SubTab::Greenhouse | SubTab::BugRating | SubTab::Lcs => {
+                MainTab::Analysis
+            }
+            SubTab::ValidationPanel => MainTab::Validation,
+        }
+    }
+
+    /// Get the default sub-tab for a main tab
+    pub fn default_for_main(main: MainTab) -> SubTab {
+        match main {
+            MainTab::Info => SubTab::General,
+            MainTab::Data => SubTab::Intensity,
+            MainTab::Diagrams => SubTab::Polar,
+            MainTab::Analysis => SubTab::Spectral,
+            MainTab::Validation => SubTab::ValidationPanel,
+        }
+    }
+
+    /// Get all sub-tabs for a main tab
+    pub fn tabs_for_main(main: MainTab) -> &'static [SubTab] {
+        match main {
+            MainTab::Info => &[
+                SubTab::General,
+                SubTab::Dimensions,
+                SubTab::LampSets,
+                SubTab::Optical,
+            ],
+            MainTab::Data => &[SubTab::Intensity],
+            MainTab::Diagrams => &[
+                SubTab::Polar,
+                SubTab::Cartesian,
+                SubTab::BeamAngle,
+                SubTab::Butterfly3D,
+                SubTab::Heatmap,
+                SubTab::Cone,
+            ],
+            MainTab::Analysis => &[
+                SubTab::Spectral,
+                SubTab::Greenhouse,
+                SubTab::BugRating,
+                SubTab::Lcs,
+            ],
+            MainTab::Validation => &[SubTab::ValidationPanel],
+        }
+    }
+
+    /// Check if this sub-tab is a diagram type
+    pub fn is_diagram(&self) -> bool {
+        matches!(
+            self,
+            SubTab::Polar
+                | SubTab::Cartesian
+                | SubTab::BeamAngle
+                | SubTab::Butterfly3D
+                | SubTab::Heatmap
+                | SubTab::Cone
+                | SubTab::Spectral
+                | SubTab::Greenhouse
+                | SubTab::BugRating
+                | SubTab::Lcs
+        )
+    }
+}
+
+/// Legacy AppTab for backward compatibility
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AppTab {
+    #[default]
     Diagram,
     General,
     Dimensions,
@@ -41,7 +201,48 @@ impl AppTab {
     }
 }
 
-/// Render the tab bar
+/// Render the main tab bar (top level)
+pub fn render_main_tab_bar(ui: &mut Ui, current_main: &mut MainTab, current_sub: &mut SubTab) {
+    ui.horizontal(|ui| {
+        for main_tab in MainTab::all() {
+            let selected = *current_main == *main_tab;
+
+            let button = egui::Button::new(RichText::new(main_tab.label()).strong())
+                .selected(selected)
+                .rounding(Rounding::same(4.0));
+
+            if ui.add(button).clicked() {
+                *current_main = *main_tab;
+                // Switch to default sub-tab for this main tab
+                *current_sub = SubTab::default_for_main(*main_tab);
+            }
+        }
+    });
+}
+
+/// Render the sub-tab bar (second level)
+pub fn render_sub_tab_bar(ui: &mut Ui, main_tab: MainTab, current_sub: &mut SubTab) {
+    let sub_tabs = SubTab::tabs_for_main(main_tab);
+
+    // Only show sub-tab bar if there's more than one sub-tab
+    if sub_tabs.len() > 1 {
+        ui.horizontal(|ui| {
+            for sub_tab in sub_tabs {
+                let selected = *current_sub == *sub_tab;
+
+                let button = egui::Button::new(sub_tab.label())
+                    .selected(selected)
+                    .rounding(Rounding::same(3.0));
+
+                if ui.add(button).clicked() {
+                    *current_sub = *sub_tab;
+                }
+            }
+        });
+    }
+}
+
+/// Legacy tab bar rendering
 pub fn render_tab_bar(ui: &mut Ui, current_tab: &mut AppTab, has_data: bool) {
     ui.horizontal(|ui| {
         for tab in AppTab::all() {
@@ -682,7 +883,7 @@ pub fn render_validation_tab(ui: &mut Ui, ldt: &Eulumdat) {
 }
 
 /// Heatmap color function (blue -> cyan -> green -> yellow -> red)
-fn heatmap_color(normalized: f64) -> Color32 {
+pub fn heatmap_color(normalized: f64) -> Color32 {
     let value = normalized.clamp(0.0, 1.0);
 
     let (r, g, b) = if value < 0.25 {

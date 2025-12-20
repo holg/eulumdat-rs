@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LuminaireOpticalData version="1.0" xmlns="http://www.ies.org/tm-33">
+    <Header>
+        <Manufacturer>Horticultural Lighting Co</Manufacturer>
+        <CatalogNumber>PAR-200-RB</CatalogNumber>
+        <Description>Red/Blue LED Grow Light - High Efficiency PAR</Description>
+        <Laboratory>Photobiology Test Lab</Laboratory>
+        <ReportNumber>HORT-2024-043</ReportNumber>
+        <TestDate>2024-03-20</TestDate>
+        <LuminaireType>Horticultural Grow Light</LuminaireType>
+        <Comments>Red/Blue spectrum optimized for chlorophyll absorption. PPF: 400 µmol/s. Ratio: 5R:1B</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>600</Length>
+            <Width>300</Width>
+            <Height>50</Height>
+        </Dimensions>
+        <Mounting>Suspended</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Emitter>
+        <ID>rb-led-array</ID>
+        <Description>Dedicated Red (660nm) and Blue (450nm) LED chips</Description>
+        <Quantity>1</Quantity>
+        <RatedLumens>8000</RatedLumens>
+        <InputWatts>200</InputWatts>
+        <IntensityDistribution>
+            <PhotometryType>C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <IntensityData horz="0" vert="0">120</IntensityData>
+            <IntensityData horz="0" vert="15">115</IntensityData>
+            <IntensityData horz="0" vert="30">100</IntensityData>
+            <IntensityData horz="0" vert="45">75</IntensityData>
+            <IntensityData horz="0" vert="60">45</IntensityData>
+            <IntensityData horz="0" vert="75">15</IntensityData>
+            <IntensityData horz="0" vert="90">0</IntensityData>
+        </IntensityDistribution>
+        <SpectralDistribution>
+            <!-- Red/Blue only spectrum: Sharp peaks at 450nm (blue) and 660nm (red) -->
+            <Wavelengths>380 390 400 410 420 430 440 445 450 455 460 470 480 490 500 520 540 560 580 600 620 630 640 650 655 660 665 670 680 690 700 720 740 760 780</Wavelengths>
+            <Values>0.00 0.00 0.01 0.04 0.15 0.45 0.82 0.95 1.00 0.95 0.82 0.45 0.15 0.04 0.01 0.00 0.00 0.00 0.00 0.01 0.08 0.25 0.55 0.85 0.95 1.00 0.95 0.85 0.55 0.25 0.08 0.01 0.00 0.00 0.00</Values>
+            <Units>Relative</Units>
+        </SpectralDistribution>
+    </Emitter>
+</LuminaireOpticalData>

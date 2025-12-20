@@ -16,11 +16,28 @@ path = "src/lib.rs"
 [[bin]]
 name = "eulumdat-3d"
 path = "src/main.rs"
+required-features = ["standalone"]
 
 [features]
-default = []
+# Default: full viewer with demo scenes
+default = ["viewer"]
+
+# General-purpose photometric lighting (minimal, no scenes/camera)
+# Use this when embedding in your own Bevy app
+photometric = []
+
+# Full viewer with demo scenes, camera, and controls (implies photometric)
+viewer = ["photometric"]
+
 # Enable WebGL2 for WASM builds
 webgl = ["bevy/webgl2"]
+
+# Enable localStorage sync for WASM hot-reload (requires wasm-bindgen)
+wasm-sync = ["viewer", "wasm-bindgen", "wasm-bindgen-futures", "web-sys"]
+
+# Enable standalone binary (for eulumdat-wasm integration)
+# Disable when embedding in another WASM app to avoid duplicate wasm_start
+standalone = ["wasm-sync"]
 
 [dependencies]
 bevy = { version = "0.15", default-features = false, features = [
@@ -62,6 +79,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "png",
 ] }
 getrandom = { version = "0.3", features = ["wasm_js"] }
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["Window", "Storage"] }
+# Optional WASM dependencies - only needed for standalone/wasm-sync
+wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen-futures = { version = "0.4", optional = true }
+web-sys = { version = "0.3", features = ["Window", "Storage"], optional = true }

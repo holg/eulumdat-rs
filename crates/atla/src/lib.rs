@@ -1,7 +1,7 @@
 //! ATLA S001 / ANSI/IES TM-33 / UNI 11733 luminaire optical data library
 //!
 //! This crate provides parsing, writing, and conversion for the ATLA S001 standard
-//! and its equivalent standards ANSI/IES TM-33-18 and UNI 11733:2019.
+//! and its equivalent standards ANSI/IES TM-33-18, TM-33-23, and UNI 11733:2019.
 //!
 //! # Overview
 //!
@@ -14,6 +14,14 @@
 //! - **Data provenance** - Track whether data is measured or simulated
 //! - **Color metrics** - CCT, CRI (Ra, R9), and TM-30 (Rf, Rg)
 //! - **Extensible** - Custom data fields for application-specific needs
+//! - **TM-33-23 support** - Symmetry types, multipliers, angular spectral/color data
+//!
+//! # Schema Version Support
+//!
+//! | Schema | Root Element | Version |
+//! |--------|--------------|---------|
+//! | ATLA S001 / TM-33-18 | `LuminaireOpticalData` | 1.0 |
+//! | TM-33-23 (IESTM33-22) | `IESTM33-22` | 1.1 |
 //!
 //! # Format Support
 //!
@@ -21,6 +29,7 @@
 //! |---------|-----|------|
 //! | ATLA S001 | ✅ | ✅ |
 //! | TM-33-18 | ✅ | - |
+//! | TM-33-23 | ✅ | ✅ |
 //! | UNI 11733 | ✅ | - |
 //! | ATLA S001-A | ✅ | ✅ |
 //!
@@ -68,6 +77,7 @@
 
 pub mod error;
 pub mod greenhouse;
+pub mod labels;
 pub mod spectral;
 pub mod tm30;
 pub mod types;
@@ -84,11 +94,49 @@ pub mod convert;
 
 // Re-exports
 pub use error::{AtlaError, Result};
-pub use greenhouse::{GreenhouseDiagram, GreenhouseTheme};
-pub use spectral::{synthesize_spectrum, SpectralDiagram, SpectralMetrics, SpectralTheme};
+pub use greenhouse::{GreenhouseDiagram, GreenhouseLabels, GreenhouseTheme};
+pub use labels::SpectralLabels;
+pub use spectral::{
+    synthesize_spectrum, SpectralDiagram, SpectralMetrics, SpectralSvgLabels, SpectralTheme,
+};
 pub use tm30::{calculate_tm30, Tm30Result, Tm30Theme};
 pub use types::*;
-pub use validate::{validate, ValidationMessage, ValidationResult};
+pub use validate::{
+    validate, validate_with_schema, ValidationMessage, ValidationResult, ValidationSchema,
+};
+
+/// Detect schema version from XML content
+///
+/// Checks for known root elements:
+/// - `<IESTM33-22>` → TM-33-23 (SchemaVersion::Tm3323)
+/// - `<LuminaireOpticalData>` → ATLA S001 (SchemaVersion::AtlaS001)
+///
+/// # Example
+/// ```rust
+/// use atla::{detect_schema_version, SchemaVersion};
+///
+/// let xml = r#"<IESTM33-22><Version>1.1</Version></IESTM33-22>"#;
+/// assert_eq!(detect_schema_version(xml), SchemaVersion::Tm3323);
+///
+/// let xml2 = r#"<LuminaireOpticalData version="1.0"></LuminaireOpticalData>"#;
+/// assert_eq!(detect_schema_version(xml2), SchemaVersion::AtlaS001);
+/// ```
+pub fn detect_schema_version(content: &str) -> SchemaVersion {
+    let trimmed = content.trim();
+
+    // Check for TM-33-23 root element
+    if trimmed.contains("<IESTM33-22") || trimmed.contains("<IESTM33-22>") {
+        return SchemaVersion::Tm3323;
+    }
+
+    // Check for ATLA S001 root element
+    if trimmed.contains("<LuminaireOpticalData") {
+        return SchemaVersion::AtlaS001;
+    }
+
+    // Default to S001 for unknown formats
+    SchemaVersion::AtlaS001
+}
 
 /// Parse ATLA document from string, auto-detecting format (XML or JSON)
 pub fn parse(content: &str) -> Result<LuminaireOpticalData> {

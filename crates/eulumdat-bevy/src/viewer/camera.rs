@@ -1,8 +1,9 @@
-//! First-person camera controller
+//! First-person camera controller for the viewer.
 
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
+/// Plugin for first-person camera controls.
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
@@ -12,16 +13,21 @@ impl Plugin for CameraPlugin {
     }
 }
 
-/// Default camera position and look target
+/// Default camera position and look target.
 /// Position: standing on sidewalk looking at the lamp/scene center
 const DEFAULT_CAM_POS: Vec3 = Vec3::new(1.0, 1.7, 5.0); // Sidewalk, eye height ~1.7m
 const DEFAULT_LOOK_AT: Vec3 = Vec3::new(5.0, 4.0, 15.0); // Looking at lamp area
 
+/// First-person camera component.
 #[derive(Component)]
 pub struct FirstPersonCamera {
+    /// Movement speed in meters per second
     pub speed: f32,
+    /// Mouse look sensitivity
     pub sensitivity: f32,
+    /// Current pitch angle (up/down)
     pub pitch: f32,
+    /// Current yaw angle (left/right)
     pub yaw: f32,
 }
 
@@ -36,14 +42,14 @@ impl Default for FirstPersonCamera {
     }
 }
 
-/// Calculate yaw and pitch from a direction vector
+/// Calculate yaw and pitch from a direction vector.
 fn direction_to_yaw_pitch(dir: Vec3) -> (f32, f32) {
     let yaw = dir.z.atan2(dir.x) - std::f32::consts::FRAC_PI_2;
     let pitch = (-dir.y).asin();
     (yaw, pitch)
 }
 
-/// Get default yaw/pitch for looking from DEFAULT_CAM_POS to DEFAULT_LOOK_AT
+/// Get default yaw/pitch for looking from DEFAULT_CAM_POS to DEFAULT_LOOK_AT.
 fn default_yaw_pitch() -> (f32, f32) {
     let dir = (DEFAULT_LOOK_AT - DEFAULT_CAM_POS).normalize();
     direction_to_yaw_pitch(dir)
@@ -67,7 +73,7 @@ fn spawn_camera(mut commands: Commands) {
     ));
 }
 
-/// Reset camera with R or Home key
+/// Reset camera with R or Home key.
 fn camera_reset(
     mut query: Query<(&mut Transform, &mut FirstPersonCamera)>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -83,6 +89,7 @@ fn camera_reset(
     }
 }
 
+/// Mouse look system (right-click + drag).
 fn camera_look(
     mut query: Query<(&mut Transform, &mut FirstPersonCamera)>,
     mut mouse_motion: EventReader<MouseMotion>,
@@ -112,6 +119,7 @@ fn camera_look(
     }
 }
 
+/// Keyboard movement system (WASD/Arrows, Q/E for up/down).
 fn camera_move(
     mut query: Query<(&mut Transform, &FirstPersonCamera)>,
     keyboard: Res<ButtonInput<KeyCode>>,

@@ -1,3 +1,4 @@
+use crate::i18n::use_locale;
 use eulumdat::{Eulumdat, Symmetry};
 use leptos::ev;
 use leptos::prelude::*;
@@ -32,6 +33,7 @@ fn get_c_angle_start_index(ldt: &Eulumdat) -> usize {
 
 #[component]
 pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
+    let locale = use_locale();
     let on_copy = move |_: ev::MouseEvent| {
         let ldt = ldt.get();
         let mut text = String::new();
@@ -69,11 +71,12 @@ pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> i
 
     move || {
         let ldt_val = ldt.get();
+        let l = locale.get();
 
         if ldt_val.intensities.is_empty() || ldt_val.g_angles.is_empty() {
             return view! {
                 <div class="text-center text-muted">
-                    "No intensity data available"
+                    {l.ui.data_table.no_data.clone()}
                 </div>
             }
             .into_any();
@@ -94,7 +97,7 @@ pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> i
             <div class="data-table-wrapper">
                 <div class="data-table-toolbar">
                     <button class="btn btn-sm btn-secondary" on:click=on_copy>
-                        "Copy to Clipboard"
+                        {l.ui.data_table.copy_to_clipboard.clone()}
                     </button>
                 </div>
 

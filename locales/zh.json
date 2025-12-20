@@ -1,0 +1,571 @@
+{
+  "meta": {
+    "language": "简体中文",
+    "code": "zh",
+    "direction": "ltr"
+  },
+  "diagram": {
+    "units": {
+      "intensity": "cd/1000lm",
+      "intensity_short": "cd/klm",
+      "candela": "坎德拉",
+      "lumen": "流明",
+      "watt": "瓦",
+      "lux": "勒克斯"
+    },
+    "bug": {
+      "forward_light": "前向光",
+      "back_light": "后向光",
+      "uplight": "上射光",
+      "total": "合计",
+      "sum": "总计",
+      "zone_low": "低",
+      "zone_medium": "中",
+      "zone_high": "高",
+      "zone_very_high": "极高",
+      "lumens": "流明",
+      "percent": "%"
+    },
+    "axis": {
+      "gamma": "伽马角 (γ)",
+      "intensity": "光强 (cd/klm)",
+      "c_plane": "C面角度 (°)",
+      "gamma_angle": "伽马角度 (°)"
+    },
+    "plane": {
+      "c0_c180": "C0-C180",
+      "c90_c270": "C90-C270"
+    },
+    "angle": {
+      "beam": "光束",
+      "field": "场",
+      "beam_50": "光束 50%",
+      "field_10": "场 10%"
+    },
+    "metrics": {
+      "cie": "CIE:",
+      "efficacy": "效率:",
+      "max": "最大:",
+      "sh_ratio": "间高比:"
+    },
+    "title": {
+      "heatmap": "光强热图 (坎德拉)",
+      "polar": "极坐标图",
+      "cartesian": "直角坐标图",
+      "cone": "光锥图"
+    },
+    "placeholder": {
+      "no_data": "无数据"
+    },
+    "cone": {
+      "beam_angle": "光束角",
+      "field_angle": "照射角",
+      "mounting_height": "安装高度",
+      "beam_diameter": "光束 ⌀",
+      "field_diameter": "照射 ⌀",
+      "intensity_50": "50%",
+      "intensity_10": "10%",
+      "floor": "地面",
+      "meter": "m",
+      "classification": {
+        "very_narrow_spot": "超窄光束",
+        "narrow_spot": "窄光束",
+        "spot": "聚光",
+        "medium_flood": "中泛光",
+        "wide_flood": "宽泛光",
+        "very_wide_flood": "超宽泛光"
+      }
+    },
+    "greenhouse": {
+      "max_height": "最大高度"
+    }
+  },
+  "spectral": {
+    "axis": {
+      "wavelength": "波长 (nm)",
+      "relative_power": "相对功率"
+    },
+    "title": {
+      "spd": "光谱功率分布",
+      "cvg": "色向量图",
+      "hue": "色调保真度"
+    },
+    "region": {
+      "uv_a": "UV-A",
+      "visible": "可见光",
+      "near_ir": "近红外",
+      "blue": "蓝",
+      "green": "绿",
+      "red": "红"
+    },
+    "warning": {
+      "uv_thermal": "UV + 热危害",
+      "uv_exposure": "UV暴露风险",
+      "high_thermal": "高热输出"
+    },
+    "units": {
+      "watts_per_nm": "W/nm",
+      "relative": "相对"
+    },
+    "tm30": {
+      "rf": "Rf",
+      "rg": "Rg",
+      "reference": "参考",
+      "test": "测试"
+    },
+    "metrics": {
+      "energy_distribution": "能量分布",
+      "uv_percent": "UV",
+      "visible_percent": "可见光",
+      "ir_percent": "红外",
+      "r_fr_ratio": "红光:远红光比"
+    }
+  },
+  "luminaire": {
+    "info": {
+      "manufacturer": "制造商",
+      "catalog_number": "目录编号",
+      "description": "描述",
+      "luminaire_name": "灯具名称",
+      "luminaire_number": "灯具编号",
+      "luminaire_type": "灯具类型",
+      "lamp_type": "光源类型",
+      "test_date": "测试日期",
+      "report_number": "报告编号",
+      "laboratory": "实验室",
+      "identification": "标识",
+      "type_indicator": "类型指示器",
+      "type_indicator_1": "1 - 点光源（垂直对称）",
+      "type_indicator_2": "2 - 线性灯具",
+      "type_indicator_3": "3 - 点光源（其他对称）",
+      "symmetry": "对称性",
+      "symmetry_0": "0 - 无对称",
+      "symmetry_1": "1 - 垂直轴",
+      "symmetry_2": "2 - C0-C180平面",
+      "symmetry_3": "3 - C90-C270平面",
+      "symmetry_4": "4 - 两个平面",
+      "num_c_planes": "C平面数量 (Nc)",
+      "c_plane_distance": "C平面间距 (Dc)",
+      "num_g_planes": "G平面数量 (Ng)",
+      "g_plane_distance": "G平面间距 (Dg)",
+      "measurement_report": "测量报告编号",
+      "file_name": "文件名",
+      "date_user": "日期 / 用户"
+    },
+    "physical": {
+      "dimensions": "尺寸",
+      "dimensions_mm": "灯具尺寸 (mm)",
+      "length": "长度",
+      "length_diameter": "长度 / 直径 (L)",
+      "width": "宽度",
+      "width_b": "宽度 (B)",
+      "height": "高度",
+      "height_h": "高度 (H)",
+      "luminous_area": "发光面积",
+      "luminous_area_mm": "发光面积 (mm)",
+      "luminous_length": "长度 / 直径 (La)",
+      "luminous_width": "宽度 (B1)",
+      "luminous_height_c_planes": "C平面发光面积高度 (mm)",
+      "mounting": "安装方式"
+    },
+    "optical": {
+      "title": "光学特性",
+      "downward_flux_fraction": "下射光通量比 (%)",
+      "light_output_ratio": "灯具效率 (%)",
+      "conversion_factor": "转换系数",
+      "tilt_angle": "倾斜角度 (°)"
+    },
+    "photometric": {
+      "total_flux": "总光通量",
+      "total_lamp_flux": "光源总光通量",
+      "total_wattage": "总功率",
+      "lamp_efficacy": "光源光效",
+      "luminaire_efficacy": "灯具光效",
+      "efficacy": "光效",
+      "lor": "灯具效率",
+      "dlor": "下射光效率",
+      "ulor": "上射光效率",
+      "cct": "色温",
+      "cri": "显色指数",
+      "beam_angle": "光束角",
+      "beam_angle_50": "光束角 (50%)",
+      "field_angle": "场角",
+      "field_angle_10": "场角 (10%)",
+      "cie_class": "CIE分类",
+      "symmetry": "对称性",
+      "max_intensity": "最大光强",
+      "spacing_criterion": "间距准则",
+      "photometric_code": "光度学代码",
+      "cutoff_angle": "截光角"
+    },
+    "electrical": {
+      "power": "输入功率",
+      "voltage": "电压",
+      "current": "电流",
+      "power_factor": "功率因数"
+    },
+    "lamp_set": {
+      "title": "光源组",
+      "set_n": "组 {n}",
+      "num_lamps": "光源数量",
+      "luminous_flux": "总光通量 (lm)",
+      "wattage": "功率含镇流器 (W)",
+      "lamp_type": "光源类型",
+      "color_appearance": "光色 / CCT",
+      "color_rendering": "显色性 / CRI",
+      "remove": "删除此光源组"
+    },
+    "summary": {
+      "title": "计算的光度学摘要",
+      "description": "以下数值由光强分布数据计算得出",
+      "beam_characteristics": "光束特性",
+      "zonal_lumens": "区域光通量",
+      "glare_assessment": "眩光评估",
+      "luminaire_luminance": "灯具亮度 (65°)",
+      "room_config": "房间配置"
+    },
+    "direct_ratios": {
+      "description": "房间指数 (k值) 的直接比率。这些是利用系数。",
+      "calculate": "从光强数据计算"
+    }
+  },
+  "validation": {
+    "level": {
+      "error": "错误",
+      "warning": "警告",
+      "info": "信息"
+    },
+    "messages": {
+      "missing_manufacturer": "缺少制造商信息",
+      "missing_flux": "缺少光通量数据",
+      "invalid_angles": "无效的角度值",
+      "intensity_mismatch": "光强数据不匹配",
+      "symmetry_violation": "对称性约束违反"
+    }
+  },
+  "ui": {
+    "header": {
+      "title": "Eulumdat 编辑器",
+      "file": "文件",
+      "new": "新建",
+      "open": "打开...",
+      "templates": "模板",
+      "save_ldt": "保存为 LDT",
+      "export_ies": "导出为 IES",
+      "atla_xml": "导出为 ATLA XML",
+      "atla_json": "导出为 ATLA JSON",
+      "switch_to_dark": "切换到深色模式",
+      "switch_to_light": "切换到浅色模式"
+    },
+    "tabs": {
+      "general": "常规",
+      "dimensions": "尺寸",
+      "lamp_sets": "光源组",
+      "direct_ratios": "直接比率",
+      "intensity": "光强",
+      "diagram_2d": "2D",
+      "diagram_3d": "3D",
+      "heatmap": "热图",
+      "spectral": "光谱",
+      "greenhouse": "温室",
+      "bug_rating": "BUG",
+      "lcs": "LCS",
+      "validation": "验证",
+      "scene_3d": "3D场景",
+      "info": "信息",
+      "data": "数据",
+      "diagrams": "图表",
+      "analysis": "分析",
+      "polar": "极坐标",
+      "cartesian": "直角坐标",
+      "cone": "光锥",
+      "export": "导出"
+    },
+    "subtabs": {
+      "spd": "SPD",
+      "tm30_cvg": "TM-30 CVG",
+      "tm30_hue": "TM-30 色调",
+      "metrics": "指标"
+    },
+    "dropzone": {
+      "text": "将 LDT、IES 或 ATLA（XML/JSON）文件拖放到此处，或使用上方的打开按钮",
+      "current_file": "当前文件："
+    },
+    "diagram": {
+      "title_2d": "2D 光强分布",
+      "title_3d": "3D 蝴蝶图",
+      "title_heatmap": "光强热图",
+      "title_spectral": "光谱功率分布",
+      "title_greenhouse": "温室 PPFD",
+      "title_bug": "BUG 评级分析",
+      "title_lcs": "灯具分类系统",
+      "title_scene": "3D 场景查看器",
+      "polar": "极坐标",
+      "cartesian": "直角坐标",
+      "zoom_hint": "滚动缩放 | 拖动平移",
+      "rotate_hint": "拖动旋转 | 滚动缩放 | 加载时自动旋转",
+      "scene_controls": "控制：WASD/方向键移动 • Q/E上下 • 右键+拖动环顾 • R重置视图 • 1-4场景类型 • P光度体 • L灯具"
+    },
+    "intensity": {
+      "title": "发光强度 (cd/klm)",
+      "table_info": "{c_planes} C平面 × {g_angles} γ角"
+    },
+    "validation": {
+      "title": "验证结果"
+    },
+    "spectral": {
+      "subtitle": "ATLA S001 光谱数据 | CCT/CRI 合成",
+      "greenhouse_subtitle": "安装距离下的 µmol/m²/s",
+      "bug_subtitle": "IES TM-15-11 | 滚动缩放 | 拖动平移",
+      "lcs_subtitle": "IES TM-15-07 | 滚动缩放 | 拖动平移",
+      "direct_spd": "直接 SPD",
+      "sample": "示例",
+      "load_hint": "加载带有光谱数据的 ATLA 模板以进行 TM-30 分析",
+      "wavelength_range": "波长范围",
+      "peak": "峰值",
+      "energy_distribution": "能量分布",
+      "par_distribution": "PAR 分布 (400-700nm)",
+      "par_total": "PAR 总计",
+      "hort_metrics": "园艺指标",
+      "far_red": "远红 (700-780nm)",
+      "r_fr_hint": "R:FR 比值影响植物形态（>1.0 = 紧凑生长）",
+      "warnings": "警告",
+      "thermal_warning": "高红外含量 - 显著热输出",
+      "uv_warning": "UV-A 含量升高 - 潜在材料降解",
+      "cvg_legend1": "颜色矢量图显示16个色调区的色调和色度偏移。",
+      "cvg_legend2": "虚线圆 = 参考光源。实心形状 = 测试光源。",
+      "hue_table": {
+        "hue": "色调",
+        "rf": "Rf",
+        "rcs": "Rcs",
+        "rhs": "Rhs"
+      },
+      "hue_legend": {
+        "rf": "保真度 (0-100，越高越好)",
+        "rcs": "色度偏移 (+为更饱和)",
+        "rhs": "色调偏移（度）"
+      }
+    },
+    "butterfly": {
+      "pause": "暂停",
+      "auto": "自动",
+      "reset": "重置",
+      "drag_hint": "拖动旋转",
+      "max": "最大"
+    },
+    "bevy_scene": {
+      "title": "3D场景查看器",
+      "click_to_load": "点击加载（约22MB）",
+      "load_button": "加载3D查看器",
+      "loading": "正在加载3D查看器...",
+      "downloading": "正在下载约22MB",
+      "load_failed": "加载3D查看器失败",
+      "try_again": "重试",
+      "scene_type": "场景类型",
+      "scene_room": "房间",
+      "scene_road": "道路",
+      "scene_parking": "停车场",
+      "scene_outdoor": "户外",
+      "room_width": "宽度 (m)",
+      "room_length": "长度 (m)",
+      "room_height": "高度 (m)",
+      "mounting_height": "安装高度 (m)",
+      "pendulum_length": "吊杆长度 (m)",
+      "show_luminaire": "显示灯具",
+      "show_solid": "光度体",
+      "show_shadows": "阴影",
+      "controls_hint": "WASD: 移动, 鼠标: 查看, R: 重置, 1-4: 场景"
+    },
+    "bug_rating": {
+      "title": "IESNA TM-15-11 BUG评级",
+      "title_detailed": "IESNA TM-15-11 BUG评级（详细）",
+      "show_details": "显示详情",
+      "hide_details": "隐藏详情",
+      "footer_basic": "IESNA TM-15-11 背光、上射光、眩光评级",
+      "footer_detailed": "IESNA TM-15-11 BUG评级及区域光通量明细"
+    },
+    "lcs": {
+      "footer": "IES TM-15-07 室外灯具分类系统"
+    },
+    "data_table": {
+      "no_data": "无强度数据",
+      "copy_to_clipboard": "复制到剪贴板"
+    },
+    "validation_panel": {
+      "all_passed": "所有验证检查已通过",
+      "error_count": "{errors}个错误，{warnings}个警告"
+    },
+    "spectral_badges": {
+      "ir": "红外",
+      "uv": "紫外",
+      "ir_high_title": "高红外含量 - 热危害",
+      "ir_title": "包含红外数据",
+      "uv_high_title": "高紫外含量 - 暴露风险",
+      "uv_title": "包含紫外数据",
+      "rg": "Rg",
+      "duv": "Duv"
+    },
+    "actions": {
+      "load": "加载",
+      "save": "保存",
+      "export": "导出",
+      "import": "导入",
+      "clear": "清除",
+      "reset": "重置",
+      "apply": "应用",
+      "cancel": "取消",
+      "close": "关闭",
+      "download": "下载"
+    },
+    "file": {
+      "open": "打开文件",
+      "save_as": "另存为",
+      "export_ldt": "导出为 LDT",
+      "export_ies": "导出为 IES",
+      "export_atla": "导出为 ATLA",
+      "export_svg": "导出为 SVG",
+      "export_pdf": "导出为 PDF"
+    },
+    "theme": {
+      "light": "浅色",
+      "dark": "深色",
+      "system": "系统"
+    },
+    "language": {
+      "select": "选择语言"
+    },
+    "template": {
+      "select": "选择模板",
+      "downlight": "筒灯",
+      "projector": "投射灯",
+      "linear": "线性灯具",
+      "fluorescent": "荧光灯具",
+      "road": "道路灯具",
+      "uplight": "落地上射灯",
+      "atla_fluorescent_xml": "ATLA 荧光灯 (XML)",
+      "atla_fluorescent_json": "ATLA 荧光灯 (JSON)",
+      "atla_grow_light_fs": "ATLA 植物灯 (全光谱)",
+      "atla_grow_light_rb": "ATLA 植物灯 (红蓝)",
+      "halogen": "ATLA 卤素灯 (红外)",
+      "incandescent": "ATLA 白炽灯 (红外)",
+      "heat_lamp": "ATLA 加热灯 (高红外)",
+      "uv_blacklight": "ATLA 紫外黑光灯"
+    },
+    "messages": {
+      "loading": "加载中...",
+      "saving": "保存中...",
+      "error": "发生错误",
+      "success": "成功",
+      "file_loaded": "文件加载成功",
+      "file_saved": "文件保存成功",
+      "invalid_file": "无效的文件格式",
+      "no_file": "未选择文件"
+    }
+  },
+  "report": {
+    "title": "光度测试报告",
+    "generated": "生成日期",
+    "page": "页",
+    "of": "/",
+    "summary": "摘要",
+    "details": "详细信息",
+    "appendix": "附录"
+  },
+  "app": {
+    "welcome": {
+      "title": "欢迎使用 Eulumdat",
+      "subtitle": "打开 LDT/IES 文件或选择模板",
+      "openFile": "打开文件",
+      "newFromTemplate": "从模板新建",
+      "dropFile": "将文件拖放到此处"
+    },
+    "settings": {
+      "language": "语言",
+      "language_system": "跟随系统",
+      "appearance": "外观",
+      "darkTheme": "为图表使用深色主题",
+      "defaultDiagram": "默认图表",
+      "mountingHeight": "安装高度",
+      "mountingHeight_description": "用于锥形图和PPFD图",
+      "export": "导出",
+      "about": "关于"
+    },
+    "toolbar": {
+      "open": "打开",
+      "export": "导出",
+      "exportSVG": "导出 SVG...",
+      "exportIES": "导出 IES...",
+      "exportLDT": "导出 LDT...",
+      "dark": "深色主题"
+    },
+    "nav": {
+      "title": "光度查看器"
+    },
+    "error": {
+      "ok": "确定"
+    },
+    "fullscreen": {
+      "darkTheme": "深色主题",
+      "done": "完成"
+    },
+    "tab": {
+      "general": "常规",
+      "dimensions": "尺寸",
+      "lampSets": "光源",
+      "optical": "光学",
+      "intensity": "光强",
+      "diagram": "图表"
+    },
+    "validation": {
+      "title": "验证"
+    },
+    "diagram": {
+      "polar": "极坐标",
+      "cartesian": "直角坐标",
+      "butterfly": "蝴蝶",
+      "3d": "3D",
+      "room": "房间",
+      "heatmap": "热图",
+      "cone": "锥形",
+      "beam": "光束",
+      "spectral": "光谱",
+      "ppfd": "PPFD",
+      "bug": "BUG",
+      "lcs": "LCS"
+    },
+    "template": {
+      "downlight": "筒灯",
+      "downlight_desc": "垂直轴对称的简易筒灯",
+      "projector": "投射灯",
+      "projector_desc": "CDM-TD 70W 非对称光束聚光灯",
+      "linear": "线性灯具",
+      "linear_desc": "C0-C180 对称的线性灯具",
+      "fluorescent": "荧光灯具",
+      "fluorescent_desc": "T16 G5 54W 双侧对称线性灯具",
+      "roadLuminaire": "道路灯具",
+      "roadLuminaire_desc": "SON-TPP 250W C90-C270 对称路灯",
+      "floorUplight": "落地向上灯",
+      "floorUplight_desc": "HIT-DE 250W 落地式向上照明灯",
+      "wikiBatwing": "蝙蝠翼配光 (Wiki)",
+      "wikiBatwing_desc": "用于均匀照度的蝙蝠翼配光",
+      "wikiSpotlight": "聚光灯 (Wiki)",
+      "wikiSpotlight_desc": "窄光束聚光灯配光",
+      "wikiFlood": "泛光灯 (Wiki)",
+      "wikiFlood_desc": "宽光束泛光配光",
+      "atlaGrowLight": "植物生长灯 (ATLA)",
+      "atlaGrowLight_desc": "红蓝PPF光谱LED植物灯",
+      "atlaGrowLightRB": "红蓝植物灯 (ATLA)",
+      "atlaGrowLightRB_desc": "红蓝LED植物生长灯",
+      "atlaFluorescent": "荧光灯 (ATLA)",
+      "atlaFluorescent_desc": "带光谱数据的荧光灯",
+      "atlaHalogen": "卤素灯 (ATLA)",
+      "atlaHalogen_desc": "连续光谱卤素灯",
+      "atlaIncandescent": "白炽灯 (ATLA)",
+      "atlaIncandescent_desc": "暖色光谱白炽灯",
+      "atlaHeatLamp": "红外加热灯 (ATLA)",
+      "atlaHeatLamp_desc": "红外光谱加热灯",
+      "atlaUvBlacklight": "紫外黑光灯 (ATLA)",
+      "atlaUvBlacklight_desc": "UV-A光谱紫外黑光灯"
+    }
+  }
+}

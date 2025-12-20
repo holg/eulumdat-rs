@@ -1,9 +1,11 @@
 mod app;
+mod beam_angle_diagram;
 mod bevy_scene;
 mod bug_rating;
 mod butterfly_3d;
 mod butterfly_diagram;
 mod cartesian_diagram;
+mod cone_diagram;
 mod data_table;
 mod diagram_zoom;
 pub mod file_handler;

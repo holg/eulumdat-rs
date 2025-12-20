@@ -1,220 +1,143 @@
 //! Eulumdat 3D Scene Viewer Library
 //!
-//! This module exposes the Bevy-based 3D viewer as a library that can be
-//! embedded in other applications (like the Leptos WASM editor).
+//! This crate provides Bevy-based photometric lighting visualization.
+//!
+//! # Architecture
+//!
+//! The crate is organized into two main modules:
+//!
+//! - [`photometric`] - Generic photometric lighting for any Bevy application
+//! - [`viewer`] - Demo application with pre-built scenes and controls
+//!
+//! # Feature Flags
+//!
+//! - `photometric` - Generic photometric lighting (minimal dependencies)
+//! - `viewer` - Full demo application with scenes, camera, controls (implies `photometric`)
+//! - `wasm-sync` - localStorage polling for WASM hot-reload (implies `viewer`)
+//! - `standalone` - Enable standalone binary (implies `wasm-sync`)
+//!
+//! # Usage as a Generic Photometric Plugin
+//!
+//! For embedding photometric lights in your own Bevy application:
+//!
+//! ```ignore
+//! use bevy::prelude::*;
+//! use eulumdat_bevy::photometric::*;
+//! use eulumdat_bevy::{EulumdatLight, EulumdatLightBundle};
+//!
+//! fn main() {
+//!     App::new()
+//!         .add_plugins(DefaultPlugins)
+//!         .add_plugins(PhotometricPlugin::<eulumdat::Eulumdat>::default())
+//!         .add_systems(Startup, setup)
+//!         .run();
+//! }
+//!
+//! fn setup(mut commands: Commands) {
+//!     // Your own camera
+//!     commands.spawn(Camera3dBundle { ... });
+//!
+//!     // Your own scene geometry
+//!     commands.spawn(PbrBundle { ... });
+//!
+//!     // Spawn a photometric light
+//!     let ldt = eulumdat::Eulumdat::from_file("light.ldt").unwrap();
+//!     commands.spawn(EulumdatLightBundle::new(ldt)
+//!         .with_transform(Transform::from_xyz(0.0, 3.0, 0.0)));
+//! }
+//! ```
+//!
+//! # Usage as a Demo Viewer
+//!
+//! For the full demo experience with pre-built scenes:
+//!
+//! ```ignore
+//! use bevy::prelude::*;
+//! use eulumdat_bevy::viewer::*;
+//!
+//! fn main() {
+//!     App::new()
+//!         .add_plugins(DefaultPlugins)
+//!         .add_plugins(EulumdatViewerPlugin::default())
+//!         .run();
+//! }
+//! ```
+//!
+//! # Implementing PhotometricData for Custom Types
+//!
+//! To use photometric lighting with your own data format:
+//!
+//! ```ignore
+//! use eulumdat_bevy::photometric::PhotometricData;
+//!
+//! impl PhotometricData for MyLightData {
+//!     fn sample(&self, c_angle: f64, g_angle: f64) -> f64 { ... }
+//!     fn max_intensity(&self) -> f64 { ... }
+//!     // ... implement other required methods
+//! }
+//!
+//! // Then use PhotometricPlugin with your type:
+//! app.add_plugins(PhotometricPlugin::<MyLightData>::default());
+//! ```
 
-pub mod camera;
-pub mod lighting;
-pub mod scene;
+// Generic photometric module (always available)
+pub mod photometric;
 
-use bevy::prelude::*;
-use camera::CameraPlugin;
-use lighting::PhotometricLightPlugin;
-use scene::{ScenePlugin, SceneType};
+// Eulumdat-specific implementation (always available)
+mod eulumdat_impl;
+pub use eulumdat_impl::{EulumdatLight, EulumdatLightBundle};
 
-/// Resource to track localStorage timestamp for hot-reload
-#[derive(Resource, Default)]
-pub struct LdtTimestamp(pub String);
+// Viewer module (only with "viewer" feature)
+#[cfg(feature = "viewer")]
+pub mod viewer;
 
-/// Global scene settings - exposed for external modification
-#[derive(Resource)]
-pub struct SceneSettings {
-    pub scene_type: SceneType,
-    pub room_width: f32,
-    pub room_length: f32,
-    pub room_height: f32,
-    pub mounting_height: f32,
-    pub light_intensity: f32,
-    pub show_luminaire: bool,
-    pub show_photometric_solid: bool,
-    pub show_shadows: bool,
-    pub ldt_data: Option<eulumdat::Eulumdat>,
-}
+// Re-export commonly used types at crate root for convenience
+pub use photometric::{
+    PhotometricData, PhotometricLight, PhotometricLightBundle, PhotometricPlugin,
+};
 
-impl Default for SceneSettings {
-    fn default() -> Self {
-        Self {
-            scene_type: SceneType::Room,
-            room_width: 4.0,
-            room_length: 5.0,
-            room_height: 2.8,
-            mounting_height: 2.5,
-            light_intensity: 1000.0,
-            show_luminaire: true,
-            show_photometric_solid: false,
-            show_shadows: false,
-            ldt_data: None,
-        }
-    }
-}
+// Re-export viewer types at crate root when available
+#[cfg(feature = "viewer")]
+pub use viewer::{EulumdatViewerPlugin, SceneType, ViewerSettings};
 
-#[cfg(target_arch = "wasm32")]
-const LDT_STORAGE_KEY: &str = "eulumdat_current_ldt";
-#[cfg(target_arch = "wasm32")]
-const LDT_TIMESTAMP_KEY: &str = "eulumdat_ldt_timestamp";
+// Legacy compatibility: re-export old names
+#[cfg(feature = "viewer")]
+pub use viewer::ViewerSettings as SceneSettings;
 
-/// Load LDT from localStorage (WASM only)
-#[cfg(target_arch = "wasm32")]
-pub fn load_from_local_storage() -> Option<eulumdat::Eulumdat> {
-    use wasm_bindgen::JsCast;
+// ============================================================================
+// Standalone app functions (for running as a separate binary)
+// ============================================================================
 
-    let window = web_sys::window()?;
-    let storage = window.local_storage().ok()??;
-    let ldt_string = storage.get_item(LDT_STORAGE_KEY).ok()??;
-
-    eulumdat::Eulumdat::parse(&ldt_string).ok()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn load_from_local_storage() -> Option<eulumdat::Eulumdat> {
-    None
-}
-
-/// Get timestamp from localStorage
-#[cfg(target_arch = "wasm32")]
-pub fn get_ldt_timestamp() -> Option<String> {
-    let window = web_sys::window()?;
-    let storage = window.local_storage().ok()??;
-    storage.get_item(LDT_TIMESTAMP_KEY).ok()?
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn get_ldt_timestamp() -> Option<String> {
-    None
-}
-
-/// Load default LDT data
-pub fn load_default_ldt() -> Option<eulumdat::Eulumdat> {
-    // For WASM, try to load from localStorage first (synced from editor)
-    #[cfg(target_arch = "wasm32")]
-    {
-        // Try localStorage first
-        if let Some(ldt) = load_from_local_storage() {
-            return Some(ldt);
-        }
-        // Fallback to embedded sample
-        let ldt_content = include_str!("../../eulumdat-wasm/templates/road_luminaire.ldt");
-        eulumdat::Eulumdat::parse(ldt_content).ok()
-    }
-
-    // For native, try to load from file
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let sample_paths = [
-            "crates/eulumdat-wasm/templates/road_luminaire.ldt",
-            "../eulumdat-wasm/templates/road_luminaire.ldt",
-            "crates/eulumdat-wasm/templates/fluorescent_luminaire.ldt",
-            "../eulumdat-wasm/templates/fluorescent_luminaire.ldt",
-        ];
-
-        for path in sample_paths {
-            if let Ok(ldt) = eulumdat::Eulumdat::from_file(path) {
-                return Some(ldt);
-            }
-        }
-        None
-    }
-}
-
-/// Poll localStorage for LDT changes
-#[allow(unused_mut, unused_variables)]
-pub fn poll_ldt_changes(
-    mut settings: ResMut<SceneSettings>,
-    mut last_timestamp: ResMut<LdtTimestamp>,
-) {
-    #[cfg(target_arch = "wasm32")]
-    {
-        if let Some(new_timestamp) = get_ldt_timestamp() {
-            if new_timestamp != last_timestamp.0 {
-                // Timestamp changed - reload LDT
-                if let Some(ldt) = load_from_local_storage() {
-                    settings.ldt_data = Some(ldt);
-                    last_timestamp.0 = new_timestamp;
-                }
-            }
-        }
-    }
-}
-
-/// Keyboard control system for the 3D viewer
-pub fn ui_controls_system(
-    mut settings: ResMut<SceneSettings>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-) {
-    // Toggle photometric solid with P key
-    if keyboard.just_pressed(KeyCode::KeyP) {
-        settings.show_photometric_solid = !settings.show_photometric_solid;
-    }
-
-    // Toggle luminaire with L key
-    if keyboard.just_pressed(KeyCode::KeyL) {
-        settings.show_luminaire = !settings.show_luminaire;
-    }
-
-    // Toggle shadows with H key (H = Hide/show shadows)
-    if keyboard.just_pressed(KeyCode::KeyH) {
-        settings.show_shadows = !settings.show_shadows;
-    }
-
-    // Cycle scene types with 1-4 keys
-    if keyboard.just_pressed(KeyCode::Digit1) {
-        settings.scene_type = SceneType::Room;
-    }
-    if keyboard.just_pressed(KeyCode::Digit2) {
-        settings.scene_type = SceneType::Road;
-    }
-    if keyboard.just_pressed(KeyCode::Digit3) {
-        settings.scene_type = SceneType::Parking;
-    }
-    if keyboard.just_pressed(KeyCode::Digit4) {
-        settings.scene_type = SceneType::Outdoor;
-    }
-}
-
-/// Startup system to initialize scene with default LDT
-fn setup_with_default_ldt(mut commands: Commands) {
-    let ldt = load_default_ldt();
-    commands.insert_resource(SceneSettings {
-        ldt_data: ldt,
-        ..default()
-    });
-}
-
-/// Run the 3D viewer on a specific canvas element (WASM)
+/// Run the 3D viewer on a specific canvas element (WASM).
 ///
 /// # Arguments
 /// * `canvas_selector` - CSS selector for the canvas element (e.g., "#bevy-canvas")
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "standalone"))]
 pub fn run_on_canvas(canvas_selector: &str) {
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Eulumdat 3D Viewer".to_string(),
-                canvas: Some(canvas_selector.to_string()),
-                fit_canvas_to_parent: true,
-                prevent_default_event_handling: false,
-                ..default()
-            }),
+    use bevy::prelude::*;
+
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "Eulumdat 3D Viewer".to_string(),
+            canvas: Some(canvas_selector.to_string()),
+            fit_canvas_to_parent: true,
+            prevent_default_event_handling: false,
             ..default()
-        }))
-        .add_plugins((CameraPlugin, ScenePlugin, PhotometricLightPlugin))
-        .insert_resource(SceneSettings::default())
-        .insert_resource(LdtTimestamp::default())
-        .add_systems(Startup, setup_with_default_ldt)
-        .add_systems(Update, ui_controls_system)
-        .add_systems(Update, poll_ldt_changes)
-        .run();
+        }),
+        ..default()
+    }))
+    .add_plugins(viewer::EulumdatViewerPlugin::default());
+
+    app.run();
 }
 
-/// Run the 3D viewer in a native window (desktop)
-#[cfg(not(target_arch = "wasm32"))]
-pub fn run_on_canvas(_canvas_selector: &str) {
-    run_native();
-}
-
-/// Run the 3D viewer as a native window (desktop only)
-#[cfg(not(target_arch = "wasm32"))]
+/// Run the 3D viewer as a native window (desktop).
+#[cfg(all(not(target_arch = "wasm32"), feature = "viewer"))]
 pub fn run_native() {
+    use bevy::prelude::*;
+
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -224,17 +147,17 @@ pub fn run_native() {
             }),
             ..default()
         }))
-        .add_plugins((CameraPlugin, ScenePlugin, PhotometricLightPlugin))
-        .insert_resource(SceneSettings::default())
-        .insert_resource(LdtTimestamp::default())
-        .add_systems(Startup, setup_with_default_ldt)
-        .add_systems(Update, ui_controls_system)
-        .add_systems(Update, poll_ldt_changes)
+        .add_plugins(viewer::EulumdatViewerPlugin::default())
         .run();
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "standalone"))]
 pub fn run_native() {
     // On WASM, run_native falls back to a default canvas
     run_on_canvas("#bevy-canvas");
+}
+
+#[cfg(all(not(target_arch = "wasm32"), feature = "standalone"))]
+pub fn run_on_canvas(_canvas_selector: &str) {
+    run_native();
 }

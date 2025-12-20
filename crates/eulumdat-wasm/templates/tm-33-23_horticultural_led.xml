@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>GrowLight Technologies</Manufacturer>
+        <CatalogNumber>GL-PPFD-600</CatalogNumber>
+        <Description>Full Spectrum Horticultural LED Panel for Greenhouse and Indoor Growing</Description>
+        <Laboratory>Photometric Testing Laboratory</Laboratory>
+        <ReportNumber>RPT-HORT-2024-001</ReportNumber>
+        <ReportDate>2024-03-15</ReportDate>
+        <UniqueIdentifier>urn:uuid:a1b2c3d4-e5f6-7890-abcd-ef1234567890</UniqueIdentifier>
+        <DocumentCreator>ATLA Test Suite</DocumentCreator>
+        <DocumentCreationDate>2024-03-15</DocumentCreationDate>
+        <Comments>Full spectrum LED for vegetative and flowering stages</Comments>
+        <Comments>Optimized for PPFD uniformity</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>1200</Length>
+            <Width>600</Width>
+            <Height>80</Height>
+        </Dimensions>
+        <Mounting>Suspended</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Gonioradiometer>
+            <Manufacturer>LightMeasure Inc</Manufacturer>
+            <Model>GM-3000 Spectral</Model>
+            <Type>CIE _ C</Type>
+            <Distance>10.0</Distance>
+        </Gonioradiometer>
+    </Equipment>
+    <Emitter>
+        <ID>hort-led-panel-1</ID>
+        <Description>Full Spectrum Horticultural LED Array</Description>
+        <CatalogNumber>LED-FS-600W</CatalogNumber>
+        <Quantity>1</Quantity>
+        <RatedLumens>42000</RatedLumens>
+        <InputWattage>600</InputWattage>
+        <PowerFactor>0.98</PowerFactor>
+        <BallastFactor>1.0</BallastFactor>
+        <FixedCCT>4000</FixedCCT>
+        <Duv>0.001</Duv>
+        <ColorRendering>
+            <Ra>95</Ra>
+            <R9>90</R9>
+        </ColorRendering>
+        <LuminousData>
+            <PhotometryType>CIE _ C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <SymmType>Symm _ Quad</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <!-- Wide beam distribution for uniform canopy coverage -->
+            <IntensityData horz="0" vert="0">280</IntensityData>
+            <IntensityData horz="0" vert="10">278</IntensityData>
+            <IntensityData horz="0" vert="20">272</IntensityData>
+            <IntensityData horz="0" vert="30">260</IntensityData>
+            <IntensityData horz="0" vert="40">240</IntensityData>
+            <IntensityData horz="0" vert="50">210</IntensityData>
+            <IntensityData horz="0" vert="60">170</IntensityData>
+            <IntensityData horz="0" vert="70">120</IntensityData>
+            <IntensityData horz="0" vert="80">60</IntensityData>
+            <IntensityData horz="0" vert="90">10</IntensityData>
+            <IntensityData horz="45" vert="0">280</IntensityData>
+            <IntensityData horz="45" vert="10">276</IntensityData>
+            <IntensityData horz="45" vert="20">268</IntensityData>
+            <IntensityData horz="45" vert="30">254</IntensityData>
+            <IntensityData horz="45" vert="40">232</IntensityData>
+            <IntensityData horz="45" vert="50">200</IntensityData>
+            <IntensityData horz="45" vert="60">158</IntensityData>
+            <IntensityData horz="45" vert="70">108</IntensityData>
+            <IntensityData horz="45" vert="80">50</IntensityData>
+            <IntensityData horz="45" vert="90">5</IntensityData>
+            <IntensityData horz="90" vert="0">280</IntensityData>
+            <IntensityData horz="90" vert="10">275</IntensityData>
+            <IntensityData horz="90" vert="20">265</IntensityData>
+            <IntensityData horz="90" vert="30">248</IntensityData>
+            <IntensityData horz="90" vert="40">224</IntensityData>
+            <IntensityData horz="90" vert="50">190</IntensityData>
+            <IntensityData horz="90" vert="60">148</IntensityData>
+            <IntensityData horz="90" vert="70">98</IntensityData>
+            <IntensityData horz="90" vert="80">42</IntensityData>
+            <IntensityData horz="90" vert="90">2</IntensityData>
+        </LuminousData>
+        <SpectralDistribution>
+            <!-- Full spectrum with enhanced blue (450nm) and red (660nm) for photosynthesis -->
+            <Wavelengths>380 400 420 440 450 460 480 500 520 540 560 580 600 620 640 660 680 700 720 740 760 780</Wavelengths>
+            <Values>0.02 0.08 0.25 0.65 0.85 0.72 0.35 0.28 0.32 0.38 0.42 0.40 0.45 0.55 0.75 1.00 0.70 0.25 0.15 0.08 0.03 0.01</Values>
+        </SpectralDistribution>
+    </Emitter>
+    <CustomData>
+        <Name>HorticulturalMetrics</Name>
+        <UniqueIdentifier>urn:growlight:hort-metrics:v1</UniqueIdentifier>
+        <metrics xmlns="urn:growlight:hort">
+            <ppfd-output>1800</ppfd-output>
+            <ppfd-efficacy>3.0</ppfd-efficacy>
+            <blue-ratio>18</blue-ratio>
+            <red-ratio>42</red-ratio>
+            <far-red-ratio>8</far-red-ratio>
+            <red-far-red-ratio>5.25</red-far-red-ratio>
+            <ypf>0.92</ypf>
+        </metrics>
+    </CustomData>
+    <CustomData>
+        <Name>GrowingApplications</Name>
+        <UniqueIdentifier>urn:growlight:applications:v1</UniqueIdentifier>
+        <applications xmlns="urn:growlight:apps">
+            <recommended-height-cm>60</recommended-height-cm>
+            <coverage-area-m2>1.2</coverage-area-m2>
+            <vegetative-dimming>80</vegetative-dimming>
+            <flowering-dimming>100</flowering-dimming>
+        </applications>
+    </CustomData>
+</IESTM33-22>

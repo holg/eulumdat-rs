@@ -28,7 +28,16 @@ fn main() -> Result<()> {
             dark,
             width,
             height,
-        } => commands::diagram(&input, output.as_ref(), diagram_type, dark, width, height),
+            mounting_height,
+        } => commands::diagram(
+            &input,
+            output.as_ref(),
+            diagram_type,
+            dark,
+            width,
+            height,
+            mounting_height,
+        ),
         Commands::Bug { file, svg, dark } => commands::bug(&file, svg.as_ref(), dark),
         Commands::Batch {
             input_dir,
@@ -54,8 +63,19 @@ fn main() -> Result<()> {
             pretty,
         } => commands::gldf(&file, output.as_ref(), pretty),
         Commands::Calc { file, calc_type } => commands::calc(&file, calc_type),
-        Commands::ValidateAtla { file, schema, xsd } => {
-            commands::validate_atla(&file, schema.as_ref(), xsd)
-        }
+        Commands::ValidateAtla {
+            file,
+            schema,
+            schema_type,
+            xsd,
+        } => commands::validate_atla(&file, schema.as_ref(), schema_type, xsd),
+        Commands::AtlaConvert {
+            input,
+            output,
+            target,
+            policy,
+            verbose,
+            compact,
+        } => commands::atla_convert(&input, &output, target, policy, verbose, compact),
     }
 }

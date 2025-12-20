@@ -1,12 +1,14 @@
 //! Zoom and pan wrapper component for diagrams
 //! Provides mouse wheel zoom and drag-to-pan functionality
 
+use crate::i18n::use_locale;
 use leptos::ev;
 use leptos::prelude::*;
 use web_sys::Element;
 
 #[component]
 pub fn DiagramZoom(children: Children) -> impl IntoView {
+    let locale = use_locale();
     let (scale, set_scale) = signal(1.0_f64);
     let (translate_x, set_translate_x) = signal(0.0_f64);
     let (translate_y, set_translate_y) = signal(0.0_f64);
@@ -102,7 +104,7 @@ pub fn DiagramZoom(children: Children) -> impl IntoView {
                         || translate_y.get().abs() > 1.0;
                     if is_zoomed {
                         Some(view! {
-                            <button class="zoom-reset-btn" on:click=on_reset>"Reset"</button>
+                            <button class="zoom-reset-btn" on:click=on_reset>{move || locale.get().ui.actions.reset.clone()}</button>
                         })
                     } else {
                         None

@@ -2,9 +2,10 @@
 
 use eframe::egui::{self, Color32, Sense, TextureHandle, Ui};
 use eulumdat::diagram::{
-    ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram, SvgTheme,
+    ButterflyDiagram, CartesianDiagram, ConeDiagram, HeatmapDiagram, PolarDiagram, SvgTheme,
 };
-use eulumdat::{BugDiagram, Eulumdat};
+use eulumdat::{BugDiagram, Eulumdat, PhotometricCalculations, PhotometricSummary};
+use eulumdat_i18n::Locale;
 
 use crate::diagram::Butterfly3DRenderer;
 use crate::render::{render_svg_to_rgba, rgba_to_color_image};
@@ -18,6 +19,12 @@ pub enum DiagramType {
     Butterfly3D,
     Heatmap,
     Bug,
+    Lcs,
+    Cone,
+    BeamAngle,
+    // ATLA-specific types (handled separately)
+    Spectral,
+    Greenhouse,
 }
 
 impl DiagramType {
@@ -29,6 +36,11 @@ impl DiagramType {
             DiagramType::Butterfly3D => "3D",
             DiagramType::Heatmap => "Heatmap",
             DiagramType::Bug => "BUG",
+            DiagramType::Lcs => "LCS",
+            DiagramType::Cone => "Cone",
+            DiagramType::BeamAngle => "Beam",
+            DiagramType::Spectral => "Spectral",
+            DiagramType::Greenhouse => "Greenhouse",
         }
     }
 
@@ -40,6 +52,9 @@ impl DiagramType {
             DiagramType::Butterfly3D,
             DiagramType::Heatmap,
             DiagramType::Bug,
+            DiagramType::Lcs,
+            DiagramType::Cone,
+            DiagramType::BeamAngle,
         ]
     }
 }
@@ -51,21 +66,37 @@ pub fn generate_svg(
     width: f64,
     height: f64,
     dark_theme: bool,
+    locale: &Locale,
+) -> Option<String> {
+    generate_svg_with_height(ldt, diagram_type, width, height, dark_theme, 3.0, locale)
+}
+
+/// Generate SVG for a diagram type with configurable mounting height
+pub fn generate_svg_with_height(
+    ldt: &Eulumdat,
+    diagram_type: DiagramType,
+    width: f64,
+    height: f64,
+    dark_theme: bool,
+    mounting_height: f64,
+    locale: &Locale,
 ) -> Option<String> {
     let theme = if dark_theme {
-        SvgTheme::dark()
+        SvgTheme::dark_with_locale(locale)
     } else {
-        SvgTheme::light()
+        SvgTheme::light_with_locale(locale)
     };
+
+    let summary = PhotometricSummary::from_eulumdat(ldt);
 
     Some(match diagram_type {
         DiagramType::Polar => {
             let polar = PolarDiagram::from_eulumdat(ldt);
-            polar.to_svg(width, height, &theme)
+            polar.to_svg_with_summary(width, height, &theme, &summary)
         }
         DiagramType::Cartesian => {
             let cartesian = CartesianDiagram::from_eulumdat(ldt, width, height * 0.75, 8);
-            cartesian.to_svg(width, height * 0.75, &theme)
+            cartesian.to_svg_with_summary(width, height * 0.75, &theme, &summary)
         }
         DiagramType::Butterfly | DiagramType::Butterfly3D => {
             let butterfly = ButterflyDiagram::from_eulumdat(ldt, width, height * 0.8, 60.0);
@@ -73,12 +104,28 @@ pub fn generate_svg(
         }
         DiagramType::Heatmap => {
             let heatmap = HeatmapDiagram::from_eulumdat(ldt, width, height * 0.7);
-            heatmap.to_svg(width, height * 0.7, &theme)
+            heatmap.to_svg_with_summary(width, height * 0.7, &theme, &summary)
         }
         DiagramType::Bug => {
             let bug = BugDiagram::from_eulumdat(ldt);
             bug.to_svg(width, height * 0.85, &theme)
         }
+        DiagramType::Lcs => {
+            let bug = BugDiagram::from_eulumdat(ldt);
+            bug.to_lcs_svg(width, height * 0.75, &theme)
+        }
+        DiagramType::Cone => {
+            let cone = ConeDiagram::from_eulumdat(ldt, mounting_height);
+            cone.to_svg(width, height * 0.85, &theme)
+        }
+        DiagramType::BeamAngle => {
+            let polar = PolarDiagram::from_eulumdat(ldt);
+            let analysis = PhotometricCalculations::beam_field_analysis(ldt);
+            let show_both = analysis.is_batwing;
+            polar.to_svg_with_beam_field_angles(width, height, &theme, &analysis, show_both)
+        }
+        // ATLA-specific types are handled separately via generate_current_svg
+        DiagramType::Spectral | DiagramType::Greenhouse => return None,
     })
 }
 
@@ -108,6 +155,7 @@ pub fn render_diagram_panel(
     texture: &mut Option<TextureHandle>,
     texture_dirty: &mut bool,
     butterfly_3d: &mut Butterfly3DRenderer,
+    locale: &Locale,
 ) {
     let available_size = ui.available_size();
     let size = available_size.min_elem() * 0.95;
@@ -119,7 +167,14 @@ pub fn render_diagram_panel(
     }
 
     if *texture_dirty || texture.is_none() {
-        if let Some(svg) = generate_svg(ldt, diagram_type, size as f64, size as f64, dark_theme) {
+        if let Some(svg) = generate_svg(
+            ldt,
+            diagram_type,
+            size as f64,
+            size as f64,
+            dark_theme,
+            locale,
+        ) {
             match render_svg_to_rgba(&svg, size as u32, size as u32) {
                 Ok((pixels, w, h)) => {
                     let image = rgba_to_color_image(pixels, w, h);

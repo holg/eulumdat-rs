@@ -71,3 +71,37 @@ pub fn download_atla_xml(filename: &str, content: &str) {
 pub fn download_atla_json(filename: &str, content: &str) {
     download_file(filename, content, "application/json");
 }
+
+/// Download an SVG file
+pub fn download_svg(filename: &str, content: &str) {
+    download_file(filename, content, "image/svg+xml");
+}
+
+/// Open SVG in a new browser tab
+pub fn open_svg_in_new_tab(content: &str) {
+    let window = match web_sys::window() {
+        Some(w) => w,
+        None => return,
+    };
+
+    // Create blob
+    let array = Array::new();
+    array.push(&JsValue::from_str(content));
+
+    let options = BlobPropertyBag::new();
+    options.set_type("image/svg+xml");
+
+    let blob = match Blob::new_with_str_sequence_and_options(&array, &options) {
+        Ok(b) => b,
+        Err(_) => return,
+    };
+
+    // Create object URL
+    let url = match Url::create_object_url_with_blob(&blob) {
+        Ok(u) => u,
+        Err(_) => return,
+    };
+
+    // Open in new tab
+    let _ = window.open_with_url_and_target(&url, "_blank");
+}

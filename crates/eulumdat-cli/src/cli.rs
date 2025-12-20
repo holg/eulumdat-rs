@@ -48,7 +48,7 @@ pub enum Commands {
 
     /// Generate SVG diagram
     Diagram {
-        /// Input file (.ldt or .ies)
+        /// Input file (.ldt, .ies, .xml, or .json for ATLA)
         input: PathBuf,
 
         /// Output SVG file
@@ -70,6 +70,10 @@ pub enum Commands {
         /// Height in pixels
         #[arg(short = 'H', long, default_value = "500")]
         height: f64,
+
+        /// Mounting height in meters (for cone/greenhouse diagrams)
+        #[arg(short = 'm', long, default_value = "3.0")]
+        mounting_height: f64,
     },
 
     /// Calculate BUG rating (outdoor luminaires)
@@ -155,9 +159,38 @@ pub enum Commands {
         #[arg(short, long)]
         schema: Option<PathBuf>,
 
+        /// Schema version to validate against
+        #[arg(long, value_enum, default_value = "auto")]
+        schema_type: AtlaSchemaType,
+
         /// Use xmllint for full XSD validation (requires libxml2)
         #[arg(long)]
         xsd: bool,
+    },
+
+    /// Convert ATLA between schema versions (S001 <-> TM-33-23)
+    AtlaConvert {
+        /// Input ATLA file (.xml or .json)
+        input: PathBuf,
+
+        /// Output file (.xml or .json)
+        output: PathBuf,
+
+        /// Target schema version
+        #[arg(short, long, value_enum)]
+        target: AtlaSchemaType,
+
+        /// Conversion policy
+        #[arg(long, value_enum, default_value = "compatible")]
+        policy: ConversionPolicyArg,
+
+        /// Show conversion log (field-by-field changes)
+        #[arg(short, long)]
+        verbose: bool,
+
+        /// Output compact format (no indentation)
+        #[arg(short, long)]
+        compact: bool,
     },
 }
 
@@ -171,6 +204,16 @@ pub enum DiagramType {
     Cartesian,
     /// Heatmap diagram (2D intensity grid)
     Heatmap,
+    /// Cone diagram (beam/field angle spread at mounting height)
+    Cone,
+    /// Beam angle diagram (IES vs CIE comparison)
+    BeamAngle,
+    /// LCS classification diagram (IES TM-15-07)
+    Lcs,
+    /// Spectral power distribution (requires ATLA input with spectral data)
+    Spectral,
+    /// Greenhouse PPFD diagram (horticultural lighting)
+    Greenhouse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
@@ -203,4 +246,26 @@ pub enum CalcType {
     ZonalLumens,
     /// All calculations
     All,
+}
+
+/// ATLA schema version for validation
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum AtlaSchemaType {
+    /// Auto-detect from document content
+    #[default]
+    Auto,
+    /// ATLA S001 / TM-33-18 / UNI 11733
+    S001,
+    /// TM-33-23 (IESTM33-22 v1.1)
+    Tm3323,
+}
+
+/// Conversion policy for ATLA schema conversion
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum ConversionPolicyArg {
+    /// Error on missing required fields
+    Strict,
+    /// Apply defaults for missing fields where possible
+    #[default]
+    Compatible,
 }

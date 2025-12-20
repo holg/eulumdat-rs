@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LuminaireOpticalData version="1.0" xmlns="http://www.ies.org/tm-33">
+    <Header>
+        <Manufacturer>ATLA Test Manufacturer</Manufacturer>
+        <CatalogNumber>UV-BL-18W</CatalogNumber>
+        <Description>18W UV-A Blacklight with Extended UV Spectrum</Description>
+        <Laboratory>Spectral Test Laboratory</Laboratory>
+        <ReportNumber>SPEC-2024-UV-001</ReportNumber>
+        <TestDate>2024-01-20</TestDate>
+        <LuminaireType>Specialty</LuminaireType>
+        <Comments>UV-A blacklight lamp with spectral data extending into UV region (315-400nm). Used for fluorescent effects, insect traps, and UV curing. Will trigger UV hazard warning due to elevated UV-A content.</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>600</Length>
+            <Width>40</Width>
+            <Height>40</Height>
+        </Dimensions>
+        <Mounting>Surface</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Goniometer>
+            <Manufacturer>Spectral Equipment Co</Manufacturer>
+            <Model>SP-UV-2000</Model>
+            <GoniometerType>Type C</GoniometerType>
+            <Distance>10.0</Distance>
+        </Goniometer>
+    </Equipment>
+    <Emitter>
+        <ID>uv-1</ID>
+        <Description>18W T8 UV-A Blacklight</Description>
+        <Quantity>1</Quantity>
+        <RatedLumens>150</RatedLumens>
+        <InputWatts>18</InputWatts>
+        <CCT>6500</CCT>
+        <ColorRendering>
+            <Ra>50</Ra>
+        </ColorRendering>
+        <SpectralDistribution>
+            <Wavelengths>315 320 325 330 335 340 345 350 355 360 365 370 375 380 385 390 395 400 405 410 415 420 430 440 450 460 480 500 520 540 560 580 600 620 640 660 680 700</Wavelengths>
+            <Values>0.05 0.08 0.12 0.18 0.26 0.38 0.52 0.68 0.82 0.92 1.00 0.95 0.85 0.70 0.52 0.35 0.22 0.12 0.08 0.06 0.05 0.04 0.03 0.02 0.02 0.01 0.01 0.01 0.01 0.01 0.02 0.10 0.08 0.06 0.04 0.03 0.02 0.01</Values>
+            <Units>Relative</Units>
+        </SpectralDistribution>
+        <IntensityDistribution>
+            <PhotometryType>C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <IntensityData horz="0" vert="0">15</IntensityData>
+            <IntensityData horz="0" vert="15">15</IntensityData>
+            <IntensityData horz="0" vert="30">14</IntensityData>
+            <IntensityData horz="0" vert="45">13</IntensityData>
+            <IntensityData horz="0" vert="60">11</IntensityData>
+            <IntensityData horz="0" vert="75">8</IntensityData>
+            <IntensityData horz="0" vert="90">5</IntensityData>
+            <IntensityData horz="90" vert="0">15</IntensityData>
+            <IntensityData horz="90" vert="15">15</IntensityData>
+            <IntensityData horz="90" vert="30">14</IntensityData>
+            <IntensityData horz="90" vert="45">12</IntensityData>
+            <IntensityData horz="90" vert="60">9</IntensityData>
+            <IntensityData horz="90" vert="75">5</IntensityData>
+            <IntensityData horz="90" vert="90">2</IntensityData>
+        </IntensityDistribution>
+    </Emitter>
+</LuminaireOpticalData>

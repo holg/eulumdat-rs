@@ -224,20 +224,28 @@ pub fn write_file(doc: &LuminaireOpticalData, path: &std::path::Path) -> Result<
 fn from_json(json: AtlaJson) -> LuminaireOpticalData {
     LuminaireOpticalData {
         version: json.version,
+        schema_version: SchemaVersion::AtlaS001,
         header: Header {
             manufacturer: json.header.manufacturer,
             catalog_number: json.header.catalog_number,
             description: json.header.description,
             gtin: json.header.gtin,
+            gtin_int: None,
             uuid: json.header.uuid,
+            unique_identifier: None,
             reference: json.header.reference,
+            references: vec![],
             more_info_uri: json.header.more_info_uri,
             laboratory: json.header.laboratory,
             report_number: json.header.report_number,
+            report_date: None,
             test_date: json.header.test_date,
             issue_date: json.header.issue_date,
             luminaire_type: json.header.luminaire_type,
             comments: json.header.comments,
+            comments_list: vec![],
+            document_creator: None,
+            document_creation_date: None,
         },
         luminaire: json.luminaire.map(|l| Luminaire {
             dimensions: l.dimensions.map(|d| Dimensions {
@@ -275,6 +283,7 @@ fn from_json(json: AtlaJson) -> LuminaireOpticalData {
             namespace: None,
             data: v.to_string(),
         }),
+        custom_data_items: vec![],
     }
 }
 
@@ -282,11 +291,13 @@ fn emitter_from_json(json: EmitterJson) -> Emitter {
     Emitter {
         id: json.id,
         description: json.description,
+        catalog_number: None,
         quantity: json.quantity,
         rated_lumens: json.rated_lumens,
         measured_lumens: json.measured_lumens,
         input_watts: json.input_watts,
         power_factor: json.power_factor,
+        ballast_factor: None,
         cct: json.cct,
         color_rendering: json.color_rendering.map(|cr| ColorRendering {
             ra: cr.ra,
@@ -294,6 +305,7 @@ fn emitter_from_json(json: EmitterJson) -> Emitter {
             rf: cr.rf,
             rg: cr.rg,
         }),
+        duv: None,
         sp_ratio: json.sp_ratio,
         data_generation: None,
         intensity_distribution: json.intensity_distribution.map(|id| {
@@ -332,6 +344,10 @@ fn emitter_from_json(json: EmitterJson) -> Emitter {
                 horizontal_angles: id.horizontal_angles,
                 vertical_angles: id.vertical_angles,
                 intensities,
+                symmetry: None,
+                multiplier: None,
+                absolute_photometry: None,
+                number_measured: None,
             }
         }),
         spectral_distribution: json.spectral_distribution.map(|sd| SpectralDistribution {
@@ -341,6 +357,10 @@ fn emitter_from_json(json: EmitterJson) -> Emitter {
             start_wavelength: None,
             wavelength_interval: None,
         }),
+        angular_spectral: None,
+        angular_color: None,
+        tilt_angles: None,
+        regulatory: None,
     }
 }
 

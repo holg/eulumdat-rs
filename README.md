@@ -1,6 +1,8 @@
 # eulumdat-rs
 
-A Rust workspace for parsing, writing, and analyzing **EULUMDAT (LDT)** and **IES** photometric files.
+A Rust workspace for parsing, writing, and analyzing photometric files: **EULUMDAT (LDT)**, **IES (LM-63)**, and **ATLA/TM-33** formats.
+
+**Internally uses ATLA-S001 as the unified photometric data model** - the most comprehensive and permissive format that supports spectral data, greenhouse metrics, and seamless conversion between all formats.
 
 [![Crates.io](https://img.shields.io/crates/v/eulumdat.svg)](https://crates.io/crates/eulumdat)
 [![Documentation](https://docs.rs/eulumdat/badge.svg)](https://docs.rs/eulumdat)
@@ -10,6 +12,7 @@ A Rust workspace for parsing, writing, and analyzing **EULUMDAT (LDT)** and **IE
 
 | Crate | Description |
 |-------|-------------|
+| [atla](crates/atla) | ATLA-S001/TM-33-23 unified photometric data model with spectral support |
 | [eulumdat](crates/eulumdat) | Core library for parsing, validation, and calculations |
 | [eulumdat-cli](crates/eulumdat-cli) | Command-line tool |
 | [eulumdat-egui](crates/eulumdat-egui) | Cross-platform desktop GUI (Windows, macOS, Linux) |
@@ -39,15 +42,48 @@ Preview LDT files directly in Finder with polar diagrams - no need to open an ap
 ## Features
 
 - **Parse LDT/IES files** - Full EULUMDAT and IESNA LM-63 format support
+- **Full LM-63-2019 Support** - Latest IES standard with all features:
+  - File generation types (accredited lab, simulation, scaled, interpolated)
+  - 15 luminous opening shapes from negative dimensions
+  - TILT=INCLUDE parsing with lamp geometry
+  - [MORE] continuation for multi-line keywords
+  - 71 IES-specific validation rules
 - **Write LDT files** - Roundtrip-tested output generation
-- **Export to IES** - Convert EULUMDAT to IES format
+- **Export to IES** - LM-63-2019 (default) or LM-63-2002 format
 - **Batch conversion** - Efficient bulk processing of multiple files
-- **Validation** - 44 validation constraints based on official specification
+- **Validation** - 44 LDT + 71 IES validation constraints
 - **Symmetry handling** - 5 symmetry types with automatic data expansion
 - **Photometric calculations** - CIE flux codes, beam/field angles, spacing criteria, zonal lumens, UGR
-- **GLDF export** - Global Lighting Data Format compatible photometric data export
+- **GLDF integration** - Full DescriptivePhotometry population from IES/LDT
 - **BUG Rating** - IESNA TM-15-11 Backlight-Uplight-Glare calculations
-- **Diagram generation** - Polar, Butterfly, Cartesian, Heatmap with SVG export
+- **Diagram generation** - Polar, Butterfly, Cartesian, Heatmap, Spectral with SVG export
+
+## ATLA-S001 & TM-33-23 Support
+
+The library internally uses **ATLA-S001** (Advanced Transfer Language for photometric Applications) as the unified data model. This provides:
+
+- **Spectral data support** - Full wavelength-based intensity distributions (380-780nm)
+- **Horticultural metrics** - PPF, PPFD, YPF, phytochrome ratios for grow lights
+- **TM-33-23 compatibility** - IES TM-33-23 XML format for horticultural lighting
+- **Lossless conversion** - Convert between LDT, IES, and ATLA formats without data loss
+- **Extended metadata** - Manufacturer info, test conditions, spectral characteristics
+
+```rust
+use atla::{Atla, SpectralData};
+
+// Parse TM-33-23 XML
+let atla = Atla::from_xml(xml_content)?;
+
+// Access spectral data
+if let Some(spectral) = &atla.spectral {
+    println!("PPF: {:.1} μmol/s", spectral.ppf());
+    println!("CCT: {}K", spectral.cct());
+}
+
+// Convert to/from EULUMDAT
+let ldt = atla.to_eulumdat()?;
+let atla2 = Atla::from_eulumdat(&ldt)?;
+```
 
 ## Installation
 
@@ -55,7 +91,7 @@ Preview LDT files directly in Finder with polar diagrams - no need to open an ap
 
 ```toml
 [dependencies]
-eulumdat = "0.2"
+eulumdat = "0.4"
 ```
 
 ### Command-Line Tool
@@ -82,7 +118,7 @@ pip install eulumdat
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/holg/eulumdat-rs", from: "0.2.0")
+    .package(url: "https://github.com/holg/eulumdat-rs", from: "0.4.0")
 ]
 ```
 
@@ -268,10 +304,65 @@ Features:
 | BUG | IESNA TM-15-11 zone visualization |
 | LCS | TM-15-07 Luminaire Classification System |
 
+## LM-63-2019 IES Support
+
+Full support for the latest ANSI/IES LM-63-2019 standard:
+
+```rust
+use eulumdat::{IesParser, IesData, FileGenerationType, LuminousShape, IesMetadata};
+
+// Parse IES with full metadata
+let ies_data: IesData = IesParser::parse_to_ies_data(content)?;
+
+// Access LM-63-2019 specific fields
+println!("Version: {:?}", ies_data.version);           // IesVersion::Lm63_2019
+println!("Test Lab: {}", ies_data.test_lab);           // From [TESTLAB]
+println!("Issue Date: {}", ies_data.issue_date);       // From [ISSUEDATE]
+println!("Accredited: {}", ies_data.file_generation_type.is_accredited());
+println!("Shape: {:?}", ies_data.luminous_shape);      // Circular, Rectangular, etc.
+
+// TILT data if present
+if let Some(tilt) = &ies_data.tilt_data {
+    println!("Lamp geometry: {}", tilt.lamp_geometry);
+    println!("Tilt angles: {:?}", tilt.angles);
+}
+
+// Convert to IesMetadata for GLDF integration
+let meta = IesMetadata::from_ies_data(&ies_data);
+let (shape, width_mm, length_mm, diameter_mm) = meta.to_gldf_emitter_geometry();
+```
+
+### File Generation Types
+
+| Value | Description |
+|-------|-------------|
+| 1.10000 | Test at accredited lab |
+| 1.00000 | Test at unaccredited lab |
+| 1.00010 | Computer simulation |
+| 1.10100 | Accredited lab, lumen scaled |
+| 1.11000 | Accredited lab, angles interpolated |
+
+### IES Validation
+
+```rust
+use eulumdat::{validate_ies, validate_ies_strict, IesValidationSeverity};
+
+// Get all warnings
+for warning in validate_ies(&ies_data) {
+    println!("[{}] {}: {}", warning.code, warning.severity, warning.message);
+}
+
+// Strict validation (returns error if critical issues)
+validate_ies_strict(&ies_data)?;
+```
+
 ## References
 
 - [EULUMDAT Format (Paul Bourke)](https://paulbourke.net/dataformats/ldt/)
-- [IESNA LM-63-2002](https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/iesna_lm-63_format.htm)
+- [ANSI/IES LM-63-2019](https://www.ies.org/product/approved-method-ies-standard-file-format-for-the-electronic-transfer-of-photometric-data-and-related-information/) - Current IES standard
+- [IESNA LM-63-2002](https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/iesna_lm-63_format.htm) - Legacy format reference
+- [IES TM-33-23](https://www.ies.org/product/ies-standard-format-for-the-electronic-transfer-of-luminaire-optical-data/) - Luminaire optical data format for horticultural lighting
+- [ATLA-S001](https://github.com/holg/eulumdat-rs/blob/main/docs/ATLA-S001.pdf) - Advanced Transfer Language for photometric Applications
 - [IES TM-15-11 BUG Ratings](https://www.ies.org/wp-content/uploads/2017/03/TM-15-11BUGRatingsAddendum.pdf)
 
 ## License

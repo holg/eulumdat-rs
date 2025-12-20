@@ -6,6 +6,7 @@
 //! Calculates and displays TM-30 metrics when real spectral data is available.
 //! Shows IR/UV content and thermal/hazard warnings.
 
+use crate::i18n::use_locale;
 use atla::spectral::{synthesize_spectrum, SpectralDiagram, SpectralMetrics, SpectralTheme};
 use atla::tm30::{calculate_tm30, Tm30Theme};
 use atla::{LuminaireOpticalData, SpectralDistribution, SpectralUnits};
@@ -98,6 +99,7 @@ pub fn SpectralDiagramView(
     atla_doc: ReadSignal<LuminaireOpticalData>,
     dark: Memo<bool>,
 ) -> impl IntoView {
+    let locale = use_locale();
     let (active_sub_tab, set_active_sub_tab) = signal(SpectralSubTab::Spd);
 
     let spectral_source = move || detect_spectral_source(&atla_doc.get());
@@ -220,13 +222,13 @@ pub fn SpectralDiagramView(
                     class=move || if active_sub_tab.get() == SpectralSubTab::Spd { "sub-tab active" } else { "sub-tab" }
                     on:click=move |_| set_active_sub_tab.set(SpectralSubTab::Spd)
                 >
-                    "SPD"
+                    {move || locale.get().ui.subtabs.spd.clone()}
                 </button>
                 <button
                     class=move || if active_sub_tab.get() == SpectralSubTab::Metrics { "sub-tab active" } else { "sub-tab" }
                     on:click=move |_| set_active_sub_tab.set(SpectralSubTab::Metrics)
                 >
-                    "Metrics"
+                    {move || locale.get().ui.subtabs.metrics.clone()}
                 </button>
                 {move || if has_tm30() {
                     view! {
@@ -234,13 +236,13 @@ pub fn SpectralDiagramView(
                             class=move || if active_sub_tab.get() == SpectralSubTab::Tm30Cvg { "sub-tab active" } else { "sub-tab" }
                             on:click=move |_| set_active_sub_tab.set(SpectralSubTab::Tm30Cvg)
                         >
-                            "TM-30 CVG"
+                            {move || locale.get().ui.subtabs.tm30_cvg.clone()}
                         </button>
                         <button
                             class=move || if active_sub_tab.get() == SpectralSubTab::Tm30Hue { "sub-tab active" } else { "sub-tab" }
                             on:click=move |_| set_active_sub_tab.set(SpectralSubTab::Tm30Hue)
                         >
-                            "TM-30 Hue"
+                            {move || locale.get().ui.subtabs.tm30_hue.clone()}
                         </button>
                     }.into_any()
                 } else {
@@ -250,28 +252,34 @@ pub fn SpectralDiagramView(
                 // Badges on the right
                 <div class="sub-tab-badges">
                     // IR warning badge
-                    {move || if thermal_warning() {
-                        view! {
-                            <span class="badge badge-danger" title="High infrared content - thermal hazard">"IR"</span>
-                        }.into_any()
-                    } else if has_ir() {
-                        view! {
-                            <span class="badge badge-ir" title="Contains infrared data">"IR"</span>
-                        }.into_any()
-                    } else {
-                        view! { <span></span> }.into_any()
+                    {move || {
+                        let l = locale.get();
+                        if thermal_warning() {
+                            view! {
+                                <span class="badge badge-danger" title=l.ui.spectral_badges.ir_high_title.clone()>{l.ui.spectral_badges.ir.clone()}</span>
+                            }.into_any()
+                        } else if has_ir() {
+                            view! {
+                                <span class="badge badge-ir" title=l.ui.spectral_badges.ir_title.clone()>{l.ui.spectral_badges.ir.clone()}</span>
+                            }.into_any()
+                        } else {
+                            view! { <span></span> }.into_any()
+                        }
                     }}
                     // UV warning badge
-                    {move || if uv_warning() {
-                        view! {
-                            <span class="badge badge-danger" title="High UV content - exposure risk">"UV"</span>
-                        }.into_any()
-                    } else if has_uv() {
-                        view! {
-                            <span class="badge badge-uv" title="Contains UV data">"UV"</span>
-                        }.into_any()
-                    } else {
-                        view! { <span></span> }.into_any()
+                    {move || {
+                        let l = locale.get();
+                        if uv_warning() {
+                            view! {
+                                <span class="badge badge-danger" title=l.ui.spectral_badges.uv_high_title.clone()>{l.ui.spectral_badges.uv.clone()}</span>
+                            }.into_any()
+                        } else if has_uv() {
+                            view! {
+                                <span class="badge badge-uv" title=l.ui.spectral_badges.uv_title.clone()>{l.ui.spectral_badges.uv.clone()}</span>
+                            }.into_any()
+                        } else {
+                            view! { <span></span> }.into_any()
+                        }
                     }}
                     // PAR badge
                     {move || if is_hort_display() {
@@ -283,7 +291,7 @@ pub fn SpectralDiagramView(
                     }}
                     {move || match spectral_source() {
                         SpectralSource::Direct => view! {
-                            <span class="badge badge-info">"Direct SPD"</span>
+                            <span class="badge badge-info">{move || locale.get().ui.spectral.direct_spd.clone()}</span>
                         }.into_any(),
                         SpectralSource::Synthesized => {
                             if let Some((cct, cri)) = get_cct_cri(&atla_doc.get()) {
@@ -298,7 +306,7 @@ pub fn SpectralDiagramView(
                             }
                         },
                         SpectralSource::Sample => view! {
-                            <span class="badge badge-secondary">"Sample"</span>
+                            <span class="badge badge-secondary">{move || locale.get().ui.spectral.sample.clone()}</span>
                         }.into_any(),
                     }}
                 </div>
@@ -312,36 +320,39 @@ pub fn SpectralDiagramView(
                             <div class="diagram-svg" inner_html=spd_svg />
 
                             // TM-30 metrics summary (if available)
-                            {move || tm30_result().map(|tm30| view! {
-                                <div class="tm30-summary">
-                                    <div class="tm30-metric-inline">
-                                        <span class="label">"Rf"</span>
-                                        <span class="value" style=format!("color: {}", rf_color(tm30.rf))>
-                                            {format!("{:.0}", tm30.rf)}
-                                        </span>
+                            {move || tm30_result().map(|tm30| {
+                                let l = locale.get();
+                                view! {
+                                    <div class="tm30-summary">
+                                        <div class="tm30-metric-inline">
+                                            <span class="label">{l.ui.spectral.hue_table.rf.clone()}</span>
+                                            <span class="value" style=format!("color: {}", rf_color(tm30.rf))>
+                                                {format!("{:.0}", tm30.rf)}
+                                            </span>
+                                        </div>
+                                        <div class="tm30-metric-inline">
+                                            <span class="label">{l.ui.spectral_badges.rg.clone()}</span>
+                                            <span class="value" style=format!("color: {}", rg_color(tm30.rg))>
+                                                {format!("{:.0}", tm30.rg)}
+                                            </span>
+                                        </div>
+                                        <div class="tm30-metric-inline">
+                                            <span class="label">{l.luminaire.photometric.cct.clone()}</span>
+                                            <span class="value">{format!("{:.0}K", tm30.cct)}</span>
+                                        </div>
+                                        <div class="tm30-metric-inline">
+                                            <span class="label">{l.ui.spectral_badges.duv.clone()}</span>
+                                            <span class="value">{format!("{:.4}", tm30.duv)}</span>
+                                        </div>
                                     </div>
-                                    <div class="tm30-metric-inline">
-                                        <span class="label">"Rg"</span>
-                                        <span class="value" style=format!("color: {}", rg_color(tm30.rg))>
-                                            {format!("{:.0}", tm30.rg)}
-                                        </span>
-                                    </div>
-                                    <div class="tm30-metric-inline">
-                                        <span class="label">"CCT"</span>
-                                        <span class="value">{format!("{:.0}K", tm30.cct)}</span>
-                                    </div>
-                                    <div class="tm30-metric-inline">
-                                        <span class="label">"Duv"</span>
-                                        <span class="value">{format!("{:.4}", tm30.duv)}</span>
-                                    </div>
-                                </div>
+                                }
                             })}
 
                             // Hint for sample spectra
                             {move || if matches!(spectral_source(), SpectralSource::Sample) {
                                 view! {
                                     <p class="text-muted hint-text">
-                                        "Load an ATLA template with spectral data for TM-30 analysis"
+                                        {move || locale.get().ui.spectral.load_hint.clone()}
                                     </p>
                                 }.into_any()
                             } else {
@@ -356,14 +367,14 @@ pub fn SpectralDiagramView(
                                 <div class="metrics-grid">
                                     // Wavelength range
                                     <div class="metric-card">
-                                        <h4>"Wavelength Range"</h4>
+                                        <h4>{move || locale.get().ui.spectral.wavelength_range.clone()}</h4>
                                         <div class="metric-value">{format!("{:.0} - {:.0} nm", m.wavelength_min, m.wavelength_max)}</div>
-                                        <div class="metric-detail">{format!("Peak: {:.0} nm", m.peak_wavelength)}</div>
+                                        <div class="metric-detail">{move || format!("{}: {:.0} nm", locale.get().ui.spectral.peak.clone(), m.peak_wavelength)}</div>
                                     </div>
 
                                     // Energy distribution
                                     <div class="metric-card">
-                                        <h4>"Energy Distribution"</h4>
+                                        <h4>{move || locale.get().ui.spectral.energy_distribution.clone()}</h4>
                                         <div class="energy-bars">
                                             {if m.has_uv {
                                                 view! {
@@ -377,14 +388,14 @@ pub fn SpectralDiagramView(
                                                 view! { <span></span> }.into_any()
                                             }}
                                             <div class="energy-row">
-                                                <span class="energy-label">"Visible"</span>
+                                                <span class="energy-label">{move || locale.get().spectral.region.visible.clone()}</span>
                                                 <div class="energy-bar visible-bar" style=format!("width: {}%", m.visible_percent.min(100.0))></div>
                                                 <span class="energy-value">{format!("{:.1}%", m.visible_percent)}</span>
                                             </div>
                                             {if m.has_ir {
                                                 view! {
                                                     <div class="energy-row">
-                                                        <span class="energy-label">"Near-IR"</span>
+                                                        <span class="energy-label">{move || locale.get().spectral.region.near_ir.clone()}</span>
                                                         <div class="energy-bar ir-bar" style=format!("width: {}%", m.nir_percent.min(100.0))></div>
                                                         <span class="energy-value">{format!("{:.1}%", m.nir_percent)}</span>
                                                     </div>
@@ -397,55 +408,55 @@ pub fn SpectralDiagramView(
 
                                     // PAR distribution (for all light sources)
                                     <div class="metric-card">
-                                        <h4>"PAR Distribution (400-700nm)"</h4>
+                                        <h4>{move || locale.get().ui.spectral.par_distribution.clone()}</h4>
                                         <div class="par-bars">
                                             <div class="par-row">
-                                                <span class="par-label blue">"Blue"</span>
+                                                <span class="par-label blue">{move || locale.get().spectral.region.blue.clone()}</span>
                                                 <div class="par-bar blue-bar" style=format!("width: {}%", m.blue_par_percent.min(100.0))></div>
                                                 <span class="par-value">{format!("{:.1}%", m.blue_par_percent)}</span>
                                             </div>
                                             <div class="par-row">
-                                                <span class="par-label green">"Green"</span>
+                                                <span class="par-label green">{move || locale.get().spectral.region.green.clone()}</span>
                                                 <div class="par-bar green-bar" style=format!("width: {}%", m.green_par_percent.min(100.0))></div>
                                                 <span class="par-value">{format!("{:.1}%", m.green_par_percent)}</span>
                                             </div>
                                             <div class="par-row">
-                                                <span class="par-label red">"Red"</span>
+                                                <span class="par-label red">{move || locale.get().spectral.region.red.clone()}</span>
                                                 <div class="par-bar red-bar" style=format!("width: {}%", m.red_par_percent.min(100.0))></div>
                                                 <span class="par-value">{format!("{:.1}%", m.red_par_percent)}</span>
                                             </div>
                                         </div>
-                                        <div class="metric-detail">{format!("PAR total: {:.1}%", m.par_percent)}</div>
+                                        <div class="metric-detail">{move || format!("{}: {:.1}%", locale.get().ui.spectral.par_total.clone(), m.par_percent)}</div>
                                     </div>
 
                                     // Horticultural metrics
                                     <div class="metric-card">
-                                        <h4>"Horticultural Metrics"</h4>
+                                        <h4>{move || locale.get().ui.spectral.hort_metrics.clone()}</h4>
                                         <div class="hort-metrics">
                                             <div class="hort-row">
-                                                <span class="hort-label">"Far-Red (700-780nm)"</span>
+                                                <span class="hort-label">{move || locale.get().ui.spectral.far_red.clone()}</span>
                                                 <span class="hort-value">{format!("{:.1}%", m.far_red_percent)}</span>
                                             </div>
                                             {m.r_fr_ratio.map(|ratio| view! {
                                                 <div class="hort-row">
-                                                    <span class="hort-label">"R:FR Ratio"</span>
+                                                    <span class="hort-label">"R:FR"</span>
                                                     <span class="hort-value" style=r_fr_style(ratio)>{format!("{:.2}", ratio)}</span>
                                                 </div>
                                             })}
                                         </div>
-                                        <p class="metric-hint">"R:FR ratio affects plant morphology (>1.0 = compact growth)"</p>
+                                        <p class="metric-hint">{move || locale.get().ui.spectral.r_fr_hint.clone()}</p>
                                     </div>
 
                                     // Warnings
                                     {if m.thermal_warning || m.uv_warning {
                                         view! {
                                             <div class="metric-card warning-card">
-                                                <h4>"Warnings"</h4>
+                                                <h4>{move || locale.get().ui.spectral.warnings.clone()}</h4>
                                                 {if m.thermal_warning {
                                                     view! {
                                                         <div class="warning-item thermal">
                                                             <span class="warning-icon">"🔥"</span>
-                                                            <span>"High infrared content ({:.1}%) - significant thermal output"</span>
+                                                            <span>{move || locale.get().ui.spectral.thermal_warning.clone()}</span>
                                                         </div>
                                                     }.into_any()
                                                 } else {
@@ -455,7 +466,7 @@ pub fn SpectralDiagramView(
                                                     view! {
                                                         <div class="warning-item uv">
                                                             <span class="warning-icon">"⚠️"</span>
-                                                            <span>"Elevated UV-A content ({:.1}%) - potential material degradation"</span>
+                                                            <span>{move || locale.get().ui.spectral.uv_warning.clone()}</span>
                                                         </div>
                                                     }.into_any()
                                                 } else {
@@ -479,55 +490,62 @@ pub fn SpectralDiagramView(
                                 </div>
                             })}
                             <div class="tm30-cvg-legend">
-                                <p class="text-muted">"Color Vector Graphic shows hue and chroma shifts for 16 hue bins."</p>
-                                <p class="text-muted">"Dashed circle = reference illuminant. Solid shape = test source."</p>
+                                <p class="text-muted">{move || locale.get().ui.spectral.cvg_legend1.clone()}</p>
+                                <p class="text-muted">{move || locale.get().ui.spectral.cvg_legend2.clone()}</p>
                             </div>
                         </div>
                     }.into_any(),
 
-                    SpectralSubTab::Tm30Hue => view! {
-                        <div class="tm30-hue-container">
-                            {move || tm30_hue_svg().map(|svg| view! {
-                                <div class="tm30-hue-diagram">
-                                    <div class="diagram-svg" inner_html=svg />
-                                </div>
-                            })}
-                            {move || tm30_result().map(|tm30| view! {
-                                <div class="tm30-hue-details">
-                                    <table class="tm30-hue-table">
-                                        <thead>
-                                            <tr>
-                                                <th>"Hue"</th>
-                                                <th>"Rf"</th>
-                                                <th>"Rcs"</th>
-                                                <th>"Rhs"</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {(0..16).map(|i| {
-                                                let rf = tm30.rf_hue[i];
-                                                let rcs = tm30.rcs_hue[i];
-                                                let rhs = tm30.rhs_hue[i];
-                                                view! {
-                                                    <tr>
-                                                        <td>{format!("h{}", i + 1)}</td>
-                                                        <td style=format!("color: {}", rf_color(rf))>{format!("{:.0}", rf)}</td>
-                                                        <td>{format!("{:+.1}%", rcs)}</td>
-                                                        <td>{format!("{:+.1}°", rhs)}</td>
-                                                    </tr>
-                                                }
-                                            }).collect::<Vec<_>>()}
-                                        </tbody>
-                                    </table>
-                                    <div class="tm30-legend">
-                                        <p><strong>"Rf"</strong>": Fidelity (0-100, higher = better match)"</p>
-                                        <p><strong>"Rcs"</strong>": Chroma shift (+ve = more saturated)"</p>
-                                        <p><strong>"Rhs"</strong>": Hue shift (degrees)"</p>
+                    SpectralSubTab::Tm30Hue => {
+                        let locale_for_table = locale;
+                        let locale_for_legend = locale;
+                        view! {
+                            <div class="tm30-hue-container">
+                                {move || tm30_hue_svg().map(|svg| view! {
+                                    <div class="tm30-hue-diagram">
+                                        <div class="diagram-svg" inner_html=svg />
                                     </div>
+                                })}
+                                {move || tm30_result().map(|tm30| {
+                                    let l = locale_for_table.get();
+                                    view! {
+                                        <div class="tm30-hue-details">
+                                            <table class="tm30-hue-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>{l.ui.spectral.hue_table.hue.clone()}</th>
+                                                        <th>{l.ui.spectral.hue_table.rf.clone()}</th>
+                                                        <th>{l.ui.spectral.hue_table.rcs.clone()}</th>
+                                                        <th>{l.ui.spectral.hue_table.rhs.clone()}</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(0..16).map(|i| {
+                                                        let rf = tm30.rf_hue[i];
+                                                        let rcs = tm30.rcs_hue[i];
+                                                        let rhs = tm30.rhs_hue[i];
+                                                        view! {
+                                                            <tr>
+                                                                <td>{format!("h{}", i + 1)}</td>
+                                                                <td style=format!("color: {}", rf_color(rf))>{format!("{:.0}", rf)}</td>
+                                                                <td>{format!("{:+.1}%", rcs)}</td>
+                                                                <td>{format!("{:+.1}°", rhs)}</td>
+                                                            </tr>
+                                                        }
+                                                    }).collect::<Vec<_>>()}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                })}
+                                <div class="tm30-legend">
+                                    <p><strong>{move || locale_for_legend.get().ui.spectral.hue_table.rf.clone()}</strong>": "{move || locale_for_legend.get().ui.spectral.hue_legend.rf.clone()}</p>
+                                    <p><strong>{move || locale_for_legend.get().ui.spectral.hue_table.rcs.clone()}</strong>": "{move || locale_for_legend.get().ui.spectral.hue_legend.rcs.clone()}</p>
+                                    <p><strong>{move || locale_for_legend.get().ui.spectral.hue_table.rhs.clone()}</strong>": "{move || locale_for_legend.get().ui.spectral.hue_legend.rhs.clone()}</p>
                                 </div>
-                            })}
-                        </div>
-                    }.into_any(),
+                            </div>
+                        }.into_any()
+                    },
                 }}
             </div>
         </div>

@@ -1,6 +1,7 @@
 //! Real 3D Butterfly diagram component with Canvas rendering
 //! Features: auto-rotation animation, mouse drag rotation controls
 
+use crate::i18n::use_locale;
 use eulumdat::{Eulumdat, Symmetry};
 use leptos::ev;
 use leptos::prelude::*;
@@ -120,6 +121,14 @@ struct Wing {
     color_hue: f64,
 }
 
+/// Localized strings for canvas rendering
+#[derive(Clone, Default)]
+struct LocalizedStrings {
+    title: String,
+    max_label: String,
+    drag_hint: String,
+}
+
 struct Renderer3D {
     rotation_x: f64,
     rotation_y: f64,
@@ -127,6 +136,7 @@ struct Renderer3D {
     wings: Vec<Wing>,
     max_intensity: f64,
     theme_colors: ThemeColors,
+    localized_strings: LocalizedStrings,
 }
 
 impl Renderer3D {
@@ -138,7 +148,14 @@ impl Renderer3D {
             wings: Vec::new(),
             max_intensity: 100.0,
             theme_colors: ThemeColors::default(),
+            localized_strings: LocalizedStrings::default(),
         }
+    }
+
+    fn update_localized_strings(&mut self, title: String, max_label: String, drag_hint: String) {
+        self.localized_strings.title = title;
+        self.localized_strings.max_label = max_label;
+        self.localized_strings.drag_hint = drag_hint;
     }
 
     fn update_theme(&mut self) {
@@ -342,7 +359,12 @@ impl Renderer3D {
         ctx.set_font("12px system-ui, sans-serif");
         ctx.set_text_align("left");
         ctx.set_text_baseline("top");
-        let _ = ctx.fill_text("3D Butterfly Diagram", 15.0, 15.0);
+        let title = if self.localized_strings.title.is_empty() {
+            "3D Butterfly Diagram".to_string()
+        } else {
+            self.localized_strings.title.clone()
+        };
+        let _ = ctx.fill_text(&title, 15.0, 15.0);
 
         ctx.set_fill_style_str(&self.theme_colors.text);
         ctx.set_font("11px system-ui, sans-serif");
@@ -350,8 +372,13 @@ impl Renderer3D {
         let _ = ctx.fill_text("cd/klm", width - 15.0, height - 20.0);
 
         ctx.set_text_align("left");
+        let max_label = if self.localized_strings.max_label.is_empty() {
+            "Max".to_string()
+        } else {
+            self.localized_strings.max_label.clone()
+        };
         let _ = ctx.fill_text(
-            &format!("Max: {:.0}", self.max_intensity),
+            &format!("{}: {:.0}", max_label, self.max_intensity),
             15.0,
             height - 20.0,
         );
@@ -359,7 +386,12 @@ impl Renderer3D {
         ctx.set_font("10px system-ui, sans-serif");
         ctx.set_text_align("right");
         ctx.set_text_baseline("top");
-        let _ = ctx.fill_text("Drag to rotate", width - 15.0, 15.0);
+        let drag_hint = if self.localized_strings.drag_hint.is_empty() {
+            "Drag to rotate".to_string()
+        } else {
+            self.localized_strings.drag_hint.clone()
+        };
+        let _ = ctx.fill_text(&drag_hint, width - 15.0, 15.0);
     }
 }
 
@@ -453,6 +485,7 @@ fn hsl_to_rgb(h: f64, s: f64, l: f64) -> (u8, u8, u8) {
 
 #[component]
 pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+    let locale = use_locale();
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let renderer = Rc::new(RefCell::new(Renderer3D::new()));
 
@@ -468,6 +501,19 @@ pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         move |_| {
             let ldt = ldt.get();
             renderer.borrow_mut().build_wings(&ldt);
+        }
+    });
+
+    // Update localized strings when locale changes
+    Effect::new({
+        let renderer = renderer.clone();
+        move |_| {
+            let l = locale.get();
+            renderer.borrow_mut().update_localized_strings(
+                l.ui.diagram.title_3d.clone(),
+                l.ui.butterfly.max.clone(),
+                l.ui.butterfly.drag_hint.clone(),
+            );
         }
     });
 
@@ -598,10 +644,17 @@ pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             />
             <div class="butterfly-3d-controls">
                 <button on:click=on_toggle>
-                    {move || if auto_rotate.get() { "Pause" } else { "Auto" }}
+                    {move || {
+                        let l = locale.get();
+                        if auto_rotate.get() {
+                            l.ui.butterfly.pause.clone()
+                        } else {
+                            l.ui.butterfly.auto.clone()
+                        }
+                    }}
                 </button>
                 <button on:click=on_reset>
-                    "Reset"
+                    {move || locale.get().ui.butterfly.reset.clone()}
                 </button>
             </div>
         </div>
