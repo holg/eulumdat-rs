@@ -799,14 +799,14 @@ pub struct ReportLocale {
 }
 
 // Embedded locale JSON files
-const EN_JSON: &str = include_str!("../../../locales/en.json");
-const DE_JSON: &str = include_str!("../../../locales/de.json");
-const ZH_JSON: &str = include_str!("../../../locales/zh.json");
-const FR_JSON: &str = include_str!("../../../locales/fr.json");
-const IT_JSON: &str = include_str!("../../../locales/it.json");
-const RU_JSON: &str = include_str!("../../../locales/ru.json");
-const ES_JSON: &str = include_str!("../../../locales/es.json");
-const PT_BR_JSON: &str = include_str!("../../../locales/pt-BR.json");
+const EN_JSON: &str = include_str!("../locales/en.json");
+const DE_JSON: &str = include_str!("../locales/de.json");
+const ZH_JSON: &str = include_str!("../locales/zh.json");
+const FR_JSON: &str = include_str!("../locales/fr.json");
+const IT_JSON: &str = include_str!("../locales/it.json");
+const RU_JSON: &str = include_str!("../locales/ru.json");
+const ES_JSON: &str = include_str!("../locales/es.json");
+const PT_BR_JSON: &str = include_str!("../locales/pt-BR.json");
 
 impl Locale {
     /// Parse locale from JSON string
