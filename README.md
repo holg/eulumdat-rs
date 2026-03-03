@@ -8,83 +8,130 @@ A Rust workspace for parsing, writing, and analyzing photometric files: **EULUMD
 [![Documentation](https://docs.rs/eulumdat/badge.svg)](https://docs.rs/eulumdat)
 [![License](https://img.shields.io/crates/l/eulumdat.svg)](https://github.com/holg/eulumdat-rs#license)
 
+**Live demo:** [eulumdat.icu](https://eulumdat.icu)
+
 ## Crates
 
 | Crate | Description |
 |-------|-------------|
-| [atla](crates/atla) | ATLA-S001/TM-33-23 unified photometric data model with spectral support |
-| [eulumdat](crates/eulumdat) | Core library for parsing, validation, and calculations |
+| [atla](crates/atla) | ATLA-S001/TM-33-23 unified photometric data model with spectral + BIM support |
+| [eulumdat](crates/eulumdat) | Core library: parsing, validation, calculations, diagrams, comparison |
 | [eulumdat-cli](crates/eulumdat-cli) | Command-line tool |
+| [eulumdat-typst](crates/eulumdat-typst) | Typst report generation (single-file + comparison reports) |
+| [eulumdat-wasm](crates/eulumdat-wasm) | WebAssembly editor with Google Maps designer |
+| [eulumdat-bevy](crates/eulumdat-bevy) | 3D scene viewer (Bevy engine, native + WASM) |
 | [eulumdat-egui](crates/eulumdat-egui) | Cross-platform desktop GUI (Windows, macOS, Linux) |
 | [eulumdat-py](crates/eulumdat-py) | Python bindings (PyO3) |
 | [eulumdat-ffi](crates/eulumdat-ffi) | FFI bindings (UniFFI) for Swift, Kotlin, etc. |
-| [eulumdat-wasm](crates/eulumdat-wasm) | WebAssembly editor |
+| [eulumdat-server](crates/eulumdat-server) | REST API server for photometric analysis |
+| [eulumdat-plugin](crates/eulumdat-plugin) | Plugin system for custom analysis engines |
 | [eulumdat-windows-preview](crates/eulumdat-windows-preview) | Windows Shell Preview Handler for File Explorer |
 
 ## Applications
 
 | Platform | Description | Status |
 |----------|-------------|--------|
+| **Web** | Browser-based editor with 3D viewer, Maps designer, BIM panel | [eulumdat.icu](https://eulumdat.icu) |
 | **macOS/iOS** | Native SwiftUI app with **QuickLook extension** | Available |
 | **Android** | Native Jetpack Compose app with Material 3 | Available |
 | **Desktop (egui)** | Cross-platform GUI (Windows, macOS, Linux) | Available |
 | **Windows Preview** | File Explorer preview pane integration | Available |
-| **Web** | Browser-based editor via WebAssembly | Beta |
+| **HarmonyOS** | OpenHarmony/HarmonyOS app (ArkTS + native Rust) | Available |
 
-### macOS QuickLook Extension
+## What's New in 0.5.0
 
-Preview LDT files directly in Finder with polar diagrams - no need to open an app!
+### TM-32-24 BIM Parameters
 
-- **Finder Preview**: Select any `.ldt` file and press Space for instant preview
-- **Quick Look**: Beautiful polar diagram visualization in Finder's preview pane
-- **Universal Binary**: Native support for Apple Silicon and Intel Macs
+Full ANSI/IES TM-32-24 Building Information Modeling support, extracting **100+ BIM fields** across 13 categories from TM-33-23 XML files:
+
+- **Photometric** - CCT, CRI, TM-30 Rf/Rg, BUG rating, cutoff angle, melanopic factor
+- **Electrical** - watts, power factor, voltage, DALI/DMX dimming, LED drive type
+- **Mechanical** - housing dimensions, weight, material, IP rating, IK rating
+- **Mounting** - ceiling/wall/floor/pendant/recessed/track/pole, cutout dimensions
+- **Emergency** - maintained/non-maintained, battery type/capacity
+- **Acoustics** - NRC value, frequency-band absorption table
+- **Sensors** - PIR/microwave detection, coverage area
+- **Maintenance** - LLD, LDD, LSF, projected lamp life
+
+Cross-references **NEMA BIM 100-2021** GUIDs for direct Revit shared parameter import. Export as CSV or text report.
+
+### New Diagram Types
+
+| Type | Description |
+|------|-------------|
+| **Isocandela** | Type B H/V contour plot with marching-squares contour lines at 10-90% of I_max |
+| **Isolux Footprint** | Ground-plane lux heatmap with adjustable mounting height (3-30m), tilt (0-80°), and area size |
+| **Floodlight V-H** | H-plane + V-plane Cartesian curves (Type B) with NEMA beam classification badge |
+
+These join the existing set: Polar, Butterfly, Cartesian, Heatmap, BUG, LCS, Cone, Beam Angle, Spectral, Greenhouse.
+
+### Google Maps Lighting Designer
+
+Place luminaires on satellite imagery, draw coverage polygons, and compute point-by-point illuminance from actual photometric data:
+
+- Bilinear interpolation on the intensity grid, inverse-square law with cosine correction
+- Configurable mounting height, tilt, and rotation per luminaire
+- Adjustable grid spacing (0.5-5m)
+- Color-coded heatmap overlay with lux value labels
+- Results: min/max/avg lux, uniformity U_0
+- Export grid data as CSV
+- Everything runs client-side in the browser
+
+### 36-Metric Comparison Engine
+
+Compare two photometric files across **36 weighted metrics** with significance classification:
+
+- Flux & efficiency (8), IES/CIE beam angles (4), intensity stats (3)
+- Zonal lumens 0-180° (6), CIE flux codes N1-N5 (5), spacing criteria (2)
+- BUG ratings B/U/G (3), physical dimensions L/W/H (3)
+- Weighted similarity score with overlay diagrams (Polar + Cartesian)
+
+### Comparison Report Export (PDF/Typst)
+
+One-click PDF export via Typst compiled to WASM (no server):
+
+- Similarity score badge with deviation summary
+- Polar + Cartesian overlay diagrams
+- Color-coded metrics table (green/yellow/orange/red)
+- Side-by-side luminaire info, heatmaps, and 3D butterfly diagrams
+
+### Typst Report Generation
+
+Generate publication-ready photometric reports via `eulumdat-typst`:
+
+- Single-file report: luminaire info, all diagrams, CU/UGR tables, candela tabulation
+- Comparison report: overlay diagrams, metrics table, side-by-side analysis
+- CLI: `eulumdat report luminaire.ldt report.typ`
 
 ## Features
 
-- **Parse LDT/IES files** - Full EULUMDAT and IESNA LM-63 format support
-- **Full LM-63-2019 Support** - Latest IES standard with all features:
-  - File generation types (accredited lab, simulation, scaled, interpolated)
-  - 15 luminous opening shapes from negative dimensions
-  - TILT=INCLUDE parsing with lamp geometry
-  - [MORE] continuation for multi-line keywords
-  - 71 IES-specific validation rules
-- **Write LDT files** - Roundtrip-tested output generation
-- **Export to IES** - LM-63-2019 (default) or LM-63-2002 format
-- **Batch conversion** - Efficient bulk processing of multiple files
-- **Validation** - 44 LDT + 71 IES validation constraints
+- **Parse LDT/IES/ATLA files** - EULUMDAT, IESNA LM-63-2019, TM-33-23 XML/JSON
+- **Write & convert** - Roundtrip LDT, IES, ATLA XML, ATLA JSON
+- **Batch conversion** - Efficient bulk processing with progress reporting
+- **Validation** - 44 LDT + 71 IES + TM-33-23/TM-32-24 validation rules
 - **Symmetry handling** - 5 symmetry types with automatic data expansion
-- **Photometric calculations** - CIE flux codes, beam/field angles, spacing criteria, zonal lumens, UGR
-- **GLDF integration** - Full DescriptivePhotometry population from IES/LDT
+- **Photometric calculations** - CIE flux codes, beam/field angles, spacing criteria, zonal lumens, UGR, CU tables, NEMA classification
 - **BUG Rating** - IESNA TM-15-11 Backlight-Uplight-Glare calculations
-- **Diagram generation** - Polar, Butterfly, Cartesian, Heatmap, Spectral with SVG export
-- **File comparison** - Side-by-side comparison of two photometric files with similarity scoring, delta analysis, and overlay diagrams
+- **TM-32-24 BIM** - 100+ building information modeling parameters
+- **12 diagram types** - Polar, Butterfly, Cartesian, Heatmap, BUG, LCS, Cone, Beam Angle, Spectral, Greenhouse, Isocandela, Isolux, Floodlight V-H
+- **File comparison** - 36-metric similarity scoring with overlay diagrams and PDF report export
+- **Google Maps designer** - Real-world illuminance simulation on satellite imagery
+- **3D scene viewer** - Interactive Bevy-based room/road/parking/outdoor scenes with photometric lighting
+- **Report generation** - Typst-based PDF reports (single-file + comparison)
+- **GLDF integration** - Full DescriptivePhotometry population from IES/LDT
+- **REST API** - Server mode for web service integration
 
 ## ATLA-S001 & TM-33-23 Support
 
-The library internally uses **ATLA-S001** (Advanced Transfer Language for photometric Applications) as the unified data model. This provides:
+The library internally uses **ATLA-S001** (Advanced Transfer Language for photometric Applications) as the unified data model:
 
-- **Spectral data support** - Full wavelength-based intensity distributions (380-780nm)
+- **Spectral data** - Full wavelength-based intensity distributions (380-780nm)
 - **Horticultural metrics** - PPF, PPFD, YPF, phytochrome ratios for grow lights
-- **TM-33-23 compatibility** - IES TM-33-23 XML format for horticultural lighting
-- **Lossless conversion** - Convert between LDT, IES, and ATLA formats without data loss
-- **Extended metadata** - Manufacturer info, test conditions, spectral characteristics
-
-```rust
-use atla::{Atla, SpectralData};
-
-// Parse TM-33-23 XML
-let atla = Atla::from_xml(xml_content)?;
-
-// Access spectral data
-if let Some(spectral) = &atla.spectral {
-    println!("PPF: {:.1} μmol/s", spectral.ppf());
-    println!("CCT: {}K", spectral.cct());
-}
-
-// Convert to/from EULUMDAT
-let ldt = atla.to_eulumdat()?;
-let atla2 = Atla::from_eulumdat(&ldt)?;
-```
+- **TM-33-23 compatibility** - IES TM-33-23 XML format
+- **TM-32-24 BIM** - Building information modeling parameters
+- **SPDX detection** - Identify spectral power distribution data in XML files
+- **Lossless conversion** - Convert between LDT, IES, and ATLA without data loss
+- **Schema conversion** - Convert between ATLA-S001 and TM-33-23 schemas
 
 ## Installation
 
@@ -92,7 +139,7 @@ let atla2 = Atla::from_eulumdat(&ldt)?;
 
 ```toml
 [dependencies]
-eulumdat = "0.4"
+eulumdat = "0.5"
 ```
 
 ### Command-Line Tool
@@ -119,7 +166,7 @@ pip install eulumdat
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/holg/eulumdat-rs", from: "0.4.0")
+    .package(url: "https://github.com/holg/eulumdat-rs", from: "0.5.0")
 ]
 ```
 
@@ -150,7 +197,7 @@ let svg = polar.to_svg(500.0, 500.0, &SvgTheme::light());
 let bug = BugDiagram::from_eulumdat(&ldt);
 println!("BUG Rating: {}", bug.rating);
 
-// Compare two files
+// Compare two files (36 metrics)
 let ldt_b = Eulumdat::from_file("luminaire_b.ldt")?;
 let cmp = eulumdat::PhotometricComparison::from_eulumdat(&ldt, &ldt_b, "A", "B");
 println!("Similarity: {:.1}%", cmp.similarity_score * 100.0);
@@ -186,23 +233,23 @@ bug_svg = ldt.bug_svg()
 rating = ldt.bug_rating()
 print(f"BUG Rating: {rating}")
 
-# NEW: Photometric calculations
+# Photometric calculations
 summary = ldt.photometric_summary()
 print(summary.to_text())  # Full report
 print(summary.to_compact())  # One-liner
 
-# NEW: Individual calculations
+# Individual calculations
 cie = ldt.cie_flux_codes()
 print(f"CIE Flux Code: {cie}")  # e.g., "100 77 43 0 0"
 print(f"Beam angle: {ldt.beam_angle():.1f}°")
 print(f"Field angle: {ldt.field_angle():.1f}°")
 print(f"Spacing: {ldt.spacing_criteria()}")  # (S/H C0, S/H C90)
 
-# NEW: GLDF export
+# GLDF export
 gldf = ldt.gldf_data()
 print(gldf.to_dict())  # For JSON serialization
 
-# Batch conversion (efficient bulk processing)
+# Batch conversion
 from eulumdat import BatchInput, ConversionFormat, batch_convert
 
 inputs = [
@@ -243,11 +290,17 @@ eulumdat info luminaire.ldt
 # Validate
 eulumdat validate luminaire.ldt
 
-# Convert LDT to IES
+# Convert between formats (LDT, IES, ATLA XML, ATLA JSON)
 eulumdat convert luminaire.ldt output.ies
+eulumdat convert luminaire.xml output.ldt
+eulumdat convert luminaire.ldt output.xml
 
-# Generate diagram
+# Generate diagrams (12 types)
 eulumdat diagram luminaire.ldt -t polar -o polar.svg
+eulumdat diagram luminaire.ldt -t isocandela -o isocandela.svg
+eulumdat diagram luminaire.ldt -t isolux -o isolux.svg -m 10.0 --tilt 30
+eulumdat diagram luminaire.ldt -t floodlight-vh -o floodlight.svg --log-scale
+eulumdat diagram luminaire.ldt -t heatmap -o heatmap.svg --dark
 
 # Calculate BUG rating
 eulumdat bug outdoor_luminaire.ldt --svg bug.svg
@@ -255,27 +308,39 @@ eulumdat bug outdoor_luminaire.ldt --svg bug.svg
 # Batch convert multiple files
 eulumdat batch input_folder/ -o output_folder/ -f ies
 
-# NEW: Photometric summary (text, compact, or JSON)
+# Photometric summary (text, compact, or JSON)
 eulumdat summary luminaire.ldt
 eulumdat summary luminaire.ldt -f json -o summary.json
 
-# NEW: GLDF-compatible export
-eulumdat gldf luminaire.ldt --pretty -o gldf_data.json
-
-# NEW: Specific calculations
+# Specific calculations
 eulumdat calc luminaire.ldt -t cie-codes      # CIE flux codes
 eulumdat calc luminaire.ldt -t beam-angles    # Beam/field angles
-eulumdat calc luminaire.ldt -t spacing        # S/H ratios
-eulumdat calc luminaire.ldt -t zonal-lumens   # 30° zone distribution
+eulumdat calc luminaire.ldt -t nema           # NEMA floodlight classification
+eulumdat calc luminaire.ldt -t cu-table       # Coefficient of Utilization
+eulumdat calc luminaire.ldt -t ugr-table      # Unified Glare Rating
 eulumdat calc luminaire.ldt -t all            # Everything
 
-# NEW: Compare two files side-by-side
+# Compare two files (36 metrics)
 eulumdat compare file_a.ldt file_b.ldt                    # Text table
 eulumdat compare file_a.ldt file_b.ldt -f json            # JSON output
 eulumdat compare file_a.ldt file_b.ldt -f csv             # CSV output
 eulumdat compare file_a.ldt file_b.ldt --significant-only # Only >= 5% deltas
-eulumdat compare file_a.ldt file_b.ldt -d polar -o cmp.svg   # Polar overlay SVG
-eulumdat compare file_a.ldt file_b.ies -d cartesian --dark    # Cartesian overlay, dark theme
+eulumdat compare file_a.ldt file_b.ies -d polar -o cmp.svg   # Polar overlay SVG
+
+# Generate photometric report (Typst)
+eulumdat report luminaire.ldt report.typ
+eulumdat report luminaire.ldt report.typ --cu-table --ugr-table --candela-table
+eulumdat report luminaire.ldt report.typ --compact --paper letter
+
+# Validate ATLA XML
+eulumdat validate-atla document.xml
+eulumdat validate-atla document.xml --schema-type tm3323 --xsd
+
+# Convert between ATLA schema versions
+eulumdat atla-convert s001.xml tm33.xml --target tm3323 --verbose
+
+# GLDF-compatible export
+eulumdat gldf luminaire.ldt --pretty -o gldf_data.json
 ```
 
 ### macOS / iOS
@@ -283,39 +348,34 @@ eulumdat compare file_a.ldt file_b.ies -d cartesian --dark    # Cartesian overla
 Native SwiftUI app available in the [EulumdatApp](EulumdatApp/) directory.
 
 ```bash
-# Build and run with Xcode
-cd EulumdatApp
-open EulumdatApp.xcodeproj
+cd EulumdatApp && open EulumdatApp.xcodeproj
 ```
 
-Features:
-- **Universal app** - Single binary for macOS (Intel + Apple Silicon) and iOS
-- **QuickLook Extension** - Preview .ldt files directly in Finder (press Space)
-- **All diagram types** - Polar, Butterfly, Cartesian, Heatmap, BUG, LCS
-- **Interactive 3D view** - Rotate and zoom butterfly diagrams
-- **Template library** - Built-in sample luminaires for testing
-- **Full validation** - All 44 specification constraints checked
-- **Export options** - SVG, IES, LDT formats
-- **Intensity table** - Copy as CSV, toggle color highlighting
+Features: Universal binary, QuickLook Extension, all diagram types, interactive 3D view, template library, validation, SVG/IES/LDT export.
 
 ### Android
 
 Native Jetpack Compose app available in the [EulumdatAndroid](EulumdatAndroid/) directory.
 
 ```bash
-# Build with Gradle
-cd EulumdatAndroid
-./gradlew assembleDebug
+cd EulumdatAndroid && ./gradlew assembleDebug
 ```
 
-Features:
-- **Material 3 design** - Modern Android UI following latest guidelines
-- **All diagram types** - Polar, Butterfly, Cartesian, Heatmap, BUG, LCS
-- **Interactive 3D view** - Touch gestures to rotate butterfly diagrams
-- **Template library** - Sample luminaires included
-- **File picker** - Open .ldt/.ies from device storage
-- **Share & Export** - SVG export with Android share sheet
-- **Multi-architecture** - ARM64, ARMv7, x86_64 native libraries
+Features: Material 3 design, all diagram types, interactive 3D view, file picker, share & export, ARM64/ARMv7/x86_64.
+
+### Web (WASM)
+
+Browser-based editor at [eulumdat.icu](https://eulumdat.icu) or build locally:
+
+```bash
+# Build split bundles (Leptos editor + lazy-loaded Bevy 3D viewer)
+./scripts/build-wasm-split.sh
+
+# Serve locally
+python3 -m http.server 8042 -d crates/eulumdat-wasm/dist
+```
+
+Features: All diagrams, 3D scene viewer (lazy-loaded), Google Maps designer, TM-32-24 BIM panel, file comparison with PDF export, template library, dark/light theme.
 
 ## Diagram Types
 
@@ -327,6 +387,13 @@ Features:
 | Heatmap | 2D intensity color map |
 | BUG | IESNA TM-15-11 zone visualization |
 | LCS | TM-15-07 Luminaire Classification System |
+| Cone | Beam/field angle spread at mounting height |
+| Beam Angle | IES vs CIE beam angle comparison |
+| Spectral | Spectral power distribution (ATLA/TM-33 input) |
+| Greenhouse | PPFD distribution for horticultural lighting |
+| **Isocandela** | Type B H/V contour plot with iso-intensity lines |
+| **Isolux** | Ground-plane illuminance footprint with lux contours |
+| **Floodlight V-H** | H-plane + V-plane curves with NEMA classification |
 | Polar Overlay | Two files overlaid on one polar diagram (comparison) |
 | Cartesian Overlay | Two files overlaid on one cartesian diagram (comparison) |
 
@@ -358,38 +425,16 @@ let meta = IesMetadata::from_ies_data(&ies_data);
 let (shape, width_mm, length_mm, diameter_mm) = meta.to_gldf_emitter_geometry();
 ```
 
-### File Generation Types
-
-| Value | Description |
-|-------|-------------|
-| 1.10000 | Test at accredited lab |
-| 1.00000 | Test at unaccredited lab |
-| 1.00010 | Computer simulation |
-| 1.10100 | Accredited lab, lumen scaled |
-| 1.11000 | Accredited lab, angles interpolated |
-
-### IES Validation
-
-```rust
-use eulumdat::{validate_ies, validate_ies_strict, IesValidationSeverity};
-
-// Get all warnings
-for warning in validate_ies(&ies_data) {
-    println!("[{}] {}: {}", warning.code, warning.severity, warning.message);
-}
-
-// Strict validation (returns error if critical issues)
-validate_ies_strict(&ies_data)?;
-```
-
 ## References
 
 - [EULUMDAT Format (Paul Bourke)](https://paulbourke.net/dataformats/ldt/)
 - [ANSI/IES LM-63-2019](https://www.ies.org/product/approved-method-ies-standard-file-format-for-the-electronic-transfer-of-photometric-data-and-related-information/) - Current IES standard
 - [IESNA LM-63-2002](https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/iesna_lm-63_format.htm) - Legacy format reference
-- [IES TM-33-23](https://www.ies.org/product/ies-standard-format-for-the-electronic-transfer-of-luminaire-optical-data/) - Luminaire optical data format for horticultural lighting
+- [IES TM-33-23](https://www.ies.org/product/ies-standard-format-for-the-electronic-transfer-of-luminaire-optical-data/) - Luminaire optical data format
+- [IES TM-32-24](https://www.ies.org/) - BIM parameters for lighting equipment
 - [ATLA-S001](https://github.com/holg/eulumdat-rs/blob/main/docs/ATLA-S001.pdf) - Advanced Transfer Language for photometric Applications
 - [IES TM-15-11 BUG Ratings](https://www.ies.org/wp-content/uploads/2017/03/TM-15-11BUGRatingsAddendum.pdf)
+- [NEMA BIM 100-2021](https://www.nema.org/) - BIM shared parameters for Revit
 
 ## License
 
