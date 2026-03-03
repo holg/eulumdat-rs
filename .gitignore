@@ -174,3 +174,17 @@ local.properties
 
 # Release artifacts (built locally for GitHub releases)
 release-artifacts/
+
+# Large media files
+*.mp4
+*.gif
+*.zip
+
+# PDFs (spec documents, reports)
+docs/**/*.pdf
+tests/files/*.pdf
+
+# Benchmark/test scripts (local only)
+test_website.py
+scripts/benchmark_python.py
+scripts/benchmark_wasm.py

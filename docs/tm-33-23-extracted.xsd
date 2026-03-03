@@ -1,0 +1,858 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<!-- Common attribute definitions -->
+<xs:attribute name="angle" type="xs:decimal"/>
+<xs:attribute name="h" type="xs:decimal"/>
+<xs:attribute name="v" type="xs:decimal"/>
+<xs:attribute name="w" type="xs:decimal"/>
+<xs:attribute name="x" type="xs:decimal"/>
+<xs:attribute name="y" type="xs:decimal"/>
+<xs:attribute name="z" type="xs:decimal"/>
+<!-- Common simple element definitions -->
+<xs:element name="Circular" type="xs:boolean"/>
+<xs:element name="Height" type="xs:decimal"/>
+<xs:element name="HeightOffset" type="xs:decimal"/>
+<xs:element name="Length" type="xs:decimal"/>
+<xs:element name="LengthOffset" type="xs:decimal"/>
+<xs:element name="MaxWavelength" type="xs:decimal"/>
+<xs:element name="MeasurementEquipment" type="xs:string"/>
+<xs:element name="MinWavelength" type="xs:decimal"/>
+<xs:element name="Multiplier" type="xs:float"/>
+<xs:element name="NumberHorz" type="xs:int"/>
+<xs:element name="NumberMeasured" type="xs:int"/>
+<xs:element name="NumberPlanes" type="xs:int"/>
+<xs:element name="NumberVert" type="xs:int"/>
+<xs:element name="NumberWavelength" type="xs:int"/>
+<xs:element name="Width" type="xs:decimal"/>
+<xs:element name="WidthOffset" type="xs:decimal"/>
+<!-- Common element definitions -->
+<xs:complexType name="IntDataType2">
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="h"/>
+<xs:attribute ref="v"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:complexType name="IntDataType3">
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="h"/>
+<xs:attribute ref="v"/>
+<xs:attribute ref="w"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:complexType name="IntDataType4">
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:complexType name="PlaneNormalType">
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:complexType name="PwrDataType">
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="w"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:simpleType name="RegulatoryValue">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Measured"/>
+<xs:enumeration value="Nominal"/>
+<xs:enumeration value="Rated"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="SymmType">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Symm _ None"/>
+<xs:enumeration value="Symm _ Bi _ 0"/>
+<xs:enumeration value="Symm _ Bi _90"/>
+<xs:enumeration value="Symm _ Quad"/>
+<xs:enumeration value="Symm _ Full"/>
+<xs:enumeration value="Symm _ Arbitrary"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:element name="IESTM33-22">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Version" type="xs:string" fixed="1.1"/>
+<xs:element name="Header">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Manufacturer" type="xs:string"
+minOccurs="0"/>
+<xs:element name="CatalogNumber" type="xs:string"
+minOccurs="0"/>
+<xs:element name="GTIN" type="xs:integer"
+minOccurs="0"/>
+<xs:element name="Description" type="xs:string"/>
+<xs:element name="Laboratory" type="xs:string"/>
+<xs:element name="ReportNumber" type="xs:string"/>
+<xs:element name="ReportDate" type="xs:date"/>
+<xs:element name="DocumentCreator" type="xs:string"
+minOccurs="0"/>
+<xs:element name="DocumentCreationDate" type="xs:date"
+minOccurs="0"/>
+<xs:element name="UniqueIdentifier" type="xs:string"
+minOccurs="0"/>
+<xs:element name="Comment" type="xs:string"
+minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="Reference" type="xs:string"
+minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="MoreInfoURI" type="xs:anyURI"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Luminaire" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Dimensions">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+<xs:element ref="Width"/>
+<xs:element ref="Height"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Shape" minOccurs="0">
+<xs:simpleType>
+<xs:restriction base="xs:string">
+<xs:enumeration value="Align _ X"/>
+<xs:enumeration value="Align _ Y"/>
+<xs:enumeration value="Align _Z"/>
+</xs:restriction>
+</xs:simpleType>
+</xs:element>
+<xs:element name="NumEmitter" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Equipment" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Gonioradiometer" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Type">
+<xs:simpleType>
+<xs:restriction base="xs:string">
+<xs:enumeration value="CIE _ A"/>
+<xs:enumeration value="CIE _ B"/>
+<xs:enumeration value="CIE _ C"/>
+<xs:enumeration value="IES _ A"/>
+<xs:enumeration value="IES _ B"/>
+<xs:enumeration value="IES _ C"/>
+<xs:enumeration value="CUSTOM"/>
+</xs:restriction>
+</xs:simpleType>
+</xs:element>
+<xs:element ref="MeasurementEquipment"
+minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IntegratingSphere" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="MeasurementEquipment"
+minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Spectroradiometer" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="MeasurementEquipment"
+maxOccurs="unbounded"/>
+<xs:element name="BandwidthFWHM" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="BandwidthCorrected"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="BandwidthMethod"
+type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Emitter" maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Quantity" type="xs:int"/>
+<xs:element name="Description" type="xs:string"/>
+<xs:element name="CatalogNumber" type="xs:string"
+minOccurs="0"/>
+<xs:element name="RatedLumens" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="InputWattage" type="xs:decimal"/>
+<xs:element name="PowerFactor" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="BallastFactor" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="TiltAngles" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberAngles" type="xs:int"/>
+<xs:element name="Tilt">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="angle"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="ColorTemperature" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="FixedCCT" type="xs:int"
+minOccurs="0"/>
+<xs:element name="MinCCT" type="xs:int"
+minOccurs="0"/>
+<xs:element name="MaxCCT" type="xs:int"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="ColorRendering" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="CIE _ CRI" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Ra" type="xs:int"/>
+<xs:element name="R9" type="xs:int"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IES _ TM30" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Rf" type="xs:int"/>
+<xs:element name="Rg" type="xs:int"/>
+<xs:element name="Rfh01" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh02" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh03" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh04" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh05" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh06" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh07" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh08" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh09" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh10" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh11" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh12" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh13" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh14" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh15" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh16" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh01" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh02" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh03" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh04" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh05" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh06" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh07" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh08" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh09" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh10" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh11" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh12" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh13" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh14" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh15" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh16" type="xs:int"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Duv" type="xs:decimal" minOccurs="0"/>
+<xs:element name="SPRatio" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="DataGeneration" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Simulation" type="xs:boolean"
+minOccurs="0"/>
+<xs:element name="Laboratory" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Certification"
+type="xs:string"/>
+<xs:element name="ApprovalBody"
+type="xs:string"/>
+<xs:element name="ApprovalScope"
+type="xs:string"/>
+<xs:element name="MeasUncertainty">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="MeasurementType"
+type="xs:string"/>
+<xs:element name="Uncertainty"
+type="xs:decimal"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IntensityScaling"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="AngleInterpolation"
+type="xs:boolean" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="LuminousData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="LuminousIntensity">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="AbsolutePhotometry"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Symm"
+type="SymmType" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element ref="NumberHorz"/>
+<xs:element ref="NumberVert"/>
+<xs:element name="IntData"
+type="IntDataType2"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="LuminousFlux" type="xs:decimal"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="RadiantData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="MinWavelength"/>
+<xs:element ref="MaxWavelength"/>
+<xs:element name="RadiantIntensity">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Absolute"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Symm"
+type="SymmType" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element ref="NumberHorz"/>
+<xs:element ref="NumberVert"/>
+<xs:element name="IntData"
+type="IntDataType2"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="RadiantFlux" type="xs:decimal"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="PhotonData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="MinWavelength"/>
+<xs:element ref="MaxWavelength"/>
+<xs:element name="PhotonIntensity">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Absolute"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Symm"
+type="SymmType" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element ref="NumberHorz"/>
+<xs:element ref="NumberVert"/>
+<xs:element name="IntData"
+type="IntDataType2"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="PhotonFlux" type="xs:decimal"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="SpectralData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="EmitterSpectral" minOccurs="0"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="EmitterName"
+minOccurs="0"/>
+<xs:element ref="NumberWavelength"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element name="Normalized"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Timestamp"
+type="xs:int" minOccurs="0"/>
+<xs:element name="PwrData"
+type="PwrDataType"
+maxOccurs="unbounded"/>
+<xs:element name="Quantum"
+type="xs:int" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="AngularSpectral" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Absolute"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Symm"
+type="SymmType" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element ref="NumberHorz"/>
+<xs:element ref="NumberVert"/>
+<xs:element ref="NumberWavelength"/>
+<xs:element name="IntData"
+type="IntDataType3"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="AngularColor" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Symm"
+type="SymmType" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element ref="NumberHorz"/>
+<xs:element ref="NumberVert"/>
+<xs:element name="IntData"
+type="IntDataType4"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IllumData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Absolute"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element name="Illum"
+maxOccurs="unbounded">
+<xs:complexType >
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IrradData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Absolute"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="MinWavelength"/>
+<xs:element ref="MaxWavelength"/>
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element name="Irrad"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="PFDData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Absolute"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="MinWavelength"/>
+<xs:element ref="MaxWavelength"/>
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element name="PFD"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="SpecIrradData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Absolute"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="Multiplier"
+type="xs:float" minOccurs="0"/>
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element ref="NumberWavelength"/>
+<xs:element name="SIrrad"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:float">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+<xs:attribute ref="w"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Channels" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumChannels" type="xs:int"/>
+<xs:element name="ChannelMult"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute name="name"
+type="xs:string"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="EmissionAreas" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="TopFace" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberTop" type="xs:int"/>
+<xs:element name="TopArea"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+<xs:element ref="Width"/>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="BottomFace" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberBottom"
+type="xs:int"/>
+<xs:element name="BottomArea"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+<xs:element ref="Width"/>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C0Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC0" type="xs:int"/>
+<xs:element name="C0Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+<xs:element ref="Height"/>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C90Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC90" type="xs:int"/>
+<xs:element name="C90Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Width"/>
+<xs:element ref="Height"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C180Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC180"
+type="xs:int"/>
+<xs:element name="C180Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+<xs:element ref="Height"/>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C270Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC270"
+type="xs:int"/>
+<xs:element name="C270Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Width"/>
+<xs:element ref="Height"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="EmitterCenter" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="HeightOffset"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Regulatory" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="InputWattage"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="PowerFactor"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="BallastFactor"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="ColorTemperature"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="CIE _ CRI"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="IES _ TM30"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="Duv"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="SPRatio"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="LuminousIntensity"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="LuminousFlux"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="RadiantIntensity"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="RadiantFlux"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="PhotonIntensity"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="PhotonFlux"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="SpectralPower"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="SpectralIntensity"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="AngularColor"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="Illuminance"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="Irradiance"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="PhotonFluxDensity"
+type="RegulatoryValue" minOccurs="0"/>
+<xs:element name="SpectralIrradiance"
+type="RegulatoryValue" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="CustomData" minOccurs="0"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Name" type="xs:string"/>
+<xs:element name="UniqueIdentifier" type="xs:string"/>
+<xs:any namespace="##any" processContents="skip"
+minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:schema>

@@ -1,0 +1,32 @@
+[package]
+name = "eulumdat-plugin"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Lightweight WASM plugin for eulumdat photometric analysis - embeddable in GLDF files"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+
+[dependencies]
+# Core library with serde for JSON serialization
+eulumdat = { workspace = true, features = ["serde"] }
+
+# Serialization
+serde = { workspace = true }
+serde_json = "1"
+
+# WASM bindings
+console_error_panic_hook = { workspace = true }
+wasm-bindgen = { workspace = true }
+
+# For getrandom in WASM
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+wasm-bindgen-test = { workspace = true }

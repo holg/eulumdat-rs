@@ -169,21 +169,27 @@
 pub mod batch;
 pub mod bug_rating;
 mod calculations;
+pub mod compare;
 pub mod diagram;
 mod error;
 mod eulumdat;
 mod ies;
 mod parser;
 mod symmetry;
+pub mod type_b_conversion;
 mod validation;
 mod writer;
 
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 pub use bug_rating::{BugDiagram, BugRating, ZoneLumens};
 pub use calculations::{
-    BeamFieldAnalysis, CieFluxCodes, GldfPhotometricData, IesMetadata, PhotometricCalculations,
-    PhotometricSummary, UgrParams, UgrTableValues, ZonalLumens30,
+    BeamFieldAnalysis, CandelaEntry, CandelaTabulation, CieFluxCodes, ComprehensiveBeamAnalysis,
+    CuTable, DistributionType, GldfPhotometricData, IesMetadata, LightDirection,
+    NemaClassification, PhotometricCalculations, PhotometricSummary, UgrParams, UgrTable,
+    UgrTableValues, ZonalLumens30, CU_RCR_VALUES, CU_REFLECTANCES, UGR_REFLECTANCES,
+    UGR_ROOM_SIZES,
 };
+pub use compare::{ComparisonMetric, PhotometricComparison, Significance};
 pub use error::{Error, Result};
 pub use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
 pub use ies::{
@@ -192,4 +198,5 @@ pub use ies::{
     LuminousShape, PhotometricType, TiltData, UnitType,
 };
 pub use symmetry::SymmetryHandler;
+pub use type_b_conversion::TypeBConversion;
 pub use validation::{validate, validate_strict, ValidationError, ValidationWarning};

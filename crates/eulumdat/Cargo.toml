@@ -24,3 +24,7 @@ serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 approx.workspace = true
+
+[[bench]]
+name = "native_benchmark"
+harness = false

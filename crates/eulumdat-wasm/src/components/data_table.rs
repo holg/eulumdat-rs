@@ -115,14 +115,23 @@ pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> i
                         </thead>
                         <tbody>
                             {ldt_val.g_angles.iter().enumerate().map(|(g_idx, g_angle)| {
+                                let g_angle_formatted = format_angle(*g_angle);
                                 view! {
                                     <tr>
-                                        <th class="g-angle-header">{format_angle(*g_angle)}</th>
-                                        {(0..mc).map(|c_idx| {
+                                        <th class="g-angle-header" id=format!("g-{}", g_idx)>{g_angle_formatted.clone()}</th>
+                                        {display_c_angles.iter().enumerate().map(|(c_idx, c_angle)| {
                                             let intensity = ldt_val.intensities.get(c_idx)
                                                 .and_then(|row| row.get(g_idx))
                                                 .copied()
                                                 .unwrap_or(0.0);
+
+                                            // Create accessible label: "Intensity at C90 gamma 45 degrees"
+                                            let aria_label = format!(
+                                                "Intensity at C{} gamma {} degrees, {} cd/klm",
+                                                format_angle(*c_angle),
+                                                g_angle_formatted,
+                                                format_value(intensity)
+                                            );
 
                                             let on_change = move |e: ev::Event| {
                                                 let input: HtmlInputElement = e.target().unwrap().unchecked_into();
@@ -144,6 +153,7 @@ pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> i
                                                         step="1"
                                                         prop:value=format_value(intensity)
                                                         class="intensity-input"
+                                                        aria-label=aria_label
                                                         on:change=on_change
                                                     />
                                                 </td>

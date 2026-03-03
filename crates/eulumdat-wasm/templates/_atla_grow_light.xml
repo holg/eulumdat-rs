@@ -7,6 +7,7 @@
         <Laboratory>Photobiology Test Lab</Laboratory>
         <ReportNumber>HORT-2024-042</ReportNumber>
         <TestDate>2024-03-15</TestDate>
+        <ReportDate>2024-03-15</ReportDate>
         <LuminaireType>Horticultural Grow Light</LuminaireType>
         <Comments>Full spectrum with enhanced blue (450nm) and red (660nm) for optimal photosynthesis. PPF: 1200 µmol/s</Comments>
     </Header>

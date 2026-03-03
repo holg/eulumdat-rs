@@ -21,57 +21,148 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         let atla_doc = LuminaireOpticalData::from_eulumdat(&ldt);
         let s001_result = validate_with_schema(&atla_doc, ValidationSchema::AtlaS001);
         let tm33_result = validate_with_schema(&atla_doc, ValidationSchema::Tm3323);
+        let tm32_result = validate_with_schema(&atla_doc, ValidationSchema::Tm3224);
 
         let s001_valid = s001_result.is_valid();
         let tm33_valid = tm33_result.is_valid();
+
+        // Count TM-32-24 specific errors/warnings (excluding TM-33-23 errors which are included)
+        let tm32_errors: Vec<_> = tm32_result
+            .errors
+            .iter()
+            .filter(|e| e.code.starts_with("TM32-"))
+            .collect();
+        let tm32_warnings: Vec<_> = tm32_result
+            .warnings
+            .iter()
+            .filter(|w| w.code.starts_with("TM32-"))
+            .collect();
+
+        // TM-32-24 is valid if no TM-32 specific errors AND TM-33-23 is valid
+        let tm32_valid = tm32_errors.is_empty() && tm32_warnings.is_empty() && tm33_valid;
 
         view! {
             <div class="validation-panel">
                 // ATLA Schema Validation Section
                 <div class="schema-validation-section">
-                    <div class="validation-header">"ATLA Schema Validation"</div>
+                    <div class="validation-header">"Schema Validation"</div>
 
-                    // ATLA S001 Status
-                    <div class={if s001_valid { "validation-item success" } else { "validation-item error" }}>
-                        <span class="schema-badge">"S001"</span>
-                        <span>{if s001_valid { "VALID" } else { "INVALID" }}</span>
-                        {if !s001_valid {
-                            view! {
-                                <span class="error-count">
-                                    {format!("({} errors)", s001_result.errors.len())}
-                                </span>
-                            }.into_any()
-                        } else {
-                            view! { <span></span> }.into_any()
-                        }}
+                    <div class="schema-grid">
+                        // ATLA S001 Status
+                        <div class={if s001_valid { "schema-card valid" } else { "schema-card invalid" }}>
+                            <div class="schema-name">"ATLA S001"</div>
+                            <div class="schema-status">
+                                {if s001_valid { "✓ Valid" } else { "✗ Invalid" }}
+                            </div>
+                            {if !s001_valid {
+                                view! {
+                                    <div class="schema-count">
+                                        {format!("{} errors", s001_result.errors.len())}
+                                    </div>
+                                }.into_any()
+                            } else {
+                                view! { <span></span> }.into_any()
+                            }}
+                        </div>
+
+                        // TM-33-23 Status
+                        <div class={if tm33_valid { "schema-card valid" } else { "schema-card warning" }}>
+                            <div class="schema-name">"TM-33-23"</div>
+                            <div class="schema-status">
+                                {if tm33_valid { "✓ Valid" } else { "⚠ Missing fields" }}
+                            </div>
+                            {if !tm33_valid {
+                                view! {
+                                    <div class="schema-count">
+                                        {format!("{} errors", tm33_result.errors.len())}
+                                    </div>
+                                }.into_any()
+                            } else {
+                                view! { <span></span> }.into_any()
+                            }}
+                        </div>
+
+                        // TM-32-24 BIM Status
+                        <div class={
+                            if tm32_valid {
+                                "schema-card valid"
+                            } else if tm32_errors.is_empty() && !tm32_warnings.is_empty() {
+                                "schema-card warning"
+                            } else if !tm32_errors.is_empty() {
+                                "schema-card invalid"
+                            } else {
+                                // No TM32 issues but TM33 has issues - show as dependent
+                                "schema-card warning"
+                            }
+                        }>
+                            <div class="schema-name">"TM-32-24 BIM"</div>
+                            <div class="schema-status">
+                                {if tm32_valid {
+                                    "✓ Valid"
+                                } else if !tm32_errors.is_empty() {
+                                    "✗ Invalid"
+                                } else if !tm32_warnings.is_empty() {
+                                    "⚠ Warnings"
+                                } else {
+                                    // TM-33-23 has issues
+                                    "⚠ See TM-33-23"
+                                }}
+                            </div>
+                            {if !tm32_errors.is_empty() || !tm32_warnings.is_empty() {
+                                view! {
+                                    <div class="schema-count">
+                                        {format!("{} errors, {} warnings", tm32_errors.len(), tm32_warnings.len())}
+                                    </div>
+                                }.into_any()
+                            } else {
+                                view! { <span></span> }.into_any()
+                            }}
+                        </div>
                     </div>
 
-                    // TM-33-23 Status
-                    <div class={if tm33_valid { "validation-item success" } else { "validation-item warning" }}>
-                        <span class="schema-badge">"TM-33-23"</span>
-                        <span>{if tm33_valid { "VALID" } else { "INVALID" }}</span>
-                        {if !tm33_valid {
-                            view! {
-                                <span class="error-count">
-                                    {format!("({} errors)", tm33_result.errors.len())}
-                                </span>
-                            }.into_any()
-                        } else {
-                            view! { <span></span> }.into_any()
-                        }}
-                    </div>
-
-                    // Show TM-33-23 errors if any (collapsed by default)
+                    // Show TM-33-23 errors if any
                     {if !tm33_valid {
+                        let errors_clone = tm33_result.errors.clone();
                         view! {
-                            <details class="tm33-errors">
-                                <summary class="text-muted">"TM-33-23 missing fields"</summary>
-                                <div class="error-details">
-                                    {tm33_result.errors.iter().map(|err| {
+                            <details class="validation-details" open>
+                                <summary>"TM-33-23 Issues"</summary>
+                                <div class="validation-list">
+                                    {errors_clone.into_iter().map(|err| {
                                         view! {
-                                            <div class="validation-item error small">
-                                                <span class="validation-code">{err.code.clone()}</span>
-                                                <span>{err.message.clone()}</span>
+                                            <div class="validation-item error">
+                                                <span class="validation-code">{err.code}</span>
+                                                <span class="validation-message">{err.message}</span>
+                                            </div>
+                                        }
+                                    }).collect_view()}
+                                </div>
+                            </details>
+                        }.into_any()
+                    } else {
+                        view! { <div></div> }.into_any()
+                    }}
+
+                    // Show TM-32-24 errors/warnings if any
+                    {if !tm32_errors.is_empty() || !tm32_warnings.is_empty() {
+                        let errors_clone: Vec<_> = tm32_errors.iter().map(|e| (e.code.clone(), e.message.clone())).collect();
+                        let warnings_clone: Vec<_> = tm32_warnings.iter().map(|w| (w.code.clone(), w.message.clone())).collect();
+                        view! {
+                            <details class="validation-details" open>
+                                <summary>"TM-32-24 BIM Issues"</summary>
+                                <div class="validation-list">
+                                    {errors_clone.into_iter().map(|(code, message)| {
+                                        view! {
+                                            <div class="validation-item error">
+                                                <span class="validation-code">{code}</span>
+                                                <span class="validation-message">{message}</span>
+                                            </div>
+                                        }
+                                    }).collect_view()}
+                                    {warnings_clone.into_iter().map(|(code, message)| {
+                                        view! {
+                                            <div class="validation-item warning">
+                                                <span class="validation-code">{code}</span>
+                                                <span class="validation-message">{message}</span>
                                             </div>
                                         }
                                     }).collect_view()}
@@ -83,8 +174,6 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     }}
                 </div>
 
-                <hr class="validation-divider" />
-
                 // LDT Validation Section
                 <div class="ldt-validation-section">
                     <div class="validation-header">"LDT/IES Validation"</div>
@@ -92,7 +181,7 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     {if warnings.is_empty() && !has_errors {
                         view! {
                             <div class="validation-item success">
-                                <span>"✓"</span>
+                                <span class="validation-icon">"✓"</span>
                                 <span>{l.ui.validation_panel.all_passed.clone()}</span>
                             </div>
                         }.into_any()
@@ -102,7 +191,7 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             .replace("{warnings}", &warnings.len().to_string());
 
                         view! {
-                            <div>
+                            <div class="validation-list">
                                 // Critical errors first
                                 {errors.iter().map(|error| {
                                     let code = error.code;
@@ -110,7 +199,7 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                     view! {
                                         <div class="validation-item error">
                                             <span class="validation-code">{code}</span>
-                                            <span>{message}</span>
+                                            <span class="validation-message">{message}</span>
                                         </div>
                                     }
                                 }).collect_view()}
@@ -122,13 +211,13 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                     view! {
                                         <div class="validation-item warning">
                                             <span class="validation-code">{code}</span>
-                                            <span>{message}</span>
+                                            <span class="validation-message">{message}</span>
                                         </div>
                                     }
                                 }).collect_view()}
 
                                 // Summary
-                                <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                                <div class="validation-summary">
                                     {error_count_str}
                                 </div>
                             </div>

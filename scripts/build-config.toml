@@ -1,0 +1,69 @@
+# Build configuration for WASM split bundles
+# This file defines project-specific paths and settings for build-wasm-split.sh
+#
+# To use this for another project (e.g., gldf-rs, acadlisp):
+#   1. Copy this file to your project's scripts/ directory
+#   2. Adjust the paths and settings below
+#   3. Run: ./build-wasm-split.sh [deploy]
+
+[project]
+name = "eulumdat"
+display_name = "Eulumdat"
+
+[paths]
+# Relative to repository root
+wasm_crate = "crates/eulumdat-wasm"
+bevy_crate = "crates/eulumdat-bevy"
+bevy_output = "target/wasm32-unknown-unknown/web-release"
+typst_source = "crates/eulumdat-wasm/src/static/typst"
+dist_output = "crates/eulumdat-wasm/dist"
+assets = "assets"
+
+[bevy]
+# Bevy binary name (without extension)
+binary_name = "eulumdat-3d"
+# Features to enable when building
+features = ["standalone"]
+
+[bundles]
+# Which bundles to build (can disable any)
+leptos = true
+bevy = true
+typst = true
+gmaps = true
+
+[bundles.leptos]
+description = "Leptos editor"
+load_strategy = "immediate"
+
+[bundles.bevy]
+description = "Bevy 3D viewer"
+load_strategy = "on_demand"
+size_estimate = "~4MB compressed"
+
+[bundles.typst]
+description = "Typst PDF compiler"
+load_strategy = "on_demand"
+size_estimate = "~10MB compressed"
+
+[deploy]
+# rsync target for deployment (user@host:/path/)
+# Leave empty to disable deploy command
+target = "trahe.eu:/var/www/gldf.icu/html/QLumEdit"
+# Additional rsync flags (never use --delete!)
+rsync_flags = "-avz"
+
+[deploy.local]
+# Local server settings
+port = 8042
+server_crate = "eulumdat-server"
+
+[pages]
+# Additional HTML pages to generate
+secret_export_page = "htr_pdf_typ_test_almost_secret.html"
+# 404 page with custom SVG (relative to assets/)
+custom_404_svg = "404.svg"
+
+[env]
+# Environment variables to read from .env file
+google_maps_key = "GOOGLE_MAPS_API"

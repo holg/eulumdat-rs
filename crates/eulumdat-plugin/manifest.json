@@ -1,0 +1,243 @@
+{
+  "id": "eulumdat",
+  "name": "Eulumdat Photometric Engine",
+  "version": "0.4.0",
+  "description": "Parse, analyze, and visualize LDT/IES photometric files",
+  "js": "eulumdat_plugin.js",
+  "wasm": "eulumdat_plugin_bg.wasm",
+  "init": "default",
+  "constructor": "EulumdatEngine",
+  "capabilities": {
+    "functions": {
+      "parse_ldt": {
+        "args": ["content"],
+        "returns": "json",
+        "description": "Parse LDT (EULUMDAT) file content"
+      },
+      "parse_ies": {
+        "args": ["content"],
+        "returns": "json",
+        "description": "Parse IES file content"
+      },
+      "export_ldt": {
+        "args": [],
+        "returns": "string",
+        "description": "Export current data to LDT format"
+      },
+      "export_ies": {
+        "args": [],
+        "returns": "string",
+        "description": "Export current data to IES format"
+      },
+      "get_name": {
+        "args": [],
+        "returns": "string",
+        "description": "Get luminaire name"
+      },
+      "get_data_json": {
+        "args": [],
+        "returns": "json",
+        "description": "Get current data as JSON"
+      },
+      "clear": {
+        "args": [],
+        "returns": "void",
+        "description": "Clear loaded data"
+      },
+      "beam_angle": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate beam angle (50% max intensity)"
+      },
+      "field_angle": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate field angle (10% max intensity)"
+      },
+      "half_beam_angle": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate half beam angle"
+      },
+      "half_field_angle": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate half field angle"
+      },
+      "total_flux": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate total luminous flux"
+      },
+      "downward_flux": {
+        "args": ["angle"],
+        "returns": "number",
+        "description": "Calculate downward flux to angle"
+      },
+      "efficacy": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate luminaire efficacy (lm/W)"
+      },
+      "efficiency": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate luminaire efficiency"
+      },
+      "cut_off_angle": {
+        "args": [],
+        "returns": "number",
+        "description": "Calculate cut-off angle"
+      },
+      "get_summary": {
+        "args": [],
+        "returns": "json",
+        "description": "Get photometric summary (all metrics)"
+      },
+      "beam_field_analysis": {
+        "args": [],
+        "returns": "json",
+        "description": "Get beam/field analysis (IES vs CIE)"
+      },
+      "zonal_lumens_30": {
+        "args": [],
+        "returns": "json",
+        "description": "Calculate zonal lumens (30-degree zones)"
+      },
+      "cie_flux_codes": {
+        "args": [],
+        "returns": "json",
+        "description": "Calculate CIE flux codes"
+      },
+      "spacing_criteria": {
+        "args": [],
+        "returns": "json",
+        "description": "Calculate spacing criteria"
+      },
+      "cu_table": {
+        "args": [],
+        "returns": "json",
+        "description": "Calculate coefficient of utilization table"
+      },
+      "ugr_table": {
+        "args": [],
+        "returns": "json",
+        "description": "Calculate UGR table"
+      },
+      "direct_ratios": {
+        "args": ["shr"],
+        "returns": "json",
+        "description": "Calculate direct ratios for room indices"
+      },
+      "bug_rating": {
+        "args": [],
+        "returns": "json",
+        "description": "Calculate BUG rating"
+      },
+      "zone_lumens": {
+        "args": [],
+        "returns": "json",
+        "description": "Calculate zone lumens for BUG"
+      },
+      "bug_diagram_data": {
+        "args": [],
+        "returns": "json",
+        "description": "Get BUG diagram data"
+      },
+      "validate": {
+        "args": [],
+        "returns": "json",
+        "description": "Validate photometric data"
+      },
+      "polar_svg": {
+        "args": ["width", "height", "theme"],
+        "returns": "string",
+        "description": "Generate polar diagram SVG"
+      },
+      "cartesian_svg": {
+        "args": ["width", "height", "theme", "max_curves"],
+        "returns": "string",
+        "description": "Generate Cartesian diagram SVG"
+      },
+      "butterfly_svg": {
+        "args": ["width", "height", "theme", "rotation"],
+        "returns": "string",
+        "description": "Generate butterfly diagram SVG"
+      },
+      "heatmap_svg": {
+        "args": ["width", "height", "theme"],
+        "returns": "string",
+        "description": "Generate heatmap diagram SVG"
+      },
+      "cone_svg": {
+        "args": ["width", "height", "theme", "mounting_height"],
+        "returns": "string",
+        "description": "Generate cone diagram SVG"
+      },
+      "bug_svg": {
+        "args": ["width", "height", "theme"],
+        "returns": "string",
+        "description": "Generate BUG rating diagram SVG (TM-15-11)"
+      },
+      "lcs_svg": {
+        "args": ["width", "height", "theme"],
+        "returns": "string",
+        "description": "Generate LCS classification diagram SVG (TM-15-07)"
+      },
+      "engine_info": {
+        "args": [],
+        "returns": "json",
+        "description": "Get plugin engine info"
+      }
+    },
+    "staticFunctions": {
+      "parse_ldt": {
+        "args": ["content"],
+        "returns": "json",
+        "description": "Parse LDT content (stateless)"
+      },
+      "parse_ies": {
+        "args": ["content"],
+        "returns": "json",
+        "description": "Parse IES content (stateless)"
+      },
+      "validate_ldt": {
+        "args": ["content"],
+        "returns": "json",
+        "description": "Validate LDT content (stateless)"
+      },
+      "ldt_to_ies": {
+        "args": ["content"],
+        "returns": "string",
+        "description": "Convert LDT to IES"
+      },
+      "ies_to_ldt": {
+        "args": ["content"],
+        "returns": "string",
+        "description": "Convert IES to LDT"
+      }
+    },
+    "inputFormats": ["ldt", "ies"],
+    "outputFormats": ["svg", "json", "ldt", "ies"],
+    "diagrams": [
+      "polar",
+      "cartesian",
+      "butterfly",
+      "heatmap",
+      "cone",
+      "bug",
+      "lcs"
+    ],
+    "ui": {
+      "icon": "💡",
+      "color": "#4a90d9",
+      "primaryAction": "parse_ldt",
+      "showExamples": false,
+      "editorLanguage": null
+    }
+  },
+  "files": [
+    "eulumdat_plugin.js",
+    "eulumdat_plugin_bg.wasm"
+  ]
+}

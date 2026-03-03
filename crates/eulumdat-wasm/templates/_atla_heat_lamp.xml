@@ -7,6 +7,7 @@
         <Laboratory>Spectral Test Laboratory</Laboratory>
         <ReportNumber>SPEC-2024-IR-003</ReportNumber>
         <TestDate>2024-01-20</TestDate>
+        <ReportDate>2024-01-20</ReportDate>
         <LuminaireType>Heat Lamp</LuminaireType>
         <Comments>Infrared heat lamp with very high IR content. Peak emission in near-IR region (800-1000nm). Used for heating, food warming, and therapeutic applications. Will trigger thermal hazard warning due to >25% IR content.</Comments>
     </Header>

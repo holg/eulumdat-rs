@@ -75,6 +75,7 @@
 //! - `serde` - Serde derive for all types
 //! - `eulumdat` - Conversion to/from EULUMDAT format
 
+pub mod bim;
 pub mod error;
 pub mod greenhouse;
 pub mod labels;
@@ -86,6 +87,9 @@ pub mod validate;
 #[cfg(feature = "xml")]
 pub mod xml;
 
+#[cfg(feature = "xml")]
+pub mod spdx;
+
 #[cfg(feature = "json")]
 pub mod json;
 
@@ -93,6 +97,10 @@ pub mod json;
 pub mod convert;
 
 // Re-exports
+pub use bim::{
+    BimParameters, ElectricalPhase, EmergencyType, HousingShape, LedDriveType, MountingType,
+    VoltageType,
+};
 pub use error::{AtlaError, Result};
 pub use greenhouse::{GreenhouseDiagram, GreenhouseLabels, GreenhouseTheme};
 pub use labels::SpectralLabels;

@@ -7,6 +7,7 @@
         <Laboratory>Spectral Test Laboratory</Laboratory>
         <ReportNumber>SPEC-2024-IR-002</ReportNumber>
         <TestDate>2024-01-20</TestDate>
+        <ReportDate>2024-01-20</ReportDate>
         <LuminaireType>General Service</LuminaireType>
         <Comments>Traditional incandescent lamp with extended spectral data to 1100nm. Demonstrates high infrared content typical of tungsten filament lamps. About 90% of input energy is emitted as heat/IR.</Comments>
     </Header>

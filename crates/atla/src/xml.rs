@@ -313,7 +313,12 @@ fn parse_emitter_tm33_23(reader: &mut Reader<&[u8]>) -> Result<Emitter> {
                     "CatalogNumber" => emitter.catalog_number = Some(text.clone()),
                     "RatedLumens" => emitter.rated_lumens = text.parse().ok(),
                     // TM-33-23 uses InputWattage instead of InputWatts
-                    "InputWattage" | "InputWatts" => emitter.input_watts = text.parse().ok(),
+                    // Only set if parseable (avoid overwriting with None from nested Regulatory element)
+                    "InputWattage" | "InputWatts" => {
+                        if let Ok(v) = text.parse() {
+                            emitter.input_watts = Some(v);
+                        }
+                    }
                     "PowerFactor" => emitter.power_factor = text.parse().ok(),
                     "BallastFactor" => emitter.ballast_factor = text.parse().ok(),
                     "Duv" => emitter.duv = text.parse().ok(),
@@ -609,6 +614,7 @@ fn parse_header(reader: &mut Reader<&[u8]>) -> Result<Header> {
                     "Laboratory" => header.laboratory = Some(text),
                     "ReportNumber" => header.report_number = Some(text),
                     "TestDate" => header.test_date = Some(text),
+                    "ReportDate" => header.report_date = Some(text),
                     "IssueDate" => header.issue_date = Some(text),
                     "LuminaireType" => header.luminaire_type = Some(text),
                     "Comments" => header.comments = Some(text),
@@ -1499,6 +1505,9 @@ fn write_header<W: std::io::Write>(writer: &mut Writer<W>, header: &Header) -> R
     }
     if let Some(ref v) = header.test_date {
         write_element(writer, "TestDate", v)?;
+    }
+    if let Some(ref v) = header.report_date {
+        write_element(writer, "ReportDate", v)?;
     }
     if let Some(ref v) = header.luminaire_type {
         write_element(writer, "LuminaireType", v)?;

@@ -31,6 +31,12 @@ pub struct ViewerSettings {
     pub show_luminaire: bool,
     pub show_photometric_solid: bool,
     pub show_shadows: bool,
+    // Road-specific settings
+    pub luminaire_tilt: f32, // Tilt angle in degrees (0=down, 90=horizontal)
+    pub lane_width: f32,     // Lane width in meters
+    pub num_lanes: u8,       // Number of lanes
+    pub sidewalk_width: f32, // Sidewalk width in meters
+    pub pole_spacing: f32,   // Pole spacing (0=auto)
 }
 
 impl Default for ViewerSettings {
@@ -45,6 +51,12 @@ impl Default for ViewerSettings {
             show_luminaire: true,
             show_photometric_solid: false,
             show_shadows: false,
+            // Road defaults per EN 13201
+            luminaire_tilt: 15.0,
+            lane_width: 3.5,
+            num_lanes: 2,
+            sidewalk_width: 2.0,
+            pole_spacing: 0.0, // Auto-calculate
         }
     }
 }
@@ -53,7 +65,7 @@ impl ViewerSettings {
     /// Convert to JSON string for localStorage
     pub fn to_json(&self) -> String {
         format!(
-            r#"{{"scene_type":{},"room_width":{},"room_length":{},"room_height":{},"mounting_height":{},"pendulum_length":{},"show_luminaire":{},"show_photometric_solid":{},"show_shadows":{}}}"#,
+            r#"{{"scene_type":{},"room_width":{},"room_length":{},"room_height":{},"mounting_height":{},"pendulum_length":{},"show_luminaire":{},"show_photometric_solid":{},"show_shadows":{},"luminaire_tilt":{},"lane_width":{},"num_lanes":{},"sidewalk_width":{},"pole_spacing":{}}}"#,
             self.scene_type,
             self.room_width,
             self.room_length,
@@ -62,7 +74,12 @@ impl ViewerSettings {
             self.pendulum_length,
             self.show_luminaire,
             self.show_photometric_solid,
-            self.show_shadows
+            self.show_shadows,
+            self.luminaire_tilt,
+            self.lane_width,
+            self.num_lanes,
+            self.sidewalk_width,
+            self.pole_spacing
         )
     }
 
@@ -75,6 +92,11 @@ impl ViewerSettings {
                 let _ = storage.set_item("eulumdat_viewer_settings_timestamp", &timestamp);
             }
         }
+    }
+
+    /// Calculate total road width from lane and sidewalk settings
+    pub fn total_road_width(&self) -> f32 {
+        self.num_lanes as f32 * self.lane_width + 2.0 * self.sidewalk_width
     }
 }
 
@@ -260,7 +282,7 @@ fn ViewerControlPanel(
         <div
             class="viewer-control-panel"
             style=move || format!(
-                "width: {}; background: var(--bg-secondary, #2a2a2a); border-right: 1px solid var(--border-color, #444); \
+                "width: {}; background: var(--surface); border-right: 1px solid var(--border); \
                  padding: {}; overflow-y: auto; transition: width 0.2s, padding 0.2s;",
                 if show_controls.get() { "240px" } else { "40px" },
                 if show_controls.get() { "12px" } else { "8px" }
@@ -268,8 +290,8 @@ fn ViewerControlPanel(
         >
             // Toggle button
             <button
-                style="width: 100%; padding: 6px; margin-bottom: 12px; background: var(--bg-tertiary, #333); \
-                       border: 1px solid var(--border-color, #444); border-radius: 4px; color: var(--text-primary, #fff); \
+                style="width: 100%; padding: 6px; margin-bottom: 12px; background: var(--surface-elevated); \
+                       border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); \
                        cursor: pointer; font-size: 14px;"
                 on:click=move |_| set_show_controls.update(|v| *v = !*v)
             >
@@ -289,13 +311,15 @@ fn ViewerControlPanel(
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         // Scene Type
                         <div class="control-group">
-                            <label style="font-size: 12px; color: var(--text-secondary, #aaa); margin-bottom: 4px; display: block;">
+                            <label for="bevy-scene-type" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">
                                 {l.ui.bevy_scene.scene_type.clone()}
                             </label>
                             <select
-                                style="width: 100%; padding: 6px; background: var(--bg-tertiary, #333); \
-                                       border: 1px solid var(--border-color, #444); border-radius: 4px; \
-                                       color: var(--text-primary, #fff);"
+                                id="bevy-scene-type"
+                                aria-label="Scene type"
+                                style="width: 100%; padding: 6px; background: var(--surface-elevated); \
+                                       border: 1px solid var(--border); border-radius: 4px; \
+                                       color: var(--text-primary);"
                                 on:change=move |ev| {
                                     let value: u8 = event_target_value(&ev).parse().unwrap_or(0);
                                     set_settings.update(|s| s.scene_type = value);
@@ -351,8 +375,73 @@ fn ViewerControlPanel(
                                         />
                                     </div>
                                 }.into_any()
+                            } else if scene_type == 1 {
+                                // Road scene - show road-specific settings
+                                view! {
+                                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                                        <div style="font-size: 11px; color: var(--text-secondary); font-weight: bold; margin-top: 4px;">
+                                            "Road Layout"
+                                        </div>
+                                        <NumberInput
+                                            label="Lanes".to_string()
+                                            value=settings.get().num_lanes as f32
+                                            min=1.0 max=6.0 step=1.0
+                                            on_change=move |v| set_settings.update(|s| s.num_lanes = v as u8)
+                                        />
+                                        <NumberInput
+                                            label="Lane Width (m)".to_string()
+                                            value=settings.get().lane_width
+                                            min=2.5 max=4.5 step=0.25
+                                            on_change=move |v| update_field(|s, v| s.lane_width = v, v)
+                                        />
+                                        <NumberInput
+                                            label="Sidewalk Width (m)".to_string()
+                                            value=settings.get().sidewalk_width
+                                            min=1.0 max=4.0 step=0.5
+                                            on_change=move |v| update_field(|s, v| s.sidewalk_width = v, v)
+                                        />
+                                        <NumberInput
+                                            label="Road Length (m)".to_string()
+                                            value=settings.get().room_length
+                                            min=30.0 max=200.0 step=10.0
+                                            on_change=move |v| update_field(|s, v| s.room_length = v, v)
+                                        />
+                                        <div style="font-size: 11px; color: var(--text-secondary); font-weight: bold; margin-top: 8px;">
+                                            "Luminaire Settings"
+                                        </div>
+                                        <NumberInput
+                                            label=l.ui.bevy_scene.mounting_height.clone()
+                                            value=settings.get().mounting_height
+                                            min=4.0 max=15.0 step=0.5
+                                            on_change=move |v| update_field(|s, v| s.mounting_height = v, v)
+                                        />
+                                        <NumberInput
+                                            label="Tilt Angle (°)".to_string()
+                                            value=settings.get().luminaire_tilt
+                                            min=0.0 max=45.0 step=5.0
+                                            on_change=move |v| update_field(|s, v| s.luminaire_tilt = v, v)
+                                        />
+                                        <NumberInput
+                                            label="Pole Spacing (m, 0=auto)".to_string()
+                                            value=settings.get().pole_spacing
+                                            min=0.0 max=60.0 step=5.0
+                                            on_change=move |v| update_field(|s, v| s.pole_spacing = v, v)
+                                        />
+                                        // Show calculated values
+                                        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; padding: 6px; background: var(--surface-elevated); border-radius: 4px;">
+                                            {move || {
+                                                let s = settings.get();
+                                                let total_w = s.num_lanes as f32 * s.lane_width + 2.0 * s.sidewalk_width;
+                                                let auto_spacing = s.mounting_height * 3.5;
+                                                let spacing = if s.pole_spacing > 0.0 { s.pole_spacing } else { auto_spacing };
+                                                let num_poles = (s.room_length / spacing).floor() as i32;
+                                                format!("Total width: {:.1}m | Poles: {} | Spacing: {:.1}m", total_w, num_poles.max(1), spacing)
+                                            }}
+                                        </div>
+                                    </div>
+                                }.into_any()
                             } else {
-                                // Outdoor scenes - show mounting height
+                                // Other outdoor scenes - show mounting height
                                 view! {
                                     <div style="display: flex; flex-direction: column; gap: 8px;">
                                         <NumberInput
@@ -403,6 +492,14 @@ fn ViewerControlPanel(
     }
 }
 
+/// Atomic counter for generating unique IDs
+static BEVY_INPUT_COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+fn generate_bevy_input_id(prefix: &str) -> String {
+    let id = BEVY_INPUT_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    format!("{}-{}", prefix, id)
+}
+
 /// Number input with label
 #[component]
 fn NumberInput(
@@ -413,20 +510,25 @@ fn NumberInput(
     step: f32,
     on_change: impl Fn(f32) + 'static,
 ) -> impl IntoView {
+    let id = generate_bevy_input_id("bevy-num");
+    let label_clone = label.clone();
+
     view! {
         <div class="number-input" style="display: flex; flex-direction: column; gap: 2px;">
-            <label style="font-size: 11px; color: var(--text-secondary, #888);">
+            <label for=id.clone() style="font-size: 11px; color: var(--text-secondary);">
                 {label}
             </label>
             <input
                 type="number"
+                id=id
+                aria-label=label_clone
                 value=value
                 min=min
                 max=max
                 step=step
-                style="width: 100%; padding: 4px 6px; background: var(--bg-tertiary, #333); \
-                       border: 1px solid var(--border-color, #444); border-radius: 3px; \
-                       color: var(--text-primary, #fff); font-size: 13px;"
+                style="width: 100%; padding: 4px 6px; background: var(--surface-elevated); \
+                       border: 1px solid var(--border); border-radius: 3px; \
+                       color: var(--text-primary); font-size: 13px;"
                 on:change=move |ev| {
                     if let Ok(v) = event_target_value(&ev).parse::<f32>() {
                         on_change(v.clamp(min, max));
@@ -437,18 +539,20 @@ fn NumberInput(
     }
 }
 
-/// Checkbox input with label
+/// Checkbox input with label (already accessible - label wraps input)
 #[component]
 fn CheckboxInput(
     label: String,
     checked: bool,
     on_change: impl Fn(bool) + 'static,
 ) -> impl IntoView {
+    let id = generate_bevy_input_id("bevy-chk");
+
     view! {
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; \
-                      color: var(--text-primary, #fff);">
+        <div class="checkbox-input" style="display: flex; align-items: center; gap: 8px;">
             <input
                 type="checkbox"
+                id=id.clone()
                 checked=checked
                 style="width: 16px; height: 16px; cursor: pointer;"
                 on:change=move |ev| {
@@ -456,8 +560,10 @@ fn CheckboxInput(
                     on_change(target.checked());
                 }
             />
-            {label}
-        </label>
+            <label for=id style="cursor: pointer; font-size: 12px; color: var(--text-primary);">
+                {label}
+            </label>
+        </div>
     }
 }
 

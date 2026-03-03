@@ -1,0 +1,93 @@
+//! Isolux ground footprint component with tilt/height/area sliders
+
+use crate::i18n::use_locale;
+use eulumdat::diagram::{IsoluxDiagram, IsoluxParams, SvgTheme};
+use eulumdat::Eulumdat;
+use leptos::ev;
+use leptos::prelude::*;
+
+#[component]
+pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+    let locale = use_locale();
+
+    let (mounting_height, set_mounting_height) = signal(10.0_f64);
+    let (tilt_angle, set_tilt_angle) = signal(0.0_f64);
+    let (area_size, set_area_size) = signal(20.0_f64);
+
+    let on_height_change = move |ev: ev::Event| {
+        let target = event_target::<web_sys::HtmlInputElement>(&ev);
+        if let Ok(v) = target.value().parse::<f64>() {
+            set_mounting_height.set(v);
+        }
+    };
+
+    let on_tilt_change = move |ev: ev::Event| {
+        let target = event_target::<web_sys::HtmlInputElement>(&ev);
+        if let Ok(v) = target.value().parse::<f64>() {
+            set_tilt_angle.set(v);
+        }
+    };
+
+    let on_area_change = move |ev: ev::Event| {
+        let target = event_target::<web_sys::HtmlInputElement>(&ev);
+        if let Ok(v) = target.value().parse::<f64>() {
+            set_area_size.set(v);
+        }
+    };
+
+    // Generate SVG reactively
+    let svg_content = move || {
+        let ldt_val = ldt.get();
+        let params = IsoluxParams {
+            mounting_height: mounting_height.get(),
+            tilt_angle: tilt_angle.get(),
+            area_half_width: area_size.get(),
+            area_half_depth: area_size.get(),
+            grid_resolution: 60,
+        };
+        let theme = SvgTheme::css_variables_with_locale(&locale.get());
+        let diagram = IsoluxDiagram::from_eulumdat(&ldt_val, 600.0, 500.0, params);
+        diagram.to_svg(600.0, 500.0, &theme)
+    };
+
+    view! {
+        <div class="isolux-container">
+            <div class="isolux-controls">
+                <label class="control-group">
+                    <span>{move || locale.get().ui.floodlight.mounting_height.clone()}</span>
+                    <input
+                        type="range"
+                        min="3" max="30" step="0.5"
+                        prop:value=move || mounting_height.get().to_string()
+                        on:input=on_height_change
+                    />
+                    <span class="control-value">{move || format!("{:.1} m", mounting_height.get())}</span>
+                </label>
+
+                <label class="control-group">
+                    <span>{move || locale.get().ui.floodlight.tilt_angle.clone()}</span>
+                    <input
+                        type="range"
+                        min="0" max="80" step="1"
+                        prop:value=move || tilt_angle.get().to_string()
+                        on:input=on_tilt_change
+                    />
+                    <span class="control-value">{move || format!("{:.0}°", tilt_angle.get())}</span>
+                </label>
+
+                <label class="control-group">
+                    <span>{move || locale.get().ui.floodlight.area_size.clone()}</span>
+                    <input
+                        type="range"
+                        min="10" max="100" step="5"
+                        prop:value=move || area_size.get().to_string()
+                        on:input=on_area_change
+                    />
+                    <span class="control-value">{move || format!("{:.0} m", area_size.get())}</span>
+                </label>
+            </div>
+
+            <div class="isolux-diagram" inner_html=svg_content />
+        </div>
+    }
+}

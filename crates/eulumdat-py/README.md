@@ -147,4 +147,4 @@ detailed_bug = ldt.bug_svg_with_details(width=600, height=400)
 
 ## License
 
-MIT OR Apache-2.0
+AGPL-3.0-or-later

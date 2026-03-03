@@ -29,6 +29,8 @@ fn main() -> Result<()> {
             width,
             height,
             mounting_height,
+            tilt,
+            log_scale,
         } => commands::diagram(
             &input,
             output.as_ref(),
@@ -37,6 +39,8 @@ fn main() -> Result<()> {
             width,
             height,
             mounting_height,
+            tilt,
+            log_scale,
         ),
         Commands::Bug { file, svg, dark } => commands::bug(&file, svg.as_ref(), dark),
         Commands::Batch {
@@ -77,5 +81,39 @@ fn main() -> Result<()> {
             verbose,
             compact,
         } => commands::atla_convert(&input, &output, target, policy, verbose, compact),
+        Commands::Compare {
+            file_a,
+            file_b,
+            format,
+            diagram,
+            output,
+            dark,
+            significant_only,
+        } => commands::compare(
+            &file_a,
+            &file_b,
+            format,
+            diagram,
+            output.as_ref(),
+            dark,
+            significant_only,
+        ),
+        Commands::Report {
+            input,
+            output,
+            paper,
+            compact,
+            cu_table,
+            ugr_table,
+            candela_table,
+        } => commands::report(
+            &input,
+            &output,
+            paper,
+            compact,
+            cu_table,
+            ugr_table,
+            candela_table,
+        ),
     }
 }

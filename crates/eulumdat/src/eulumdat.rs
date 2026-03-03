@@ -1,12 +1,32 @@
 //! Core Eulumdat data structure.
 
-use crate::error::{invalid_value, Result};
+use std::path::Path;
+
+use crate::error::{anyhow, invalid_value, Result};
 use crate::parser::Parser;
 use crate::validation::{ValidationError, ValidationWarning};
 use crate::writer::Writer;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+/// Read file with encoding fallback.
+///
+/// Tries UTF-8 first, then falls back to ISO-8859-1 (Latin-1) which is common
+/// for LDT/IES files from Windows tools.
+fn read_with_encoding_fallback<P: AsRef<Path>>(path: P) -> Result<String> {
+    let bytes = std::fs::read(path.as_ref()).map_err(|e| anyhow!("Failed to read file: {}", e))?;
+
+    // Try UTF-8 first
+    match String::from_utf8(bytes.clone()) {
+        Ok(content) => Ok(content),
+        Err(_) => {
+            // Fall back to ISO-8859-1 (Latin-1)
+            // Every byte is valid in ISO-8859-1, so this always succeeds
+            Ok(bytes.iter().map(|&b| b as char).collect())
+        }
+    }
+}
 
 /// Type indicator for the luminaire.
 ///
@@ -264,8 +284,12 @@ impl Eulumdat {
     }
 
     /// Load from a file path.
+    ///
+    /// Automatically handles both UTF-8 and ISO-8859-1 (Latin-1) encoded files.
+    /// This is necessary because many LDT files from Windows-based tools use
+    /// ISO-8859-1 encoding.
     pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self> {
-        let content = std::fs::read_to_string(path)?;
+        let content = read_with_encoding_fallback(path)?;
         Self::parse(&content)
     }
 

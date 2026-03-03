@@ -29,7 +29,11 @@
 //! let svg = polar.to_svg_responsive(300.0, 300.0, &SvgTheme::light(), DetailLevel::Minimal);
 //! ```
 
-use super::{ButterflyDiagram, CartesianDiagram, ConeDiagram, HeatmapDiagram, PolarDiagram};
+use super::{
+    ButterflyDiagram, CartesianCurve, CartesianDiagram, ConeDiagram, DiagramScale,
+    FloodlightCartesianDiagram, HeatmapDiagram, IsocandelaDiagram, IsoluxDiagram, PolarDiagram,
+    YScale,
+};
 
 /// Detail level for SVG rendering
 ///
@@ -1053,6 +1057,73 @@ impl PolarDiagram {
             ));
         }
 
+        // === UPWARD BEAM ANGLE MARKER (for uplights/direct-indirect) ===
+        let purple = "#a855f7"; // Upward beam angle color
+        let half_upward_beam = summary.upward_beam_angle / 2.0;
+        if half_upward_beam > 0.0 && half_upward_beam < 90.0 {
+            // Draw upward beam angle lines in upper hemisphere
+            // For upward light, we draw from center going UP (negative y direction)
+            let upward_rad = half_upward_beam.to_radians();
+            let arc_radius = radius * 0.85;
+            // Note: y is inverted (negative) for upper hemisphere
+            let x1 = center - arc_radius * upward_rad.sin();
+            let y1 = center - arc_radius * upward_rad.cos(); // Negative for upward
+            let x2 = center + arc_radius * upward_rad.sin();
+            let y2 = center - arc_radius * upward_rad.cos(); // Negative for upward
+
+            // Dashed lines for upward beam angle
+            svg.push_str(&format!(
+                r#"<line x1="{}" y1="{}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>"#,
+                center, center, x1, y1, purple
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{}" y1="{}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>"#,
+                center, center, x2, y2, purple
+            ));
+
+            // Small circles at end points
+            svg.push_str(&format!(
+                r#"<circle cx="{:.1}" cy="{:.1}" r="4" fill="{}" opacity="0.8"/>"#,
+                x1, y1, purple
+            ));
+            svg.push_str(&format!(
+                r#"<circle cx="{:.1}" cy="{:.1}" r="4" fill="{}" opacity="0.8"/>"#,
+                x2, y2, purple
+            ));
+        }
+
+        // === UPWARD FIELD ANGLE MARKER ===
+        let pink = "#ec4899"; // Upward field angle color
+        let half_upward_field = summary.upward_field_angle / 2.0;
+        if half_upward_field > 0.0 && half_upward_field < 90.0 {
+            let upward_field_rad = half_upward_field.to_radians();
+            let arc_radius = radius * 0.9;
+            let x1 = center - arc_radius * upward_field_rad.sin();
+            let y1 = center - arc_radius * upward_field_rad.cos();
+            let x2 = center + arc_radius * upward_field_rad.sin();
+            let y2 = center - arc_radius * upward_field_rad.cos();
+
+            // Dotted lines for upward field angle
+            svg.push_str(&format!(
+                r#"<line x1="{}" y1="{}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1.5" stroke-dasharray="2,3" opacity="0.7"/>"#,
+                center, center, x1, y1, pink
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{}" y1="{}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1.5" stroke-dasharray="2,3" opacity="0.7"/>"#,
+                center, center, x2, y2, pink
+            ));
+
+            // Small diamonds at end points
+            svg.push_str(&format!(
+                r#"<rect x="{:.1}" y="{:.1}" width="6" height="6" fill="{}" opacity="0.7" transform="rotate(45 {} {})"/>"#,
+                x1 - 3.0, y1 - 3.0, pink, x1, y1
+            ));
+            svg.push_str(&format!(
+                r#"<rect x="{:.1}" y="{:.1}" width="6" height="6" fill="{}" opacity="0.7" transform="rotate(45 {} {})"/>"#,
+                x2 - 3.0, y2 - 3.0, pink, x2, y2
+            ));
+        }
+
         // C0-C180 curve
         let path_c0_c180 = self.c0_c180_curve.to_svg_path(center, center, scale);
         if !path_c0_c180.is_empty() {
@@ -1099,8 +1170,11 @@ impl PolarDiagram {
         let box_x = size - 145.0;
         let box_y = 10.0;
         let box_w = 135.0;
-        // Make box taller if showing CIE beam angle for batwing
-        let box_h = if summary.is_batwing { 109.0 } else { 95.0 };
+        // Calculate box height based on what's shown
+        let has_upward = summary.upward_beam_angle > 0.0;
+        let extra_lines =
+            (if summary.is_batwing { 1 } else { 0 }) + (if has_upward { 2 } else { 0 });
+        let box_h = 95.0 + (extra_lines as f64 * 14.0);
 
         svg.push_str(&format!(
             r#"<rect x="{box_x}" y="{box_y}" width="{box_w}" height="{box_h}" fill="{}" stroke="{}" stroke-width="1" rx="4" opacity="0.95"/>"#,
@@ -1119,10 +1193,15 @@ impl PolarDiagram {
         ));
         text_y += line_height;
 
-        // Show IES beam angle (always)
+        // Show IES beam angle (always) - label as "Down" if there's also upward
+        let beam_label = if has_upward {
+            format!("{} ↓", theme.labels.beam)
+        } else {
+            theme.labels.beam.clone()
+        };
         svg.push_str(&format!(
-            r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} {:.0}° (IES)</text>"#,
-            text_x, text_y, theme.text, green, theme.labels.beam, summary.beam_angle
+            r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} {:.0}°</text>"#,
+            text_x, text_y, theme.text, green, beam_label, summary.beam_angle
         ));
         text_y += line_height;
 
@@ -1131,6 +1210,21 @@ impl PolarDiagram {
             svg.push_str(&format!(
                 r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">▲</tspan> {} {:.0}° (CIE)</text>"#,
                 text_x, text_y, theme.text, blue, theme.labels.beam, summary.beam_angle_cie
+            ));
+            text_y += line_height;
+        }
+
+        // Show upward beam/field angles if present
+        if has_upward {
+            svg.push_str(&format!(
+                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} ↑ {:.0}°</text>"#,
+                text_x, text_y, theme.text, purple, theme.labels.beam, summary.upward_beam_angle
+            ));
+            text_y += line_height;
+
+            svg.push_str(&format!(
+                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">◆</tspan> {} ↑ {:.0}°</text>"#,
+                text_x, text_y, theme.text, pink, theme.labels.field, summary.upward_field_angle
             ));
             text_y += line_height;
         }
@@ -3188,6 +3282,967 @@ impl ConeDiagram {
 
         svg.push_str("</svg>");
         svg
+    }
+}
+
+impl IsoluxDiagram {
+    /// Generate complete SVG string for the isolux ground footprint diagram
+    pub fn to_svg(&self, width: f64, height: f64, theme: &SvgTheme) -> String {
+        let margin_left = self.margin_left;
+        let margin_top = self.margin_top;
+        let plot_width = self.plot_width;
+        let plot_height = self.plot_height;
+
+        let mut svg = String::new();
+
+        // SVG header
+        svg.push_str(&format!(
+            r#"<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#
+        ));
+
+        // Background
+        svg.push_str(&format!(
+            r#"<rect x="0" y="0" width="{width}" height="{height}" fill="{}"/>"#,
+            theme.background
+        ));
+
+        // Title
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="{}" font-family="{}">Isolux Footprint (h={:.1}m, tilt={:.0}°)</text>"#,
+            width / 2.0,
+            theme.text,
+            theme.font_family,
+            self.params.mounting_height,
+            self.params.tilt_angle
+        ));
+
+        // Heatmap cells
+        for cell in &self.cells {
+            svg.push_str(&format!(
+                r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}"/>"#,
+                cell.sx,
+                cell.sy,
+                cell.width,
+                cell.height,
+                cell.color.to_rgb_string()
+            ));
+        }
+
+        // Contour lines overlay
+        let contour_colors = [
+            "rgba(255,255,255,0.9)",
+            "rgba(255,255,255,0.85)",
+            "rgba(255,255,255,0.8)",
+            "rgba(255,255,255,0.75)",
+            "rgba(255,255,255,0.7)",
+            "rgba(255,255,255,0.65)",
+            "rgba(255,255,255,0.6)",
+            "rgba(255,255,255,0.55)",
+            "rgba(255,255,255,0.5)",
+        ];
+
+        for (i, contour) in self.contours.iter().enumerate() {
+            let color = contour_colors.get(i).unwrap_or(&"rgba(255,255,255,0.6)");
+            for path in &contour.paths {
+                svg.push_str(&format!(
+                    r#"<path d="{}" fill="none" stroke="{}" stroke-width="1.5"/>"#,
+                    path, color
+                ));
+            }
+            // Label at the first path's start point
+            if let Some(first_path) = contour.paths.first() {
+                if let Some(coords) = first_path.strip_prefix("M ") {
+                    if let Some(space_idx) = coords.find(' ') {
+                        let x_str = &coords[..space_idx];
+                        if let Ok(x) = x_str.parse::<f64>() {
+                            let y_str = coords[space_idx + 1..].split(' ').next().unwrap_or("0");
+                            if let Ok(y) = y_str.parse::<f64>() {
+                                svg.push_str(&format!(
+                                    r#"<text x="{:.1}" y="{:.1}" font-size="9" fill="white" font-family="{}" font-weight="bold" paint-order="stroke" stroke="{}" stroke-width="2">{}</text>"#,
+                                    x + 3.0, y - 3.0,
+                                    theme.font_family,
+                                    "rgba(0,0,0,0.5)",
+                                    contour.label
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Luminaire marker at center
+        let cx = margin_left + plot_width / 2.0;
+        let cy = margin_top + plot_height / 2.0;
+        svg.push_str(&format!(
+            r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="4" fill="white" stroke="black" stroke-width="1.5"/>"#
+        ));
+
+        // Axis labels (in meters)
+        let hw = self.params.area_half_width;
+        let hd = self.params.area_half_depth;
+        let x_label_positions = [-1.0, -0.5, 0.0, 0.5, 1.0];
+        for &frac in &x_label_positions {
+            let x = margin_left + plot_width * ((frac + 1.0) / 2.0);
+            let meters = hw * frac;
+            svg.push_str(&format!(
+                r#"<text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">{:.0}m</text>"#,
+                margin_top + plot_height + 16.0,
+                theme.text_secondary,
+                theme.font_family,
+                meters
+            ));
+        }
+        for &frac in &x_label_positions {
+            let y = margin_top + plot_height * ((1.0 - frac) / 2.0);
+            let meters = hd * frac;
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="{}" font-family="{}">{:.0}m</text>"#,
+                margin_left - 6.0,
+                theme.text_secondary,
+                theme.font_family,
+                meters
+            ));
+        }
+
+        // Axis titles
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}">X (m)</text>"#,
+            margin_left + plot_width / 2.0,
+            height - 6.0,
+            theme.text,
+            theme.font_family
+        ));
+        svg.push_str(&format!(
+            r#"<text x="14" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}" transform="rotate(-90, 14, {:.1})">Y (m)</text>"#,
+            margin_top + plot_height / 2.0,
+            theme.text,
+            theme.font_family,
+            margin_top + plot_height / 2.0
+        ));
+
+        // Color legend
+        let legend_x = margin_left + plot_width + 10.0;
+        let legend_h = plot_height;
+        let num_segments = 50;
+        let seg_h = legend_h / num_segments as f64;
+        for i in 0..num_segments {
+            let normalized = 1.0 - i as f64 / num_segments as f64;
+            let color = super::color::heatmap_color(normalized);
+            let y = margin_top + i as f64 * seg_h;
+            svg.push_str(&format!(
+                r#"<rect x="{legend_x:.1}" y="{y:.1}" width="15" height="{seg_h:.1}" fill="{}"/>"#,
+                color.to_rgb_string()
+            ));
+        }
+        // Legend labels
+        let legend_labels = [
+            (0.0, format!("{:.0} lx", self.max_lux)),
+            (0.5, format!("{:.0} lx", self.max_lux * 0.5)),
+            (1.0, "0 lx".to_string()),
+        ];
+        for &(frac, ref label) in &legend_labels {
+            let y = margin_top + frac * legend_h;
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{y:.1}" font-size="9" fill="{}" font-family="{}" dominant-baseline="middle">{}</text>"#,
+                legend_x + 20.0,
+                theme.text_secondary,
+                theme.font_family,
+                label
+            ));
+        }
+
+        // Border
+        svg.push_str(&format!(
+            r#"<rect x="{margin_left}" y="{margin_top}" width="{plot_width}" height="{plot_height}" fill="none" stroke="{}" stroke-width="1"/>"#,
+            theme.axis
+        ));
+
+        // Max lux annotation
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="10" fill="{}" font-family="{}">E_max = {:.1} lx</text>"#,
+            margin_left + plot_width,
+            margin_top + plot_height + 38.0,
+            theme.text_secondary,
+            theme.font_family,
+            self.max_lux
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+}
+
+impl IsocandelaDiagram {
+    /// Generate complete SVG string for the isocandela contour plot
+    pub fn to_svg(&self, width: f64, height: f64, theme: &SvgTheme) -> String {
+        let margin_left = self.margin_left;
+        let margin_top = self.margin_top;
+        let plot_width = self.plot_width;
+        let plot_height = self.plot_height;
+
+        let mut svg = String::new();
+
+        // SVG header
+        svg.push_str(&format!(
+            r#"<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#
+        ));
+
+        // Background
+        svg.push_str(&format!(
+            r#"<rect x="0" y="0" width="{width}" height="{height}" fill="{}"/>"#,
+            theme.background
+        ));
+
+        // Title
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="{}" font-family="{}">Isocandela Contour Plot</text>"#,
+            width / 2.0,
+            theme.text,
+            theme.font_family
+        ));
+
+        // Heatmap cells
+        for cell in &self.cells {
+            svg.push_str(&format!(
+                r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}"/>"#,
+                cell.sx,
+                cell.sy,
+                cell.width,
+                cell.height,
+                cell.color.to_rgb_string()
+            ));
+        }
+
+        // Contour lines
+        let contour_colors = [
+            "rgba(255,255,255,0.95)",
+            "rgba(255,255,255,0.85)",
+            "rgba(255,255,255,0.8)",
+            "rgba(255,255,255,0.7)",
+            "rgba(255,255,255,0.6)",
+        ];
+
+        for (i, contour) in self.contours.iter().enumerate() {
+            let color = contour_colors.get(i).unwrap_or(&"rgba(255,255,255,0.6)");
+            for path in &contour.paths {
+                svg.push_str(&format!(
+                    r#"<path d="{}" fill="none" stroke="{}" stroke-width="1.5"/>"#,
+                    path, color
+                ));
+            }
+            // Label
+            if let Some(first_path) = contour.paths.first() {
+                if let Some(coords) = first_path.strip_prefix("M ") {
+                    if let Some(space_idx) = coords.find(' ') {
+                        let x_str = &coords[..space_idx];
+                        if let Ok(x) = x_str.parse::<f64>() {
+                            let y_str = coords[space_idx + 1..].split(' ').next().unwrap_or("0");
+                            if let Ok(y) = y_str.parse::<f64>() {
+                                svg.push_str(&format!(
+                                    r#"<text x="{:.1}" y="{:.1}" font-size="9" fill="white" font-family="{}" font-weight="bold" paint-order="stroke" stroke="{}" stroke-width="2">{}</text>"#,
+                                    x + 3.0, y - 3.0,
+                                    theme.font_family,
+                                    "rgba(0,0,0,0.5)",
+                                    contour.label
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Axis grid lines and labels
+        let h_ticks = [-90.0, -60.0, -30.0, 0.0, 30.0, 60.0, 90.0];
+        let v_ticks = [-90.0, -60.0, -30.0, 0.0, 30.0, 60.0, 90.0];
+
+        for &h in &h_ticks {
+            let x = margin_left + plot_width * ((h - self.h_min) / (self.h_max - self.h_min));
+            svg.push_str(&format!(
+                r#"<line x1="{x:.1}" y1="{margin_top}" x2="{x:.1}" y2="{:.1}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>"#,
+                margin_top + plot_height
+            ));
+            svg.push_str(&format!(
+                r#"<text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">{h:.0}°</text>"#,
+                margin_top + plot_height + 16.0,
+                theme.text_secondary,
+                theme.font_family
+            ));
+        }
+
+        for &v in &v_ticks {
+            let y = margin_top + plot_height * ((self.v_max - v) / (self.v_max - self.v_min));
+            svg.push_str(&format!(
+                r#"<line x1="{margin_left}" y1="{y:.1}" x2="{:.1}" y2="{y:.1}" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>"#,
+                margin_left + plot_width
+            ));
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="{}" font-family="{}">{v:.0}°</text>"#,
+                margin_left - 6.0,
+                theme.text_secondary,
+                theme.font_family
+            ));
+        }
+
+        // Axis titles
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}">Horizontal Angle H (°)</text>"#,
+            margin_left + plot_width / 2.0,
+            height - 6.0,
+            theme.text,
+            theme.font_family
+        ));
+        svg.push_str(&format!(
+            r#"<text x="14" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}" transform="rotate(-90, 14, {:.1})">Vertical Angle V (°)</text>"#,
+            margin_top + plot_height / 2.0,
+            theme.text,
+            theme.font_family,
+            margin_top + plot_height / 2.0
+        ));
+
+        // Color legend
+        let legend_x = margin_left + plot_width + 10.0;
+        let legend_h = plot_height;
+        let num_segments = 50;
+        let seg_h = legend_h / num_segments as f64;
+        for i in 0..num_segments {
+            let normalized = 1.0 - i as f64 / num_segments as f64;
+            let color = super::color::heatmap_color(normalized);
+            let y = margin_top + i as f64 * seg_h;
+            svg.push_str(&format!(
+                r#"<rect x="{legend_x:.1}" y="{y:.1}" width="15" height="{seg_h:.1}" fill="{}"/>"#,
+                color.to_rgb_string()
+            ));
+        }
+        // Legend labels
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" font-size="9" fill="{}" font-family="{}" dominant-baseline="middle">{:.0}</text>"#,
+            legend_x + 20.0, margin_top,
+            theme.text_secondary, theme.font_family,
+            self.i_max
+        ));
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" font-size="9" fill="{}" font-family="{}" dominant-baseline="middle">cd/klm</text>"#,
+            legend_x + 20.0, margin_top + 12.0,
+            theme.text_secondary, theme.font_family
+        ));
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" font-size="9" fill="{}" font-family="{}" dominant-baseline="middle">0</text>"#,
+            legend_x + 20.0, margin_top + legend_h,
+            theme.text_secondary, theme.font_family
+        ));
+
+        // Border
+        svg.push_str(&format!(
+            r#"<rect x="{margin_left}" y="{margin_top}" width="{plot_width}" height="{plot_height}" fill="none" stroke="{}" stroke-width="1"/>"#,
+            theme.axis
+        ));
+
+        // I_max annotation
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="10" fill="{}" font-family="{}">I_max = {:.0} cd/klm</text>"#,
+            margin_left + plot_width,
+            margin_top + plot_height + 38.0,
+            theme.text_secondary,
+            theme.font_family,
+            self.i_max
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+}
+
+impl FloodlightCartesianDiagram {
+    /// Generate complete SVG string for the floodlight V-H Cartesian diagram
+    pub fn to_svg(&self, width: f64, height: f64, theme: &SvgTheme) -> String {
+        let margin_left = self.margin_left;
+        let margin_top = self.margin_top;
+        let plot_width = self.plot_width;
+        let plot_height = self.plot_height;
+
+        let mut svg = String::new();
+
+        // SVG header
+        svg.push_str(&format!(
+            r#"<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#
+        ));
+
+        // Background
+        svg.push_str(&format!(
+            r#"<rect x="0" y="0" width="{width}" height="{height}" fill="{}"/>"#,
+            theme.background
+        ));
+
+        // Plot area background
+        svg.push_str(&format!(
+            r#"<rect x="{margin_left}" y="{margin_top}" width="{plot_width}" height="{plot_height}" fill="{}" stroke="{}" stroke-width="1"/>"#,
+            theme.surface, theme.axis
+        ));
+
+        // Y-axis grid lines and labels
+        for tick in &self.y_ticks {
+            let y = self.map_y_tick(*tick, margin_top, plot_height);
+            svg.push_str(&format!(
+                r#"<line x1="{margin_left}" y1="{y:.1}" x2="{:.1}" y2="{y:.1}" stroke="{}" stroke-width="0.5" stroke-dasharray="4,3"/>"#,
+                margin_left + plot_width,
+                theme.grid
+            ));
+            let label = match self.y_scale {
+                YScale::Logarithmic => {
+                    if *tick >= 1.0 {
+                        format!("{:.0}", tick)
+                    } else {
+                        format!("{:.1}", tick)
+                    }
+                }
+                YScale::Linear => format!("{:.0}", tick),
+            };
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="11" fill="{}" font-family="{}">{label}</text>"#,
+                margin_left - 8.0,
+                theme.text_secondary,
+                theme.font_family
+            ));
+        }
+
+        // X-axis grid lines and labels
+        for &angle in &self.x_ticks {
+            let x = margin_left + plot_width * ((angle + 90.0) / 180.0);
+            svg.push_str(&format!(
+                r#"<line x1="{x:.1}" y1="{margin_top}" x2="{x:.1}" y2="{:.1}" stroke="{}" stroke-width="0.5" stroke-dasharray="4,3"/>"#,
+                margin_top + plot_height,
+                theme.grid
+            ));
+            svg.push_str(&format!(
+                r#"<text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="11" fill="{}" font-family="{}">{angle:.0}°</text>"#,
+                margin_top + plot_height + 18.0,
+                theme.text_secondary,
+                theme.font_family
+            ));
+        }
+
+        // Zero axis emphasis (at angle=0)
+        let x_zero = margin_left + plot_width * 0.5;
+        svg.push_str(&format!(
+            r#"<line x1="{x_zero:.1}" y1="{margin_top}" x2="{x_zero:.1}" y2="{:.1}" stroke="{}" stroke-width="1" opacity="0.5"/>"#,
+            margin_top + plot_height,
+            theme.axis
+        ));
+
+        // H-plane curve
+        let h_path = self.h_curve.to_svg_path();
+        svg.push_str(&format!(
+            r#"<path d="{}" fill="none" stroke="{}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>"#,
+            h_path,
+            self.h_curve.color.to_rgb_string()
+        ));
+
+        // V-plane curve
+        let v_path = self.v_curve.to_svg_path();
+        svg.push_str(&format!(
+            r#"<path d="{}" fill="none" stroke="{}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>"#,
+            v_path,
+            self.v_curve.color.to_rgb_string()
+        ));
+
+        // Axis labels
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}">Angle (°)</text>"#,
+            margin_left + plot_width / 2.0,
+            height - 8.0,
+            theme.text,
+            theme.font_family
+        ));
+
+        let y_label = match self.y_scale {
+            YScale::Linear => "Intensity (cd/klm)",
+            YScale::Logarithmic => "Intensity (cd/klm) — log",
+        };
+        svg.push_str(&format!(
+            r#"<text x="18" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}" transform="rotate(-90, 18, {:.1})">{}</text>"#,
+            margin_top + plot_height / 2.0,
+            theme.text,
+            theme.font_family,
+            margin_top + plot_height / 2.0,
+            y_label
+        ));
+
+        // Title
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="20" text-anchor="middle" font-size="14" font-weight="bold" fill="{}" font-family="{}">Floodlight V-H Diagram</text>"#,
+            width / 2.0,
+            theme.text,
+            theme.font_family
+        ));
+
+        // Legend
+        let legend_x = margin_left + plot_width - 130.0;
+        let legend_y = margin_top + 10.0;
+        svg.push_str(&format!(
+            r#"<g transform="translate({legend_x:.1}, {legend_y:.1})">"#
+        ));
+        svg.push_str(&format!(
+            r#"<rect x="-5" y="-5" width="130" height="50" fill="{}" stroke="{}" stroke-width="1" rx="4" opacity="0.9"/>"#,
+            theme.legend_bg, theme.axis
+        ));
+        // H-plane legend
+        svg.push_str(&format!(
+            r#"<line x1="0" y1="8" x2="18" y2="8" stroke="{}" stroke-width="2.5"/>"#,
+            self.h_curve.color.to_rgb_string()
+        ));
+        svg.push_str(&format!(
+            r#"<text x="24" y="12" font-size="11" fill="{}" font-family="{}">{}</text>"#,
+            theme.text, theme.font_family, self.h_curve.label
+        ));
+        // V-plane legend
+        svg.push_str(&format!(
+            r#"<line x1="0" y1="28" x2="18" y2="28" stroke="{}" stroke-width="2.5"/>"#,
+            self.v_curve.color.to_rgb_string()
+        ));
+        svg.push_str(&format!(
+            r#"<text x="24" y="32" font-size="11" fill="{}" font-family="{}">{}</text>"#,
+            theme.text, theme.font_family, self.v_curve.label
+        ));
+        svg.push_str("</g>");
+
+        // Max intensity annotation
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="10" fill="{}" font-family="{}">I_max = {:.0} cd/klm</text>"#,
+            margin_left + plot_width - 5.0,
+            margin_top + plot_height + 38.0,
+            theme.text_secondary,
+            theme.font_family,
+            self.i_max
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+
+    /// Map a Y tick value to screen coordinate
+    fn map_y_tick(&self, value: f64, margin_top: f64, plot_height: f64) -> f64 {
+        match self.y_scale {
+            YScale::Linear => {
+                let y_max = self.scale.scale_max;
+                if y_max > 0.0 {
+                    margin_top + plot_height * (1.0 - value / y_max)
+                } else {
+                    margin_top + plot_height
+                }
+            }
+            YScale::Logarithmic => {
+                let y_max = self.scale.scale_max;
+                let y_min = self.y_ticks.first().copied().unwrap_or(0.1).max(0.1);
+                let log_range = y_max.log10() - y_min.log10();
+                if log_range > 0.0 {
+                    let normalized = (value.max(y_min).log10() - y_min.log10()) / log_range;
+                    margin_top + plot_height * (1.0 - normalized)
+                } else {
+                    margin_top + plot_height
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Overlay SVG methods for comparison
+// ============================================================================
+
+impl PolarDiagram {
+    /// Render two polar diagrams overlaid on a single SVG for comparison.
+    ///
+    /// File A uses the theme's default colors (blue/red), File B uses green/orange.
+    /// A 4-entry legend identifies all curves.
+    pub fn to_overlay_svg(
+        a: &PolarDiagram,
+        b: &PolarDiagram,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        label_a: &str,
+        label_b: &str,
+    ) -> String {
+        let size = width.min(height);
+        let center = size / 2.0;
+        let margin = 60.0;
+        let radius = (size / 2.0) - margin;
+
+        // Unified scale from maximum of both diagrams
+        let max_val = a.scale.scale_max.max(b.scale.scale_max);
+        let unified_scale = DiagramScale::from_max_intensity(max_val, 5);
+        let scale = unified_scale.scale_max / radius;
+
+        let mut svg = String::new();
+
+        // SVG header
+        svg.push_str(&format!(
+            r#"<svg viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">"#
+        ));
+
+        // Background
+        svg.push_str(&format!(
+            r#"<rect x="0" y="0" width="{size}" height="{size}" fill="{}"/>"#,
+            theme.background
+        ));
+
+        // Grid circles
+        for (i, &value) in unified_scale.grid_values.iter().enumerate() {
+            let r = value / scale;
+            let is_major = i == unified_scale.grid_values.len() - 1;
+            let stroke_color = if is_major { &theme.axis } else { &theme.grid };
+            let stroke_width = if is_major { "1.5" } else { "1" };
+
+            svg.push_str(&format!(
+                r#"<circle cx="{center}" cy="{center}" r="{r:.1}" fill="none" stroke="{stroke_color}" stroke-width="{stroke_width}"/>"#
+            ));
+
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{:.1}" font-size="11" fill="{}" font-family="{}">{:.0}</text>"#,
+                center + 5.0,
+                center + r + 12.0,
+                theme.text_secondary,
+                theme.font_family,
+                value
+            ));
+        }
+
+        // Radial lines every 30°
+        for i in 0..=6 {
+            if i == 3 {
+                continue;
+            }
+            let angle_deg = i as f64 * 30.0;
+            let angle_rad = angle_deg.to_radians();
+            let x_left = center - radius * angle_rad.sin();
+            let y_left = center + radius * angle_rad.cos();
+            let x_right = center + radius * angle_rad.sin();
+            let y_right = center + radius * angle_rad.cos();
+
+            svg.push_str(&format!(
+                r#"<line x1="{center}" y1="{center}" x2="{x_left:.1}" y2="{y_left:.1}" stroke="{}" stroke-width="1"/>"#,
+                theme.grid
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{center}" y1="{center}" x2="{x_right:.1}" y2="{y_right:.1}" stroke="{}" stroke-width="1"/>"#,
+                theme.grid
+            ));
+        }
+
+        // 90° horizontal axis
+        svg.push_str(&format!(
+            r#"<line x1="{:.1}" y1="{center}" x2="{:.1}" y2="{center}" stroke="{}" stroke-width="1.5"/>"#,
+            center - radius,
+            center + radius,
+            theme.axis
+        ));
+
+        // Colors: A = theme defaults (blue/red), B = green/orange
+        let color_a_c0 = &theme.curve_c0_c180;
+        let fill_a_c0 = &theme.curve_c0_c180_fill;
+        let color_a_c90 = &theme.curve_c90_c270;
+        let color_b_c0 = "#22c55e"; // green
+        let fill_b_c0 = "rgba(34,197,94,0.12)";
+        let color_b_c90 = "#f97316"; // orange
+
+        // File A - C0-C180
+        let path = a.c0_c180_curve.to_svg_path(center, center, scale);
+        if !path.is_empty() {
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5"/>"#,
+                path, fill_a_c0, color_a_c0
+            ));
+        }
+        // File A - C90-C270
+        if a.show_c90_c270() {
+            let path = a.c90_c270_curve.to_svg_path(center, center, scale);
+            if !path.is_empty() {
+                svg.push_str(&format!(
+                    r#"<path d="{}" fill="none" stroke="{}" stroke-width="2.5" stroke-dasharray="6,4"/>"#,
+                    path, color_a_c90
+                ));
+            }
+        }
+
+        // File B - C0-C180
+        let path = b.c0_c180_curve.to_svg_path(center, center, scale);
+        if !path.is_empty() {
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5"/>"#,
+                path, fill_b_c0, color_b_c0
+            ));
+        }
+        // File B - C90-C270
+        if b.show_c90_c270() {
+            let path = b.c90_c270_curve.to_svg_path(center, center, scale);
+            if !path.is_empty() {
+                svg.push_str(&format!(
+                    r#"<path d="{}" fill="none" stroke="{}" stroke-width="2.5" stroke-dasharray="6,4"/>"#,
+                    path, color_b_c90
+                ));
+            }
+        }
+
+        // Center point
+        svg.push_str(&format!(
+            r#"<circle cx="{center}" cy="{center}" r="3" fill="{}"/>"#,
+            theme.text
+        ));
+
+        // Legend (4 entries)
+        let legend_y = size - 80.0;
+        svg.push_str(&format!(r#"<g transform="translate(15, {legend_y:.1})">"#));
+        svg.push_str(&format!(
+            r#"<rect x="-5" y="-5" width="170" height="75" fill="{}" stroke="{}" stroke-width="1" rx="4"/>"#,
+            theme.legend_bg, theme.axis
+        ));
+        // A C0-C180
+        svg.push_str(&format!(
+            r#"<line x1="0" y1="8" x2="18" y2="8" stroke="{}" stroke-width="2.5"/>"#,
+            color_a_c0
+        ));
+        svg.push_str(&format!(
+            r#"<text x="24" y="12" font-size="11" fill="{}" font-family="{}">{} C0-C180</text>"#,
+            theme.text, theme.font_family, label_a
+        ));
+        // A C90-C270
+        svg.push_str(&format!(
+            r#"<line x1="0" y1="26" x2="18" y2="26" stroke="{}" stroke-width="2.5" stroke-dasharray="4,2"/>"#,
+            color_a_c90
+        ));
+        svg.push_str(&format!(
+            r#"<text x="24" y="30" font-size="11" fill="{}" font-family="{}">{} C90-C270</text>"#,
+            theme.text, theme.font_family, label_a
+        ));
+        // B C0-C180
+        svg.push_str(&format!(
+            r#"<line x1="0" y1="44" x2="18" y2="44" stroke="{}" stroke-width="2.5"/>"#,
+            color_b_c0
+        ));
+        svg.push_str(&format!(
+            r#"<text x="24" y="48" font-size="11" fill="{}" font-family="{}">{} C0-C180</text>"#,
+            theme.text, theme.font_family, label_b
+        ));
+        // B C90-C270
+        svg.push_str(&format!(
+            r#"<line x1="0" y1="62" x2="18" y2="62" stroke="{}" stroke-width="2.5" stroke-dasharray="4,2"/>"#,
+            color_b_c90
+        ));
+        svg.push_str(&format!(
+            r#"<text x="24" y="66" font-size="11" fill="{}" font-family="{}">{} C90-C270</text>"#,
+            theme.text, theme.font_family, label_b
+        ));
+        svg.push_str("</g>");
+
+        // Unit label
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="11" fill="{}" font-family="{}">{}</text>"#,
+            size - 15.0,
+            size - 15.0,
+            theme.text_secondary,
+            theme.font_family,
+            theme.labels.intensity_unit
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+}
+
+impl CartesianDiagram {
+    /// Render two cartesian diagrams overlaid on a single SVG for comparison.
+    ///
+    /// File A curves are solid, File B curves are dashed. Unified Y-axis scale.
+    pub fn to_overlay_svg(
+        a: &CartesianDiagram,
+        b: &CartesianDiagram,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        label_a: &str,
+        label_b: &str,
+    ) -> String {
+        let margin_left = a.margin_left;
+        let margin_top = a.margin_top;
+        let plot_width = a.plot_width;
+        let plot_height = a.plot_height;
+
+        // Unified Y-axis from max of both
+        let y_max = a.scale.scale_max.max(b.scale.scale_max);
+        let max_gamma = a.max_gamma.max(b.max_gamma);
+
+        let mut svg = String::new();
+
+        svg.push_str(&format!(
+            r#"<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#
+        ));
+
+        // Background
+        svg.push_str(&format!(
+            r#"<rect x="0" y="0" width="{width}" height="{height}" fill="{}"/>"#,
+            theme.background
+        ));
+
+        // Plot area
+        svg.push_str(&format!(
+            r#"<rect x="{margin_left}" y="{margin_top}" width="{plot_width}" height="{plot_height}" fill="{}" stroke="{}" stroke-width="1"/>"#,
+            theme.surface, theme.axis
+        ));
+
+        // Y-axis grid lines (use the larger scale)
+        let unified_y = DiagramScale::from_max_intensity(y_max, 5);
+        for &v in &unified_y.grid_values {
+            let y = margin_top + plot_height * (1.0 - v / unified_y.scale_max);
+            svg.push_str(&format!(
+                r#"<line x1="{margin_left}" y1="{y:.1}" x2="{:.1}" y2="{y:.1}" stroke="{}" stroke-width="1"/>"#,
+                margin_left + plot_width, theme.grid
+            ));
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="11" fill="{}" font-family="{}">{v:.0}</text>"#,
+                margin_left - 8.0, theme.text_secondary, theme.font_family
+            ));
+        }
+
+        // X-axis grid
+        for &v in &a.x_ticks {
+            let x = margin_left + plot_width * (v / max_gamma);
+            svg.push_str(&format!(
+                r#"<line x1="{x:.1}" y1="{margin_top}" x2="{x:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
+                margin_top + plot_height, theme.grid
+            ));
+            svg.push_str(&format!(
+                r#"<text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="11" fill="{}" font-family="{}">{v:.0}°</text>"#,
+                margin_top + plot_height + 18.0, theme.text_secondary, theme.font_family
+            ));
+        }
+
+        // Colors for B: green tones
+        let b_colors = [
+            "#22c55e", "#f97316", "#a855f7", "#06b6d4", "#eab308", "#ec4899", "#84cc16", "#6366f1",
+        ];
+
+        // File A curves (solid)
+        for curve in &a.curves {
+            let path = Self::rescale_curve_path(
+                curve,
+                margin_left,
+                margin_top,
+                plot_width,
+                plot_height,
+                unified_y.scale_max,
+                max_gamma,
+            );
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="none" stroke="{}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>"#,
+                path, curve.color.to_rgb_string()
+            ));
+        }
+
+        // File B curves (dashed, different colors)
+        for (i, curve) in b.curves.iter().enumerate() {
+            let color = b_colors[i % b_colors.len()];
+            let path = Self::rescale_curve_path(
+                curve,
+                margin_left,
+                margin_top,
+                plot_width,
+                plot_height,
+                unified_y.scale_max,
+                max_gamma,
+            );
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="none" stroke="{}" stroke-width="2.5" stroke-dasharray="8,4" stroke-linecap="round" stroke-linejoin="round"/>"#,
+                path, color
+            ));
+        }
+
+        // Axis labels
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}">{}</text>"#,
+            margin_left + plot_width / 2.0, height - 8.0,
+            theme.text, theme.font_family, theme.labels.gamma_axis
+        ));
+
+        // Legend
+        let a_count = a.curves.len().min(2);
+        let b_count = b.curves.len().min(2);
+        let legend_entries = a_count + b_count;
+        let legend_height = legend_entries as f64 * 18.0 + 10.0;
+        svg.push_str(&format!(
+            r#"<g transform="translate({:.1}, {:.1})">"#,
+            margin_left + 10.0,
+            margin_top + 10.0
+        ));
+        svg.push_str(&format!(
+            r#"<rect x="-5" y="-5" width="145" height="{legend_height:.1}" fill="{}" stroke="{}" stroke-width="1" rx="4"/>"#,
+            theme.legend_bg, theme.axis
+        ));
+
+        let mut row = 0;
+        // A curves
+        for curve in a.curves.iter().take(2) {
+            let y = row as f64 * 18.0 + 8.0;
+            svg.push_str(&format!(
+                r#"<line x1="0" y1="{y:.1}" x2="18" y2="{y:.1}" stroke="{}" stroke-width="2.5"/>"#,
+                curve.color.to_rgb_string()
+            ));
+            svg.push_str(&format!(
+                r#"<text x="24" y="{:.1}" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
+                y + 4.0,
+                theme.text,
+                theme.font_family,
+                label_a,
+                curve.label
+            ));
+            row += 1;
+        }
+        // B curves
+        for (i, curve) in b.curves.iter().take(2).enumerate() {
+            let y = row as f64 * 18.0 + 8.0;
+            let color = b_colors[i % b_colors.len()];
+            svg.push_str(&format!(
+                r#"<line x1="0" y1="{y:.1}" x2="18" y2="{y:.1}" stroke="{}" stroke-width="2.5" stroke-dasharray="4,2"/>"#,
+                color
+            ));
+            svg.push_str(&format!(
+                r#"<text x="24" y="{:.1}" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
+                y + 4.0,
+                theme.text,
+                theme.font_family,
+                label_b,
+                curve.label
+            ));
+            row += 1;
+        }
+        svg.push_str("</g>");
+
+        svg.push_str("</svg>");
+        svg
+    }
+
+    /// Re-render a CartesianCurve path with a different Y scale and gamma range.
+    fn rescale_curve_path(
+        curve: &CartesianCurve,
+        margin_left: f64,
+        margin_top: f64,
+        plot_width: f64,
+        plot_height: f64,
+        y_max: f64,
+        max_gamma: f64,
+    ) -> String {
+        let mut path = String::new();
+        for (i, pt) in curve.points.iter().enumerate() {
+            let x = margin_left + plot_width * (pt.gamma / max_gamma);
+            let y = margin_top + plot_height * (1.0 - pt.intensity / y_max);
+            if i == 0 {
+                path.push_str(&format!("M {x:.1} {y:.1}"));
+            } else {
+                path.push_str(&format!(" L {x:.1} {y:.1}"));
+            }
+        }
+        path
     }
 }
 
