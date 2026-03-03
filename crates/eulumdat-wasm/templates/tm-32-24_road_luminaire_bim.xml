@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TM-32-24 BIM Parameters Sample - Outdoor Road Luminaire
+
+  This file demonstrates BIM parameters for an outdoor LED road/street
+  luminaire with emergency backup capability.
+-->
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>StreetLight Pro</Manufacturer>
+        <CatalogNumber>SLP-RD150-530-T3</CatalogNumber>
+        <Description>150W LED Road Luminaire Type III Distribution</Description>
+        <GTIN>00987654321098</GTIN>
+        <UUID>a1b2c3d4-e5f6-7890-abcd-ef1234567890</UUID>
+        <Laboratory>TUV Rheinland Lighting Lab</Laboratory>
+        <ReportNumber>TUV-2024-RD-0891</ReportNumber>
+        <ReportDate>2024-05-10</ReportDate>
+        <IssueDate>2024-05-15</IssueDate>
+        <DocumentCreator>StreetLight Pro Engineering</DocumentCreator>
+        <MoreInfoURI>https://streetlightpro.example.com/RD150</MoreInfoURI>
+        <LuminaireType>Road/Area Luminaire</LuminaireType>
+        <Reference>IES TM-15 BUG Rated</Reference>
+        <Reference>IDA Dark Sky Approved</Reference>
+        <Comments>High-performance road luminaire with Type III distribution</Comments>
+        <Comments>Designed for collector roads and parking areas</Comments>
+        <Comments>Optional emergency battery backup available</Comments>
+    </Header>
+
+    <Luminaire>
+        <Dimensions>
+            <Length>680</Length>
+            <Width>280</Width>
+            <Height>95</Height>
+        </Dimensions>
+        <LuminousOpening>
+            <Shape>Rectangular</Shape>
+            <Dimensions>
+                <Length>520</Length>
+                <Width>180</Width>
+            </Dimensions>
+        </LuminousOpening>
+        <Mounting>Pole</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+
+    <Equipment>
+        <Goniometer>
+            <Manufacturer>LMT Lichtmesstechnik</Manufacturer>
+            <Model>GO-DS 2000</Model>
+            <Type>CIE _ C</Type>
+            <Distance>25.0</Distance>
+        </Goniometer>
+        <Accreditation>
+            <Body>DAkkS</Body>
+            <Number>D-PL-12345-01-00</Number>
+            <Scope>Photometric Testing</Scope>
+        </Accreditation>
+    </Equipment>
+
+    <Emitter>
+        <ID>led-array-1</ID>
+        <Description>150W LED Array 5000K</Description>
+        <CatalogNumber>LED-ARR-150-530</CatalogNumber>
+        <Quantity>1</Quantity>
+        <RatedLumens>21000</RatedLumens>
+        <MeasuredLumens>21500</MeasuredLumens>
+        <InputWattage>150</InputWattage>
+        <PowerFactor>0.97</PowerFactor>
+        <BallastFactor>1.0</BallastFactor>
+        <FixedCCT>5000</FixedCCT>
+        <Duv>-0.002</Duv>
+        <SPRatio>2.1</SPRatio>
+        <ColorRendering>
+            <Ra>70</Ra>
+            <R9>-5</R9>
+            <Rf>72</Rf>
+            <Rg>98</Rg>
+        </ColorRendering>
+        <DataGeneration>
+            <Source>Measured</Source>
+            <Scaled>false</Scaled>
+            <Interpolated>false</Interpolated>
+            <Uncertainty>2.5</Uncertainty>
+        </DataGeneration>
+        <LuminousData>
+            <SymmType>Symm _ None</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <AbsolutePhotometry>false</AbsolutePhotometry>
+            <NumberMeasured>684</NumberMeasured>
+            <!-- Type III asymmetric distribution - abbreviated for readability -->
+            <IntensityData horz="0" vert="0">180</IntensityData>
+            <IntensityData horz="0" vert="30">320</IntensityData>
+            <IntensityData horz="0" vert="60">450</IntensityData>
+            <IntensityData horz="0" vert="75">380</IntensityData>
+            <IntensityData horz="0" vert="85">120</IntensityData>
+            <IntensityData horz="0" vert="90">0</IntensityData>
+            <IntensityData horz="90" vert="0">180</IntensityData>
+            <IntensityData horz="90" vert="30">280</IntensityData>
+            <IntensityData horz="90" vert="60">520</IntensityData>
+            <IntensityData horz="90" vert="75">680</IntensityData>
+            <IntensityData horz="90" vert="85">350</IntensityData>
+            <IntensityData horz="90" vert="90">0</IntensityData>
+            <IntensityData horz="180" vert="0">180</IntensityData>
+            <IntensityData horz="180" vert="30">240</IntensityData>
+            <IntensityData horz="180" vert="60">180</IntensityData>
+            <IntensityData horz="180" vert="75">80</IntensityData>
+            <IntensityData horz="180" vert="85">20</IntensityData>
+            <IntensityData horz="180" vert="90">0</IntensityData>
+            <IntensityData horz="270" vert="0">180</IntensityData>
+            <IntensityData horz="270" vert="30">280</IntensityData>
+            <IntensityData horz="270" vert="60">520</IntensityData>
+            <IntensityData horz="270" vert="75">680</IntensityData>
+            <IntensityData horz="270" vert="85">350</IntensityData>
+            <IntensityData horz="270" vert="90">0</IntensityData>
+        </LuminousData>
+    </Emitter>
+
+    <!-- TM-32-24 BIM Parameters - General -->
+    <CustomData>
+        <Name>TM32-24-General</Name>
+        <UniqueIdentifier>tm32-24-general-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <LastUpdated guid="8350e45f-5dbb-4391-a637-620154f021c7">2024-05-15T09:00:00Z</LastUpdated>
+            <ProductFamily guid="5102b873-5fab-45b7-a2d0-f83ddee8d345">RD Series Road Luminaires</ProductFamily>
+            <ProductDocumentationLink guid="bddc75f4-8e27-4afc-add0-de7358bbf6d3">https://streetlightpro.example.com/docs/RD150.pdf</ProductDocumentationLink>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Electrical -->
+    <CustomData>
+        <Name>TM32-24-Electrical</Name>
+        <UniqueIdentifier>tm32-24-electrical-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <ApparentPower guid="a1c4f25a-1260-41a5-bac8-97556a57b236" unit="VA">154.6</ApparentPower>
+            <VoltageNominal guid="7bcae613-49d5-40a3-a27e-8df1945ce73e" unit="V">277</VoltageNominal>
+            <VoltageType>AC</VoltageType>
+            <VoltageRange min="120" max="277" unit="V"/>
+            <Phase guid="652939b9-9afa-4e8c-9ab1-767525e78a49">Single Phase</Phase>
+            <NominalCurrent unit="A">0.56</NominalCurrent>
+            <NominalFrequency unit="Hz">60</NominalFrequency>
+            <InrushCurrent unit="A">45</InrushCurrent>
+            <Dimmable guid="4d4881f3-5a77-41eb-a140-e03a297c2351">true</Dimmable>
+            <DimmingMethod>DALI-2, 0-10V, NEMA 7-pin</DimmingMethod>
+            <DimmingRange min="10" max="100" unit="%"/>
+            <ColorControllable>false</ColorControllable>
+            <CCTControllable>false</CCTControllable>
+            <ControlInterface>DALI-2, 0-10V, NEMA 7-pin, Zhaga Book 18</ControlInterface>
+            <ControlGear>Programmable LED Driver</ControlGear>
+            <ControlGearIncluded>true</ControlGearIncluded>
+            <LEDDriveType>CC</LEDDriveType>
+            <LEDSecondaryVoltage unit="V">54</LEDSecondaryVoltage>
+            <LightSourceType guid="3cd5049e-0b1e-4cd7-963c-6a59f1b87ee4">LED</LightSourceType>
+            <LampQuantity>1</LampQuantity>
+            <SurgeProtection unit="kV">10</SurgeProtection>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Mechanical -->
+    <CustomData>
+        <Name>TM32-24-Mechanical</Name>
+        <UniqueIdentifier>tm32-24-mechanical-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <HousingShape guid="5f141709-2625-47af-8618-00e1c5e9eac1">Cuboid</HousingShape>
+            <HousingColor guid="2f317fc3-3f64-4214-83fd-390823fc9d91">RAL 7016 Anthracite Grey</HousingColor>
+            <HousingMaterial guid="9704f476-596b-43e9-919a-42f7881c8921">Die-cast Aluminum with Powder Coat</HousingMaterial>
+            <ProductLength guid="51782a3a-e0cb-45b4-86b1-2788dd5d6148" unit="mm">680</ProductLength>
+            <ProductWidth guid="d5e464aa-5c32-4e45-91b5-8db19b6f6ebe" unit="mm">280</ProductWidth>
+            <ProductHeight guid="8822b540-105f-47d1-847d-e3df372faa1e" unit="mm">95</ProductHeight>
+            <LuminousAreaLength unit="mm">520</LuminousAreaLength>
+            <LuminousAreaWidth unit="mm">180</LuminousAreaWidth>
+            <Weight guid="5de1affc-b992-4202-ab5f-bf414e76a681" unit="kg">8.5</Weight>
+            <WeightShipping unit="kg">11.2</WeightShipping>
+            <ShippingLength unit="mm">750</ShippingLength>
+            <ShippingWidth unit="mm">350</ShippingWidth>
+            <ShippingHeight unit="mm">180</ShippingHeight>
+            <Flexible>false</Flexible>
+            <HalogenFree>true</HalogenFree>
+            <SiliconeFree>true</SiliconeFree>
+            <SealingMaterial>EPDM Gasket</SealingMaterial>
+            <MinimumClearance unit="mm">0</MinimumClearance>
+            <DriveOverRated>false</DriveOverRated>
+            <WalkOverRated>false</WalkOverRated>
+            <WindRating unit="km/h">240</WindRating>
+            <EffectiveProjectedArea unit="m2">0.065</EffectiveProjectedArea>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Mounting -->
+    <CustomData>
+        <Name>TM32-24-Mounting</Name>
+        <UniqueIdentifier>tm32-24-mounting-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <MountingType guid="61767f07-f194-447c-b6fb-66f9285a7d39">Pole</MountingType>
+            <MountingArm>Horizontal Arm, 60mm OD Slip-fitter</MountingArm>
+            <TiltRange min="-5" max="15" unit="deg"/>
+            <MountingHeight recommended="8" min="6" max="12" unit="m"/>
+            <PoleTopAdapter>60mm Slip-fitter, 76mm Optional</PoleTopAdapter>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Photometric -->
+    <CustomData>
+        <Name>TM32-24-Photometric</Name>
+        <UniqueIdentifier>tm32-24-photometric-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <BUGRating guid="1a808da0-3e8d-4e01-82e5-b299efd4e129">B2 U0 G2</BUGRating>
+            <DistributionType>Type III Medium</DistributionType>
+            <CutoffAngle unit="deg">80</CutoffAngle>
+            <UplightRating>U0</UplightRating>
+            <BacklightRating>B2</BacklightRating>
+            <GlareRating>G2</GlareRating>
+            <PhotobiologyClass>0</PhotobiologyClass>
+            <IDADarkSkyApproved>true</IDADarkSkyApproved>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Maintenance -->
+    <CustomData>
+        <Name>TM32-24-Maintenance</Name>
+        <UniqueIdentifier>tm32-24-maintenance-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <LightLossFactor>0.78</LightLossFactor>
+            <LampLumenDepreciation>0.88</LampLumenDepreciation>
+            <LuminaireDirtDepreciation>0.92</LuminaireDirtDepreciation>
+            <LampSurvivalFactor>0.96</LampSurvivalFactor>
+            <BurnInTime unit="hours">100</BurnInTime>
+            <LEDModuleReplaceable>true</LEDModuleReplaceable>
+            <DriverReplaceable>true</DriverReplaceable>
+            <LightSourceIncluded>true</LightSourceIncluded>
+            <ProjectedLifeHours>100000</ProjectedLifeHours>
+            <L70LifeHours>100000</L70LifeHours>
+            <L80LifeHours>75000</L80LifeHours>
+            <L90LifeHours>50000</L90LifeHours>
+            <TM21Projection>true</TM21Projection>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Environmental -->
+    <CustomData>
+        <Name>TM32-24-Environmental</Name>
+        <UniqueIdentifier>tm32-24-environmental-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <AmbientTemperatureMin unit="C">-40</AmbientTemperatureMin>
+            <AmbientTemperatureMax unit="C">50</AmbientTemperatureMax>
+            <RatedAmbientTemperature unit="C">25</RatedAmbientTemperature>
+            <TemperatureOnAperture unit="C">75</TemperatureOnAperture>
+            <RelativeHumidityMin unit="%">0</RelativeHumidityMin>
+            <RelativeHumidityMax unit="%">100</RelativeHumidityMax>
+            <IPRating>IP66</IPRating>
+            <IKRating>IK10</IKRating>
+            <CorrosionResistance>3G (ISO 9227)</CorrosionResistance>
+            <SaltSprayResistance unit="hours">1000</SaltSprayResistance>
+            <EPDAvailable>true</EPDAvailable>
+            <EPDURL>https://streetlightpro.example.com/epd/RD150.pdf</EPDURL>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Emergency -->
+    <CustomData>
+        <Name>TM32-24-Emergency</Name>
+        <UniqueIdentifier>tm32-24-emergency-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <EmergencyCapable guid="04ac16ce-15d8-4607-a43a-1fece8f1cc51">true</EmergencyCapable>
+            <EmergencyType guid="3602aa1f-59fe-4c06-94f3-fdf66550fa62">Non-Maintained</EmergencyType>
+            <EmergencyUnitIntegrated>true</EmergencyUnitIntegrated>
+            <EmergencyLuminousFlux unit="lm">2100</EmergencyLuminousFlux>
+            <EmergencyLightSourceType>LED (same module, reduced power)</EmergencyLightSourceType>
+            <BatteryType guid="2229ac1a-3802-40a7-89cd-80aeb0177b05">LiFePO4</BatteryType>
+            <BatteryCapacity guid="2b6a2c17-1cf5-44a2-a605-a3acf40c9b3b" unit="Ah">6.4</BatteryCapacity>
+            <BatteryVoltage guid="3258ce83-85d5-40e9-998e-b73fee7e5d87" unit="V">12.8</BatteryVoltage>
+            <BatteryExchangePossible>true</BatteryExchangePossible>
+            <EmergencyDuration unit="hours">3</EmergencyDuration>
+            <RechargeTime unit="hours">24</RechargeTime>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Sensor/Detection -->
+    <CustomData>
+        <Name>TM32-24-Sensor</Name>
+        <UniqueIdentifier>tm32-24-sensor-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <WithSensor>true</WithSensor>
+            <DetectorType>PIR + Microwave</DetectorType>
+            <DetectionMethod>Dual-technology Motion Sensing</DetectionMethod>
+            <DetectionArea>Circular, adjustable</DetectionArea>
+            <DetectionAreaAdjustable>true</DetectionAreaAdjustable>
+            <DetectionRangeAdjustable>true</DetectionRangeAdjustable>
+            <PresenceDetectionArea unit="m2">200</PresenceDetectionArea>
+            <DetectionHeight unit="m">8</DetectionHeight>
+            <PhotocellIntegrated>true</PhotocellIntegrated>
+            <DaylightHarvesting>true</DaylightHarvesting>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Certifications -->
+    <CustomData>
+        <Name>TM32-24-Certifications</Name>
+        <UniqueIdentifier>tm32-24-certifications-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <Certifications>
+                <Certification>
+                    <Name>DLC Premium</Name>
+                    <Number>DLC-QPL-RD150</Number>
+                    <ValidUntil>2027-03-31</ValidUntil>
+                </Certification>
+                <Certification>
+                    <Name>IDA Dark Sky</Name>
+                    <Number>FSA-2024-0123</Number>
+                </Certification>
+                <Certification>
+                    <Name>UL Listed</Name>
+                    <Number>E234567</Number>
+                </Certification>
+                <Certification>
+                    <Name>CE Marking</Name>
+                    <Directives>LVD 2014/35/EU, EMC 2014/30/EU, RoHS 2011/65/EU</Directives>
+                </Certification>
+                <Certification>
+                    <Name>IP66</Name>
+                    <Standard>IEC 60529</Standard>
+                </Certification>
+                <Certification>
+                    <Name>IK10</Name>
+                    <Standard>IEC 62262</Standard>
+                </Certification>
+            </Certifications>
+            <Warranty unit="years">10</Warranty>
+        </BIM>
+    </CustomData>
+
+</IESTM33-22>

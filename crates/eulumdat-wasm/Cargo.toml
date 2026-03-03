@@ -30,6 +30,7 @@ console_error_panic_hook.workspace = true
 # Core library
 eulumdat = { workspace = true, features = ["i18n"] }
 eulumdat-i18n.workspace = true
+eulumdat-typst = { path = "../eulumdat-typst" }
 gloo.workspace = true
 gloo-file.workspace = true
 js-sys.workspace = true
@@ -44,6 +45,7 @@ wasm-bindgen-futures.workspace = true
 
 # Utilities
 base64.workspace = true
+serde_json = "1"
 
 # 3D Scene Viewer (Bevy) - optional for larger WASM bundle
 eulumdat-bevy = { workspace = true, optional = true }

@@ -4,14 +4,15 @@ use anyhow::{Context, Result};
 use atla::LuminaireOpticalData;
 use eulumdat::{
     batch::{self, BatchInput, ConversionFormat},
-    diagram::SvgTheme,
+    diagram::{CartesianDiagram, PolarDiagram, SvgTheme},
     BugDiagram, Eulumdat, GldfPhotometricData, IesExporter, IesParser, PhotometricCalculations,
-    PhotometricSummary,
+    PhotometricComparison, PhotometricSummary, Significance,
 };
 use std::path::PathBuf;
 
 use crate::cli::{
-    AtlaSchemaType, CalcType, ConversionPolicyArg, DiagramType, OutputFormat, SummaryFormat,
+    AtlaSchemaType, CalcType, CompareDiagramType, CompareFormat, ConversionPolicyArg, DiagramType,
+    OutputFormat, SummaryFormat,
 };
 
 pub fn load_file(path: &PathBuf) -> Result<Eulumdat> {
@@ -242,6 +243,7 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn diagram(
     input: &PathBuf,
     output: Option<&PathBuf>,
@@ -250,6 +252,8 @@ pub fn diagram(
     width: f64,
     height: f64,
     mounting_height: f64,
+    tilt: f64,
+    log_scale: bool,
 ) -> Result<()> {
     use eulumdat::diagram::*;
 
@@ -340,6 +344,33 @@ pub fn diagram(
                 mounting_height,
             );
             diagram.to_svg(width, height, &gh_theme)
+        }
+        DiagramType::FloodlightVh => {
+            let ldt = load_file(input)?;
+            let y_scale = if log_scale {
+                YScale::Logarithmic
+            } else {
+                YScale::Linear
+            };
+            let diagram = FloodlightCartesianDiagram::from_eulumdat(&ldt, width, height, y_scale);
+            diagram.to_svg(width, height, &theme)
+        }
+        DiagramType::Isolux => {
+            let ldt = load_file(input)?;
+            let params = IsoluxParams {
+                mounting_height,
+                tilt_angle: tilt,
+                area_half_width: 20.0,
+                area_half_depth: 20.0,
+                grid_resolution: 80,
+            };
+            let diagram = IsoluxDiagram::from_eulumdat(&ldt, width, height, params);
+            diagram.to_svg(width, height, &theme)
+        }
+        DiagramType::Isocandela => {
+            let ldt = load_file(input)?;
+            let diagram = IsocandelaDiagram::from_eulumdat(&ldt, width, height);
+            diagram.to_svg(width, height, &theme)
         }
     };
 
@@ -637,16 +668,23 @@ pub fn calc(file: &PathBuf, calc_type: CalcType) -> Result<()> {
         }
         CalcType::Spacing => {
             let (s_c0, s_c90) = PhotometricCalculations::spacing_criteria(&ldt);
+            let (sc_0_180, sc_90_270, sc_diag) =
+                PhotometricCalculations::spacing_criteria_ies(&ldt);
             let code = PhotometricCalculations::photometric_code(&ldt);
 
-            println!("=== Spacing Criteria ===");
+            println!("=== Spacing Criteria (European/Intensity-based) ===");
             println!("S/H ratio (C0):        {:.2}", s_c0);
             println!("S/H ratio (C90):       {:.2}", s_c90);
             println!();
+            println!("=== Spacing Criteria (IES/Illuminance-based) ===");
+            println!("SC (0-180):            {:.2}", sc_0_180);
+            println!("SC (90-270):           {:.2}", sc_90_270);
+            println!("SC (Diagonal):         {:.2}", sc_diag);
+            println!();
             println!("Photometric Code:      {}", code);
             println!();
-            println!("Note: S/H ratio indicates maximum spacing-to-height");
-            println!("      ratio for reasonably uniform illumination.");
+            println!("Note: IES method accounts for illuminance uniformity on work plane.");
+            println!("      European method uses 50% intensity drop-off angle.");
         }
         CalcType::ZonalLumens => {
             let zones = PhotometricCalculations::zonal_lumens_30deg(&ldt);
@@ -670,6 +708,32 @@ pub fn calc(file: &PathBuf, calc_type: CalcType) -> Result<()> {
             println!("Within 40°:            {:.1}%", flux_40);
             println!("Within 60°:            {:.1}%", flux_60);
             println!("Within 90°:            {:.1}%", flux_90);
+        }
+        CalcType::CuTable => {
+            let cu = PhotometricCalculations::cu_table(&ldt);
+            println!("{}", cu.to_text());
+        }
+        CalcType::UgrTable => {
+            let ugr = PhotometricCalculations::ugr_table(&ldt);
+            println!("{}", ugr.to_text());
+        }
+        CalcType::CandelaTable => {
+            let tab = PhotometricCalculations::candela_tabulation(&ldt);
+            println!("{}", tab.to_text());
+        }
+        CalcType::Nema => {
+            let nema = PhotometricCalculations::nema_classification(&ldt);
+            println!("=== NEMA Floodlight Classification ===");
+            println!("Designation:           {}", nema.designation);
+            println!(
+                "Horizontal Spread:     {:.1}° (Type {})",
+                nema.horizontal_spread, nema.horizontal_type
+            );
+            println!(
+                "Vertical Spread:       {:.1}° (Type {})",
+                nema.vertical_spread, nema.vertical_type
+            );
+            println!("Peak Intensity (I_max):{:.0} cd/klm", nema.i_max);
         }
         CalcType::All => {
             // Print all calculations
@@ -1014,6 +1078,217 @@ pub fn atla_convert(
             "  {} field(s) dropped (not supported in target schema)",
             dropped_count
         );
+    }
+
+    Ok(())
+}
+
+/// Generate a photometric report
+pub fn report(
+    input: &PathBuf,
+    output: &PathBuf,
+    paper: crate::cli::PaperSize,
+    compact: bool,
+    cu_table: bool,
+    ugr_table: bool,
+    candela_table: bool,
+) -> Result<()> {
+    use eulumdat_typst::{ReportGenerator, ReportOptions, ReportSection};
+
+    let ldt = load_file(input)?;
+    let generator = ReportGenerator::new(&ldt);
+
+    let mut sections = if compact {
+        ReportSection::compact()
+    } else {
+        ReportSection::all()
+    };
+
+    // Add optional sections based on flags
+    if cu_table {
+        sections.push(ReportSection::CuTable);
+    }
+    if ugr_table {
+        sections.push(ReportSection::UgrTable);
+    }
+    if candela_table {
+        sections.push(ReportSection::CandelaTable);
+    }
+
+    let paper_size = match paper {
+        crate::cli::PaperSize::A4 => eulumdat_typst::PaperSize::A4,
+        crate::cli::PaperSize::Letter => eulumdat_typst::PaperSize::Letter,
+        crate::cli::PaperSize::A3 => eulumdat_typst::PaperSize::A3,
+    };
+
+    let options = ReportOptions {
+        sections,
+        include_dark_theme: false,
+        paper_size,
+        language: "en".to_string(),
+    };
+
+    let out_ext = output
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("pdf")
+        .to_lowercase();
+
+    match out_ext.as_str() {
+        "typ" => {
+            // Generate Typst source
+            let source = generator.generate_typst(&options);
+            std::fs::write(output, source).context("Failed to write Typst file")?;
+            println!("Typst source written to: {}", output.display());
+            println!(
+                "Compile with: typst compile {} {}",
+                output.display(),
+                output.with_extension("pdf").display()
+            );
+        }
+        "pdf" => {
+            // Generate PDF directly
+            let pdf = generator
+                .generate_pdf(&options)
+                .context("Failed to generate PDF")?;
+            std::fs::write(output, pdf).context("Failed to write PDF file")?;
+            println!("PDF report written to: {}", output.display());
+        }
+        _ => {
+            anyhow::bail!(
+                "Unknown output format: .{ext} (expected .typ or .pdf)",
+                ext = out_ext
+            );
+        }
+    }
+
+    Ok(())
+}
+
+pub fn compare(
+    file_a: &PathBuf,
+    file_b: &PathBuf,
+    format: CompareFormat,
+    diagram: Option<CompareDiagramType>,
+    output: Option<&PathBuf>,
+    dark: bool,
+    significant_only: bool,
+) -> Result<()> {
+    let ldt_a = load_file(file_a)?;
+    let ldt_b = load_file(file_b)?;
+
+    let label_a = file_a
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("A")
+        .to_string();
+    let label_b = file_b
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("B")
+        .to_string();
+
+    let comparison = PhotometricComparison::from_eulumdat(&ldt_a, &ldt_b, &label_a, &label_b);
+
+    // Print comparison table
+    match format {
+        CompareFormat::Text => {
+            if significant_only {
+                let sig = comparison.significant_metrics(Significance::Minor);
+                println!(
+                    "COMPARISON: {} vs {} (significant only)",
+                    comparison.label_a, comparison.label_b
+                );
+                println!("Similarity: {:.1}%", comparison.similarity_score * 100.0);
+                println!("{}", "=".repeat(80));
+                println!(
+                    "{:<28} {:>12} {:>12} {:>10} {:>8}  Significance",
+                    "Metric", "A", "B", "Delta", "%"
+                );
+                println!("{}", "-".repeat(80));
+                for m in &sig {
+                    let unit = if m.unit.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" {}", m.unit)
+                    };
+                    println!(
+                        "{:<28} {:>10.1}{:<2} {:>10.1}{:<2} {:>+9.1} {:>+7.1}%  {}",
+                        m.name,
+                        m.value_a,
+                        unit,
+                        m.value_b,
+                        unit,
+                        m.delta,
+                        m.delta_percent,
+                        m.significance,
+                    );
+                }
+                println!("{}", "-".repeat(80));
+            } else {
+                print!("{}", comparison.to_text());
+            }
+        }
+        CompareFormat::Json => {
+            // Build a simple JSON output
+            println!("{{");
+            println!("  \"label_a\": \"{}\",", comparison.label_a);
+            println!("  \"label_b\": \"{}\",", comparison.label_b);
+            println!(
+                "  \"similarity_score\": {:.4},",
+                comparison.similarity_score
+            );
+            println!("  \"metrics\": [");
+            for (i, m) in comparison.metrics.iter().enumerate() {
+                let comma = if i < comparison.metrics.len() - 1 {
+                    ","
+                } else {
+                    ""
+                };
+                println!(
+                    "    {{\"name\":\"{}\",\"key\":\"{}\",\"unit\":\"{}\",\"value_a\":{:.4},\"value_b\":{:.4},\"delta\":{:.4},\"delta_percent\":{:.4},\"significance\":\"{}\"}}{}",
+                    m.name, m.key, m.unit, m.value_a, m.value_b, m.delta, m.delta_percent, m.significance, comma
+                );
+            }
+            println!("  ]");
+            println!("}}");
+        }
+        CompareFormat::Csv => {
+            print!("{}", comparison.to_csv());
+        }
+    }
+
+    // Generate overlay diagram if requested
+    if let Some(diagram_type) = diagram {
+        let theme = if dark {
+            SvgTheme::dark()
+        } else {
+            SvgTheme::light()
+        };
+
+        let svg = match diagram_type {
+            CompareDiagramType::Polar => {
+                let polar_a = PolarDiagram::from_eulumdat(&ldt_a);
+                let polar_b = PolarDiagram::from_eulumdat(&ldt_b);
+                PolarDiagram::to_overlay_svg(
+                    &polar_a, &polar_b, 500.0, 500.0, &theme, &label_a, &label_b,
+                )
+            }
+            CompareDiagramType::Cartesian => {
+                let cart_a = CartesianDiagram::from_eulumdat(&ldt_a, 600.0, 400.0, 4);
+                let cart_b = CartesianDiagram::from_eulumdat(&ldt_b, 600.0, 400.0, 4);
+                CartesianDiagram::to_overlay_svg(
+                    &cart_a, &cart_b, 600.0, 400.0, &theme, &label_a, &label_b,
+                )
+            }
+        };
+
+        if let Some(out_path) = output {
+            std::fs::write(out_path, &svg).context("Failed to write SVG file")?;
+            println!("Overlay SVG written to: {}", out_path.display());
+        } else {
+            println!("{}", svg);
+        }
     }
 
     Ok(())

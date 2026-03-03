@@ -65,7 +65,29 @@ use crate::symmetry::SymmetryHandler;
 /// IES file format parser.
 ///
 /// Parses IES LM-63 format files (versions 1991, 1995, 2002, 2019).
+///
+/// Supports both UTF-8 and ISO-8859-1 (Latin-1) encoded files, with automatic
+/// detection and conversion. This is necessary because many IES files from
+/// Windows-based tools use ISO-8859-1 encoding.
 pub struct IesParser;
+
+/// Read file with encoding fallback.
+///
+/// Tries UTF-8 first, then falls back to ISO-8859-1 (Latin-1) which is common
+/// for IES files from Windows tools.
+fn read_with_encoding_fallback<P: AsRef<Path>>(path: P) -> Result<String> {
+    let bytes = fs::read(path.as_ref()).map_err(|e| anyhow!("Failed to read file: {}", e))?;
+
+    // Try UTF-8 first
+    match String::from_utf8(bytes.clone()) {
+        Ok(content) => Ok(content),
+        Err(_) => {
+            // Fall back to ISO-8859-1 (Latin-1)
+            // Every byte is valid in ISO-8859-1, so this always succeeds
+            Ok(bytes.iter().map(|&b| b as char).collect())
+        }
+    }
+}
 
 /// IES file format version.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -555,9 +577,10 @@ pub struct IesData {
 
 impl IesParser {
     /// Parse an IES file from a file path.
+    ///
+    /// Automatically handles both UTF-8 and ISO-8859-1 (Latin-1) encoded files.
     pub fn parse_file<P: AsRef<Path>>(path: P) -> Result<Eulumdat> {
-        let content = fs::read_to_string(path.as_ref())
-            .map_err(|e| anyhow!("Failed to read IES file: {}", e))?;
+        let content = read_with_encoding_fallback(path)?;
         Self::parse(&content)
     }
 
@@ -906,8 +929,13 @@ impl IesParser {
         // Eulumdat Convention: num_lamps must be NEGATIVE to signal absolute photometry
         // This is the "single most important fix for LED compatibility"
         let (num_lamps, total_flux) = if ies.lumens_per_lamp < 0.0 {
-            // Absolute photometry: negative lamp count in LDT
-            (-1, ies.lumens_per_lamp.abs() * ies.num_lamps.abs() as f64)
+            // Absolute photometry: calculate flux from intensity distribution
+            // The candela values * multiplier give absolute candelas
+            // We integrate these to get total lumens
+            let calculated_flux =
+                Self::calculate_flux_from_intensities(&ies.candela_values, &ies.vertical_angles)
+                    * ies.multiplier;
+            (-1, calculated_flux)
         } else {
             // Relative photometry: positive lamp count
             (ies.num_lamps, ies.lumens_per_lamp * ies.num_lamps as f64)
@@ -977,6 +1005,52 @@ impl IesParser {
             // Full 360° or other
             Symmetry::None
         }
+    }
+
+    /// Calculate luminous flux from intensity distribution (for absolute photometry).
+    ///
+    /// Integrates candela values over solid angle to get total lumens.
+    /// Formula: Φ = ∫∫ I(θ,φ) sin(θ) dθ dφ
+    ///
+    /// For rotationally symmetric (single C-plane), this simplifies to:
+    /// Φ = 2π ∫ I(γ) sin(γ) dγ
+    fn calculate_flux_from_intensities(
+        candela_values: &[Vec<f64>],
+        vertical_angles: &[f64],
+    ) -> f64 {
+        if candela_values.is_empty() || vertical_angles.len() < 2 {
+            return 0.0;
+        }
+
+        let n_h = candela_values.len();
+        let n_v = vertical_angles.len();
+
+        // Average intensities across all horizontal angles for each vertical angle
+        let avg_intensities: Vec<f64> = (0..n_v)
+            .map(|v| {
+                let sum: f64 = candela_values.iter().filter_map(|row| row.get(v)).sum();
+                sum / n_h as f64
+            })
+            .collect();
+
+        // Integrate using trapezoidal rule over solid angle
+        // Φ = 2π ∫ I(γ) sin(γ) dγ
+        let mut flux = 0.0;
+        for i in 0..n_v - 1 {
+            let gamma1 = vertical_angles[i].to_radians();
+            let gamma2 = vertical_angles[i + 1].to_radians();
+            let i1 = avg_intensities[i];
+            let i2 = avg_intensities[i + 1];
+
+            // Trapezoidal rule with sin(γ) weighting
+            // ∫ I(γ) sin(γ) dγ ≈ (I1*sin(γ1) + I2*sin(γ2)) / 2 * Δγ
+            let dg = gamma2 - gamma1;
+            flux += (i1 * gamma1.sin() + i2 * gamma2.sin()) / 2.0 * dg;
+        }
+
+        // Multiply by 2π for full revolution (rotationally symmetric)
+        // For non-symmetric, we would need to integrate over horizontal angles too
+        flux * 2.0 * std::f64::consts::PI
     }
 }
 

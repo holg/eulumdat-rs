@@ -34,7 +34,31 @@ pub fn load_from_local_storage() -> Option<Eulumdat> {
     let storage = window.local_storage().ok()??;
     let ldt_string = storage.get_item(LDT_STORAGE_KEY).ok()??;
 
-    Eulumdat::parse(&ldt_string).ok()
+    web_sys::console::log_1(
+        &format!(
+            "[Bevy] Loading LDT from localStorage, {} bytes",
+            ldt_string.len()
+        )
+        .into(),
+    );
+
+    match Eulumdat::parse(&ldt_string) {
+        Ok(ldt) => {
+            web_sys::console::log_1(
+                &format!(
+                    "[Bevy] Parsed LDT: {} lumens, {} cd/klm max",
+                    ldt.total_luminous_flux(),
+                    ldt.max_intensity()
+                )
+                .into(),
+            );
+            Some(ldt)
+        }
+        Err(e) => {
+            web_sys::console::error_1(&format!("[Bevy] Failed to parse LDT: {:?}", e).into());
+            None
+        }
+    }
 }
 
 #[cfg(not(all(target_arch = "wasm32", feature = "wasm-sync")))]
@@ -105,7 +129,17 @@ pub fn poll_ldt_changes(
         if let Some(new_timestamp) = get_ldt_timestamp() {
             if new_timestamp != last_timestamp.0 {
                 // Timestamp changed - reload LDT
+                web_sys::console::log_1(
+                    &format!(
+                        "[Bevy] LDT timestamp changed: {} -> {}",
+                        last_timestamp.0, new_timestamp
+                    )
+                    .into(),
+                );
                 if let Some(ldt) = load_from_local_storage() {
+                    web_sys::console::log_1(
+                        &format!("[Bevy] Updating ViewerSettings with new LDT").into(),
+                    );
                     settings.ldt_data = Some(ldt);
                     last_timestamp.0 = new_timestamp;
                 }
@@ -208,6 +242,11 @@ fn parse_viewer_settings_json(json: &str, current: &ViewerSettings) -> Option<Vi
         show_shadows: get_bool("show_shadows").unwrap_or(current.show_shadows),
         // Preserve LDT data - it's synced separately
         ldt_data: current.ldt_data.clone(),
+        luminaire_tilt: get_f32("luminaire_tilt").unwrap_or(current.luminaire_tilt),
+        lane_width: get_f32("lane_width").unwrap_or(current.lane_width),
+        num_lanes: get_u8("num_lanes").unwrap_or(current.num_lanes as u8) as u32,
+        sidewalk_width: get_f32("sidewalk_width").unwrap_or(current.sidewalk_width),
+        pole_spacing: get_f32("pole_spacing").unwrap_or(current.pole_spacing),
     })
 }
 

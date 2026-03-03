@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--All elements contained in this document are required by DLC, but submitted files may contain additional, optional TM-33 elements-->
+<!--The catalog number of the product must be included in the name of the document-->
+<IESTM33>
+<Version>1.1</Version>	
+<Header>
+	<Manufacturer>The Name of the Manufacturer</Manufacturer>
+	<Description>The Description of the tested product</Description>
+	<Laboratory>Testing Laboratory</Laboratory>
+	<ReportNumber>Testing Laboratory Report Number</ReportNumber>
+	<ReportDate>2021-10-19</ReportDate>
+</Header>
+<Luminaire>
+<Dimensions>
+	<!--All dimensions are in meters-->
+	<!--The dimension values below represent luminaire housing dimensions, not luminous opening dimensions-->
+	<!--For guidance on how to represent the luminous opening dimensions (e.g., as reported in an LM-63 .ies file), please refer to the Emission Areas section (4.5.23) in ANSI/IES TM-33-18-->
+	<Length>1.0</Length>
+	<Width>1.0</Width>
+	<Height>1.0</Height>
+	</Dimensions>
+	<NumEmitter>1</NumEmitter>
+</Luminaire>
+<Emitter><!--Optical and Electrical measurements per ANSI/IES LM-79 required-->
+	<Quantity>1</Quantity>
+	<Description>Horticultural Luminaire</Description>
+	<InputWattage>500</InputWattage>
+	<PowerFactor>.9</PowerFactor>
+	<DataGeneration>
+		<IntensityScaling>False</IntensityScaling><!--Intensity Scaling must be false-->
+		<AngleInterpolation>False</AngleInterpolation><!--Angle Interpolation must be true or false-->
+	</DataGeneration>
+	<PhotonData>
+		<MinWavelength>400</MinWavelength><!--Min-Max Wavelengths must be 400-700 nm-->
+		<MaxWavelength>700</MaxWavelength>
+		<PhotonIntensity>
+			<NumberMeasured>629</NumberMeasured>
+			<NumberHorz>17</NumberHorz>
+			<NumberVert>37</NumberVert>
+			<!--Intensity Data are in units of micromol per second per steradian-->
+			<!--Per LM-79, Horizontal angles may have a maximum increment of 22.5 degrees-->
+			<!--Per LM-79, Vertical angles may have a maximum increment of 5 degrees-->
+			<IntData h="0" v="0">180</IntData>
+			<IntData h="0" v="5">170</IntData>
+			<IntData h="0" v="10">160</IntData>
+			<IntData h="0" v="15">150</IntData>
+			<IntData h="0" v="20">140</IntData>
+			<IntData h="0" v="25">130</IntData>
+			<IntData h="0" v="30">120</IntData>
+			<IntData h="0" v="35">110</IntData>
+			<IntData h="0" v="40">100</IntData>
+			<IntData h="0" v="45">90</IntData>
+			<IntData h="0" v="50">80</IntData>
+			<IntData h="0" v="55">70</IntData>
+			<IntData h="0" v="60">60</IntData>
+			<IntData h="0" v="65">50</IntData>
+			<IntData h="0" v="70">40</IntData>
+			<IntData h="0" v="75">30</IntData>
+			<IntData h="0" v="80">20</IntData>
+			<IntData h="0" v="85">10</IntData>
+			<IntData h="0" v="90">0</IntData>
+			<IntData h="0" v="95">0</IntData>
+			<IntData h="0" v="100">0</IntData>
+			<IntData h="0" v="105">0</IntData>
+			<IntData h="0" v="110">0</IntData>
+			<IntData h="0" v="115">0</IntData>
+			<IntData h="0" v="120">0</IntData>
+			<IntData h="0" v="125">0</IntData>
+			<IntData h="0" v="130">0</IntData>
+			<IntData h="0" v="135">0</IntData>
+			<IntData h="0" v="140">0</IntData>
+			<IntData h="0" v="145">0</IntData>
+			<IntData h="0" v="150">0</IntData>
+			<IntData h="0" v="155">0</IntData>
+			<IntData h="0" v="160">0</IntData>
+			<IntData h="0" v="165">0</IntData>
+			<IntData h="0" v="170">0</IntData>
+			<IntData h="0" v="175">0</IntData>
+			<IntData h="0" v="180">0</IntData>
+			<IntData h="22.5" v="0">180</IntData>
+			<IntData h="22.5" v="5">170</IntData>
+			<IntData h="22.5" v="10">160</IntData>
+			<IntData h="22.5" v="15">150</IntData>
+			<IntData h="22.5" v="20">140</IntData>
+			<IntData h="22.5" v="25">130</IntData>
+			<IntData h="22.5" v="30">120</IntData>
+			<IntData h="22.5" v="35">110</IntData>
+			<IntData h="22.5" v="40">100</IntData>
+			<IntData h="22.5" v="45">90</IntData>
+			<IntData h="22.5" v="50">80</IntData>
+			<IntData h="22.5" v="55">70</IntData>
+			<IntData h="22.5" v="60">60</IntData>
+			<IntData h="22.5" v="65">50</IntData>
+			<IntData h="22.5" v="70">40</IntData>
+			<IntData h="22.5" v="75">30</IntData>
+			<IntData h="22.5" v="80">20</IntData>
+			<IntData h="22.5" v="85">10</IntData>
+			<IntData h="22.5" v="90">0</IntData>
+			<IntData h="22.5" v="95">0</IntData>
+			<IntData h="22.5" v="100">0</IntData>
+			<IntData h="22.5" v="105">0</IntData>
+			<IntData h="22.5" v="110">0</IntData>
+			<IntData h="22.5" v="115">0</IntData>
+			<IntData h="22.5" v="120">0</IntData>
+			<IntData h="22.5" v="125">0</IntData>
+			<IntData h="22.5" v="130">0</IntData>
+			<IntData h="22.5" v="135">0</IntData>
+			<IntData h="22.5" v="140">0</IntData>
+			<IntData h="22.5" v="145">0</IntData>
+			<IntData h="22.5" v="150">0</IntData>
+			<IntData h="22.5" v="155">0</IntData>
+			<IntData h="22.5" v="160">0</IntData>
+			<IntData h="22.5" v="165">0</IntData>
+			<IntData h="22.5" v="170">0</IntData>
+			<IntData h="22.5" v="175">0</IntData>
+			<IntData h="22.5" v="180">0</IntData>
+			<IntData h="45" v="0">180</IntData>
+			<IntData h="45" v="5">170</IntData>
+			<IntData h="45" v="10">160</IntData>
+			<IntData h="45" v="15">150</IntData>
+			<IntData h="45" v="20">140</IntData>
+			<IntData h="45" v="25">130</IntData>
+			<IntData h="45" v="30">120</IntData>
+			<IntData h="45" v="35">110</IntData>
+			<IntData h="45" v="40">100</IntData>
+			<IntData h="45" v="45">90</IntData>
+			<IntData h="45" v="50">80</IntData>
+			<IntData h="45" v="55">70</IntData>
+			<IntData h="45" v="60">60</IntData>
+			<IntData h="45" v="65">50</IntData>
+			<IntData h="45" v="70">40</IntData>
+			<IntData h="45" v="75">30</IntData>
+			<IntData h="45" v="80">20</IntData>
+			<IntData h="45" v="85">10</IntData>
+			<IntData h="45" v="90">0</IntData>
+			<IntData h="45" v="95">0</IntData>
+			<IntData h="45" v="100">0</IntData>
+			<IntData h="45" v="105">0</IntData>
+			<IntData h="45" v="110">0</IntData>
+			<IntData h="45" v="115">0</IntData>
+			<IntData h="45" v="120">0</IntData>
+			<IntData h="45" v="125">0</IntData>
+			<IntData h="45" v="130">0</IntData>
+			<IntData h="45" v="135">0</IntData>
+			<IntData h="45" v="140">0</IntData>
+			<IntData h="45" v="145">0</IntData>
+			<IntData h="45" v="150">0</IntData>
+			<IntData h="45" v="155">0</IntData>
+			<IntData h="45" v="160">0</IntData>
+			<IntData h="45" v="165">0</IntData>
+			<IntData h="45" v="170">0</IntData>
+			<IntData h="45" v="175">0</IntData>
+			<IntData h="45" v="180">0</IntData>
+			<IntData h="67.5" v="0">180</IntData>
+			<IntData h="67.5" v="5">170</IntData>
+			<IntData h="67.5" v="10">160</IntData>
+			<IntData h="67.5" v="15">150</IntData>
+			<IntData h="67.5" v="20">140</IntData>
+			<IntData h="67.5" v="25">130</IntData>
+			<IntData h="67.5" v="30">120</IntData>
+			<IntData h="67.5" v="35">110</IntData>
+			<IntData h="67.5" v="40">100</IntData>
+			<IntData h="67.5" v="45">90</IntData>
+			<IntData h="67.5" v="50">80</IntData>
+			<IntData h="67.5" v="55">70</IntData>
+			<IntData h="67.5" v="60">60</IntData>
+			<IntData h="67.5" v="65">50</IntData>
+			<IntData h="67.5" v="70">40</IntData>
+			<IntData h="67.5" v="75">30</IntData>
+			<IntData h="67.5" v="80">20</IntData>
+			<IntData h="67.5" v="85">10</IntData>
+			<IntData h="67.5" v="90">0</IntData>
+			<IntData h="67.5" v="95">0</IntData>
+			<IntData h="67.5" v="100">0</IntData>
+			<IntData h="67.5" v="105">0</IntData>
+			<IntData h="67.5" v="110">0</IntData>
+			<IntData h="67.5" v="115">0</IntData>
+			<IntData h="67.5" v="120">0</IntData>
+			<IntData h="67.5" v="125">0</IntData>
+			<IntData h="67.5" v="130">0</IntData>
+			<IntData h="67.5" v="135">0</IntData>
+			<IntData h="67.5" v="140">0</IntData>
+			<IntData h="67.5" v="145">0</IntData>
+			<IntData h="67.5" v="150">0</IntData>
+			<IntData h="67.5" v="155">0</IntData>
+			<IntData h="67.5" v="160">0</IntData>
+			<IntData h="67.5" v="165">0</IntData>
+			<IntData h="67.5" v="170">0</IntData>
+			<IntData h="67.5" v="175">0</IntData>
+			<IntData h="67.5" v="180">0</IntData>
+			<IntData h="90" v="0">180</IntData>
+			<IntData h="90" v="5">170</IntData>
+			<IntData h="90" v="10">160</IntData>
+			<IntData h="90" v="15">150</IntData>
+			<IntData h="90" v="20">140</IntData>
+			<IntData h="90" v="25">130</IntData>
+			<IntData h="90" v="30">120</IntData>
+			<IntData h="90" v="35">110</IntData>
+			<IntData h="90" v="40">100</IntData>
+			<IntData h="90" v="45">90</IntData>
+			<IntData h="90" v="50">80</IntData>
+			<IntData h="90" v="55">70</IntData>
+			<IntData h="90" v="60">60</IntData>
+			<IntData h="90" v="65">50</IntData>
+			<IntData h="90" v="70">40</IntData>
+			<IntData h="90" v="75">30</IntData>
+			<IntData h="90" v="80">20</IntData>
+			<IntData h="90" v="85">10</IntData>
+			<IntData h="90" v="90">0</IntData>
+			<IntData h="90" v="95">0</IntData>
+			<IntData h="90" v="100">0</IntData>
+			<IntData h="90" v="105">0</IntData>
+			<IntData h="90" v="110">0</IntData>
+			<IntData h="90" v="115">0</IntData>
+			<IntData h="90" v="120">0</IntData>
+			<IntData h="90" v="125">0</IntData>
+			<IntData h="90" v="130">0</IntData>
+			<IntData h="90" v="135">0</IntData>
+			<IntData h="90" v="140">0</IntData>
+			<IntData h="90" v="145">0</IntData>
+			<IntData h="90" v="150">0</IntData>
+			<IntData h="90" v="155">0</IntData>
+			<IntData h="90" v="160">0</IntData>
+			<IntData h="90" v="165">0</IntData>
+			<IntData h="90" v="170">0</IntData>
+			<IntData h="90" v="175">0</IntData>
+			<IntData h="90" v="180">0</IntData>
+			<IntData h="112.5" v="0">180</IntData>
+			<IntData h="112.5" v="5">170</IntData>
+			<IntData h="112.5" v="10">160</IntData>
+			<IntData h="112.5" v="15">150</IntData>
+			<IntData h="112.5" v="20">140</IntData>
+			<IntData h="112.5" v="25">130</IntData>
+			<IntData h="112.5" v="30">120</IntData>
+			<IntData h="112.5" v="35">110</IntData>
+			<IntData h="112.5" v="40">100</IntData>
+			<IntData h="112.5" v="45">90</IntData>
+			<IntData h="112.5" v="50">80</IntData>
+			<IntData h="112.5" v="55">70</IntData>
+			<IntData h="112.5" v="60">60</IntData>
+			<IntData h="112.5" v="65">50</IntData>
+			<IntData h="112.5" v="70">40</IntData>
+			<IntData h="112.5" v="75">30</IntData>
+			<IntData h="112.5" v="80">20</IntData>
+			<IntData h="112.5" v="85">10</IntData>
+			<IntData h="112.5" v="90">0</IntData>
+			<IntData h="112.5" v="95">0</IntData>
+			<IntData h="112.5" v="100">0</IntData>
+			<IntData h="112.5" v="105">0</IntData>
+			<IntData h="112.5" v="110">0</IntData>
+			<IntData h="112.5" v="115">0</IntData>
+			<IntData h="112.5" v="120">0</IntData>
+			<IntData h="112.5" v="125">0</IntData>
+			<IntData h="112.5" v="130">0</IntData>
+			<IntData h="112.5" v="135">0</IntData>
+			<IntData h="112.5" v="140">0</IntData>
+			<IntData h="112.5" v="145">0</IntData>
+			<IntData h="112.5" v="150">0</IntData>
+			<IntData h="112.5" v="155">0</IntData>
+			<IntData h="112.5" v="160">0</IntData>
+			<IntData h="112.5" v="165">0</IntData>
+			<IntData h="112.5" v="170">0</IntData>
+			<IntData h="112.5" v="175">0</IntData>
+			<IntData h="112.5" v="180">0</IntData>
+			<IntData h="135" v="0">180</IntData>
+			<IntData h="135" v="5">170</IntData>
+			<IntData h="135" v="10">160</IntData>
+			<IntData h="135" v="15">150</IntData>
+			<IntData h="135" v="20">140</IntData>
+			<IntData h="135" v="25">130</IntData>
+			<IntData h="135" v="30">120</IntData>
+			<IntData h="135" v="35">110</IntData>
+			<IntData h="135" v="40">100</IntData>
+			<IntData h="135" v="45">90</IntData>
+			<IntData h="135" v="50">80</IntData>
+			<IntData h="135" v="55">70</IntData>
+			<IntData h="135" v="60">60</IntData>
+			<IntData h="135" v="65">50</IntData>
+			<IntData h="135" v="70">40</IntData>
+			<IntData h="135" v="75">30</IntData>
+			<IntData h="135" v="80">20</IntData>
+			<IntData h="135" v="85">10</IntData>
+			<IntData h="135" v="90">0</IntData>
+			<IntData h="135" v="95">0</IntData>
+			<IntData h="135" v="100">0</IntData>
+			<IntData h="135" v="105">0</IntData>
+			<IntData h="135" v="110">0</IntData>
+			<IntData h="135" v="115">0</IntData>
+			<IntData h="135" v="120">0</IntData>
+			<IntData h="135" v="125">0</IntData>
+			<IntData h="135" v="130">0</IntData>
+			<IntData h="135" v="135">0</IntData>
+			<IntData h="135" v="140">0</IntData>
+			<IntData h="135" v="145">0</IntData>
+			<IntData h="135" v="150">0</IntData>
+			<IntData h="135" v="155">0</IntData>
+			<IntData h="135" v="160">0</IntData>
+			<IntData h="135" v="165">0</IntData>
+			<IntData h="135" v="170">0</IntData>
+			<IntData h="135" v="175">0</IntData>
+			<IntData h="135" v="180">0</IntData>
+			<IntData h="157.5" v="0">180</IntData>
+			<IntData h="157.5" v="5">170</IntData>
+			<IntData h="157.5" v="10">160</IntData>
+			<IntData h="157.5" v="15">150</IntData>
+			<IntData h="157.5" v="20">140</IntData>
+			<IntData h="157.5" v="25">130</IntData>
+			<IntData h="157.5" v="30">120</IntData>
+			<IntData h="157.5" v="35">110</IntData>
+			<IntData h="157.5" v="40">100</IntData>
+			<IntData h="157.5" v="45">90</IntData>
+			<IntData h="157.5" v="50">80</IntData>
+			<IntData h="157.5" v="55">70</IntData>
+			<IntData h="157.5" v="60">60</IntData>
+			<IntData h="157.5" v="65">50</IntData>
+			<IntData h="157.5" v="70">40</IntData>
+			<IntData h="157.5" v="75">30</IntData>
+			<IntData h="157.5" v="80">20</IntData>
+			<IntData h="157.5" v="85">10</IntData>
+			<IntData h="157.5" v="90">0</IntData>
+			<IntData h="157.5" v="95">0</IntData>
+			<IntData h="157.5" v="100">0</IntData>
+			<IntData h="157.5" v="105">0</IntData>
+			<IntData h="157.5" v="110">0</IntData>
+			<IntData h="157.5" v="115">0</IntData>
+			<IntData h="157.5" v="120">0</IntData>
+			<IntData h="157.5" v="125">0</IntData>
+			<IntData h="157.5" v="130">0</IntData>
+			<IntData h="157.5" v="135">0</IntData>
+			<IntData h="157.5" v="140">0</IntData>
+			<IntData h="157.5" v="145">0</IntData>
+			<IntData h="157.5" v="150">0</IntData>
+			<IntData h="157.5" v="155">0</IntData>
+			<IntData h="157.5" v="160">0</IntData>
+			<IntData h="157.5" v="165">0</IntData>
+			<IntData h="157.5" v="170">0</IntData>
+			<IntData h="157.5" v="175">0</IntData>
+			<IntData h="157.5" v="180">0</IntData>
+			<IntData h="180" v="0">180</IntData>
+			<IntData h="180" v="5">170</IntData>
+			<IntData h="180" v="10">160</IntData>
+			<IntData h="180" v="15">150</IntData>
+			<IntData h="180" v="20">140</IntData>
+			<IntData h="180" v="25">130</IntData>
+			<IntData h="180" v="30">120</IntData>
+			<IntData h="180" v="35">110</IntData>
+			<IntData h="180" v="40">100</IntData>
+			<IntData h="180" v="45">90</IntData>
+			<IntData h="180" v="50">80</IntData>
+			<IntData h="180" v="55">70</IntData>
+			<IntData h="180" v="60">60</IntData>
+			<IntData h="180" v="65">50</IntData>
+			<IntData h="180" v="70">40</IntData>
+			<IntData h="180" v="75">30</IntData>
+			<IntData h="180" v="80">20</IntData>
+			<IntData h="180" v="85">10</IntData>
+			<IntData h="180" v="90">0</IntData>
+			<IntData h="180" v="95">0</IntData>
+			<IntData h="180" v="100">0</IntData>
+			<IntData h="180" v="105">0</IntData>
+			<IntData h="180" v="110">0</IntData>
+			<IntData h="180" v="115">0</IntData>
+			<IntData h="180" v="120">0</IntData>
+			<IntData h="180" v="125">0</IntData>
+			<IntData h="180" v="130">0</IntData>
+			<IntData h="180" v="135">0</IntData>
+			<IntData h="180" v="140">0</IntData>
+			<IntData h="180" v="145">0</IntData>
+			<IntData h="180" v="150">0</IntData>
+			<IntData h="180" v="155">0</IntData>
+			<IntData h="180" v="160">0</IntData>
+			<IntData h="180" v="165">0</IntData>
+			<IntData h="180" v="170">0</IntData>
+			<IntData h="180" v="175">0</IntData>
+			<IntData h="180" v="180">0</IntData>
+			<IntData h="202.5" v="0">180</IntData>
+			<IntData h="202.5" v="5">170</IntData>
+			<IntData h="202.5" v="10">160</IntData>
+			<IntData h="202.5" v="15">150</IntData>
+			<IntData h="202.5" v="20">140</IntData>
+			<IntData h="202.5" v="25">130</IntData>
+			<IntData h="202.5" v="30">120</IntData>
+			<IntData h="202.5" v="35">110</IntData>
+			<IntData h="202.5" v="40">100</IntData>
+			<IntData h="202.5" v="45">90</IntData>
+			<IntData h="202.5" v="50">80</IntData>
+			<IntData h="202.5" v="55">70</IntData>
+			<IntData h="202.5" v="60">60</IntData>
+			<IntData h="202.5" v="65">50</IntData>
+			<IntData h="202.5" v="70">40</IntData>
+			<IntData h="202.5" v="75">30</IntData>
+			<IntData h="202.5" v="80">20</IntData>
+			<IntData h="202.5" v="85">10</IntData>
+			<IntData h="202.5" v="90">0</IntData>
+			<IntData h="202.5" v="95">0</IntData>
+			<IntData h="202.5" v="100">0</IntData>
+			<IntData h="202.5" v="105">0</IntData>
+			<IntData h="202.5" v="110">0</IntData>
+			<IntData h="202.5" v="115">0</IntData>
+			<IntData h="202.5" v="120">0</IntData>
+			<IntData h="202.5" v="125">0</IntData>
+			<IntData h="202.5" v="130">0</IntData>
+			<IntData h="202.5" v="135">0</IntData>
+			<IntData h="202.5" v="140">0</IntData>
+			<IntData h="202.5" v="145">0</IntData>
+			<IntData h="202.5" v="150">0</IntData>
+			<IntData h="202.5" v="155">0</IntData>
+			<IntData h="202.5" v="160">0</IntData>
+			<IntData h="202.5" v="165">0</IntData>
+			<IntData h="202.5" v="170">0</IntData>
+			<IntData h="202.5" v="175">0</IntData>
+			<IntData h="202.5" v="180">0</IntData>
+			<IntData h="225" v="0">180</IntData>
+			<IntData h="225" v="5">170</IntData>
+			<IntData h="225" v="10">160</IntData>
+			<IntData h="225" v="15">150</IntData>
+			<IntData h="225" v="20">140</IntData>
+			<IntData h="225" v="25">130</IntData>
+			<IntData h="225" v="30">120</IntData>
+			<IntData h="225" v="35">110</IntData>
+			<IntData h="225" v="40">100</IntData>
+			<IntData h="225" v="45">90</IntData>
+			<IntData h="225" v="50">80</IntData>
+			<IntData h="225" v="55">70</IntData>
+			<IntData h="225" v="60">60</IntData>
+			<IntData h="225" v="65">50</IntData>
+			<IntData h="225" v="70">40</IntData>
+			<IntData h="225" v="75">30</IntData>
+			<IntData h="225" v="80">20</IntData>
+			<IntData h="225" v="85">10</IntData>
+			<IntData h="225" v="90">0</IntData>
+			<IntData h="225" v="95">0</IntData>
+			<IntData h="225" v="100">0</IntData>
+			<IntData h="225" v="105">0</IntData>
+			<IntData h="225" v="110">0</IntData>
+			<IntData h="225" v="115">0</IntData>
+			<IntData h="225" v="120">0</IntData>
+			<IntData h="225" v="125">0</IntData>
+			<IntData h="225" v="130">0</IntData>
+			<IntData h="225" v="135">0</IntData>
+			<IntData h="225" v="140">0</IntData>
+			<IntData h="225" v="145">0</IntData>
+			<IntData h="225" v="150">0</IntData>
+			<IntData h="225" v="155">0</IntData>
+			<IntData h="225" v="160">0</IntData>
+			<IntData h="225" v="165">0</IntData>
+			<IntData h="225" v="170">0</IntData>
+			<IntData h="225" v="175">0</IntData>
+			<IntData h="225" v="180">0</IntData>
+			<IntData h="247.5" v="0">180</IntData>
+			<IntData h="247.5" v="5">170</IntData>
+			<IntData h="247.5" v="10">160</IntData>
+			<IntData h="247.5" v="15">150</IntData>
+			<IntData h="247.5" v="20">140</IntData>
+			<IntData h="247.5" v="25">130</IntData>
+			<IntData h="247.5" v="30">120</IntData>
+			<IntData h="247.5" v="35">110</IntData>
+			<IntData h="247.5" v="40">100</IntData>
+			<IntData h="247.5" v="45">90</IntData>
+			<IntData h="247.5" v="50">80</IntData>
+			<IntData h="247.5" v="55">70</IntData>
+			<IntData h="247.5" v="60">60</IntData>
+			<IntData h="247.5" v="65">50</IntData>
+			<IntData h="247.5" v="70">40</IntData>
+			<IntData h="247.5" v="75">30</IntData>
+			<IntData h="247.5" v="80">20</IntData>
+			<IntData h="247.5" v="85">10</IntData>
+			<IntData h="247.5" v="90">0</IntData>
+			<IntData h="247.5" v="95">0</IntData>
+			<IntData h="247.5" v="100">0</IntData>
+			<IntData h="247.5" v="105">0</IntData>
+			<IntData h="247.5" v="110">0</IntData>
+			<IntData h="247.5" v="115">0</IntData>
+			<IntData h="247.5" v="120">0</IntData>
+			<IntData h="247.5" v="125">0</IntData>
+			<IntData h="247.5" v="130">0</IntData>
+			<IntData h="247.5" v="135">0</IntData>
+			<IntData h="247.5" v="140">0</IntData>
+			<IntData h="247.5" v="145">0</IntData>
+			<IntData h="247.5" v="150">0</IntData>
+			<IntData h="247.5" v="155">0</IntData>
+			<IntData h="247.5" v="160">0</IntData>
+			<IntData h="247.5" v="165">0</IntData>
+			<IntData h="247.5" v="170">0</IntData>
+			<IntData h="247.5" v="175">0</IntData>
+			<IntData h="247.5" v="180">0</IntData>
+			<IntData h="270" v="0">180</IntData>
+			<IntData h="270" v="5">170</IntData>
+			<IntData h="270" v="10">160</IntData>
+			<IntData h="270" v="15">150</IntData>
+			<IntData h="270" v="20">140</IntData>
+			<IntData h="270" v="25">130</IntData>
+			<IntData h="270" v="30">120</IntData>
+			<IntData h="270" v="35">110</IntData>
+			<IntData h="270" v="40">100</IntData>
+			<IntData h="270" v="45">90</IntData>
+			<IntData h="270" v="50">80</IntData>
+			<IntData h="270" v="55">70</IntData>
+			<IntData h="270" v="60">60</IntData>
+			<IntData h="270" v="65">50</IntData>
+			<IntData h="270" v="70">40</IntData>
+			<IntData h="270" v="75">30</IntData>
+			<IntData h="270" v="80">20</IntData>
+			<IntData h="270" v="85">10</IntData>
+			<IntData h="270" v="90">0</IntData>
+			<IntData h="270" v="95">0</IntData>
+			<IntData h="270" v="100">0</IntData>
+			<IntData h="270" v="105">0</IntData>
+			<IntData h="270" v="110">0</IntData>
+			<IntData h="270" v="115">0</IntData>
+			<IntData h="270" v="120">0</IntData>
+			<IntData h="270" v="125">0</IntData>
+			<IntData h="270" v="130">0</IntData>
+			<IntData h="270" v="135">0</IntData>
+			<IntData h="270" v="140">0</IntData>
+			<IntData h="270" v="145">0</IntData>
+			<IntData h="270" v="150">0</IntData>
+			<IntData h="270" v="155">0</IntData>
+			<IntData h="270" v="160">0</IntData>
+			<IntData h="270" v="165">0</IntData>
+			<IntData h="270" v="170">0</IntData>
+			<IntData h="270" v="175">0</IntData>
+			<IntData h="270" v="180">0</IntData>
+			<IntData h="292.5" v="0">180</IntData>
+			<IntData h="292.5" v="5">170</IntData>
+			<IntData h="292.5" v="10">160</IntData>
+			<IntData h="292.5" v="15">150</IntData>
+			<IntData h="292.5" v="20">140</IntData>
+			<IntData h="292.5" v="25">130</IntData>
+			<IntData h="292.5" v="30">120</IntData>
+			<IntData h="292.5" v="35">110</IntData>
+			<IntData h="292.5" v="40">100</IntData>
+			<IntData h="292.5" v="45">90</IntData>
+			<IntData h="292.5" v="50">80</IntData>
+			<IntData h="292.5" v="55">70</IntData>
+			<IntData h="292.5" v="60">60</IntData>
+			<IntData h="292.5" v="65">50</IntData>
+			<IntData h="292.5" v="70">40</IntData>
+			<IntData h="292.5" v="75">30</IntData>
+			<IntData h="292.5" v="80">20</IntData>
+			<IntData h="292.5" v="85">10</IntData>
+			<IntData h="292.5" v="90">0</IntData>
+			<IntData h="292.5" v="95">0</IntData>
+			<IntData h="292.5" v="100">0</IntData>
+			<IntData h="292.5" v="105">0</IntData>
+			<IntData h="292.5" v="110">0</IntData>
+			<IntData h="292.5" v="115">0</IntData>
+			<IntData h="292.5" v="120">0</IntData>
+			<IntData h="292.5" v="125">0</IntData>
+			<IntData h="292.5" v="130">0</IntData>
+			<IntData h="292.5" v="135">0</IntData>
+			<IntData h="292.5" v="140">0</IntData>
+			<IntData h="292.5" v="145">0</IntData>
+			<IntData h="292.5" v="150">0</IntData>
+			<IntData h="292.5" v="155">0</IntData>
+			<IntData h="292.5" v="160">0</IntData>
+			<IntData h="292.5" v="165">0</IntData>
+			<IntData h="292.5" v="170">0</IntData>
+			<IntData h="292.5" v="175">0</IntData>
+			<IntData h="292.5" v="180">0</IntData>
+			<IntData h="315" v="0">180</IntData>
+			<IntData h="315" v="5">170</IntData>
+			<IntData h="315" v="10">160</IntData>
+			<IntData h="315" v="15">150</IntData>
+			<IntData h="315" v="20">140</IntData>
+			<IntData h="315" v="25">130</IntData>
+			<IntData h="315" v="30">120</IntData>
+			<IntData h="315" v="35">110</IntData>
+			<IntData h="315" v="40">100</IntData>
+			<IntData h="315" v="45">90</IntData>
+			<IntData h="315" v="50">80</IntData>
+			<IntData h="315" v="55">70</IntData>
+			<IntData h="315" v="60">60</IntData>
+			<IntData h="315" v="65">50</IntData>
+			<IntData h="315" v="70">40</IntData>
+			<IntData h="315" v="75">30</IntData>
+			<IntData h="315" v="80">20</IntData>
+			<IntData h="315" v="85">10</IntData>
+			<IntData h="315" v="90">0</IntData>
+			<IntData h="315" v="95">0</IntData>
+			<IntData h="315" v="100">0</IntData>
+			<IntData h="315" v="105">0</IntData>
+			<IntData h="315" v="110">0</IntData>
+			<IntData h="315" v="115">0</IntData>
+			<IntData h="315" v="120">0</IntData>
+			<IntData h="315" v="125">0</IntData>
+			<IntData h="315" v="130">0</IntData>
+			<IntData h="315" v="135">0</IntData>
+			<IntData h="315" v="140">0</IntData>
+			<IntData h="315" v="145">0</IntData>
+			<IntData h="315" v="150">0</IntData>
+			<IntData h="315" v="155">0</IntData>
+			<IntData h="315" v="160">0</IntData>
+			<IntData h="315" v="165">0</IntData>
+			<IntData h="315" v="170">0</IntData>
+			<IntData h="315" v="175">0</IntData>
+			<IntData h="315" v="180">0</IntData>
+			<IntData h="337.5" v="0">180</IntData>
+			<IntData h="337.5" v="5">170</IntData>
+			<IntData h="337.5" v="10">160</IntData>
+			<IntData h="337.5" v="15">150</IntData>
+			<IntData h="337.5" v="20">140</IntData>
+			<IntData h="337.5" v="25">130</IntData>
+			<IntData h="337.5" v="30">120</IntData>
+			<IntData h="337.5" v="35">110</IntData>
+			<IntData h="337.5" v="40">100</IntData>
+			<IntData h="337.5" v="45">90</IntData>
+			<IntData h="337.5" v="50">80</IntData>
+			<IntData h="337.5" v="55">70</IntData>
+			<IntData h="337.5" v="60">60</IntData>
+			<IntData h="337.5" v="65">50</IntData>
+			<IntData h="337.5" v="70">40</IntData>
+			<IntData h="337.5" v="75">30</IntData>
+			<IntData h="337.5" v="80">20</IntData>
+			<IntData h="337.5" v="85">10</IntData>
+			<IntData h="337.5" v="90">0</IntData>
+			<IntData h="337.5" v="95">0</IntData>
+			<IntData h="337.5" v="100">0</IntData>
+			<IntData h="337.5" v="105">0</IntData>
+			<IntData h="337.5" v="110">0</IntData>
+			<IntData h="337.5" v="115">0</IntData>
+			<IntData h="337.5" v="120">0</IntData>
+			<IntData h="337.5" v="125">0</IntData>
+			<IntData h="337.5" v="130">0</IntData>
+			<IntData h="337.5" v="135">0</IntData>
+			<IntData h="337.5" v="140">0</IntData>
+			<IntData h="337.5" v="145">0</IntData>
+			<IntData h="337.5" v="150">0</IntData>
+			<IntData h="337.5" v="155">0</IntData>
+			<IntData h="337.5" v="160">0</IntData>
+			<IntData h="337.5" v="165">0</IntData>
+			<IntData h="337.5" v="170">0</IntData>
+			<IntData h="337.5" v="175">0</IntData>
+			<IntData h="337.5" v="180">0</IntData>
+			<IntData h="360" v="0">180</IntData>
+			<IntData h="360" v="5">170</IntData>
+			<IntData h="360" v="10">160</IntData>
+			<IntData h="360" v="15">150</IntData>
+			<IntData h="360" v="20">140</IntData>
+			<IntData h="360" v="25">130</IntData>
+			<IntData h="360" v="30">120</IntData>
+			<IntData h="360" v="35">110</IntData>
+			<IntData h="360" v="40">100</IntData>
+			<IntData h="360" v="45">90</IntData>
+			<IntData h="360" v="50">80</IntData>
+			<IntData h="360" v="55">70</IntData>
+			<IntData h="360" v="60">60</IntData>
+			<IntData h="360" v="65">50</IntData>
+			<IntData h="360" v="70">40</IntData>
+			<IntData h="360" v="75">30</IntData>
+			<IntData h="360" v="80">20</IntData>
+			<IntData h="360" v="85">10</IntData>
+			<IntData h="360" v="90">0</IntData>
+			<IntData h="360" v="95">0</IntData>
+			<IntData h="360" v="100">0</IntData>
+			<IntData h="360" v="105">0</IntData>
+			<IntData h="360" v="110">0</IntData>
+			<IntData h="360" v="115">0</IntData>
+			<IntData h="360" v="120">0</IntData>
+			<IntData h="360" v="125">0</IntData>
+			<IntData h="360" v="130">0</IntData>
+			<IntData h="360" v="135">0</IntData>
+			<IntData h="360" v="140">0</IntData>
+			<IntData h="360" v="145">0</IntData>
+			<IntData h="360" v="150">0</IntData>
+			<IntData h="360" v="155">0</IntData>
+			<IntData h="360" v="160">0</IntData>
+			<IntData h="360" v="165">0</IntData>
+			<IntData h="360" v="170">0</IntData>
+			<IntData h="360" v="175">0</IntData>
+			<IntData h="360" v="180">0</IntData>
+		</PhotonIntensity>
+		<PhotonFlux>500</PhotonFlux><!--Photon Flux in units of micromol per second-->
+	</PhotonData>
+	<SpectralData>
+		<EmitterSpectral>
+			<!--EmitterName element is required for spectrally tunable products-->
+			<NumberWavelength>81</NumberWavelength>
+			<!--Power Data are in units of watts per nanometer-->
+			<!--Minimum wavelength should be 400 nm or less-->
+			<!--Maximum wavelength should be 800 nm or more-->
+			<!--If reporting PBAR, the PBAR range should be included-->
+			<PwrData w="400">0.00000</PwrData>
+			<PwrData w="405">0.00000</PwrData>
+			<PwrData w="410">0.00000</PwrData>
+			<PwrData w="415">0.00010</PwrData>
+			<PwrData w="420">0.00020</PwrData>
+			<PwrData w="425">0.00030</PwrData>
+			<PwrData w="430">0.00060</PwrData>
+			<PwrData w="435">0.00200</PwrData>
+			<PwrData w="440">0.00400</PwrData>
+			<PwrData w="445">0.00600</PwrData>
+			<PwrData w="450">0.00700</PwrData>
+			<PwrData w="455">0.00500</PwrData>
+			<PwrData w="460">0.00300</PwrData>
+			<PwrData w="465">0.00200</PwrData>
+			<PwrData w="470">0.00100</PwrData>
+			<PwrData w="475">0.00080</PwrData>
+			<PwrData w="480">0.00080</PwrData>
+			<PwrData w="485">0.00100</PwrData>
+			<PwrData w="490">0.00100</PwrData>
+			<PwrData w="495">0.00100</PwrData>
+			<PwrData w="500">0.00200</PwrData>
+			<PwrData w="505">0.00200</PwrData>
+			<PwrData w="510">0.00200</PwrData>
+			<PwrData w="515">0.00250</PwrData>
+			<PwrData w="520">0.00250</PwrData>
+			<PwrData w="525">0.00300</PwrData>
+			<PwrData w="530">0.00300</PwrData>
+			<PwrData w="535">0.00300</PwrData>
+			<PwrData w="540">0.00300</PwrData>
+			<PwrData w="545">0.00300</PwrData>
+			<PwrData w="550">0.00300</PwrData>
+			<PwrData w="555">0.00300</PwrData>
+			<PwrData w="560">0.00350</PwrData>
+			<PwrData w="565">0.00400</PwrData>
+			<PwrData w="570">0.00400</PwrData>
+			<PwrData w="575">0.00400</PwrData>
+			<PwrData w="580">0.00400</PwrData>
+			<PwrData w="585">0.00450</PwrData>
+			<PwrData w="590">0.00450</PwrData>
+			<PwrData w="595">0.00450</PwrData>
+			<PwrData w="600">0.00500</PwrData>
+			<PwrData w="605">0.00500</PwrData>
+			<PwrData w="610">0.00500</PwrData>
+			<PwrData w="615">0.00500</PwrData>
+			<PwrData w="620">0.00500</PwrData>
+			<PwrData w="625">0.00550</PwrData>
+			<PwrData w="630">0.00600</PwrData>
+			<PwrData w="635">0.00600</PwrData>
+			<PwrData w="640">0.00600</PwrData>
+			<PwrData w="645">0.00500</PwrData>
+			<PwrData w="650">0.00600</PwrData>
+			<PwrData w="655">0.00700</PwrData>
+			<PwrData w="660">0.00600</PwrData>
+			<PwrData w="665">0.00600</PwrData>
+			<PwrData w="670">0.00500</PwrData>
+			<PwrData w="675">0.00300</PwrData>
+			<PwrData w="680">0.00200</PwrData>
+			<PwrData w="685">0.00100</PwrData>
+			<PwrData w="690">0.00100</PwrData>
+			<PwrData w="695">0.00100</PwrData>
+			<PwrData w="700">0.00100</PwrData>
+			<PwrData w="705">0.00050</PwrData>
+			<PwrData w="710">0.00050</PwrData>
+			<PwrData w="715">0.00020</PwrData>
+			<PwrData w="720">0.00010</PwrData>
+			<PwrData w="725">0.00000</PwrData>
+			<PwrData w="730">0.00000</PwrData>
+			<PwrData w="735">0.00000</PwrData>
+			<PwrData w="740">0.00000</PwrData>
+			<PwrData w="745">0.00000</PwrData>
+			<PwrData w="750">0.00000</PwrData>
+			<PwrData w="755">0.00000</PwrData>
+			<PwrData w="760">0.00000</PwrData>
+			<PwrData w="765">0.00000</PwrData>
+			<PwrData w="770">0.00000</PwrData>
+			<PwrData w="775">0.00000</PwrData>
+			<PwrData w="780">0.00000</PwrData>
+			<PwrData w="785">0.00000</PwrData>
+			<PwrData w="790">0.00000</PwrData>
+			<PwrData w="795">0.00000</PwrData>
+			<PwrData w="800">0.00000</PwrData>
+		</EmitterSpectral>
+	</SpectralData>
+</Emitter>
+<CustomData>
+	<Name>Radiant Power to PPF Scalar Multiplier</Name><!--Name must be "Radiant Power to PPF Scalar Multiplier"-->
+	<UniqueIdentifier>UUID</UniqueIdentifier><!--To generate a UUID go to a UUID generator, for example: https://www.uuidgenerator.net/ and select "Generate a version 4 UUID"-->
+	<Data>1</Data>
+</CustomData>
+</IESTM33>

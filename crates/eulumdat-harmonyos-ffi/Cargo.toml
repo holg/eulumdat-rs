@@ -1,9 +1,9 @@
 [package]
 name = "eulumdat-harmonyos-ffi"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "Simple C FFI bindings for Eulumdat - HarmonyOS/Cangjie compatible"
-license = "MIT OR Apache-2.0"
+license = "AGPL-3.0-or-later"
 repository = "https://github.com/htr/eulumdat-rs"
 
 [lib]

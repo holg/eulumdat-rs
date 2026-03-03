@@ -1,0 +1,31 @@
+[package]
+name = "eulumdat-typst"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Typst report generation for photometric data"
+keywords = ["eulumdat", "photometry", "pdf", "report", "typst"]
+categories = ["science", "visualization"]
+
+[features]
+default = []
+# Enable PDF compilation via typst crate (adds ~50MB dependencies, experimental)
+compile = ["typst", "typst-pdf", "comemo"]
+# Enable PDF compilation via typst CLI (requires typst binary installed)
+cli-compile = []
+
+[dependencies]
+anyhow = "1.0"
+atla = { path = "../atla" }
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock", "wasmbind"] }
+comemo = { version = "0.4", optional = true }
+eulumdat = { path = "../eulumdat" }
+thiserror = "1.0"
+typst = { version = "0.12", optional = true }
+typst-pdf = { version = "0.12", optional = true }
+
+[dev-dependencies]
+tempfile = "3.10"

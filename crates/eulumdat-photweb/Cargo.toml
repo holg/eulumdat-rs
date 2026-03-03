@@ -1,9 +1,9 @@
 [package]
 name = "eulumdat-photweb"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 authors = ["Holger Trahe <trahe@mac.com>"]
-license = "MIT OR Apache-2.0"
+license = "AGPL-3.0-or-later"
 description = "Photometric web representation, sampling, and 3D mesh generation for EULUMDAT/IES lighting data"
 keywords = ["eulumdat", "ies", "photometric", "lighting", "3d-mesh"]
 categories = ["science", "graphics", "rendering", "visualization"]

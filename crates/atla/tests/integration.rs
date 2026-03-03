@@ -853,3 +853,237 @@ fn test_horticultural_validation() {
         );
     }
 }
+
+// ===========================================
+// TM-32-24 BIM Parameters Tests
+// ===========================================
+
+#[test]
+fn test_bim_parameters_from_atla() {
+    use atla::BimParameters;
+
+    let path = samples_dir().join("fluorescent.xml");
+    let doc = atla::parse_file(&path).expect("Failed to parse XML file");
+
+    let bim = BimParameters::from_atla(&doc);
+
+    // Check general parameters
+    assert_eq!(bim.manufacturer, Some("ATLA Test Manufacturer".to_string()));
+    assert_eq!(bim.catalog_number, Some("FL-T16-54W".to_string()));
+
+    // Check photometric parameters
+    assert_eq!(bim.cct_kelvin, Some(6500));
+    assert!(bim.has_photometric_data());
+
+    // Check lamp quantity
+    assert_eq!(bim.lamp_quantity, Some(2));
+
+    // Check total flux (from emitter)
+    assert!(bim.total_luminous_flux.is_some());
+
+    // Check summary generation
+    let summary = bim.summary();
+    assert!(summary.contains("6500K"));
+}
+
+#[test]
+fn test_bim_parameters_from_tm33_horticultural() {
+    use atla::BimParameters;
+
+    let path = tm33_samples_dir().join("horticultural_led.xml");
+    if !path.exists() {
+        eprintln!("Skipping test: horticultural_led.xml not found");
+        return;
+    }
+
+    let doc = atla::parse_file(&path).expect("Failed to parse horticultural file");
+    let bim = BimParameters::from_atla(&doc);
+
+    // Check manufacturer
+    assert_eq!(bim.manufacturer, Some("GrowLight Technologies".to_string()));
+
+    // Check photometric data
+    assert_eq!(bim.cct_kelvin, Some(4000));
+
+    // Check electrical data
+    assert_eq!(bim.watts, Some(600.0));
+    assert!(bim.has_electrical_data());
+
+    // Check power factor if available
+    if let Some(pf) = bim.power_factor {
+        assert!(pf > 0.0 && pf <= 1.0);
+        // Should have calculated apparent power
+        assert!(bim.apparent_power_va.is_some());
+    }
+}
+
+#[test]
+fn test_bim_enum_parsing() {
+    use atla::{HousingShape, LedDriveType, MountingType, VoltageType};
+
+    // VoltageType
+    assert_eq!(VoltageType::parse("AC"), Some(VoltageType::AC));
+    assert_eq!(VoltageType::parse("dc"), Some(VoltageType::DC));
+    assert_eq!(VoltageType::parse("Universal"), Some(VoltageType::UC));
+
+    // MountingType
+    assert_eq!(
+        MountingType::parse("Recessed"),
+        Some(MountingType::Recessed)
+    );
+    assert_eq!(MountingType::parse("pendant"), Some(MountingType::Pendant));
+    assert_eq!(
+        MountingType::parse("IN-GROUND"),
+        Some(MountingType::InGround)
+    );
+
+    // LedDriveType
+    assert_eq!(
+        LedDriveType::parse("CC"),
+        Some(LedDriveType::ConstantCurrent)
+    );
+    assert_eq!(
+        LedDriveType::parse("CV"),
+        Some(LedDriveType::ConstantVoltage)
+    );
+
+    // HousingShape
+    assert_eq!(HousingShape::parse("cuboid"), Some(HousingShape::Cuboid));
+    assert_eq!(
+        HousingShape::parse("circular"),
+        Some(HousingShape::Cylinder)
+    );
+}
+
+// ==========================================================================
+// TM-32-24 Sample File Validation Tests
+// ==========================================================================
+
+fn tm32_24_samples_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/samples/tm32-24")
+}
+
+#[test]
+fn test_tm32_24_office_downlight_validation() {
+    use atla::validate::{validate_with_schema, ValidationSchema};
+    use atla::BimParameters;
+
+    let path = tm32_24_samples_dir().join("office_downlight_bim.xml");
+    let doc = atla::parse_file(&path).expect("Failed to parse office_downlight_bim.xml");
+
+    // Should be detected as TM-33-24 (BIM)
+    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+
+    // Validate against TM-33-23 rules (base requirements)
+    let result_tm33 = validate_with_schema(&doc, ValidationSchema::Tm3323);
+    assert!(
+        result_tm33.is_valid(),
+        "TM-33-23 validation failed: {:?}",
+        result_tm33.errors
+    );
+
+    // Validate against TM-32-24 rules (BIM requirements)
+    let result_tm32 = validate_with_schema(&doc, ValidationSchema::Tm3224);
+    assert!(
+        result_tm32.is_valid(),
+        "TM-32-24 validation failed: {:?}",
+        result_tm32.errors
+    );
+
+    // Check BIM parameters are populated
+    let bim = BimParameters::from_atla(&doc);
+    assert!(
+        bim.populated_count() >= 10,
+        "Expected at least 10 BIM parameters, got {}",
+        bim.populated_count()
+    );
+
+    // Verify key BIM parameters
+    assert!(bim.manufacturer.is_some(), "Manufacturer should be set");
+    assert!(bim.cct_kelvin.is_some(), "CCT should be set");
+    assert!(bim.cri.is_some(), "CRI should be set");
+    assert!(bim.watts.is_some(), "Watts should be set");
+}
+
+#[test]
+fn test_tm32_24_road_luminaire_validation() {
+    use atla::validate::{validate_with_schema, ValidationSchema};
+    use atla::BimParameters;
+
+    let path = tm32_24_samples_dir().join("road_luminaire_bim.xml");
+    let doc = atla::parse_file(&path).expect("Failed to parse road_luminaire_bim.xml");
+
+    // Validate against TM-33-23 rules
+    let result_tm33 = validate_with_schema(&doc, ValidationSchema::Tm3323);
+    assert!(
+        result_tm33.is_valid(),
+        "TM-33-23 validation failed: {:?}",
+        result_tm33.errors
+    );
+
+    // Validate against TM-32-24 rules
+    let result_tm32 = validate_with_schema(&doc, ValidationSchema::Tm3224);
+    assert!(
+        result_tm32.is_valid(),
+        "TM-32-24 validation failed: {:?}",
+        result_tm32.errors
+    );
+
+    // Check BIM parameters are populated
+    let bim = BimParameters::from_atla(&doc);
+    assert!(
+        bim.populated_count() >= 15,
+        "Expected at least 15 BIM parameters for road luminaire, got {}",
+        bim.populated_count()
+    );
+
+    // Road luminaire should have BUG rating
+    assert!(bim.bug_rating.is_some(), "BUG rating should be set");
+
+    // Road luminaire should have mounting type
+    assert!(bim.mounting_type.is_some(), "Mounting type should be set");
+}
+
+#[test]
+fn test_tm32_24_samples_have_required_header_fields() {
+    // Both samples should have all required TM-33-23 header fields
+    for filename in ["office_downlight_bim.xml", "road_luminaire_bim.xml"] {
+        let path = tm32_24_samples_dir().join(filename);
+        let doc =
+            atla::parse_file(&path).unwrap_or_else(|_| panic!("Failed to parse {}", filename));
+
+        // Required TM-33-23 fields
+        assert!(
+            doc.header.description.is_some(),
+            "{}: Missing Header.Description",
+            filename
+        );
+        assert!(
+            doc.header.laboratory.is_some(),
+            "{}: Missing Header.Laboratory",
+            filename
+        );
+        assert!(
+            doc.header.report_number.is_some(),
+            "{}: Missing Header.ReportNumber",
+            filename
+        );
+        assert!(
+            doc.header.report_date.is_some(),
+            "{}: Missing Header.ReportDate",
+            filename
+        );
+
+        // Required TM-32-24 fields
+        assert!(
+            doc.header.manufacturer.is_some(),
+            "{}: Missing Header.Manufacturer",
+            filename
+        );
+        assert!(
+            doc.header.catalog_number.is_some(),
+            "{}: Missing Header.CatalogNumber",
+            filename
+        );
+    }
+}

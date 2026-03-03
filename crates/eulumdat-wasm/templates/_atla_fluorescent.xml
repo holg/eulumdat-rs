@@ -7,6 +7,7 @@
         <Laboratory>Test Laboratory</Laboratory>
         <ReportNumber>TEST-2024-001</ReportNumber>
         <TestDate>2024-01-15</TestDate>
+        <ReportDate>2024-01-15</ReportDate>
         <LuminaireType>Recessed Linear</LuminaireType>
     </Header>
     <Luminaire>

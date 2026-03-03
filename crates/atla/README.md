@@ -123,4 +123,4 @@ The ATLA S001 specification is freely available from [allthingslighting.org](htt
 
 ## License
 
-MIT OR Apache-2.0
+AGPL-3.0-or-later

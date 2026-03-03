@@ -3,7 +3,7 @@
 
 let bevyLoaded = false;
 let bevyLoading = false;
-let loadPromise = null;
+let bevyLoadPromise = null;
 
 /**
  * Load and initialize the Bevy 3D viewer
@@ -18,15 +18,15 @@ async function loadBevyViewer() {
     }
 
     // Loading in progress, wait for it
-    if (bevyLoading && loadPromise) {
+    if (bevyLoading && bevyLoadPromise) {
         console.log("[Bevy] Loading in progress, waiting...");
-        return loadPromise;
+        return bevyLoadPromise;
     }
 
     bevyLoading = true;
     console.log("[Bevy] Loading 3D viewer (~22MB)...");
 
-    loadPromise = (async () => {
+    bevyLoadPromise = (async () => {
         try {
             // Dynamically import the Bevy module with cache-busting timestamp
             // Path is relative to the HTML file location
@@ -54,12 +54,12 @@ async function loadBevyViewer() {
 
             console.error("[Bevy] Failed to load 3D viewer:", error);
             bevyLoading = false;
-            loadPromise = null;
+            bevyLoadPromise = null;
             throw error;
         }
     })();
 
-    return loadPromise;
+    return bevyLoadPromise;
 }
 
 /**

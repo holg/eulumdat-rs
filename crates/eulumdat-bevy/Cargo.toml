@@ -37,10 +37,13 @@ wasm-sync = ["viewer", "wasm-bindgen", "wasm-bindgen-futures", "web-sys"]
 
 # Enable standalone binary (for eulumdat-wasm integration)
 # Disable when embedding in another WASM app to avoid duplicate wasm_start
-standalone = ["wasm-sync"]
+standalone = ["wasm-sync", "egui-ui"]
+
+# Enable egui UI for native settings panel
+egui-ui = ["bevy_egui"]
 
 [dependencies]
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.18", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
     "bevy_core_pipeline",
@@ -55,16 +58,20 @@ bevy = { version = "0.15", default-features = false, features = [
     "png",
     "x11",        # Linux
     "wayland",    # Linux
+    "zstd_rust",
 ] }
 eulumdat = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
+
+# egui for native settings UI
+bevy_egui = { version = "0.39", optional = true }
 
 # File dialogs (native only)
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rfd = "0.15"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.18", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
     "bevy_core_pipeline",
@@ -77,6 +84,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "webgl2",
     "tonemapping_luts",
     "png",
+    "zstd_rust",
 ] }
 getrandom = { version = "0.3", features = ["wasm_js"] }
 # Optional WASM dependencies - only needed for standalone/wasm-sync

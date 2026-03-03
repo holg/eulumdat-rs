@@ -77,6 +77,61 @@ pub fn download_svg(filename: &str, content: &str) {
     download_file(filename, content, "image/svg+xml");
 }
 
+/// Download binary bytes (e.g., PDF)
+pub fn download_bytes(filename: &str, content: &[u8], mime_type: &str) {
+    let window = match web_sys::window() {
+        Some(w) => w,
+        None => return,
+    };
+
+    let document = match window.document() {
+        Some(d) => d,
+        None => return,
+    };
+
+    // Create Uint8Array from bytes
+    let array = js_sys::Uint8Array::from(content);
+    let parts = Array::new();
+    parts.push(&array.buffer());
+
+    let options = BlobPropertyBag::new();
+    options.set_type(mime_type);
+
+    let blob = match Blob::new_with_buffer_source_sequence_and_options(&parts, &options) {
+        Ok(b) => b,
+        Err(_) => return,
+    };
+
+    // Create object URL
+    let url = match Url::create_object_url_with_blob(&blob) {
+        Ok(u) => u,
+        Err(_) => return,
+    };
+
+    // Create download link
+    let a = match document.create_element("a") {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+
+    let _ = a.set_attribute("href", &url);
+    let _ = a.set_attribute("download", filename);
+    a.set_text_content(Some("download"));
+
+    // Append to body, click, and remove
+    if let Some(body) = document.body() {
+        let _ = body.append_child(&a);
+
+        if let Ok(html_a) = a.dyn_into::<web_sys::HtmlElement>() {
+            html_a.click();
+            let _ = body.remove_child(&html_a);
+        }
+    }
+
+    // Revoke URL
+    let _ = Url::revoke_object_url(&url);
+}
+
 /// Open SVG in a new browser tab
 pub fn open_svg_in_new_tab(content: &str) {
     let window = match web_sys::window() {

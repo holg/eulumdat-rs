@@ -208,6 +208,89 @@ pub const TM33_SEEDLING: Template = Template {
     content: include_str!("../../templates/tm-33-23_seedling_propagation.xml"),
 };
 
+// === TM-32-24 BIM Templates ===
+
+/// TM-32-24 Office Downlight with full BIM parameters
+pub const TM32_OFFICE_DOWNLIGHT: Template = Template {
+    name: "tm-32-24 Office Downlight (BIM)",
+    description: "6\" LED downlight with complete TM-32-24 BIM parameters",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-32-24_office_downlight_bim.xml"),
+};
+
+/// TM-32-24 Road Luminaire with full BIM parameters
+pub const TM32_ROAD_LUMINAIRE: Template = Template {
+    name: "tm-32-24 Road Luminaire (BIM)",
+    description: "150W LED road luminaire with emergency backup and full BIM data",
+    format: TemplateFormat::AtlaXml,
+    content: include_str!("../../templates/tm-32-24_road_luminaire_bim.xml"),
+};
+
+// === Floodlight Templates (FL MAX LUM) ===
+
+pub const FL_600W_SYM_30: Template = Template {
+    name: "FL MAX LUM 600W SYM 30°",
+    description: "600W floodlight with symmetric 30° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt"),
+};
+
+pub const FL_600W_SYM_60: Template = Template {
+    name: "FL MAX LUM 600W SYM 60°",
+    description: "600W floodlight with symmetric 60° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt"),
+};
+
+pub const FL_900W_SYM_30: Template = Template {
+    name: "FL MAX LUM 900W SYM 30°",
+    description: "900W floodlight with symmetric 30° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt"),
+};
+
+pub const FL_900W_SYM_60: Template = Template {
+    name: "FL MAX LUM 900W SYM 60°",
+    description: "900W floodlight with symmetric 60° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt"),
+};
+
+pub const FL_900W_ASYM: Template = Template {
+    name: "FL MAX LUM 900W ASYM 50×110°",
+    description: "900W floodlight with asymmetric 50×110° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt"),
+};
+
+pub const FL_1200W_SYM_10: Template = Template {
+    name: "FL MAX LUM 1200W SYM 10°",
+    description: "1200W floodlight with symmetric 10° narrow beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt"),
+};
+
+pub const FL_1200W_SYM_30: Template = Template {
+    name: "FL MAX LUM 1200W SYM 30°",
+    description: "1200W floodlight with symmetric 30° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt"),
+};
+
+pub const FL_1200W_SYM_60: Template = Template {
+    name: "FL MAX LUM 1200W SYM 60°",
+    description: "1200W floodlight with symmetric 60° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt"),
+};
+
+pub const FL_1200W_ASYM: Template = Template {
+    name: "FL MAX LUM 1200W ASYM 50×110°",
+    description: "1200W floodlight with asymmetric 50×110° beam",
+    format: TemplateFormat::Ldt,
+    content: include_str!("../../templates/4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt"),
+};
+
 /// All available templates
 pub const ALL_TEMPLATES: &[&Template] = &[
     // Wikipedia beam angle demos (put first for visibility)
@@ -237,4 +320,17 @@ pub const ALL_TEMPLATES: &[&Template] = &[
     &TM33_FAR_RED,
     &TM33_UV,
     &TM33_SEEDLING,
+    // TM-32-24 BIM templates
+    &TM32_OFFICE_DOWNLIGHT,
+    &TM32_ROAD_LUMINAIRE,
+    // Floodlight templates (FL MAX LUM)
+    &FL_600W_SYM_30,
+    &FL_600W_SYM_60,
+    &FL_900W_SYM_30,
+    &FL_900W_SYM_60,
+    &FL_900W_ASYM,
+    &FL_1200W_SYM_10,
+    &FL_1200W_SYM_30,
+    &FL_1200W_SYM_60,
+    &FL_1200W_ASYM,
 ];

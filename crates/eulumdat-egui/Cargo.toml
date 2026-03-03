@@ -1,10 +1,10 @@
 [package]
 name = "eulumdat-egui"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 authors = ["Holger Trahe <trahe@mac.com>"]
 description = "Cross-platform GUI application for viewing EULUMDAT/LDT and IES photometric files"
-license = "MIT"
+license = "AGPL-3.0-or-later"
 repository = "https://github.com/holg/eulumdat-rs"
 include = ["src/**/*", "assets/**/*", "build.rs", "Cargo.toml", "README.md"]
 

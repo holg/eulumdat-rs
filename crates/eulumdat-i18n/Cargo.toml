@@ -1,9 +1,9 @@
 [package]
 name = "eulumdat-i18n"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "Internationalization for Eulumdat/ATLA photometric libraries"
-license = "MIT OR Apache-2.0"
+license = "AGPL-3.0-or-later"
 repository = "https://github.com/holg/eulumdat-rs"
 keywords = ["i18n", "localization", "photometry", "eulumdat"]
 categories = ["internationalization", "localization"]

@@ -29,6 +29,8 @@ pub enum ValidationSchema {
     AtlaS001,
     /// Validate against TM-33-23 (IESTM33-22) schema
     Tm3323,
+    /// Validate against TM-32-24 BIM requirements (includes TM-33-23)
+    Tm3224,
 }
 
 /// Validation result containing errors and warnings
@@ -120,6 +122,13 @@ pub fn validate(doc: &LuminaireOpticalData) -> ValidationResult {
 /// - TM33-E021: CustomData.UniqueIdentifier required
 /// - TM33-W001: Multiplier should be positive
 /// - TM33-W002: SymmetryType inconsistent with data
+///
+/// ## TM-32-24 BIM additional rules (includes all TM-33-23 rules)
+/// - TM32-E001: Header.Manufacturer required for BIM
+/// - TM32-E002: Header.CatalogNumber required for BIM
+/// - TM32-W001: Missing recommended BIM parameters
+/// - TM32-W002: CCT should be specified for BIM
+/// - TM32-W003: CRI should be specified for BIM
 pub fn validate_with_schema(
     doc: &LuminaireOpticalData,
     schema: ValidationSchema,
@@ -131,6 +140,7 @@ pub fn validate_with_schema(
         ValidationSchema::Auto => doc.schema_version,
         ValidationSchema::AtlaS001 => SchemaVersion::AtlaS001,
         ValidationSchema::Tm3323 => SchemaVersion::Tm3323,
+        ValidationSchema::Tm3224 => SchemaVersion::Tm3324,
     };
 
     // Common validation for all schemas
@@ -138,8 +148,13 @@ pub fn validate_with_schema(
 
     // Schema-specific validation
     match effective_schema {
-        SchemaVersion::Tm3323 | SchemaVersion::Tm3324 => {
+        SchemaVersion::Tm3323 => {
             validate_tm33_23(doc, &mut result);
+        }
+        SchemaVersion::Tm3324 => {
+            // TM-32-24 includes all TM-33-23 rules plus BIM-specific rules
+            validate_tm33_23(doc, &mut result);
+            validate_tm32_24(doc, &mut result);
         }
         SchemaVersion::AtlaS001 => {
             // ATLA S001 has fewer required fields - just common validation
@@ -263,6 +278,116 @@ fn validate_tm33_23(doc: &LuminaireOpticalData, result: &mut ValidationResult) {
     // Validate CustomData items (TM-33-23 requires Name and UniqueIdentifier)
     for (i, item) in doc.custom_data_items.iter().enumerate() {
         validate_custom_data_item(item, i, result);
+    }
+}
+
+/// TM-32-24 BIM-specific validation rules
+///
+/// TM-32-24 is the ANSI/IES standard for BIM (Building Information Modeling)
+/// parameters for lighting equipment. It requires all TM-33-23 fields plus
+/// additional BIM-specific requirements.
+fn validate_tm32_24(doc: &LuminaireOpticalData, result: &mut ValidationResult) {
+    use crate::bim::BimParameters;
+
+    // TM-32-24 requires Manufacturer for BIM integration
+    if doc.header.manufacturer.is_none()
+        || doc
+            .header
+            .manufacturer
+            .as_ref()
+            .is_none_or(|s| s.is_empty())
+    {
+        result.errors.push(ValidationMessage {
+            code: "TM32-E001".to_string(),
+            message: "TM-32-24: Header.Manufacturer is required for BIM integration".to_string(),
+            line: None,
+            column: None,
+        });
+    }
+
+    // TM-32-24 requires CatalogNumber for product identification
+    if doc.header.catalog_number.is_none()
+        || doc
+            .header
+            .catalog_number
+            .as_ref()
+            .is_none_or(|s| s.is_empty())
+    {
+        result.errors.push(ValidationMessage {
+            code: "TM32-E002".to_string(),
+            message: "TM-32-24: Header.CatalogNumber is required for BIM integration".to_string(),
+            line: None,
+            column: None,
+        });
+    }
+
+    // Extract BIM parameters and check for recommended fields
+    let bim = BimParameters::from_atla(doc);
+    let populated = bim.populated_count();
+
+    // TM-32-24 recommends having at least basic photometric BIM parameters
+    if populated < 5 {
+        result.warnings.push(ValidationMessage {
+            code: "TM32-W001".to_string(),
+            message: format!(
+                "TM-32-24: Only {} BIM parameters populated. Consider adding more for complete BIM integration",
+                populated
+            ),
+            line: None,
+            column: None,
+        });
+    }
+
+    // Check for recommended color parameters
+    let has_cct = doc.emitters.iter().any(|e| e.cct.is_some());
+    if !has_cct && bim.cct_kelvin.is_none() {
+        result.warnings.push(ValidationMessage {
+            code: "TM32-W002".to_string(),
+            message: "TM-32-24: CCT (Color Temperature) should be specified for BIM integration"
+                .to_string(),
+            line: None,
+            column: None,
+        });
+    }
+
+    // Check for CRI
+    let has_cri = doc
+        .emitters
+        .iter()
+        .any(|e| e.color_rendering.as_ref().is_some_and(|cr| cr.ra.is_some()));
+    if !has_cri && bim.cri.is_none() {
+        result.warnings.push(ValidationMessage {
+            code: "TM32-W003".to_string(),
+            message:
+                "TM-32-24: CRI (Color Rendering Index) should be specified for BIM integration"
+                    .to_string(),
+            line: None,
+            column: None,
+        });
+    }
+
+    // Check for wattage (critical for energy modeling)
+    let has_watts = doc.emitters.iter().any(|e| e.input_watts.is_some());
+    if !has_watts && bim.watts.is_none() {
+        result.warnings.push(ValidationMessage {
+            code: "TM32-W004".to_string(),
+            message: "TM-32-24: Input wattage should be specified for energy modeling".to_string(),
+            line: None,
+            column: None,
+        });
+    }
+
+    // Check for lumens (critical for lighting calculations)
+    let has_lumens = doc.emitters.iter().any(|e| e.rated_lumens.is_some());
+    if !has_lumens && bim.total_luminous_flux.is_none() {
+        result.warnings.push(ValidationMessage {
+            code: "TM32-W005".to_string(),
+            message:
+                "TM-32-24: Luminous flux (lumens) should be specified for lighting calculations"
+                    .to_string(),
+            line: None,
+            column: None,
+        });
     }
 }
 
@@ -1152,5 +1277,125 @@ mod tests {
             ..Default::default()
         });
         doc
+    }
+
+    /// Create a minimal valid TM-32-24 document for testing
+    fn create_tm32_24_valid_doc() -> LuminaireOpticalData {
+        let mut doc = create_tm33_23_valid_doc();
+        doc.schema_version = SchemaVersion::Tm3324;
+        doc.header.manufacturer = Some("Test Manufacturer".to_string());
+        doc.header.catalog_number = Some("CAT-001".to_string());
+        // Add CCT and CRI for BIM compliance
+        doc.emitters[0].cct = Some(4000.0);
+        doc.emitters[0].color_rendering = Some(ColorRendering {
+            ra: Some(90.0),
+            r9: None,
+            rf: None,
+            rg: None,
+        });
+        doc.emitters[0].rated_lumens = Some(3000.0);
+        doc
+    }
+
+    // ===========================================
+    // TM-32-24 BIM validation tests
+    // ===========================================
+
+    #[test]
+    fn test_tm32_24_requires_manufacturer() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.header.manufacturer = None;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| e.code == "TM32-E001"));
+    }
+
+    #[test]
+    fn test_tm32_24_requires_catalog_number() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.header.catalog_number = None;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| e.code == "TM32-E002"));
+    }
+
+    #[test]
+    fn test_tm32_24_valid_document() {
+        let doc = create_tm32_24_valid_doc();
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        assert!(result.is_valid(), "Errors: {:?}", result.errors);
+    }
+
+    #[test]
+    fn test_tm32_24_includes_tm33_23_rules() {
+        // TM-32-24 should still enforce TM-33-23 rules
+        let mut doc = LuminaireOpticalData::new();
+        doc.schema_version = SchemaVersion::Tm3324;
+        doc.header.manufacturer = Some("Test".to_string());
+        doc.header.catalog_number = Some("CAT-001".to_string());
+        // Missing TM-33-23 required fields: description, laboratory, report_number, report_date
+        doc.emitters.push(Emitter {
+            quantity: 1,
+            ..Default::default()
+        });
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        assert!(!result.is_valid());
+        // Should have TM-33-23 errors
+        assert!(result.errors.iter().any(|e| e.code.starts_with("TM33-")));
+    }
+
+    #[test]
+    fn test_tm32_24_warns_missing_cct() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.emitters[0].cct = None;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        // Should still be valid but with warning
+        assert!(result.is_valid());
+        assert!(result.warnings.iter().any(|w| w.code == "TM32-W002"));
+    }
+
+    #[test]
+    fn test_tm32_24_warns_missing_cri() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.emitters[0].color_rendering = None;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        // Should still be valid but with warning
+        assert!(result.is_valid());
+        assert!(result.warnings.iter().any(|w| w.code == "TM32-W003"));
+    }
+
+    #[test]
+    fn test_tm32_24_warns_missing_wattage() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.emitters[0].input_watts = None;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        // This should fail due to TM-33-23 requirement for input_watts
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| e.code == "TM33-E011"));
+    }
+
+    #[test]
+    fn test_tm32_24_warns_missing_lumens() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.emitters[0].rated_lumens = None;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        // Should still be valid but with warning
+        assert!(result.is_valid());
+        assert!(result.warnings.iter().any(|w| w.code == "TM32-W005"));
+    }
+
+    #[test]
+    fn test_tm32_24_auto_detect() {
+        let doc = create_tm32_24_valid_doc();
+        // Auto-detect should apply TM-32-24 rules
+        let result = validate_with_schema(&doc, ValidationSchema::Auto);
+        assert!(result.is_valid());
     }
 }

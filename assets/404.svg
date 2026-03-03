@@ -1,0 +1,265 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="360" viewBox="0 0 1400 360">
+  <defs>
+    <!-- LED glow -->
+    <filter id="ledGlow" x="-60%" y="-120%" width="220%" height="340%">
+      <feGaussianBlur stdDeviation="6" result="b1"/>
+      <feGaussianBlur stdDeviation="14" result="b2"/>
+      <feGaussianBlur stdDeviation="26" result="b3"/>
+      <feMerge>
+        <feMergeNode in="b3"/>
+        <feMergeNode in="b2"/>
+        <feMergeNode in="b1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft bloom -->
+    <filter id="bloom" x="-60%" y="-120%" width="220%" height="340%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feColorMatrix in="b" type="matrix"
+        values="1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                0 0 0 0.85 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Inner sheen -->
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.10"/>
+    </linearGradient>
+
+    <!-- Pixel gradients -->
+    <radialGradient id="pxCyan" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.78"/>
+      <stop offset="35%" stop-color="#9ff7ff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#22d8ff" stop-opacity="0.95"/>
+    </radialGradient>
+    <radialGradient id="pxRed" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.80"/>
+      <stop offset="30%" stop-color="#ffb3b3" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ff3b3b" stop-opacity="0.98"/>
+    </radialGradient>
+    <radialGradient id="deadpx" cx="40%" cy="35%" r="80%">
+      <stop offset="0%" stop-color="#1c2a30" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0b1418" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Scanline mask -->
+    <pattern id="scan" patternUnits="userSpaceOnUse" width="12" height="12">
+      <rect width="12" height="6" fill="#000" opacity="0.0"/>
+      <rect y="6" width="12" height="6" fill="#000" opacity="0.18"/>
+    </pattern>
+
+    <!-- Vignette -->
+    <radialGradient id="vig" cx="50%" cy="45%" r="80%">
+      <stop offset="0%" stop-color="#070a10" stop-opacity="0"/>
+      <stop offset="70%" stop-color="#070a10" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#070a10" stop-opacity="0.75"/>
+    </radialGradient>
+  </defs>
+
+  <style>
+    :root { --frame:#0a0f14; --edge:#131c24; --cavity:#05080d; --text:#c7f8ff; }
+
+    .bg { fill:#070810; }
+    .vig { fill:url(#vig); mix-blend-mode:multiply; }
+    .frame { fill:var(--frame); stroke:var(--edge); stroke-width:10; }
+    .cavity { fill:var(--cavity); opacity:0.96; }
+    .sheen { fill:url(#sheen); mix-blend-mode:screen; opacity:0.9; }
+
+    .pxC { fill:url(#pxCyan); filter:url(#ledGlow); }
+    .pxR { fill:url(#pxRed);  filter:url(#ledGlow); }
+    .pxDead { fill:url(#deadpx); opacity:0.95; }
+
+    .pxHot { fill:none; stroke:#fff; stroke-width:3.5; opacity:0.28; filter:url(#bloom); }
+
+    /* Flicker + surge (404 vibe) */
+    .fA { animation:fA 2s infinite steps(1,end); }
+    .fB { animation:fB 2s infinite steps(1,end); }
+    .glitch { animation:g 2s infinite steps(1,end); transform-origin:700px 180px; }
+
+    @keyframes fA {
+      0%{opacity:1} 6%{opacity:0} 10%{opacity:1}
+      22%{opacity:0} 26%{opacity:1}
+      52%{opacity:0} 56%{opacity:1}
+      86%{opacity:0} 90%{opacity:1} 100%{opacity:1}
+    }
+    @keyframes fB {
+      0%{opacity:1} 14%{opacity:0} 16%{opacity:1}
+      34%{opacity:0} 36%{opacity:1}
+      60%{opacity:0} 62%{opacity:1}
+      92%{opacity:0} 94%{opacity:1} 100%{opacity:1}
+    }
+    @keyframes g {
+      0%{transform:translate(0,0)}
+      6%{transform:translate(-3px,1px)}
+      10%{transform:translate(2px,-2px)}
+      14%{transform:translate(-2px,0px)}
+      18%{transform:translate(0px,3px)}
+      56%{transform:translate(3px,0px)}
+      60%{transform:translate(0px,0px)}
+      90%{transform:translate(-2px,2px)}
+      100%{transform:translate(0px,0px)}
+    }
+
+    /* Big flash */
+    .flash { fill:#e9fbff; opacity:0; mix-blend-mode:screen; animation:flash 2s infinite steps(1,end); }
+    @keyframes flash {
+      0%{opacity:0}
+      5%{opacity:0.9}
+      7%{opacity:0}
+      33%{opacity:0.65}
+      35%{opacity:0}
+      82%{opacity:0.5}
+      84%{opacity:0}
+      100%{opacity:0}
+    }
+
+    /* Scanlines */
+    .scan { fill:url(#scan); opacity:0.75; mix-blend-mode:overlay; }
+
+    /* Sparks */
+    .spark { fill:none; stroke:#fff; stroke-width:6; stroke-linecap:round; opacity:0; filter:url(#bloom); }
+    .sA { animation:sA 2s infinite steps(1,end); }
+    .sB { animation:sB 2s infinite steps(1,end); }
+    @keyframes sA { 0%{opacity:0} 12%{opacity:1} 14%{opacity:0} 100%{opacity:0} }
+    @keyframes sB { 0%{opacity:0} 58%{opacity:1} 60%{opacity:0} 100%{opacity:0} }
+
+    /* Text */
+    .t404 {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-weight: 800;
+      letter-spacing: 2px;
+    }
+    .tSmall {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-weight: 600;
+      letter-spacing: 1px;
+      opacity:0.85;
+    }
+
+    /* RGB split glitch for 404 */
+    .rgbR { fill:none; stroke:#ff3b3b; stroke-width:10; opacity:0.55; }
+    .rgbC { fill:none; stroke:#22d8ff; stroke-width:10; opacity:0.65; }
+    .rgbW { fill:none; stroke:#ffffff; stroke-width:6; opacity:0.55; filter:url(#bloom); }
+  </style>
+
+  <rect class="bg" x="0" y="0" width="1400" height="360"/>
+  <rect class="vig" x="0" y="0" width="1400" height="360"/>
+
+  <g class="glitch">
+    <!-- Capsule frame -->
+    <rect x="90" y="70" width="1220" height="220" rx="100" class="frame"/>
+    <rect x="120" y="100" width="1160" height="160" rx="80" class="cavity"/>
+
+    <!-- Flash overlay clipped to cavity -->
+    <clipPath id="clipC">
+      <rect x="120" y="100" width="1160" height="160" rx="80"/>
+    </clipPath>
+    <g clip-path="url(#clipC)">
+      <rect x="120" y="100" width="1160" height="160" class="flash"/>
+    </g>
+
+    <!-- Sheen -->
+    <rect x="120" y="100" width="1160" height="160" rx="80" class="sheen"/>
+
+    <!-- LED pixels band (top thin strip, like status LEDs) -->
+    <g transform="translate(150,118)">
+      <!-- 30 tiny LEDs -->
+      <!-- width 24, gap 10 -->
+      <g>
+        <!-- define a row quickly by repeating -->
+        <!-- We'll intentionally "break" some to sell 404 -->
+        <!-- 0 -->
+        <rect x="0" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="0" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 1 flicker -->
+        <g class="fA"><rect x="34" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="34" y="0" width="24" height="22" rx="9" class="pxHot"/></g>
+        <!-- 2 dead -->
+        <rect x="68" y="0" width="24" height="22" rx="9" class="pxDead"/>
+        <!-- 3 red -->
+        <rect x="102" y="0" width="24" height="22" rx="9" class="pxR"/><rect x="102" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 4 -->
+        <rect x="136" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="136" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 5 -->
+        <rect x="170" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="170" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 6 flicker -->
+        <g class="fB"><rect x="204" y="0" width="24" height="22" rx="9" class="pxR"/><rect x="204" y="0" width="24" height="22" rx="9" class="pxHot"/></g>
+        <!-- 7 -->
+        <rect x="238" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="238" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 8 dead -->
+        <rect x="272" y="0" width="24" height="22" rx="9" class="pxDead"/>
+        <!-- 9 -->
+        <rect x="306" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="306" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 10 -->
+        <rect x="340" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="340" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 11 -->
+        <rect x="374" y="0" width="24" height="22" rx="9" class="pxR"/><rect x="374" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 12 flicker -->
+        <g class="fA"><rect x="408" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="408" y="0" width="24" height="22" rx="9" class="pxHot"/></g>
+        <!-- 13 -->
+        <rect x="442" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="442" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 14 dead -->
+        <rect x="476" y="0" width="24" height="22" rx="9" class="pxDead"/>
+        <!-- 15 -->
+        <rect x="510" y="0" width="24" height="22" rx="9" class="pxR"/><rect x="510" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 16 -->
+        <rect x="544" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="544" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 17 -->
+        <rect x="578" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="578" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 18 flicker -->
+        <g class="fB"><rect x="612" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="612" y="0" width="24" height="22" rx="9" class="pxHot"/></g>
+        <!-- 19 dead -->
+        <rect x="646" y="0" width="24" height="22" rx="9" class="pxDead"/>
+        <!-- 20 -->
+        <rect x="680" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="680" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 21 -->
+        <rect x="714" y="0" width="24" height="22" rx="9" class="pxR"/><rect x="714" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 22 -->
+        <rect x="748" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="748" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 23 flicker -->
+        <g class="fA"><rect x="782" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="782" y="0" width="24" height="22" rx="9" class="pxHot"/></g>
+        <!-- 24 dead -->
+        <rect x="816" y="0" width="24" height="22" rx="9" class="pxDead"/>
+        <!-- 25 -->
+        <rect x="850" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="850" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 26 -->
+        <rect x="884" y="0" width="24" height="22" rx="9" class="pxR"/><rect x="884" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 27 -->
+        <rect x="918" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="918" y="0" width="24" height="22" rx="9" class="pxHot"/>
+        <!-- 28 dead -->
+        <rect x="952" y="0" width="24" height="22" rx="9" class="pxDead"/>
+        <!-- 29 -->
+        <rect x="986" y="0" width="24" height="22" rx="9" class="pxC"/><rect x="986" y="0" width="24" height="22" rx="9" class="pxHot"/>
+      </g>
+
+      <!-- Sparks near dead pixels -->
+      <path class="spark sA" d="M78 34 L96 18 L90 44 L112 28"/>
+      <path class="spark sB" d="M656 34 L674 18 L668 44 L690 28"/>
+    </g>
+
+    <!-- 404 text with RGB split -->
+    <g transform="translate(0,0)">
+      <!-- red offset -->
+      <text x="700" y="220" text-anchor="middle" font-size="110" class="t404 rgbR fA">404</text>
+      <!-- cyan offset -->
+      <text x="700" y="220" text-anchor="middle" font-size="110" class="t404 rgbC fB">404</text>
+      <!-- white core -->
+      <text x="700" y="220" text-anchor="middle" font-size="110" class="t404 rgbW">404</text>
+
+      <text x="700" y="255" text-anchor="middle" font-size="26" class="tSmall" fill="#c7f8ff" opacity="0.9">
+        HTTP ERROR • NOT FOUND
+      </text>
+    </g>
+
+    <!-- Scanlines over cavity -->
+    <g clip-path="url(#clipC)">
+      <rect x="120" y="100" width="1160" height="160" class="scan"/>
+    </g>
+  </g>
+</svg>

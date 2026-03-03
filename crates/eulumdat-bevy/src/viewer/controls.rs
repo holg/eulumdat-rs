@@ -40,6 +40,7 @@ const MAX_PENDULUM: f32 = 20.0;
 /// ## Luminaire positioning
 /// - `;` / `'`: Decrease/increase pendulum/suspension length (±0.1m)
 /// - `,` / `.`: Decrease/increase mounting height (±0.1m, pole height for outdoor)
+/// - `T` / `Y`: Decrease/increase luminaire tilt angle (±5°, for road scenes)
 pub fn viewer_controls_system(
     mut settings: ResMut<ViewerSettings>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -119,59 +120,250 @@ pub fn viewer_controls_system(
     if keyboard.just_pressed(KeyCode::Period) {
         settings.mounting_height = (settings.mounting_height + FINE_STEP).min(MAX_HEIGHT);
     }
+
+    // Luminaire tilt angle (for road scenes): T and Y
+    const TILT_STEP: f32 = 5.0;
+    if keyboard.just_pressed(KeyCode::KeyT) {
+        settings.luminaire_tilt = (settings.luminaire_tilt - TILT_STEP).max(0.0);
+    }
+    if keyboard.just_pressed(KeyCode::KeyY) {
+        settings.luminaire_tilt = (settings.luminaire_tilt + TILT_STEP).min(90.0);
+    }
 }
 
 /// System to sync ViewerSettings with PhotometricLight components.
 ///
-/// When settings change, this system updates:
-/// - Visualization flags (solid, model, shadows)
-/// - Light position (based on room dimensions and mounting height)
+/// When settings change, this system:
+/// - Updates visualization flags (solid, model, shadows)
+/// - Respawns all luminaires if the count changes (scene type change, etc.)
+/// - Updates light positions and rotations
 pub fn sync_viewer_to_lights(
+    mut commands: Commands,
     settings: Res<ViewerSettings>,
-    mut lights: Query<(
-        &mut crate::photometric::PhotometricLight<Eulumdat>,
-        &mut Transform,
+    lights: Query<(
+        Entity,
+        &crate::photometric::PhotometricLight<Eulumdat>,
+        &Transform,
     )>,
 ) {
     if !settings.is_changed() {
         return;
     }
 
-    for (mut light, mut transform) in lights.iter_mut() {
-        // Update visualization flags
-        light.show_solid = settings.show_photometric_solid;
-        light.show_model = settings.show_luminaire;
-        light.shadows_enabled = settings.show_shadows;
+    // Get LDT data from first light
+    let ldt_data = lights.iter().next().map(|(_, l, _)| l.data.clone());
+    let Some(ldt) = ldt_data else {
+        return;
+    };
 
-        // Update light position based on current settings
-        let position = calculate_light_position(&settings, &light.data);
-        transform.translation = position;
+    // Calculate required transforms for current scene
+    let transforms = calculate_all_luminaire_transforms(&settings, &ldt);
+    let current_count = lights.iter().count();
+    let required_count = transforms.len();
+
+    // If count changed, despawn all and respawn
+    if current_count != required_count {
+        // Despawn all existing lights
+        for (entity, _, _) in lights.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        // Spawn new lights
+        for transform in transforms {
+            commands.spawn(
+                crate::eulumdat_impl::EulumdatLightBundle::new(ldt.clone())
+                    .with_transform(
+                        Transform::from_translation(transform.position)
+                            .with_rotation(transform.rotation),
+                    )
+                    .with_solid(settings.show_photometric_solid)
+                    .with_model(settings.show_luminaire)
+                    .with_shadows(settings.show_shadows),
+            );
+        }
+    } else {
+        // Just update existing lights in place
+        for (idx, (entity, light, _)) in lights.iter().enumerate() {
+            if let Some(lt) = transforms.get(idx) {
+                let mut updated_light =
+                    crate::photometric::PhotometricLight::new(light.data.clone());
+                updated_light.show_solid = settings.show_photometric_solid;
+                updated_light.show_model = settings.show_luminaire;
+                updated_light.shadows_enabled = settings.show_shadows;
+                updated_light.intensity_scale = light.intensity_scale;
+
+                commands.entity(entity).insert((
+                    Transform::from_translation(lt.position).with_rotation(lt.rotation),
+                    updated_light,
+                ));
+            }
+        }
     }
 }
 
-/// Calculate light position based on scene type and settings.
-///
-/// For Room scene:
-/// - X, Z: centered in the room
-/// - Y: ceiling height - pendulum length - half luminaire height
-///
-/// For outdoor scenes (Road, Parking, Outdoor):
-/// - X, Z: positioned relative to pole
-/// - Y: mounting height - arm offset - half luminaire height
-pub fn calculate_light_position(settings: &ViewerSettings, ldt: &Eulumdat) -> Vec3 {
+/// Luminaire position with rotation for multi-luminaire scenes.
+#[derive(Clone, Copy)]
+pub struct LuminaireTransform {
+    pub position: Vec3,
+    pub rotation: Quat,
+}
+
+/// Calculate all luminaire positions for the current scene.
+/// Returns a list of positions and rotations for each luminaire.
+pub fn calculate_all_luminaire_transforms(
+    settings: &ViewerSettings,
+    ldt: &Eulumdat,
+) -> Vec<LuminaireTransform> {
     let y = settings.luminaire_height(ldt);
 
     match settings.scene_type {
-        SceneType::Room => Vec3::new(settings.room_width / 2.0, y, settings.room_length / 2.0),
-        SceneType::Road => Vec3::new(
-            settings.room_width - 0.7 - 0.2, // On right sidewalk, arm extends left
-            y,
-            settings.room_length / 2.0,
-        ),
-        SceneType::Parking | SceneType::Outdoor => Vec3::new(
-            settings.room_width / 2.0 - 0.2, // Center, arm extends left
-            y,
-            settings.room_length / 2.0,
-        ),
+        SceneType::Room => {
+            // Single luminaire centered in room
+            vec![LuminaireTransform {
+                position: Vec3::new(settings.room_width / 2.0, y, settings.room_length / 2.0),
+                rotation: Quat::IDENTITY,
+            }]
+        }
+        SceneType::Road => calculate_road_luminaires(settings, y),
+        SceneType::Parking | SceneType::Outdoor => {
+            // Single luminaire for now
+            vec![LuminaireTransform {
+                position: Vec3::new(
+                    settings.room_width / 2.0 - 0.2,
+                    y,
+                    settings.room_length / 2.0,
+                ),
+                rotation: Quat::IDENTITY,
+            }]
+        }
+    }
+}
+
+/// Calculate luminaire positions for road scene based on EN 13201 guidelines.
+/// Luminaires are placed on outer sides (sidewalks) to illuminate both road and pedestrian areas.
+/// The wider part of the LDC faces the road, softer part faces the sidewalk.
+/// Middle poles are added every 50m for better center illumination on wide roads.
+fn calculate_road_luminaires(settings: &ViewerSettings, y: f32) -> Vec<LuminaireTransform> {
+    let lane_w = settings.lane_width;
+    let num_lanes = settings.num_lanes;
+    let sidewalk_w = settings.sidewalk_width;
+    let road_width = num_lanes as f32 * lane_w;
+    let total_width = road_width + 2.0 * sidewalk_w;
+    let road_length = settings.room_length;
+    let pole_spacing = settings.effective_pole_spacing();
+
+    // Calculate number of poles and actual spacing
+    let num_poles = ((road_length / pole_spacing).floor() as i32).max(1);
+    let actual_spacing = road_length / (num_poles as f32 + 1.0);
+
+    // Determine arrangement based on road/height ratio
+    let ratio = road_width / settings.mounting_height;
+    let tilt = settings.luminaire_tilt.to_radians();
+
+    // Arm extends from pole toward road center
+    let arm_length = 1.5;
+
+    let mut transforms = Vec::new();
+
+    // Middle pole spacing (every 50m for center illumination on wide roads)
+    let middle_pole_spacing = 50.0;
+    let center_x = sidewalk_w + road_width / 2.0;
+
+    if ratio < 1.0 {
+        // Single side arrangement - poles on right sidewalk
+        // Luminaire faces LEFT toward road (positive Z rotation tilts light toward -X)
+        let rotation = Quat::from_rotation_z(tilt);
+        for i in 1..=num_poles {
+            let z = i as f32 * actual_spacing;
+            transforms.push(LuminaireTransform {
+                position: Vec3::new(total_width - sidewalk_w / 2.0 - arm_length, y, z),
+                rotation,
+            });
+        }
+    } else if ratio < 1.5 {
+        // Staggered arrangement - alternating sides on sidewalks
+        for i in 1..=num_poles {
+            let z = i as f32 * actual_spacing;
+            if i % 2 == 0 {
+                // Left sidewalk - luminaire faces RIGHT toward road (negative Z rotation)
+                transforms.push(LuminaireTransform {
+                    position: Vec3::new(sidewalk_w / 2.0 + arm_length, y, z),
+                    rotation: Quat::from_rotation_z(-tilt),
+                });
+            } else {
+                // Right sidewalk - luminaire faces LEFT toward road (positive Z rotation)
+                transforms.push(LuminaireTransform {
+                    position: Vec3::new(total_width - sidewalk_w / 2.0 - arm_length, y, z),
+                    rotation: Quat::from_rotation_z(tilt),
+                });
+            }
+        }
+    } else {
+        // Opposite arrangement - poles on both sidewalks, aligned
+        // Each side illuminates its sidewalk + half the road
+        for i in 1..=num_poles {
+            let z = i as f32 * actual_spacing;
+            // Left sidewalk - luminaire faces RIGHT toward road (negative Z rotation)
+            transforms.push(LuminaireTransform {
+                position: Vec3::new(sidewalk_w / 2.0 + arm_length, y, z),
+                rotation: Quat::from_rotation_z(-tilt),
+            });
+            // Right sidewalk - luminaire faces LEFT toward road (positive Z rotation)
+            transforms.push(LuminaireTransform {
+                position: Vec3::new(total_width - sidewalk_w / 2.0 - arm_length, y, z),
+                rotation: Quat::from_rotation_z(tilt),
+            });
+        }
+
+        // Add middle poles every 50m for better center illumination
+        if road_width > 6.0 {
+            let num_middle_poles = ((road_length / middle_pole_spacing).floor() as i32).max(0);
+            for i in 1..=num_middle_poles {
+                let z = i as f32 * middle_pole_spacing;
+                // Middle pole with two luminaires pointing outward (no tilt, straight down)
+                // Left-facing luminaire
+                transforms.push(LuminaireTransform {
+                    position: Vec3::new(center_x - 1.0, y, z),
+                    rotation: Quat::from_rotation_z(-tilt * 0.5), // Less tilt for center
+                });
+                // Right-facing luminaire
+                transforms.push(LuminaireTransform {
+                    position: Vec3::new(center_x + 1.0, y, z),
+                    rotation: Quat::from_rotation_z(tilt * 0.5),
+                });
+            }
+        }
+    }
+
+    transforms
+}
+
+/// Calculate light position based on scene type and settings.
+/// Returns position for the first/primary luminaire only.
+/// For multi-luminaire scenes, use `calculate_all_luminaire_transforms`.
+pub fn calculate_light_position(settings: &ViewerSettings, ldt: &Eulumdat) -> Vec3 {
+    let transforms = calculate_all_luminaire_transforms(settings, ldt);
+    transforms.first().map(|t| t.position).unwrap_or(Vec3::ZERO)
+}
+
+/// Calculate light rotation based on scene type.
+///
+/// For road luminaires, the luminaire should be tilted to point across the road.
+/// The pole is on the right side of the road, so the luminaire tilts left (toward road center).
+/// The tilt angle is controlled by `settings.luminaire_tilt` (0° = down, 90° = horizontal).
+pub fn calculate_light_rotation(settings: &ViewerSettings) -> Quat {
+    match settings.scene_type {
+        SceneType::Room => Quat::IDENTITY, // No rotation for indoor
+        SceneType::Road => {
+            // Road luminaire needs to be tilted to point across the road
+            // Pole is on right side (high X), luminaire points toward road center (low X)
+            //
+            // Rotate around Z axis with NEGATIVE angle to tilt DOWN toward road (negative X)
+            // luminaire_tilt: 0 = pointing straight down, 90 = pointing horizontally toward road
+            let tilt_angle = -settings.luminaire_tilt.to_radians();
+            Quat::from_rotation_z(tilt_angle)
+        }
+        SceneType::Parking => Quat::IDENTITY, // Parking lots typically want omnidirectional
+        SceneType::Outdoor => Quat::IDENTITY, // Garden lights typically want omnidirectional
     }
 }

@@ -482,6 +482,7 @@ pub struct UiLocale {
     pub bevy_scene: UiBevyScene,
     pub bug_rating: UiBugRating,
     pub lcs: UiLcs,
+    pub floodlight: UiFloodlight,
     pub data_table: UiDataTable,
     pub validation_panel: UiValidationPanel,
     pub spectral_badges: UiSpectralBadges,
@@ -525,11 +526,15 @@ pub struct UiTabs {
     pub lcs: String,
     pub validation: String,
     pub scene_3d: String,
+    pub floodlight_vh: String,
+    pub floodlight_isolux: String,
+    pub floodlight_isocandela: String,
     // Main tab groups
     pub info: String,
     pub data: String,
     pub diagrams: String,
     pub analysis: String,
+    pub floodlight: String,
     // Other
     pub polar: String,
     pub cartesian: String,
@@ -561,6 +566,9 @@ pub struct UiDiagram {
     pub title_bug: String,
     pub title_lcs: String,
     pub title_scene: String,
+    pub title_floodlight_vh: String,
+    pub title_isolux: String,
+    pub title_isocandela: String,
     pub polar: String,
     pub cartesian: String,
     pub zoom_hint: String,
@@ -668,6 +676,22 @@ pub struct UiBugRating {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UiLcs {
     pub footer: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UiFloodlight {
+    pub vh_subtitle: String,
+    pub isolux_subtitle: String,
+    pub isocandela_subtitle: String,
+    pub h_plane: String,
+    pub v_plane: String,
+    pub log_scale: String,
+    pub linear_scale: String,
+    pub mounting_height: String,
+    pub tilt_angle: String,
+    pub area_size: String,
+    pub nema_classification: String,
+    pub show_contours: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

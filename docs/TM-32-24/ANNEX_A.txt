@@ -1,0 +1,142 @@
+# Copyright Illuminating Engineering Society. All rights reserved.
+# Visit https://store.ies.org/product-category/lighting-practice/ for the latest copy of ANSI/IES TM-32 
+# This is a shared parameter file.
+# Do not edit manually.
+*META	VERSION	MINVERSION
+META	2	1
+*GROUP	ID	NAME
+GROUP	1	Acoustics - Optional
+GROUP	2	Electrical - Required
+GROUP	3	Electrical - Optional
+GROUP	4	Emergency - Optional
+GROUP	5	General - Required
+GROUP	6	General - Optional
+GROUP	7	Maintenance - Optional
+GROUP	8	Mechanical - Required
+GROUP	9	Mechanical - Optional
+GROUP	10	Mounting - Required
+GROUP	11	Photometric - Required
+GROUP	12	Photometric - Optional
+*PARAM	GUID	NAME	DATATYPE	DATACATEGORY	GROUP	VISIBLE	DESCRIPTION	USERMODIFIABLE	HIDEWHENNOVALUE
+PARAM	3602aa1f-59fe-4c06-94f3-fdf66550fa62	Emergency Lighting Type	TEXT		4	1	Product type for an application of the emergency lighting. Dedicated to emergency luminaires only	1	0
+PARAM	f94f1a91-dc78-4cc7-a210-d0b242ee1fc4	LED Secondary Voltage	ELECTRICAL_POTENTIAL		3	1	i.e. 12V, 24V, 48V	1	0
+PARAM	645a1d97-cd6f-4820-b1b4-ebe20ffe0e9c	Number of Light Outputs	INTEGER		8	1	Number of plane surfaces with light output.	1	0
+PARAM	6aa8080e-4cfe-4504-ad41-070bde45621e	With Starter	YESNO		3	1	The luminaire has a starter	1	0
+PARAM	2229ac1a-3802-40a7-89cd-80aeb0177b05	Battery Type	TEXT		4	1	Battery type, Cell type.	1	0
+PARAM	ae098f50-d654-458a-9e86-dd4d1eb044e1	Flexible	YESNO		9	1	The Luminaire body is flexible	1	0
+PARAM	78315588-1783-49e3-98d1-810ba7cb00b5	Thickness of ceiling Minimum	LENGTH		9	1	The minimum thickness of the ceiling for recessed or flush mount.	1	0
+PARAM	9e32e66f-84c9-4f8a-b390-126f594cde40	EPD Available	YESNO		6	1	Environmental product declarations available.	1	0
+PARAM	7851c151-d0d1-4a4e-a43d-9ff1d137880e	Emergency Lighting Light Source Type	TEXT		4	1	Light source type of an additional separate emergency light source within the luminaire.	1	0
+PARAM	acfa19a5-870c-4f39-8131-df68636c1cdc	Color Rendering Index	INTEGER		11	1	The ability of a source to render color correctly.	1	0
+PARAM	bb76a84f-aa9d-4210-94b0-e64a59a20a8e	Covering of Insulation not Allowed	YESNO		9	1	Covering of Insulation in a ceiling is not allowed for the luminaire.	1	0
+PARAM	e9ed463c-ac3f-46fc-9dd8-f661446876d4	Required Recess Depth	LENGTH		9	1	Required minimum installation depth, height of the invisible / hidden mounting part of the luminaire (for recessed or flush mount).	1	0
+PARAM	06bdf7f6-3876-4243-9604-ea0abdf0be14	Socket Type	TEXT		3	1	A device which mechanically supports and provides electrical connections for a compatible electric light source. See also IEC60061:2018.	1	0
+PARAM	c59a50f1-6e72-4981-ad58-2a65b8fbc846	Diameter	LENGTH		5	1	Overall Diameter of the housing of the luminaire or sensing device.	1	0
+PARAM	51782a3a-e0cb-45b4-86b1-2788dd5d6148	Length	LENGTH		5	1	Length of the housing of the luminaire or sensing device. Corresponds to y-axis. This definition is regardless of orientation of luminaires.	1	0
+PARAM	bde8cff9-2162-4d2d-b52a-a0ff1741d33d	Power Factor	NUMBER		3	1	Ratio of the amount of the active power to the apparent power at 100% load. See also IEC 80000-6:2008.	1	0
+PARAM	2664ae9d-9c4f-4e4c-ad37-1d0e78331ec0	Voltage Type (AC, DC, UC)	TEXT		3	1	AC Alternating Current / DC Direct Current / UC Universal Current (Alternating or Direct Current).	1	0
+PARAM	5f141709-2625-47af-8618-00e1c5e9eac1	Luminaire Housing Shape, 3D	TEXT		9	1	Three-dimensional simplified shape of luminaire or sensing device.	1	0
+PARAM	15f5ff4d-f917-45e4-ae77-5521e67f0a27	Product Name	TEXT		5	1	Luminaire name or brand name of product	1	0
+PARAM	5be0ecbb-d514-4549-80be-b4333a4aa35e	Circuit Number	NUMBER		7	1	Serial number for circuit.	1	0
+PARAM	bddc75f4-8e27-4afc-add0-de7358bbf6d3	Manufacturer URL	URL		5	1	Web URL of manufacturer website	1	0
+PARAM	57468694-d8a7-4f40-8d81-3adea8969813	Quick Ship	YESNO		6	1	Quick ship available	1	0
+PARAM	5102b873-5fab-45b7-a2d0-f83ddee8d345	Product Family	TEXT		6	1	Manufacturer specific product groups or modular systems. Luminaire name or brand name of product.	1	0
+PARAM	8519b971-a622-42d5-9159-20074873c197	Acoustic Absorption Table	TEXT		1	1	The sound absorption coefficient (ISO 354:2003) presented in table depending on frequencies in the human hearable range.	1	0
+PARAM	d5eff05c-2a91-4563-a781-56affb407ba5	Control Gear Required	YESNO		3	1	States if control gear is necessary.	1	0
+PARAM	5de1affc-b992-4202-ab5f-bf414e76a681	Weight	WEIGHT		9	1	Weight of the luminaire or sensing device.	1	0
+PARAM	1799aaac-7681-4e1b-b610-0587482f41be	Access Clearance Left	LENGTH		7	1	Access required for maintenance of this item.	1	0
+PARAM	3f642724-34e1-4369-8523-21706fa11526	Vehicle Roll Over	YESNO		9	1	0	1	0
+PARAM	8719b75f-0994-47e7-94c8-66cf2a88fc4d	Acoustic Absorption Average	NUMBER		1	1	Acoustic absorption in average over the audible range.	1	0
+PARAM	e3926a6c-0da9-48ed-ad5d-d4a4376472e8	Access Clearance Right	LENGTH		7	1	Access required for maintenance of this item.	1	0
+PARAM	3c9a6c4b-38b9-434d-b11b-e9cab2741c17	Silicone-free	YESNO		9	1	States whether the luminaire is silicon-free.	1	0
+PARAM	5faaf7d9-72b9-43da-b254-6fb6cafd6de7	With Dimmer	YESNO		3	1	Determines whether the luminaire has a dimmer included.	1	0
+PARAM	02b312a4-d1eb-4fd5-95eb-e19d75d74848	Rated Ambient Temerature	ELECTRICAL_TEMPERATURE		9	1	Ambient temperature range.	1	0
+PARAM	b4430633-79ca-4ac5-9b74-94698860b8b6	Inrush Current	ELECTRICAL_CURRENT		3	1	Initial current after turning on. Base for quantity of luminaires per fuse or similar.	1	0
+PARAM	3ba7512c-0fde-43eb-9a08-63710290c613	Projected Life	TIMEINTERVAL		6	1	Projected operational hours.	1	0
+PARAM	b530286d-a1c4-4c8e-81e3-87b8075d96ad	Dimming Method or Protocol	TEXT		2	1	Determines which dimmer type is applicable for the luminaire.	1	0
+PARAM	e9e962f5-6b30-4eb6-a9a7-6ab3d6b0e867	Quick Ship Terms	TEXT		6	1	Quick shipping terms from manufacturer.	1	0
+PARAM	5dee06c8-4615-4bd3-9220-3e6e2c1297d0	Shipping Weight	WEIGHT		9	1	Weight of the shipping package of the luminaire or sensing device.	1	0
+PARAM	5ac947d0-4e86-40d8-b271-34c36524a4b0	With Connecting Cable	YESNO		3	1	Determines whether the product involves connecting cable.	1	0
+PARAM	59b50a71-0256-43f0-8982-c320c4ce2cda	Diameter of Luminous Area	LENGTH		5	1	Diameter of the light circular shape aperture on the luminaire. Also indicated in the photometric file IES and LDT	1	0
+PARAM	90e0715a-e991-481c-9608-3e3ad681bbfa	Shipping Height	LENGTH		9	1	Height of the packed luminaire or sensing device as it is shipped.	1	0
+PARAM	168db923-41ba-45bf-8bba-f4be48513f4f	Control Gear	TEXT		3	1	Type of control gear, which is required to control the electrical operation of the light source(s).	1	0
+PARAM	b7ca70f4-fe30-4cf3-8b27-d2019dc6ed45	Drive Over Rated	YESNO		9	1	Specific application class for ground recessed luminaries according temperature limits, dimensions and static load resistance in kN according to EN 60598-2-13:2017.	1	0
+PARAM	1aa11302-ada2-47df-bd16-ea98daa8bd0a	With Power Plug	YESNO		3	1	Determines whether the luminaire includes a power plug.	1	0
+PARAM	39158cf9-e509-47fe-a95a-5537c4712b85	Through Wiring	YESNO		3	1	Determines whether the luminaire is suitable for through wiring with the indication of the maximum current.	1	0
+PARAM	b0888250-71e8-4aac-b6a3-7c36e8731261	Relative Humidity Range	TEXT		9	1	The relative humidity of environment that enables product to function.	1	0
+PARAM	e18257d2-851e-4b7b-bc8d-41568b0612c0	Control Gear Included	YESNO		3	1	Shipped with or without ballast.	1	0
+PARAM	fecae275-f3d6-4f86-86df-7f957102c786	Width of Luminous Area	LENGTH		5	1	Width is parallel to the C0- C180 plane. Aligned with the X axis and with 0?? horizontal	1	0
+PARAM	95009d7f-9a55-4816-9ec5-78775c93125e	Sealing Material	MATERIAL		9	1	Material of the sealing of a luminaire.	1	0
+PARAM	c8d6bd8e-515e-4d40-aac4-d3320184754c	Access Clearance Front	LENGTH		7	1	Access required for maintenance of this item.	1	0
+PARAM	d5e464aa-5c32-4e45-91b5-8db19b6f6ebe	Radius	LENGTH		6	1	The radius of a circular luminaire.	1	0
+PARAM	8350e45f-5dbb-4391-a637-620154f021c7	Last Updated	TEXT		5	1	Last file update time and date	1	0
+PARAM	60372e24-0c95-4006-89e1-1bf9fdc81ae3	Burn-In Time	TIMEINTERVAL		7	1	Burn in time for the used light source technology.	1	0
+PARAM	157f9768-92d6-4c2a-b6c6-4021de41bca4	Description	TEXT		5	1	Description or comments	1	0
+PARAM	850f1611-4fd6-484d-86f2-4687114abe49	Ambient Temperature 	ELECTRICAL_TEMPERATURE		9	1	Ambient temperature range.	1	0
+PARAM	ae55a1ec-256b-4b00-8ce0-f9441ce1e57d	Shipping Length	LENGTH		9	1	Length of the packed luminaire or sensing device as it is shipped.	1	0
+PARAM	606a8c3b-8096-4d55-81e1-3ac6201886bf	Height of Luminous Area	LENGTH		5	1	The height of the luminous box of the luminaire. Also indicated in the photometric file.	1	0
+PARAM	038052b7-7d2c-45e2-981f-7dc0b042c255	Depth	LENGTH		6	1	Required minimum installation depth, height of the invisible / hidden mounting part of the luminaire (for recessed or flush mount).	1	0
+PARAM	3cd5049e-0b1e-4cd7-963c-6a59f1b87ee4	Light Source	TEXT		2	1	Also known as "lamp"	1	0
+PARAM	b3d433e9-f085-469f-810a-ead142e20f7e	Width	LENGTH		5	1	Width of the housing of the luminaire or sensing device. Width is set parallel to the C0- C180 plane. Corresponds to the x-axis and with 0?? horizontal of the Light Distribution Curve. This definition is regardless of orientation of luminaires.	1	0
+PARAM	c6f94aab-ea74-4d3f-8dc0-f4bf29d32a06	Shipping Width	LENGTH		9	1	Width of the packed luminaire or sensing device as it is shipped.	1	0
+PARAM	92cadd1f-e81c-4305-80c4-d67c6e78a888	Emergency Unit Integrated	YESNO		4	1	Indicates if emergency lighting is integrated. Combined luminaire for standard and emergency lighting with one or multiple Light Distribution Curves.	1	0
+PARAM	8dd470fb-98b3-4821-bc40-0e36541808f2	Thickness of ceiling Maximum	LENGTH		9	1	The maximum thickness of the ceiling for recessed installation	1	0
+PARAM	8413f781-2bd2-4e00-90c4-2cf69eb249a4	Product Data Sheet	URL		3	1	product data sheet	1	0
+PARAM	d5d08871-9f84-4310-b7a5-26877939c0e7	Nominal Current	ELECTRICAL_CURRENT		3	1	Electrical nominal current	1	0
+PARAM	2f317fc3-3f64-4214-83fd-390823fc9d91	Housing Color	TEXT		6	1	The name of color of the housing or RAL number.	1	0
+PARAM	a39ef487-abc2-491a-8c56-813f40f71c54	Minimum Clearance	LENGTH		9	1	Describes the minimum required distance of the luminaire housing to other objects.	1	0
+PARAM	5b6dc4cd-d79c-42ef-a42e-3af6ecdcc07b	Lamp Survival Factor	NUMBER		7	1	The lamp survival factor depends on the service lifetime of a light source. LSF=1 is saying that there will be no loss of light because of light source failure.	1	0
+PARAM	60c36216-e435-4e09-9ddf-80c48933de8a	LED Drive Type	TEXT		3	1	CC, CV, or N/A.	1	0
+PARAM	62f1c928-b7e3-496f-9e2d-26a6de767852	DimmingRange	NUMBER		2	1	Determines which range of dimming is possible for luminaire.	1	0
+PARAM	78358258-c1b2-4f15-a488-594d4aa4f1b2	Power Consumption of the Controls	ELECTRICAL_APPARENT_POWER		3	1	Power consumption of the detector with the light switched off and without motion detection / presence detection (idle state).	1	0
+PARAM	1807c60b-35e5-4e55-897e-49570dee6b53	Length of Luminous Area	LENGTH		5	1	The length of the luminous box of the luminaire. Also indicated in the photometric file.	1	0
+PARAM	6984ae00-a9dd-46d6-ba61-12081d4d95ec	Operation Temperature	ELECTRICAL_TEMPERATURE		9	1	Normal operating temp of item	1	0
+PARAM	659abcf0-149d-46a1-82ce-bc28c07bbfb0	Control Interface	TEXT		3	1	Determines which communication or control interface is indicated for the luminaire or sensing device.	1	0
+PARAM	40cc9cbd-1ba1-41e6-8707-a9b416fd50b1	Light Source Included	YESNO		3	1	States whether the luminaire is supplied with light source	1	0
+PARAM	1e564ae4-c7bf-4ac8-ba32-e0e96ffb7fad	Battery Exchange Possible	YESNO		7	1	0	1	0
+PARAM	2b6a2c17-1cf5-44a2-a605-a3acf40c9b3b	Battery Capacity	NUMBER		4	1	 Ampre-hours	1	0
+PARAM	0acd978b-9495-4fe4-a8c7-66bacc6243a2	Access Clearance Bottom	LENGTH		7	1	Access required for maintenance of this item	1	0
+PARAM	23460896-bdd0-43e7-85cf-85cb9927bcd6	EPD URL	URL		6	1	Environmental product declarations web URL	1	0
+PARAM	7bcae613-49d5-40a3-a27e-8df1945ce73e	Voltage Nominal	ELECTRICAL_POTENTIAL		2	1	Nominal voltage is not the precise operating or rated voltage.	1	0
+PARAM	9704f476-596b-43e9-919a-42f7881c8921	Housing Material	MATERIAL		6	1	Material of luminaire housing	1	0
+PARAM	6acbe6cd-75fd-4855-95ae-ace53ab87086	Nominal Frequency	ELECTRICAL_FREQUENCY		3	1	Nominal frequency at which the product operates normally as specified by the supplier or manufacturer.	1	0
+PARAM	1ba13498-6fa6-44f8-989e-dff350b825ce	LED Module Replaceable	YESNO		2	1	led module replaceable	1	0
+PARAM	3258ce83-85d5-40e9-998e-b73fee7e5d87	Battery Voltage	ELECTRICAL_POTENTIAL		4	1	0	1	0
+PARAM	838b9f89-c9d5-44b3-883c-52bc516b7afb	Temperature on Light Aperture	ELECTRICAL_TEMPERATURE		9	1	Average temperature of light emitting surface of a luminaire.	1	0
+PARAM	120b879b-b996-457d-ba4e-5684db29e113	Cutting out Width	LENGTH		9	1	Width of the cut-out hole (for recessed or flush mount).	1	0
+PARAM	4d4881f3-5a77-41eb-a140-e03a297c2351	Dimmable	YESNO		2	1	Determines whether the luminaire is dimmable.	1	0
+PARAM	8822b540-105f-47d1-847d-e3df372faa1e	Height	LENGTH		5	1	Height of the housing of the luminaire or sensing device. Corresponds to z-axis. This definition is regardless of orientation of luminaires.	1	0
+PARAM	ccfc3669-0bf6-498c-b578-8fe0cbab571f	With Sensor	YESNO		3	1	Determines whether the luminaire contains an integrated sensing device.	1	0
+PARAM	c9846d7e-34ca-4f59-94ab-3452803f997e	Rated Input Power	ELECTRICAL_APPARENT_POWER		2	1	Input power consumed by the light source(s), control gear and control circuit in or associated with a luminaire including any standby power when the luminaire is turned on. Measured in volt-amperes (VA).	1	0
+PARAM	48ea3b3c-7921-4716-a6ab-cbb9c4d5e5e1	Cutting out Diameter	LENGTH		9	1	Diameter of the cut-out hole (for recessed or flush mount).	1	0
+PARAM	65afcc0d-14a2-4347-8749-259228986918	Radiation Power	ELECTRICAL_POWER		3	1	radiation power	1	0
+PARAM	cc2e56cc-6338-45c3-a779-55609a49d293	Access Clearance Top	LENGTH		7	1	Access required for maintenance of this item.	1	0
+PARAM	04ac16ce-15d8-4607-a43a-1fece8f1cc51	Emergency Lighting Capable	YESNO		4	1	Indicates whether emergency lighting is integral.	1	0
+PARAM	9597d401-cfd4-4394-af6f-d84565b83b38	Manufacturer	TEXT		5	1	Manufacturer of product	1	0
+PARAM	dd4ada0b-37d6-4961-aa1f-b808d8e7b7ed	Walk Over Rated	YESNO		9	1	0	1	0
+PARAM	3454a7f1-05ce-45fd-ad23-b64dad85f7d2	With Switch	YESNO		3	1	Determines whether the luminaire has a switch included.	1	0
+PARAM	b4d75e0a-7fd0-4db4-9abd-42a1e9a3bcfc	Cutting out Length	LENGTH		9	1	Length of the cut-out hole (for recessed or flush mount).	1	0
+PARAM	955fab94-c73e-4f1e-95f0-e29ff8959660	Control Feature	TEXT		3	1	Description of Control Elements and Features.	1	0
+PARAM	0133418e-8d3e-48bf-9f9a-8bb902b5cdfa	Halogen-Free	YESNO		9	1	States whether the product is halogen-free according IEC 61249-2-21:2004.	1	0
+PARAM	61767f07-f194-447c-b6fb-66f9285a7d39	Mounting Type	TEXT		10	1	Type of mounting used for the luminaire or sensing device.	1	0
+PARAM	0416214c-cbb5-4dce-85bc-c1d51a24b466	Melanopic Factor	NUMBER		12	1	Melanopic factor of luminous radiation daylight equivalent based on CIE standard illuminant D65. See also CEN/TR 16791:2017.	1	0
+PARAM	0e148639-ed67-4f43-9d8a-50abe7e68627	Presence Detection Area 	TEXT		12	1	Detection area for minor movement for the standard mounting height. For round area: the angular range from 1?? to 360?? and radius [m]. For rectangular area: L x W [m]	1	0
+PARAM	1a808da0-3e8d-4e01-82e5-b299efd4e129	BUGRating	TEXT		12	1	The BUG classification (Backlight, Uplight, and Glare) according to IDA/IESNA evaluates the light output of outdoor lights regarding to glare, light pollution and light trespass. (standard ANSI/IES TM-15-20)	1	0
+PARAM	2e06e479-3d4c-4cdd-a310-246664cb2750	Detection Area Adjustable	TEXT		12	1	The type of the adjustment of the detection area.	1	0
+PARAM	3c5c337f-0fbc-4e09-80e8-b10840c712b6	Detection Range Adjustable	TEXT		12	1	The method of adjustment of detection range.	1	0
+PARAM	4aab58cd-b2fa-4b44-b302-c9688130b78f	Color Controllable	YESNO		12	1	States whether the color is controllable	1	0
+PARAM	5d673f57-5625-4eec-86d1-232bf852e908	Measurement Method 	TEXT		12	1	The measurement of the presence detection area was done according to standard	1	0
+PARAM	6892853b-e608-4230-a4cf-5ec2ebc73c1f	Rated Chromaticity Coordinate Values	TEXT		12	1	Chromaticity coordinates ratio of a set of 3 tristimulus values to their sum according ISO 11664-1:2007. 2 values are sufficient to define chromaticity.  CIE colorimetric systems represent these with the symbols x, y, z and x10, y10, z10.	1	0
+PARAM	6ba03f1f-d847-468e-b4f3-c4c0289d868c	Amount of Addresses	INTEGER		12	1	Determines the amount of addresses of the product.	1	0
+PARAM	6caf5abd-dd67-4ddb-9e37-09177f0e31b9	Type of Detector	TEXT		12	1	The type of detection possible for sensing device.	1	0
+PARAM	6f941950-0e06-45de-b3a0-fa624cd2f128	Detection Area Tangential Movement	TEXT		12	1	Detection area for walking for the standard mounting height. For round area: the angular range from 1?? to 360?? and radius [m]. For rectangular area: L x W [m].	1	0
+PARAM	73b02cc6-c8d8-471c-85dd-d077663e4f95	Detection Method	TEXT		12	1	Applied technology for detection	1	0
+PARAM	97e6615f-6252-4ed9-8073-4e10ff5b27b9	Flicker	TEXT		12	1	Impression of unsteadiness of visual sensation induced by a light stimulus whose luminance or spectral distribution fluctuates with time.	1	0
+PARAM	9cfefef9-0589-486e-8f2a-29fa65cbf4f7	Emergency Luminous Flux	ELECTRICAL_LUMINOUS_FLUX		12	1	Lumen output in emergency mode.	1	0
+PARAM	9eb65ed2-2fc4-4512-9788-46a0bf05be3f	Initial Color Tolerance in step McAdam ellipses (SCDM)     	NUMBER		12	1	Initial Color Tolerance in step McAdam ellipses (SDCM).	1	0
+PARAM	b0e93192-8f01-47de-bf35-7f9991c6fc02	Detector Characteristics	TEXT		12	1	Shape of the detection area.	1	0
+PARAM	bc9f8c99-0464-4cde-9dd4-adf886d6ce06	Cut-off Angle	ANGLE		12	1	Angle, measured up from nadir, between the vertical axis and the first line of sight at which the light sources and the surfaces of high luminance are not visible. If the beam is not rotation symmetrical the photometric plane needs to specified.	1	0
+PARAM	be40e1a6-8c91-4342-a071-64b7662a571c	Colour Temperature Controllable	YESNO		12	1	States if the colour temperature is controllable.	1	0
+PARAM	c04bb4e6-2ad5-4eaf-aad6-370548d08d4d	Detection Area Radial Movement	TEXT		12	1	0	1	0
+PARAM	faa77e0b-ce07-416b-970e-f51f128b1b30	Detection Area	ANGLE		12	1	Defines the detection angle or the detection area for the standard mounting height. For round area: the angular range from 1?? to 360?? and radius [m]. For rectangular area: L x W [m].	1	0
+PARAM	e3d726e7-75e8-4753-8962-cf82a6b1a7d9	Photobiology Class (1-3)	INTEGER		12	1	The required measurement methods and the calculation methodology are set in the harmonized standard EN 62471:2009, Photobiological safety of lamps and lamp systems. Sources are classified based on hazard of incoherent optical radiation.	1	0

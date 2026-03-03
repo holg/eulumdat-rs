@@ -71,9 +71,17 @@ pub enum Commands {
         #[arg(short = 'H', long, default_value = "500")]
         height: f64,
 
-        /// Mounting height in meters (for cone/greenhouse diagrams)
+        /// Mounting height in meters (for cone/greenhouse/isolux diagrams)
         #[arg(short = 'm', long, default_value = "3.0")]
         mounting_height: f64,
+
+        /// Tilt angle in degrees (for isolux diagram, 0=down, 90=horizontal)
+        #[arg(long, default_value = "0.0")]
+        tilt: f64,
+
+        /// Use logarithmic Y-axis (for floodlight-vh diagram)
+        #[arg(long)]
+        log_scale: bool,
     },
 
     /// Calculate BUG rating (outdoor luminaires)
@@ -192,6 +200,64 @@ pub enum Commands {
         #[arg(short, long)]
         compact: bool,
     },
+
+    /// Compare two photometric files side-by-side
+    Compare {
+        /// First input file (.ldt, .ies, .xml, or .json)
+        file_a: PathBuf,
+
+        /// Second input file (.ldt, .ies, .xml, or .json)
+        file_b: PathBuf,
+
+        /// Output format for comparison table
+        #[arg(short = 'f', long, value_enum, default_value = "text")]
+        format: CompareFormat,
+
+        /// Generate overlay diagram SVG
+        #[arg(short = 'd', long, value_enum)]
+        diagram: Option<CompareDiagramType>,
+
+        /// Output file for SVG diagram (stdout if not specified)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Use dark theme for diagram
+        #[arg(long)]
+        dark: bool,
+
+        /// Show only significant differences (>= 5% delta)
+        #[arg(long)]
+        significant_only: bool,
+    },
+
+    /// Generate photometric report (Typst source or PDF)
+    Report {
+        /// Input file (.ldt, .ies, .xml, or .json)
+        input: PathBuf,
+
+        /// Output file (.typ for Typst source, .pdf for PDF)
+        output: PathBuf,
+
+        /// Paper size
+        #[arg(short, long, value_enum, default_value = "a4")]
+        paper: PaperSize,
+
+        /// Use compact report (fewer sections)
+        #[arg(short, long)]
+        compact: bool,
+
+        /// Include CU (Coefficient of Utilization) table
+        #[arg(long)]
+        cu_table: bool,
+
+        /// Include UGR (Unified Glare Rating) table
+        #[arg(long)]
+        ugr_table: bool,
+
+        /// Include full candela tabulation (like Photometric Toolbox)
+        #[arg(long)]
+        candela_table: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
@@ -214,6 +280,12 @@ pub enum DiagramType {
     Spectral,
     /// Greenhouse PPFD diagram (horticultural lighting)
     Greenhouse,
+    /// Floodlight V-H Cartesian diagram (Type B coordinates)
+    FloodlightVh,
+    /// Isolux ground footprint (illuminance contours)
+    Isolux,
+    /// Isocandela contour plot (equal-intensity lines)
+    Isocandela,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
@@ -244,6 +316,14 @@ pub enum CalcType {
     Spacing,
     /// Zonal lumens in 30° zones
     ZonalLumens,
+    /// Coefficient of Utilization (CU) table
+    CuTable,
+    /// Unified Glare Rating (UGR) table
+    UgrTable,
+    /// Candela tabulation
+    CandelaTable,
+    /// NEMA floodlight beam classification
+    Nema,
     /// All calculations
     All,
 }
@@ -268,4 +348,37 @@ pub enum ConversionPolicyArg {
     /// Apply defaults for missing fields where possible
     #[default]
     Compatible,
+}
+
+/// Paper size for report generation
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum PaperSize {
+    /// A4 (210 × 297 mm)
+    #[default]
+    A4,
+    /// US Letter (8.5 × 11 in)
+    Letter,
+    /// A3 (297 × 420 mm)
+    A3,
+}
+
+/// Output format for the compare command
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum CompareFormat {
+    /// Human-readable text table
+    #[default]
+    Text,
+    /// JSON output
+    Json,
+    /// CSV output
+    Csv,
+}
+
+/// Diagram type for compare overlay
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum CompareDiagramType {
+    /// Polar overlay diagram
+    Polar,
+    /// Cartesian overlay diagram
+    Cartesian,
 }

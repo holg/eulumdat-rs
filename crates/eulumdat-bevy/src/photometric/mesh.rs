@@ -5,9 +5,9 @@
 //! - Luminaire geometry meshes (physical shape of the light fixture)
 
 use super::{heatmap_color, PhotometricData};
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
-use bevy::render::mesh::{Indices, PrimitiveTopology};
-use bevy::render::render_asset::RenderAssetUsages;
 
 /// Resolution settings for photometric solid mesh generation.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]

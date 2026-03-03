@@ -91,6 +91,7 @@ pub fn LanguageSelector() -> impl IntoView {
             class="language-selector"
             on:change=on_change
             prop:value=move || language.get().code()
+            aria-label="Select language"
         >
             {Language::all()
                 .iter()
@@ -126,6 +127,7 @@ pub fn LanguageSelectorCompact() -> impl IntoView {
             on:change=on_change
             prop:value=move || language.get().code()
             title="Select language"
+            aria-label="Select language"
         >
             {Language::all()
                 .iter()

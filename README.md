@@ -57,6 +57,7 @@ Preview LDT files directly in Finder with polar diagrams - no need to open an ap
 - **GLDF integration** - Full DescriptivePhotometry population from IES/LDT
 - **BUG Rating** - IESNA TM-15-11 Backlight-Uplight-Glare calculations
 - **Diagram generation** - Polar, Butterfly, Cartesian, Heatmap, Spectral with SVG export
+- **File comparison** - Side-by-side comparison of two photometric files with similarity scoring, delta analysis, and overlay diagrams
 
 ## ATLA-S001 & TM-33-23 Support
 
@@ -148,6 +149,21 @@ let svg = polar.to_svg(500.0, 500.0, &SvgTheme::light());
 // Calculate BUG rating
 let bug = BugDiagram::from_eulumdat(&ldt);
 println!("BUG Rating: {}", bug.rating);
+
+// Compare two files
+let ldt_b = Eulumdat::from_file("luminaire_b.ldt")?;
+let cmp = eulumdat::PhotometricComparison::from_eulumdat(&ldt, &ldt_b, "A", "B");
+println!("Similarity: {:.1}%", cmp.similarity_score * 100.0);
+for m in cmp.significant_metrics(eulumdat::Significance::Minor) {
+    println!("{}: {:+.1}% ({})", m.name, m.delta_percent, m.significance);
+}
+
+// Generate overlay diagram
+let polar_a = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldt);
+let polar_b = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldt_b);
+let overlay = eulumdat::diagram::PolarDiagram::to_overlay_svg(
+    &polar_a, &polar_b, 500.0, 500.0, &SvgTheme::light(), "A", "B",
+);
 ```
 
 ### Python
@@ -252,6 +268,14 @@ eulumdat calc luminaire.ldt -t beam-angles    # Beam/field angles
 eulumdat calc luminaire.ldt -t spacing        # S/H ratios
 eulumdat calc luminaire.ldt -t zonal-lumens   # 30° zone distribution
 eulumdat calc luminaire.ldt -t all            # Everything
+
+# NEW: Compare two files side-by-side
+eulumdat compare file_a.ldt file_b.ldt                    # Text table
+eulumdat compare file_a.ldt file_b.ldt -f json            # JSON output
+eulumdat compare file_a.ldt file_b.ldt -f csv             # CSV output
+eulumdat compare file_a.ldt file_b.ldt --significant-only # Only >= 5% deltas
+eulumdat compare file_a.ldt file_b.ldt -d polar -o cmp.svg   # Polar overlay SVG
+eulumdat compare file_a.ldt file_b.ies -d cartesian --dark    # Cartesian overlay, dark theme
 ```
 
 ### macOS / iOS
@@ -303,6 +327,8 @@ Features:
 | Heatmap | 2D intensity color map |
 | BUG | IESNA TM-15-11 zone visualization |
 | LCS | TM-15-07 Luminaire Classification System |
+| Polar Overlay | Two files overlaid on one polar diagram (comparison) |
+| Cartesian Overlay | Two files overlaid on one cartesian diagram (comparison) |
 
 ## LM-63-2019 IES Support
 
@@ -367,4 +393,6 @@ validate_ies_strict(&ies_data)?;
 
 ## License
 
-MIT OR Apache-2.0
+AGPL-3.0-or-later
+
+This project is licensed under the GNU Affero General Public License v3.0 or later. See [LICENSE](LICENSE) for details.

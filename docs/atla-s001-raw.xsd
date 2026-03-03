@@ -1,0 +1,1047 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<!-- Common attribute definitions -->
+<xs:attribute name="angle" type="xs:decimal"/>
+<xs:attribute name="h" type="xs:decimal"/>
+<xs:attribute name="v" type="xs:decimal"/>
+<xs:attribute name="w" type="xs:decimal"/>
+<xs:attribute name="x" type="xs:decimal"/>
+<xs:attribute name="y" type="xs:decimal"/>
+<xs:attribute name="z" type="xs:decimal"/>
+<!-- Common
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+<xs:element
+
+simple element definitions -->
+name="Circular" type="xs:boolean"/>
+name="Height" type="xs:decimal"/>
+name="HeightOffset" type="xs:decimal"/>
+name="Length" type="xs:decimal"/>
+name="LengthOffset" type="xs:decimal"/>
+name="MaxWavelength" type="xs:decimal"/>
+name="MeasurementEquipment" type="xs:string"/>
+name="MinWavelength" type="xs:decimal"/>
+name="NumberHorz" type="xs:int"/>
+name="NumberMeasured" type="xs:int"/>
+name="NumberPlanes" type="xs:int"/>
+name="NumberVert" type="xs:int"/>
+name="NumberWavelength" type="xs:int"/>
+name="Width" type="xs:decimal"/>
+name="WidthOffset" type="xs:decimal"/>
+
+<!-- Common element definitions -->
+<xs:complexType
+name="IntDataType2">
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="h"/>
+<xs:attribute ref="v"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:complexType
+name="IntDataType3">
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="h"/>
+<xs:attribute ref="v"/>
+<xs:attribute ref="w"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:complexType
+name="PlaneNormalType">
+<xs:simpleContent>
+
+
+
+<xs:extension base="xs:decimal">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:complexType
+name="PwrDataType">
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="w"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+<xs:simpleType
+name="RegulatoryValue">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Measured"/>
+<xs:enumeration value="Nominal"/>
+<xs:enumeration value="Rated"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:element name="IESTM33">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Version" type="xs:string" fixed="1.0"/>
+<xs:element name="Header">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Manufacturer" type="xs:string"
+minOccurs="0"/>
+<xs:element name="CatalogNumber" type="xs:string"
+minOccurs="0"/>
+<xs:element name="GTIN" type="xs:integer"
+minOccurs="0"/>
+<xs:element name="Description" type="xs:string"/>
+<xs:element name="Laboratory" type="xs:string"/>
+<xs:element name="ReportNumber" type="xs:string"/>
+<xs:element name="ReportDate" type="xs:date"/>
+<xs:element name="DocumentCreator" type="xs:string"
+minOccurs="0"/>
+<xs:element name="DocumentCreationDate" type="xs:date"
+minOccurs="0"/>
+<xs:element name="UniqueIdentifier" type="xs:string"
+minOccurs="0"/>
+<xs:element name="Comment" type="xs:string"minOccurs="0">
+maxOccurs="unbounded"/>
+<xs:element name="Reference" type="xs:string"
+minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="MoreInfoURI" type="xs:anyURI"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Luminaire">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Dimensions">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+
+
+
+<xs:element ref="Width"/>
+<xs:element ref="Height"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Shape" minOccurs="0">
+<xs:simpleType>
+<xs:restriction base="xs:string">
+<xs:enumeration
+value="Align_X"/>
+<xs:enumeration
+value="Align_Y"/>
+<xs:enumeration
+value="Align_Z"/>
+</xs:restriction>
+</xs:simpleType>
+</xs:element>
+<xs:element name="NumEmitter" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Equipment">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Gonioradiometer"
+minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Type">
+<xs:simpleType>
+<xs:restriction
+base="xs:string">
+<xs:enumeration
+value="CIE_A"/>
+<xs:enumeration
+value="CIE_B"/>
+<xs:enumeration
+value="CIE_C"/>
+<xs:enumeration
+value="IES_A"/>
+<xs:enumeration
+value="IES_B"/>
+<xs:enumeration
+value="IES_C"/>
+<xs:enumeration value="CUSTOM"/>
+</xs:restriction>
+</xs:simpleType>
+</xs:element>
+<xs:element ref="MeasurementEquipment"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IntegratingSphere" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+ref="MeasurementEquipment"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Spectroradiometer" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="MeasurementEquipment"
+minOccurs="0"/>
+<xs:element name="BandwidthFWHM" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="BandwidthCorrected"
+type="xs:boolean" minOccurs="0"/>
+<xs:element name="BandwidthMethod"
+type="xs:string" minOccurs="0"/>
+
+
+
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Emitter" maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Quantity" type="xs:int"/>
+<xs:element name="Description" type="xs:string"/>
+<xs:element name="CatalogNumber" type="xs:string"
+minOccurs="0"/>
+<xs:element name="RatedLumens" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="InputWattage" type="xs:decimal"/>
+<xs:element name="PowerFactor" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="BallastFactor" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="TiltAngles" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberAngles" type="xs:int"/>
+<xs:element name="Tilt">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="angle"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="ColorTemperature" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="FixedCCT" type="xs:int"
+minOccurs="0"/>
+<xs:element name="MinCCT" type="xs:int"
+minOccurs="0"/>
+<xs:element name="MaxCCT" type="xs:int"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="ColorRendering" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="CIE_CRI" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Ra" type="xs:int"/>
+<xs:element name="R9" type="xs:int"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IES_TM30" minOccurs="0">
+
+
+
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Rf" type="xs:int"/>
+<xs:element name="Rg" type="xs:int"/>
+<xs:element name="Rfh01" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh02" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh03" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh04" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh05" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh06" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh07" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh08" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh09" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh10" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh11" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh12" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh13" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh14" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh15" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rfh16" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh01" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh02" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh03" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh04" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh05" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh06" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh07" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh08" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh09" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh10" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh11" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh12" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh13" type="xs:int"
+
+
+
+minOccurs="0"/>
+<xs:element name="Rcsh14" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh15" type="xs:int"
+minOccurs="0"/>
+<xs:element name="Rcsh16" type="xs:int"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Duv" type="xs:decimal" minOccurs="0"/>
+<xs:element name="SPRatio" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="DataGeneration" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Simulation" type="xs:boolean"
+minOccurs="0"/>
+<xs:element name="Laboratory" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Certification"
+type="xs:string"/>
+<xs:element name="ApprovalBody"
+type="xs:string"/>
+<xs:element name="ApprovalScope"
+type="xs:string"/>
+<xs:element name="MeasUncertainty">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="MeasurementType"
+type="xs:string"/>
+<xs:element name="Uncertainty"
+type="xs:decimal"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IntensityScaling"
+type="xs:boolean"
+minOccurs="0"/>
+<xs:element name="AngleInterpolation"
+type="xs:boolean"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="LuminousData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+name="LuminousIntensity">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="AbsolutePhotometry"
+type="xs:boolean"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element
+ref="NumberHorz"/>
+<xs:element
+ref="NumberVert"/>
+
+
+
+<xs:element name="IntData"
+type="IntDataType2"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="LuminousFlux" type="xs:decimal"
+minOccurs="0"/>
+<xs:element name="MeasuredCCT" type="xs:int"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="RadiantData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+ref="MinWavelength"/>
+<xs:element
+ref="MaxWavelength"/>
+<xs:element
+name="RadiantIntensity">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="NumberMeasured"/>
+<xs:element
+ref="NumberHorz"/>
+<xs:element
+ref="NumberVert"/>
+<xs:element name="IntData"
+type="IntDataType2"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="RadiantFlux" type="xs:decimal"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="PhotonData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+ref="MinWavelength"/>
+<xs:element
+ref="MaxWavelength"/>
+<xs:element name="PhotonIntensity">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="NumberMeasured"/>
+<xs:element
+ref="NumberHorz"/>
+<xs:element
+ref="NumberVert"/>
+<xs:element name="IntData"
+type="IntDataType2"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="PhotonFlux" type="xs:decimal"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="SpectralData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="EmitterSpectral" minOccurs="0">
+
+
+
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="EmitterName"
+minOccurs="0"/>
+<xs:element
+ref="NumberWavelength"/>
+<xs:element name="PwrData"
+type="PwrDataType"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="AngularSpectral" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="NumberMeasured"/>
+<xs:element
+ref="NumberHorz"/>
+<xs:element
+ref="NumberVert"/>
+<xs:element
+ref="NumberWavelength"/>
+<xs:element name="IntData"
+type="IntDataType3"
+maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IllumData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element name="Illum"
+maxOccurs="unbounded">
+<xs:complexType >
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="IrradData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+ref="MinWavelength"/>
+<xs:element
+ref="MaxWavelength"/>
+
+
+
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element name="Irrad"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="PFDData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+ref="MinWavelength"/>
+<xs:element
+ref="MaxWavelength"/>
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element name="PFD"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="SpecIrradData" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="NumberPlanes"/>
+<xs:element name="PlaneData">
+<xs:complexType>
+
+
+
+<xs:sequence>
+<xs:element name="PlaneNormal"
+type="PlaneNormalType" minOccurs="0"/>
+<xs:element ref="NumberMeasured"/>
+<xs:element
+ref="NumberWavelength"/>
+<xs:element name="SIrrad"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute ref="x"/>
+<xs:attribute ref="y"/>
+<xs:attribute ref="z"/>
+<xs:attribute ref="w"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Channels" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumChannels" type="xs:int"/>
+<xs:element name="ChannelMult"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:simpleContent>
+<xs:extension base="xs:decimal">
+<xs:attribute name="name"
+type="xs:string"/>
+</xs:extension>
+</xs:simpleContent>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="EmissionAreas" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="TopFace" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberTop" type="xs:int"/>
+<xs:element name="TopArea"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+<xs:element ref="Width"/>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+
+
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="BottomFace" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberBottom"
+type="xs:int"/>
+<xs:element name="BottomArea"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Length"/>
+<xs:element ref="Width"/>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C0Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC0" type="xs:int"/>
+<xs:element name="C0Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+ref="Length"/>
+<xs:element
+ref="Height"/>
+<xs:element
+ref="LengthOffset"/>
+<xs:element
+ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C90Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC90" type="xs:int"/>
+<xs:element name="C90Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Width"/>
+<xs:element ref="Height"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+
+
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C180Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC180"
+type="xs:int"/>
+<xs:element name="C180Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element
+ref="Length"/>
+<xs:element
+ref="Height"/>
+<xs:element
+ref="LengthOffset"/>
+<xs:element
+ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="C270Face" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="NumberC270"
+type="xs:int"/>
+<xs:element name="C270Area"
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="Width"/>
+<xs:element ref="Height"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="HeightOffset"/>
+<xs:element ref="Circular"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="EmitterCenter" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+<xs:element ref="LengthOffset"/>
+<xs:element ref="WidthOffset"/>
+<xs:element ref="HeightOffset"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="Regulatory" minOccurs="0">
+<xs:complexType>
+<xs:sequence>
+
+
+
+<xs:element name="InputWattage"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="PowerFactor"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="BallastFactor"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="ColorTemperature"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="CIE_CRI"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="IES_TM30"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="Duv"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="SPRatio"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="LuminousIntensity"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="LuminousFlux"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="RadiantIntensity"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="RadiantFlux"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="PhotonIntensity"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="PhotonFlux"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="SpectralPower"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="SpectralIntensity"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="Illuminance"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="Irradiance"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="PhotonFluxDensity"
+type="RegulatoryValue"
+minOccurs="0"/>
+<xs:element name="SpectralIrradiance"
+type="RegulatoryValue"
+minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="CustomData" minOccurs="0">
+maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Name" type="xs:string"/>
+<xs:element name="UniqueIdentifier" type="xs:string"/>
+<xs:any namespace="##any" processContents="skip"
+minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:schema>
+<?xml version="1.0"?>
+<IESTM33>
+<Version>1.0</Version>
+<Header>
+<Manufacturer>Academy
+Lighting</Manufacturer>
+<CatalogNumber>XET
+55529</CatalogNumber>
+<Description>LED 2' x 4' Troffer</Description>
+<Laboratory>Apex
+Analytics</Laboratory>
+<ReportNumber>APEX-091101-004</ReportNumber>
+<ReportDate>2009-11-01</ReportDate>
+<DocumentCreator>Apex
+Analytics</DocumentCreator>
+<DocumentCreationDate>2011-11-21</DocumentCreationDate>
+<UniqueIdentifier>21EC2020-3AEA-4069-A2DD-08002B30309D
+</UniqueIdentifier>
+<Comment>Ambient temperature 25 degrees C.</Comment>
+</Header>
+<Luminaire>
+<Dimensions>
+<Length>1.20</Length>
+<Width>0.60</Width>
+<Height>0.10</Height>
+</Dimensions>
+<NumEmitter>1</NumEmitter>
+</Luminaire>
+<Equipment>
+<Gonioradiometer>
+<Type>IES_C</Type>
+<MeasurementEquipment>LightLab</MeasurementEquipment>
+</Gonioradiometer>
+<IntegratingSphere>
+<MeasurementEquipment>LabSphere</MeasurementEquipment>
+</IntegratingSphere>
+</Equipment>
+<Emitter>
+<Quantity>1</Quantity>
+<Description>Integral LED module</Description>
+<CatalogNumber>Not
+applicable</CatalogNumber>
+<RatedLumens>0.0</RatedLumens>
+<InputWattage>35.4</InputWattage>
+<ColorTemperature>
+<FixedCCT>4000</FixedCCT>
+</ColorTemperature>
+<ColorRendering>
+<CIE_CRI>
+<Ra>92</Ra>
+<R9>85</R9>
+</CIE_CRI>
+<IES_TM30>
+<Rf>60</Rf>
+<Rg>95</Rg>
+</IES_TM30>
+</ColorRendering>
+<LuminousData>
+<LuminousIntensity>
+<AbsolutePhotometry>true</AbsolutePhotometry>
+<NumberMeasured>19</NumberMeasured>
+<NumberHorz>1</NumberHorz>
+<NumberVert>19</NumberVert>
+<IntData h="0.0" v="0.0">109</IntData>
+
+
+
+<IntData h="0.0" v="5.0">109</IntData>
+<IntData h="0.0" v="10.0">108</IntData>
+<IntData h="0.0" v="15.0">107</IntData>
+<IntData h="0.0" v="20.0">104</IntData>
+<IntData h="0.0" v="25.0">100</IntData>
+<IntData h="0.0" v="30.0">95</IntData>
+<IntData h="0.0" v="35.0">89</IntData>
+<IntData h="0.0" v="40.0">83</IntData>
+<IntData h="0.0" v="45.0">77</IntData>
+<IntData h="0.0" v="50.0">71</IntData>
+<IntData h="0.0" v="55.0">63</IntData>
+<IntData h="0.0" v="60.0">53</IntData>
+<IntData h="0.0" v="65.0">44</IntData>
+<IntData h="0.0" v="70.0">36</IntData>
+<IntData h="0.0" v="75.0">29</IntData>
+<IntData h="0.0" v="80.0">22</IntData>
+<IntData h="0.0" v="85.0">16</IntData>
+<IntData h="0.0" v="90.0">13</IntData>
+</LuminousIntensity>
+<LuminousFlux>1000.0</LuminousFlux>
+</LuminousData>
+<Channels>
+<NumChannels>3</NumChannels>
+<ChannelMult
+name="red">0.21</ChannelMult>
+<ChannelMult
+name="green">0.72</ChannelMult>
+<ChannelMult
+name="blue">0.08</ChannelMult>
+</Channels>
+<EmissionAreas>
+<BottomFace>
+<NumberBottom>2</NumberBottom>
+<BottomArea>
+<Length>0.50</Length>
+<Width>0.60</Width>
+<LengthOffset>-0.1</LengthOffset>
+<WidthOffset>0.0</WidthOffset>
+</BottomArea>
+<BottomArea>
+<Length>0.50</Length>
+<Width>0.60</Width>
+<LengthOffset>0.1</LengthOffset>
+<WidthOffset>0.0</WidthOffset>
+</BottomArea>
+</BottomFace>
+</EmissionAreas>
+<EmitterCenter>
+<LengthOffset>0.00</LengthOffset>
+<WidthOffset>0.00</WidthOffset>
+<HeightOffset>-0.05</HeightOffset>
+</EmitterCenter>
+</Emitter>
+</IESTM33>
+
+
+
+Annex B
+
+Photon Flux (Informative)
+
+Visible light is typically defined in terms of either lumens (luminous flux) or watts (radiant flux).
+Horticulturalists, however, measure electromagnetic radiat ion over the range of 280 nm to 800 nm
+in terms of photons per second.
+Each photon has a “quantum” of energy that is inversely proportional to its wavelength. Thus, the
+number of photons per second can be expressed in watts if you know the wavelength of each
+photon (or, more practically, all the photons that have the same wavelength).
+Plant photosynthesis, however, depends on a chlorophyll molecule absorbing a single photon, regardless
+of its wavelength between, approximately 400 nm and 700 nm. Thus, horticulturalists are not
+concerned with the photon’s energy. They instead measure “photon flux” in terms of micromoles (6.022
+x 1017) photons per second. If the wavelength range is 400 nm to 700 nm, this is Photosynthetically
+Active Radiation (PAR).
+Plants also respond to ultraviolet radiation (280 nm to 400 nm) and “far-red” radiation (700 nm
+to 800 nm). Depending on the application, horticultural measurements may be reported in terms
+of radiant flux or photon flux.
+A comprehensive list of horticultural lighting metrics is provided in ANSI/ASABE S640 JUL2017, Quantities
+and Units of Electromagnetic Radiation for Plants (Photosynthetic Organisms).
+
+
+
+

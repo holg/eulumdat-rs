@@ -30,12 +30,22 @@ impl From<&Eulumdat> for LuminaireOpticalData {
             } else {
                 Some(ldt.luminaire_name.clone())
             },
+            laboratory: if ldt.identification.is_empty() {
+                None
+            } else {
+                Some(ldt.identification.clone())
+            },
             report_number: if ldt.measurement_report_number.is_empty() {
                 None
             } else {
                 Some(ldt.measurement_report_number.clone())
             },
             test_date: if ldt.date_user.is_empty() {
+                None
+            } else {
+                Some(ldt.date_user.clone())
+            },
+            report_date: if ldt.date_user.is_empty() {
                 None
             } else {
                 Some(ldt.date_user.clone())
@@ -105,12 +115,21 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
     });
 
     // Build intensity distribution
+    // Note: LDT files with symmetry store all C-angles but only a subset of intensity rows
+    // (e.g., PlaneC90C270 stores 27 rows for 52 angles). We must match angles to intensity rows.
     let intensity_distribution = if !ldt.intensities.is_empty() {
+        let num_intensity_rows = ldt.intensities.len();
+        let horizontal_angles = if ldt.c_angles.len() == num_intensity_rows {
+            ldt.c_angles.clone()
+        } else {
+            // Only take the C-angles that correspond to stored intensity data
+            ldt.c_angles[..num_intensity_rows.min(ldt.c_angles.len())].to_vec()
+        };
         Some(IntensityDistribution {
             photometry_type: PhotometryType::TypeC,
             metric: IntensityMetric::Luminous,
             units: IntensityUnits::CandelaPerKilolumen,
-            horizontal_angles: ldt.c_angles.clone(),
+            horizontal_angles,
             vertical_angles: ldt.g_angles.clone(),
             intensities: ldt.intensities.clone(),
             ..Default::default()
@@ -255,8 +274,22 @@ impl From<&LuminaireOpticalData> for Eulumdat {
                     ldt.g_plane_distance = dist.vertical_angles[1] - dist.vertical_angles[0];
                 }
 
-                // Determine symmetry from data
+                // Determine symmetry from data and expand c_angles to full range
                 ldt.symmetry = determine_symmetry(&dist.horizontal_angles);
+                let step = ldt.c_plane_distance;
+                if step > 0.0 {
+                    let full_count = match ldt.symmetry {
+                        EulumdatSymmetry::BothPlanes => (360.0 / step) as usize,
+                        EulumdatSymmetry::PlaneC0C180 | EulumdatSymmetry::PlaneC90C270 => {
+                            (360.0 / step) as usize
+                        }
+                        _ => dist.horizontal_angles.len(),
+                    };
+                    if full_count > dist.horizontal_angles.len() {
+                        ldt.c_angles = (0..full_count).map(|i| i as f64 * step).collect();
+                        ldt.num_c_planes = full_count;
+                    }
+                }
             }
         }
 

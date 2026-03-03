@@ -7,6 +7,7 @@
         <Laboratory>Spectral Test Laboratory</Laboratory>
         <ReportNumber>SPEC-2024-IR-001</ReportNumber>
         <TestDate>2024-01-20</TestDate>
+        <ReportDate>2024-01-20</ReportDate>
         <LuminaireType>Flood</LuminaireType>
         <Comments>Demonstrates extended spectral range including near-IR (780-1000nm). Halogen lamps emit significant infrared radiation as thermal output.</Comments>
     </Header>

@@ -7,7 +7,9 @@
 //! - Optional localStorage sync for WASM
 
 use super::camera::CameraPlugin;
-use super::controls::{calculate_light_position, sync_viewer_to_lights, viewer_controls_system};
+use super::controls::{
+    calculate_all_luminaire_transforms, sync_viewer_to_lights, viewer_controls_system,
+};
 use super::scenes::ScenePlugin;
 use super::wasm_sync::{load_default_ldt, LdtTimestamp, ViewerSettingsTimestamp};
 use super::ViewerSettings;
@@ -99,56 +101,95 @@ impl Plugin for EulumdatViewerPlugin {
             app.add_systems(Update, viewer_controls_system);
         }
 
-        // Add sync system to propagate settings to lights
-        app.add_systems(Update, sync_viewer_to_lights);
-
         // Add localStorage polling if feature is enabled
+        // sync_ldt_to_light runs first and its commands are applied before
+        // sync_viewer_to_lights, preventing stale entity references.
         #[cfg(feature = "wasm-sync")]
         if self.enable_local_storage_sync {
-            app.add_systems(Update, super::wasm_sync::poll_ldt_changes);
-            app.add_systems(Update, super::wasm_sync::poll_viewer_settings_changes);
-            app.add_systems(Update, sync_ldt_to_light);
+            app.add_systems(
+                Update,
+                (
+                    super::wasm_sync::poll_ldt_changes,
+                    super::wasm_sync::poll_viewer_settings_changes,
+                    sync_ldt_to_light,
+                    ApplyDeferred,
+                    sync_viewer_to_lights,
+                )
+                    .chain(),
+            );
+        }
+
+        // Add sync system for non-wasm builds (no ordering conflict)
+        #[cfg(not(feature = "wasm-sync"))]
+        app.add_systems(Update, sync_viewer_to_lights);
+
+        // Add egui settings panel for native builds only (not WASM - causes font init panic)
+        #[cfg(all(feature = "egui-ui", not(target_arch = "wasm32")))]
+        {
+            app.add_plugins(super::egui_panel::EguiSettingsPlugin);
         }
     }
 }
 
-/// Startup system to spawn the initial photometric light.
+/// Startup system to spawn the initial photometric lights.
 fn setup_viewer_light(mut commands: Commands, settings: Res<ViewerSettings>) {
     // Try to get LDT data from settings or load default
     let ldt = settings.ldt_data.clone().or_else(load_default_ldt);
 
     if let Some(ldt_data) = ldt {
-        // Calculate light position based on scene type
-        let position = calculate_light_position(&settings, &ldt_data);
+        // Calculate all luminaire positions and rotations
+        let transforms = calculate_all_luminaire_transforms(&settings, &ldt_data);
 
-        commands.spawn(
-            EulumdatLightBundle::new(ldt_data)
-                .with_transform(Transform::from_translation(position))
-                .with_solid(settings.show_photometric_solid)
-                .with_model(settings.show_luminaire)
-                .with_shadows(settings.show_shadows),
-        );
+        for transform in transforms {
+            commands.spawn(
+                EulumdatLightBundle::new(ldt_data.clone())
+                    .with_transform(
+                        Transform::from_translation(transform.position)
+                            .with_rotation(transform.rotation),
+                    )
+                    .with_solid(settings.show_photometric_solid)
+                    .with_model(settings.show_luminaire)
+                    .with_shadows(settings.show_shadows),
+            );
+        }
     }
 }
 
-/// System to sync LDT data changes to the light entity.
+/// System to sync LDT data changes to the light entities.
+/// Despawns existing lights and respawns with new configuration.
 #[cfg(feature = "wasm-sync")]
 fn sync_ldt_to_light(
+    mut commands: Commands,
     settings: Res<ViewerSettings>,
-    mut lights: Query<(
-        &mut crate::photometric::PhotometricLight<Eulumdat>,
-        &mut Transform,
-    )>,
+    lights: Query<Entity, With<crate::photometric::PhotometricLight<Eulumdat>>>,
 ) {
     if !settings.is_changed() {
         return;
     }
 
     if let Some(ref new_ldt) = settings.ldt_data {
-        for (mut light, mut transform) in lights.iter_mut() {
-            light.data = new_ldt.clone();
-            // Update position based on new LDT dimensions
-            transform.translation = calculate_light_position(&settings, new_ldt);
+        // Despawn all existing lights
+        for entity in lights.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        // Spawn new lights with updated configuration
+        let transforms = calculate_all_luminaire_transforms(&settings, new_ldt);
+
+        #[cfg(target_arch = "wasm32")]
+        web_sys::console::log_1(&format!("[Bevy] Spawning {} luminaires", transforms.len()).into());
+
+        for transform in transforms {
+            commands.spawn(
+                EulumdatLightBundle::new(new_ldt.clone())
+                    .with_transform(
+                        Transform::from_translation(transform.position)
+                            .with_rotation(transform.rotation),
+                    )
+                    .with_solid(settings.show_photometric_solid)
+                    .with_model(settings.show_luminaire)
+                    .with_shadows(settings.show_shadows),
+            );
         }
     }
 }

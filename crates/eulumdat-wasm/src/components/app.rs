@@ -1,24 +1,54 @@
 use atla::{Emitter, IntensityDistribution, LuminaireOpticalData};
 use eulumdat::{Eulumdat, IesParser};
+use eulumdat_typst::{ReportGenerator, ReportOptions};
 use leptos::ev;
 use leptos::prelude::*;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
+
+// JS binding for typst PDF compilation
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_name = compileTypstToPdf, catch)]
+    async fn compile_typst_to_pdf_js(source: &str) -> Result<JsValue, JsValue>;
+}
+
+/// Compile Typst source to PDF using the WASM typst compiler.
+/// SVGs are already embedded inline in the source.
+async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
+    match compile_typst_to_pdf_js(typst_source).await {
+        Ok(js_val) => {
+            let array = js_sys::Uint8Array::new(&js_val);
+            Ok(array.to_vec())
+        }
+        Err(e) => {
+            let msg = e.as_string().unwrap_or_else(|| "Unknown error".to_string());
+            Err(msg)
+        }
+    }
+}
 
 use crate::i18n::{use_locale, LanguageSelectorCompact};
 use eulumdat_i18n::Locale;
 
 use super::beam_angle_diagram::BeamAngleDiagram;
 use super::bevy_scene::BevySceneViewer;
+use super::bim_panel::{has_bim_data, BimPanel, BimPanelEmpty};
 use super::bug_rating::BugRating;
 use super::butterfly_3d::Butterfly3D;
 use super::cartesian_diagram::CartesianDiagram;
+use super::compare_panel::ComparePanel;
 use super::cone_diagram::ConeDiagramView;
 use super::data_table::DataTable;
 use super::diagram_zoom::DiagramZoom;
+use super::floodlight_cartesian::FloodlightCartesian;
 use super::greenhouse_diagram::GreenhouseDiagramView;
 use super::intensity_heatmap::IntensityHeatmap;
+use super::isocandela_diagram::IsocandelaDiagramView;
+use super::isolux_footprint::IsoluxFootprint;
 use super::lcs_classification::LcsClassification;
+use super::maps_designer::MapsDesigner;
 use super::polar_diagram::PolarDiagram;
 use super::spectral_diagram::SpectralDiagramView;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
@@ -26,8 +56,14 @@ use super::templates::ALL_TEMPLATES;
 use super::theme::{ThemeMode, ThemeProvider};
 use super::validation_panel::ValidationPanel;
 
-const ATLA_STORAGE_KEY: &str = "eulumdat_current_atla";
-const ATLA_TIMESTAMP_KEY: &str = "eulumdat_atla_timestamp";
+// Storage keys - must match eulumdat-bevy/src/viewer/wasm_sync.rs
+const LDT_STORAGE_KEY: &str = "eulumdat_current_ldt";
+const LDT_TIMESTAMP_KEY: &str = "eulumdat_ldt_timestamp";
+
+/// All features (PDF/Typst export, Maps Designer) are enabled by default.
+fn is_export_enabled() -> bool {
+    true
+}
 
 /// Log color data (CCT/CRI) for debugging spectral synthesis
 fn log_color_data(filename: &str, doc: &LuminaireOpticalData) {
@@ -128,7 +164,10 @@ pub enum MainTab {
     Diagrams,
     Analysis,
     Validation,
+    Compare,
+    Bim,
     Scene3D,
+    MapsDesigner,
 }
 
 /// Sub-tabs within each main tab group
@@ -147,6 +186,9 @@ pub enum Tab {
     Diagram3D,
     Heatmap,
     Cone,
+    FloodlightVH,
+    FloodlightIsolux,
+    FloodlightIsocandela,
     // Analysis group
     Spectral,
     Greenhouse,
@@ -154,8 +196,14 @@ pub enum Tab {
     Lcs,
     // Validation group (single tab, no sub-tabs)
     ValidationTab,
+    // Compare group (single tab, no sub-tabs)
+    CompareTab,
+    // BIM group (single tab, no sub-tabs)
+    BimTab,
     // Scene 3D group (single tab, no sub-tabs)
     Scene3DTab,
+    // Maps Designer group (single tab, no sub-tabs)
+    MapsDesignerTab,
 }
 
 impl Tab {
@@ -164,10 +212,19 @@ impl Tab {
         match self {
             Tab::General | Tab::Dimensions | Tab::LampSets | Tab::DirectRatios => MainTab::Info,
             Tab::Intensity => MainTab::Data,
-            Tab::Diagram2D | Tab::Diagram3D | Tab::Heatmap | Tab::Cone => MainTab::Diagrams,
+            Tab::Diagram2D
+            | Tab::Diagram3D
+            | Tab::Heatmap
+            | Tab::Cone
+            | Tab::FloodlightVH
+            | Tab::FloodlightIsolux
+            | Tab::FloodlightIsocandela => MainTab::Diagrams,
             Tab::Spectral | Tab::Greenhouse | Tab::BugRating | Tab::Lcs => MainTab::Analysis,
             Tab::ValidationTab => MainTab::Validation,
+            Tab::CompareTab => MainTab::Compare,
+            Tab::BimTab => MainTab::Bim,
             Tab::Scene3DTab => MainTab::Scene3D,
+            Tab::MapsDesignerTab => MainTab::MapsDesigner,
         }
     }
 
@@ -179,7 +236,10 @@ impl Tab {
             MainTab::Diagrams => Tab::Diagram2D,
             MainTab::Analysis => Tab::Spectral,
             MainTab::Validation => Tab::ValidationTab,
+            MainTab::Compare => Tab::CompareTab,
+            MainTab::Bim => Tab::BimTab,
             MainTab::Scene3D => Tab::Scene3DTab,
+            MainTab::MapsDesigner => Tab::MapsDesignerTab,
         }
     }
 
@@ -193,10 +253,21 @@ impl Tab {
                 Tab::DirectRatios,
             ],
             MainTab::Data => &[Tab::Intensity],
-            MainTab::Diagrams => &[Tab::Diagram2D, Tab::Diagram3D, Tab::Heatmap, Tab::Cone],
+            MainTab::Diagrams => &[
+                Tab::Diagram2D,
+                Tab::Diagram3D,
+                Tab::Heatmap,
+                Tab::Cone,
+                Tab::FloodlightVH,
+                Tab::FloodlightIsolux,
+                Tab::FloodlightIsocandela,
+            ],
             MainTab::Analysis => &[Tab::Spectral, Tab::Greenhouse, Tab::BugRating, Tab::Lcs],
             MainTab::Validation => &[Tab::ValidationTab],
+            MainTab::Compare => &[Tab::CompareTab],
+            MainTab::Bim => &[Tab::BimTab],
             MainTab::Scene3D => &[Tab::Scene3DTab],
+            MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
         }
     }
 }
@@ -338,9 +409,20 @@ fn save_to_storage(doc: &LuminaireOpticalData) {
             // Save as LDT for Bevy 3D viewer compatibility
             let ldt = doc.to_eulumdat();
             let ldt_string = ldt.to_ldt();
-            let _ = storage.set_item(ATLA_STORAGE_KEY, &ldt_string);
+            let _ = storage.set_item(LDT_STORAGE_KEY, &ldt_string);
             let timestamp = js_sys::Date::now().to_string();
-            let _ = storage.set_item(ATLA_TIMESTAMP_KEY, &timestamp);
+            let _ = storage.set_item(LDT_TIMESTAMP_KEY, &timestamp);
+
+            // Save as JSON for Maps Designer (with intensities for calculations)
+            if let Ok(json) = serde_json::to_string(&serde_json::json!({
+                "intensities": ldt.intensities,
+                "c_angles": ldt.c_angles,
+                "g_angles": ldt.g_angles,
+                "lumens": ldt.total_luminous_flux(),
+                "luminaire_name": ldt.luminaire_name,
+            })) {
+                let _ = storage.set_item("eulumdat_current_json", &json);
+            }
         }
     }
 }
@@ -376,6 +458,10 @@ pub fn App() -> impl IntoView {
     let (active_tab, set_active_tab) = signal(Tab::default());
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
 
+    // Compare panel: File B state lives here so it persists across tab switches
+    let (compare_ldt_b, set_compare_ldt_b) = signal::<Option<Eulumdat>>(None);
+    let (compare_label_b, set_compare_label_b) = signal::<Option<String>>(None);
+
     // Derive the active main tab from the active sub-tab
     let active_main_tab = Memo::new(move |_| active_tab.get().main_tab());
 
@@ -387,6 +473,9 @@ pub fn App() -> impl IntoView {
     let (greenhouse_height, set_greenhouse_height) = signal(2.0_f64); // Default 2m for greenhouse PPFD
     let (theme_mode, set_theme_mode) = signal(detect_system_theme());
     let (show_about, set_show_about) = signal(false);
+
+    // Check if PDF/Typst export is enabled (via secret URL)
+    let export_enabled = is_export_enabled();
 
     // Save to localStorage whenever ATLA doc changes
     Effect::new(move |_| {
@@ -400,9 +489,37 @@ pub fn App() -> impl IntoView {
         let is_atla_xml = lower_name.ends_with(".xml");
         let is_atla_json = lower_name.ends_with(".json");
         let is_ldt = lower_name.ends_with(".ldt");
+        let is_spdx = lower_name.ends_with(".spdx");
 
         // Parse to ATLA format (source of truth)
-        if is_ies {
+        if is_spdx {
+            // SPDX (IES TM-27-14) → ATLA (spectral only, no photometric data)
+            match atla::spdx::parse(&content) {
+                Ok(spdx_data) => {
+                    // Log warnings about missing data
+                    let warnings = atla::spdx::get_warnings(&spdx_data);
+                    for warning in &warnings {
+                        web_sys::console::warn_1(&format!("SPDX: {}", warning).into());
+                    }
+
+                    let doc = atla::spdx::to_atla(&spdx_data);
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(name));
+                    set_selected_lamp_set.set(0);
+
+                    // Show first warning to user
+                    if let Some(first_warning) = warnings.first() {
+                        web_sys::console::info_1(
+                            &format!("Loaded SPDX file (spectral data only): {}", first_warning)
+                                .into(),
+                        );
+                    }
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to parse SPDX: {}", e).into());
+                }
+            }
+        } else if is_ies {
             // IES → Eulumdat → ATLA
             match IesParser::parse(&content) {
                 Ok(ldt) => {
@@ -520,6 +637,58 @@ pub fn App() -> impl IntoView {
         }
     };
 
+    let on_export_report_typ = move |_| {
+        // Generate Typst report from the current LDT
+        let ldt_val = ldt.get();
+        let generator = ReportGenerator::new(&ldt_val);
+        let content = generator.generate_typst(&ReportOptions::default());
+        let filename = current_file
+            .get()
+            .map(|f| replace_extension(&f, "typ"))
+            .unwrap_or_else(|| "photometric_report.typ".to_string());
+        super::file_handler::download_file(&filename, &content, "text/plain");
+    };
+
+    // Signal to track PDF export loading state
+    let (pdf_exporting, set_pdf_exporting) = signal(false);
+
+    let on_export_report_pdf = move |_| {
+        // Generate Typst report with inline SVGs and compile to PDF via WASM
+        let ldt_val = ldt.get();
+        let (typst_source, _) =
+            eulumdat_typst::generate_typst_with_files(&ldt_val, &ReportOptions::default().sections);
+
+        let filename = current_file
+            .get()
+            .map(|f| replace_extension(&f, "pdf"))
+            .unwrap_or_else(|| "photometric_report.pdf".to_string());
+
+        set_pdf_exporting.set(true);
+
+        // Compile using typst WASM
+        wasm_bindgen_futures::spawn_local(async move {
+            match compile_typst_to_pdf(&typst_source).await {
+                Ok(pdf_bytes) => {
+                    super::file_handler::download_bytes(&filename, &pdf_bytes, "application/pdf");
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("PDF export failed: {}", e).into());
+                    // Fallback: download .typ file
+                    web_sys::window()
+                        .unwrap()
+                        .alert_with_message(&format!(
+                            "PDF export failed: {}. Downloading .typ file instead.",
+                            e
+                        ))
+                        .ok();
+                    let typ_filename = filename.replace(".pdf", ".typ");
+                    super::file_handler::download_file(&typ_filename, &typst_source, "text/plain");
+                }
+            }
+            set_pdf_exporting.set(false);
+        });
+    };
+
     // Helper to generate SVG for the current diagram
     let generate_current_svg = move || -> Option<(String, String)> {
         let current_tab = active_tab.get();
@@ -625,6 +794,27 @@ pub fn App() -> impl IntoView {
                 let svg = diagram.to_lcs_svg(600.0, 400.0, &theme);
                 Some((svg, "lcs_classification.svg".to_string()))
             }
+            Tab::FloodlightVH => {
+                let y_scale = eulumdat::diagram::YScale::Linear;
+                let diagram = eulumdat::diagram::FloodlightCartesianDiagram::from_eulumdat(
+                    &ldt_val, 600.0, 400.0, y_scale,
+                );
+                let svg = diagram.to_svg(600.0, 400.0, &theme);
+                Some((svg, "floodlight_vh.svg".to_string()))
+            }
+            Tab::FloodlightIsolux => {
+                let params = eulumdat::diagram::IsoluxParams::default();
+                let diagram =
+                    eulumdat::diagram::IsoluxDiagram::from_eulumdat(&ldt_val, 600.0, 500.0, params);
+                let svg = diagram.to_svg(600.0, 500.0, &theme);
+                Some((svg, "isolux_footprint.svg".to_string()))
+            }
+            Tab::FloodlightIsocandela => {
+                let diagram =
+                    eulumdat::diagram::IsocandelaDiagram::from_eulumdat(&ldt_val, 600.0, 500.0);
+                let svg = diagram.to_svg(600.0, 500.0, &theme);
+                Some((svg, "isocandela_contour.svg".to_string()))
+            }
             // Non-diagram tabs - no SVG export available
             Tab::General
             | Tab::Dimensions
@@ -632,7 +822,10 @@ pub fn App() -> impl IntoView {
             | Tab::DirectRatios
             | Tab::Intensity
             | Tab::ValidationTab
-            | Tab::Scene3DTab => None,
+            | Tab::CompareTab
+            | Tab::BimTab
+            | Tab::Scene3DTab
+            | Tab::MapsDesignerTab => None,
         }
     };
 
@@ -703,9 +896,12 @@ pub fn App() -> impl IntoView {
 
     view! {
         <ThemeProvider mode=theme_mode>
-            <div class=move || format!("app {}", theme_mode.get().class_name())>
-                // Header
-                <header class="header">
+            <div class=move || format!("app {}", theme_mode.get().class_name()) role="application" aria-label="Eulumdat Editor">
+                // Skip to main content link for keyboard users
+                <a href="#main-content" class="skip-link">"Skip to main content"</a>
+
+                // Header with navigation landmark
+                <header class="header" role="banner">
                     <h1>{move || locale.get().ui.header.title.clone()}</h1>
                     <div class="header-actions">
                         // File menu dropdown
@@ -718,13 +914,14 @@ pub fn App() -> impl IntoView {
                                 <button class="menu-item" on:click=on_new_file>
                                     {move || locale.get().ui.header.new.clone()}
                                 </button>
-                                <label class="menu-item">
+                                <label class="menu-item" role="button" tabindex="0">
                                     {move || locale.get().ui.header.open.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON"
+                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX"
                                         style="display: none;"
                                         on:change=on_file_input
+                                        aria-label="Open LDT, IES, SPDX, XML, or JSON file"
                                     />
                                 </label>
                                 <div class="menu-divider"></div>
@@ -763,10 +960,31 @@ pub fn App() -> impl IntoView {
                                             Tab::Greenhouse => "Export SVG (Greenhouse)",
                                             Tab::BugRating => "Export SVG (BUG Rating)",
                                             Tab::Lcs => "Export SVG (LCS)",
+                                            Tab::FloodlightVH => "Export SVG (V-H Diagram)",
+                                            Tab::FloodlightIsolux => "Export SVG (Isolux)",
+                                            Tab::FloodlightIsocandela => "Export SVG (Isocandela)",
                                             _ => "Export SVG",
                                         }
                                     }}
                                 </button>
+                                // PDF/Typst export - only shown on secret URL
+                                {move || export_enabled.then(|| view! {
+                                    <button
+                                        class="menu-item"
+                                        on:click=on_export_report_pdf
+                                        disabled=move || pdf_exporting.get()
+                                        title="Export as PDF report (compiles in browser)"
+                                    >
+                                        {move || if pdf_exporting.get() { "Generating PDF..." } else { "Export Report (.pdf)" }}
+                                    </button>
+                                    <button
+                                        class="menu-item"
+                                        on:click=on_export_report_typ
+                                        title="Export as Typst source file (.typ) - compile with 'typst compile report.typ'"
+                                    >
+                                        "Export Report (.typ)"
+                                    </button>
+                                })}
                                 <div class="menu-divider"></div>
                                 <a
                                     class="menu-item"
@@ -849,10 +1067,10 @@ pub fn App() -> impl IntoView {
                 </div>
 
                 // Main content
-                <div class="main-content">
+                <main id="main-content" class="main-content" role="main" aria-label="Editor content">
                     <div class="panel">
-                        // Main Tabs
-                        <div class="tabs main-tabs">
+                        // Main Tabs - navigation landmark
+                        <nav class="tabs main-tabs" role="tablist" aria-label="Editor sections">
                             <button
                                 class=move || format!("tab{}", if active_main_tab.get() == MainTab::Info { " active" } else { "" })
                                 on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Info))
@@ -884,12 +1102,43 @@ pub fn App() -> impl IntoView {
                                 {move || locale.get().ui.tabs.validation.clone()}
                             </button>
                             <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::Compare { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Compare))
+                            >
+                                "Compare"
+                            </button>
+                            // BIM tab - only shown when file has BIM data
+                            {move || {
+                                if has_bim_data(&atla_doc.get()) {
+                                    Some(view! {
+                                        <button
+                                            class=move || format!("tab{}", if active_main_tab.get() == MainTab::Bim { " active" } else { "" })
+                                            on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Bim))
+                                            title="TM-32-24 BIM Parameters"
+                                        >
+                                            "BIM"
+                                        </button>
+                                    })
+                                } else {
+                                    None
+                                }
+                            }}
+                            <button
                                 class=move || format!("tab{}", if active_main_tab.get() == MainTab::Scene3D { " active" } else { "" })
                                 on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Scene3D))
                             >
                                 {move || locale.get().ui.tabs.scene_3d.clone()}
                             </button>
-                        </div>
+                            // Maps Designer - only shown on secret URL (requires Google Maps API key)
+                            {move || export_enabled.then(|| view! {
+                                <button
+                                    class=move || format!("tab{}", if active_main_tab.get() == MainTab::MapsDesigner { " active" } else { "" })
+                                    on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::MapsDesigner))
+                                >
+                                    "🗺️ Maps"
+                                </button>
+                            })}
+                        </nav>
 
                         // Sub-tabs (shown only when main tab has multiple sub-tabs)
                         {move || {
@@ -913,8 +1162,14 @@ pub fn App() -> impl IntoView {
                                                 Tab::Greenhouse => locale.get().ui.tabs.greenhouse.clone(),
                                                 Tab::BugRating => locale.get().ui.tabs.bug_rating.clone(),
                                                 Tab::Lcs => locale.get().ui.tabs.lcs.clone(),
+                                                Tab::FloodlightVH => locale.get().ui.tabs.floodlight_vh.clone(),
+                                                Tab::FloodlightIsolux => locale.get().ui.tabs.floodlight_isolux.clone(),
+                                                Tab::FloodlightIsocandela => locale.get().ui.tabs.floodlight_isocandela.clone(),
                                                 Tab::ValidationTab => locale.get().ui.tabs.validation.clone(),
+                                                Tab::CompareTab => "Compare".to_string(),
+                                                Tab::BimTab => "BIM".to_string(),
                                                 Tab::Scene3DTab => locale.get().ui.tabs.scene_3d.clone(),
+                                                Tab::MapsDesignerTab => "Maps Designer".to_string(),
                                             };
                                             view! {
                                                 <button
@@ -1138,10 +1393,68 @@ pub fn App() -> impl IntoView {
                                         </DiagramZoom>
                                     </div>
                                 }.into_any(),
+                                Tab::FloodlightVH => view! {
+                                    <div class="floodlight-vh-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_floodlight_vh.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.floodlight.vh_subtitle.clone()}</span>
+                                        </div>
+                                        <DiagramZoom>
+                                            <div class="diagram-fullwidth">
+                                                <FloodlightCartesian ldt=ldt />
+                                            </div>
+                                        </DiagramZoom>
+                                    </div>
+                                }.into_any(),
+                                Tab::FloodlightIsolux => view! {
+                                    <div class="isolux-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_isolux.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.floodlight.isolux_subtitle.clone()}</span>
+                                        </div>
+                                        <IsoluxFootprint ldt=ldt />
+                                    </div>
+                                }.into_any(),
+                                Tab::FloodlightIsocandela => view! {
+                                    <div class="isocandela-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_isocandela.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.floodlight.isocandela_subtitle.clone()}</span>
+                                        </div>
+                                        <DiagramZoom>
+                                            <div class="diagram-fullwidth">
+                                                <IsocandelaDiagramView ldt=ldt />
+                                            </div>
+                                        </DiagramZoom>
+                                    </div>
+                                }.into_any(),
                                 Tab::ValidationTab => view! {
                                     <div class="validation-tab">
                                         <h3>{move || locale.get().ui.validation.title.clone()}</h3>
                                         <ValidationPanel ldt=ldt />
+                                    </div>
+                                }.into_any(),
+                                Tab::CompareTab => view! {
+                                    <div class="compare-tab">
+                                        <ComparePanel
+                                            ldt=ldt
+                                            current_file=current_file
+                                            ldt_b=compare_ldt_b
+                                            set_ldt_b=set_compare_ldt_b
+                                            label_b=compare_label_b
+                                            set_label_b=set_compare_label_b
+                                        />
+                                    </div>
+                                }.into_any(),
+                                Tab::BimTab => view! {
+                                    <div class="bim-tab">
+                                        {move || {
+                                            if has_bim_data(&atla_doc.get()) {
+                                                view! { <BimPanel atla_doc=atla_doc /> }.into_any()
+                                            } else {
+                                                view! { <BimPanelEmpty /> }.into_any()
+                                            }
+                                        }}
                                     </div>
                                 }.into_any(),
                                 Tab::Scene3DTab => view! {
@@ -1159,10 +1472,20 @@ pub fn App() -> impl IntoView {
                                         </div>
                                     </div>
                                 }.into_any(),
+                                Tab::MapsDesignerTab => view! {
+                                    <div class="maps-designer-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">"Lighting Designer"</span>
+                                        </div>
+                                        <div class="maps-container" style="height: 600px; position: relative;">
+                                            <MapsDesigner />
+                                        </div>
+                                    </div>
+                                }.into_any(),
                             }}
                         </div>
                     </div>
-                </div>
+                </main>
             </div>
 
             // About Modal
@@ -1174,7 +1497,7 @@ pub fn App() -> impl IntoView {
                                 <h2>"Eulumdat"</h2>
                                 <p class="about-subtitle">"Rust/WASM Lighting Data Toolkit"</p>
                                 <div class="about-description">
-                                    <p>"Parses EULUMDAT (.ldt), IES, TM-33, ATLA-S001 files."</p>
+                                    <p>"Parses EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX files."</p>
                                     <p>"Generates SVG diagrams: polar, cartesian, spectral, heatmap."</p>
                                     <p class="about-highlight">"One Rust codebase → Web, CLI, iOS, Android, Python"</p>
                                 </div>
