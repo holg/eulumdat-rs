@@ -18,11 +18,11 @@ cli-compile = []
 
 [dependencies]
 anyhow = "1.0"
-atla = { path = "../atla" }
+atla.workspace = true
 base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "wasmbind"] }
 comemo = { version = "0.4", optional = true }
-eulumdat = { path = "../eulumdat" }
+eulumdat.workspace = true
 thiserror = "1.0"
 typst = { version = "0.12", optional = true }
 typst-pdf = { version = "0.12", optional = true }
