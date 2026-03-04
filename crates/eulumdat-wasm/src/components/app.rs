@@ -1,5 +1,5 @@
 use atla::{Emitter, IntensityDistribution, LuminaireOpticalData};
-use eulumdat::{Eulumdat, IesParser};
+use eulumdat::{Eulumdat, IesParser, UnitSystem};
 use eulumdat_typst::{ReportGenerator, ReportOptions};
 use leptos::ev;
 use leptos::prelude::*;
@@ -39,7 +39,7 @@ use super::bug_rating::BugRating;
 use super::butterfly_3d::Butterfly3D;
 use super::cartesian_diagram::CartesianDiagram;
 use super::compare_panel::ComparePanel;
-use super::cone_diagram::ConeDiagramView;
+use super::cone_diagram::{ConeDiagramView, ConeIlluminanceTableView};
 use super::data_table::DataTable;
 use super::diagram_zoom::DiagramZoom;
 use super::floodlight_cartesian::FloodlightCartesian;
@@ -319,6 +319,42 @@ fn detect_system_theme() -> ThemeMode {
     super::theme::detect_system_theme()
 }
 
+/// Signal type for the unit system context.
+pub type UnitSystemSignal = (ReadSignal<UnitSystem>, WriteSignal<UnitSystem>);
+
+/// Get the unit system signal from context.
+pub fn use_unit_system() -> ReadSignal<UnitSystem> {
+    let (unit_system, _) = use_context::<UnitSystemSignal>().expect("UnitSystem context not found");
+    unit_system
+}
+
+/// Load unit system from localStorage, defaulting to Metric.
+fn load_unit_system() -> UnitSystem {
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            if let Ok(Some(val)) = storage.get_item("eulumdat_unit_system") {
+                if val == "imperial" {
+                    return UnitSystem::Imperial;
+                }
+            }
+        }
+    }
+    UnitSystem::Metric
+}
+
+/// Save unit system to localStorage.
+fn save_unit_system(units: UnitSystem) {
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            let val = match units {
+                UnitSystem::Metric => "metric",
+                UnitSystem::Imperial => "imperial",
+            };
+            let _ = storage.set_item("eulumdat_unit_system", val);
+        }
+    }
+}
+
 use super::templates::Template;
 
 /// Load a template file
@@ -470,8 +506,15 @@ pub fn App() -> impl IntoView {
     let (drag_active, set_drag_active) = signal(false);
     let (diagram_type, set_diagram_type) = signal(DiagramType::default());
     let (mounting_height, set_mounting_height) = signal(3.0_f64); // Default 3m mounting height for cone diagram
+    let (selected_c_plane, set_selected_c_plane) = signal(None::<f64>); // None = overall, Some(angle) = specific C-plane
     let (greenhouse_height, set_greenhouse_height) = signal(2.0_f64); // Default 2m for greenhouse PPFD
     let (theme_mode, set_theme_mode) = signal(detect_system_theme());
+    let (unit_system, set_unit_system) = signal(load_unit_system());
+    // Save unit system to localStorage on change
+    Effect::new(move |_| {
+        save_unit_system(unit_system.get());
+    });
+    provide_context((unit_system, set_unit_system));
     let (show_about, set_show_about) = signal(false);
 
     // Check if PDF/Typst export is enabled (via secret URL)
@@ -742,8 +785,26 @@ pub fn App() -> impl IntoView {
             }
             Tab::Cone => {
                 let height = mounting_height.get();
-                let cone = eulumdat::diagram::ConeDiagram::from_eulumdat(&ldt_val, height);
-                let svg = cone.to_svg(600.0, 450.0, &theme);
+                let cone = match selected_c_plane.get() {
+                    Some(c) => {
+                        eulumdat::diagram::ConeDiagram::from_eulumdat_for_plane(&ldt_val, height, c)
+                    }
+                    None => eulumdat::diagram::ConeDiagram::from_eulumdat(&ldt_val, height),
+                };
+                let loc = locale.get();
+                let labels = eulumdat::diagram::ConeDiagramLabels {
+                    beam_angle: loc.diagram.cone.beam_angle.clone(),
+                    field_angle: loc.diagram.cone.field_angle.clone(),
+                    mounting_height: loc.diagram.cone.mounting_height.clone(),
+                    beam_diameter: loc.diagram.cone.beam_diameter.clone(),
+                    field_diameter: loc.diagram.cone.field_diameter.clone(),
+                    intensity_50: loc.diagram.cone.intensity_50.clone(),
+                    intensity_10: loc.diagram.cone.intensity_10.clone(),
+                    floor: loc.diagram.cone.floor.clone(),
+                    meter: loc.diagram.cone.meter.clone(),
+                    c_plane_label: loc.diagram.cone.c_plane.clone(),
+                };
+                let svg = cone.to_svg_with_units(600.0, 450.0, &theme, &labels, unit_system.get());
                 Some((svg, "cone_diagram.svg".to_string()))
             }
             Tab::Spectral => {
@@ -1045,6 +1106,26 @@ pub fn App() -> impl IntoView {
                                 ThemeMode::Dark => "☀️",
                             }}
                         </button>
+                        <button
+                            class="btn btn-secondary"
+                            on:click=move |_| {
+                                set_unit_system.update(|u| {
+                                    *u = match u {
+                                        UnitSystem::Metric => UnitSystem::Imperial,
+                                        UnitSystem::Imperial => UnitSystem::Metric,
+                                    };
+                                });
+                            }
+                            title=move || match unit_system.get() {
+                                UnitSystem::Metric => "Switch to Imperial (ft, fc, in)",
+                                UnitSystem::Imperial => "Switch to Metric (m, lx, mm)",
+                            }
+                        >
+                            {move || match unit_system.get() {
+                                UnitSystem::Metric => "SI",
+                                UnitSystem::Imperial => "IMP",
+                            }}
+                        </button>
                         <LanguageSelectorCompact />
                     </div>
                 </header>
@@ -1286,37 +1367,99 @@ pub fn App() -> impl IntoView {
                                         </DiagramZoom>
                                     </div>
                                 }.into_any(),
-                                Tab::Cone => view! {
-                                    <div class="cone-tab">
-                                        <div class="diagram-header">
-                                            <span class="diagram-title">{move || locale.get().diagram.title.cone.clone()}</span>
-                                            <div class="mounting-height-control">
-                                                <label>{move || locale.get().diagram.cone.mounting_height.clone()}</label>
-                                                <input
-                                                    type="range"
-                                                    min="1"
-                                                    max="15"
-                                                    step="0.5"
-                                                    prop:value=move || mounting_height.get()
-                                                    on:input=move |ev| {
-                                                        if let Ok(value) = event_target_value(&ev).parse::<f64>() {
-                                                            set_mounting_height.set(value);
+                                Tab::Cone => {
+                                    // Get expanded C-plane angles for the slider
+                                    let c_angles = Memo::new(move |_| {
+                                        let l = ldt.get();
+                                        eulumdat::SymmetryHandler::expand_c_angles(&l)
+                                    });
+                                    let has_variation = Memo::new(move |_| {
+                                        eulumdat::diagram::ConeDiagram::has_c_plane_variation(&ldt.get())
+                                    });
+
+                                    view! {
+                                        <div class="cone-tab">
+                                            <div class="diagram-header">
+                                                <span class="diagram-title">{move || locale.get().diagram.title.cone.clone()}</span>
+                                                <div class="mounting-height-control">
+                                                    <label>{move || locale.get().diagram.cone.mounting_height.clone()}</label>
+                                                    <input
+                                                        type="range"
+                                                        min="1"
+                                                        max="15"
+                                                        step="0.5"
+                                                        prop:value=move || mounting_height.get()
+                                                        on:input=move |ev| {
+                                                            if let Ok(value) = event_target_value(&ev).parse::<f64>() {
+                                                                set_mounting_height.set(value);
+                                                            }
                                                         }
-                                                    }
-                                                />
-                                                <span class="value-display">
-                                                    {move || format!("{:.1}", mounting_height.get())}
-                                                    {move || locale.get().diagram.cone.meter.clone()}
-                                                </span>
+                                                    />
+                                                    <span class="value-display">
+                                                        {move || unit_system.get().format_distance(mounting_height.get())}
+                                                    </span>
+                                                </div>
                                             </div>
+                                            // C-plane selector
+                                            {move || {
+                                                if has_variation.get() {
+                                                    let angles = c_angles.get();
+                                                    let max_idx = if angles.is_empty() { 0 } else { angles.len() - 1 };
+                                                    view! {
+                                                        <div class="c-plane-control">
+                                                            <label>{move || locale.get().diagram.cone.c_plane.clone()}</label>
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max=max_idx.to_string()
+                                                                step="1"
+                                                                prop:value=move || {
+                                                                    match selected_c_plane.get() {
+                                                                        Some(cp) => {
+                                                                            let a = c_angles.get();
+                                                                            a.iter().position(|&x| (x - cp).abs() < 0.01)
+                                                                                .unwrap_or(0)
+                                                                                .to_string()
+                                                                        }
+                                                                        None => "0".to_string(),
+                                                                    }
+                                                                }
+                                                                on:input=move |ev| {
+                                                                    if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
+                                                                        let a = c_angles.get();
+                                                                        if let Some(&angle) = a.get(idx) {
+                                                                            set_selected_c_plane.set(Some(angle));
+                                                                        }
+                                                                    }
+                                                                }
+                                                            />
+                                                            <span class="value-display">
+                                                                {move || {
+                                                                    match selected_c_plane.get() {
+                                                                        Some(cp) => format!("C {cp:.0}°"),
+                                                                        None => locale.get().diagram.cone.all_planes.clone(),
+                                                                    }
+                                                                }}
+                                                            </span>
+                                                        </div>
+                                                    }.into_any()
+                                                } else {
+                                                    view! {
+                                                        <div class="c-plane-control symmetric-note">
+                                                            <span class="text-muted">{move || locale.get().diagram.cone.symmetric_note.clone()}</span>
+                                                        </div>
+                                                    }.into_any()
+                                                }
+                                            }}
+                                            <DiagramZoom>
+                                                <div class="diagram-fullwidth">
+                                                    <ConeDiagramView ldt=ldt mounting_height=mounting_height c_plane=selected_c_plane />
+                                                </div>
+                                            </DiagramZoom>
+                                            <ConeIlluminanceTableView ldt=ldt mounting_height=mounting_height c_plane=selected_c_plane />
                                         </div>
-                                        <DiagramZoom>
-                                            <div class="diagram-fullwidth">
-                                                <ConeDiagramView ldt=ldt mounting_height=mounting_height />
-                                            </div>
-                                        </DiagramZoom>
-                                    </div>
-                                }.into_any(),
+                                    }.into_any()
+                                },
                                 Tab::Spectral => {
                                     let is_dark = Memo::new(move |_| theme_mode.get() == ThemeMode::Dark);
                                     view! {
@@ -1354,8 +1497,7 @@ pub fn App() -> impl IntoView {
                                                         }
                                                     />
                                                     <span class="value-display">
-                                                        {move || format!("{:.1}", greenhouse_height.get())}
-                                                        {move || locale.get().diagram.cone.meter.clone()}
+                                                        {move || unit_system.get().format_distance(greenhouse_height.get())}
                                                     </span>
                                                 </div>
                                             </div>

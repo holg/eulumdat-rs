@@ -21,6 +21,10 @@ pub enum Commands {
         /// Show detailed intensity data
         #[arg(short, long)]
         verbose: bool,
+
+        /// Unit system for dimensions (mm/in)
+        #[arg(short = 'U', long, value_enum, default_value = "metric")]
+        units: UnitArg,
     },
 
     /// Validate a photometric file
@@ -82,6 +86,10 @@ pub enum Commands {
         /// Use logarithmic Y-axis (for floodlight-vh diagram)
         #[arg(long)]
         log_scale: bool,
+
+        /// Unit system for isolux/cone labels (lx/fc, m/ft)
+        #[arg(short = 'U', long, value_enum, default_value = "metric")]
+        units: UnitArg,
     },
 
     /// Calculate BUG rating (outdoor luminaires)
@@ -228,6 +236,10 @@ pub enum Commands {
         /// Show only significant differences (>= 5% delta)
         #[arg(long)]
         significant_only: bool,
+
+        /// Unit system for dimension metrics (mm/in)
+        #[arg(short = 'U', long, value_enum, default_value = "metric")]
+        units: UnitArg,
     },
 
     /// Generate photometric report (Typst source or PDF)
@@ -381,4 +393,24 @@ pub enum CompareDiagramType {
     Polar,
     /// Cartesian overlay diagram
     Cartesian,
+}
+
+/// Unit system for output display
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum UnitArg {
+    /// SI / Metric (lux, meters, millimeters)
+    #[default]
+    Metric,
+    /// Imperial (foot-candles, feet, inches)
+    Imperial,
+}
+
+impl UnitArg {
+    /// Convert to the core library's `UnitSystem`.
+    pub fn to_unit_system(self) -> eulumdat::UnitSystem {
+        match self {
+            Self::Metric => eulumdat::UnitSystem::Metric,
+            Self::Imperial => eulumdat::UnitSystem::Imperial,
+        }
+    }
 }

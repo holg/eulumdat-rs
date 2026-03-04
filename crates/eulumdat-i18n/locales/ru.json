@@ -74,6 +74,18 @@
         "medium_flood": "Средний заливающий",
         "wide_flood": "Широкий заливающий",
         "very_wide_flood": "Очень широкий заливающий"
+      },
+      "c_plane": "C-плоскость",
+      "all_planes": "Все C-плоскости",
+      "symmetric_note": "Осевая симметрия",
+      "illuminance_table": {
+        "title": "Таблица освещённости",
+        "height": "Высота",
+        "beam_field_diameter": "Луч / Поле ⌀",
+        "e_nadir": "E надир",
+        "e_c0": "E луч C0",
+        "e_c90": "E луч C90",
+        "no_flux": "Нет данных о потоке"
       }
     },
     "greenhouse": {

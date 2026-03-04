@@ -15,6 +15,7 @@
 
 use super::color::{heatmap_color, Color};
 use super::contour::{marching_squares, ContourLine};
+use crate::units::UnitSystem;
 use crate::Eulumdat;
 
 /// Parameters for isolux calculation
@@ -105,6 +106,17 @@ pub struct IsoluxDiagram {
 impl IsoluxDiagram {
     /// Generate isolux diagram from Eulumdat data.
     pub fn from_eulumdat(ldt: &Eulumdat, width: f64, height: f64, params: IsoluxParams) -> Self {
+        Self::from_eulumdat_with_units(ldt, width, height, params, UnitSystem::default())
+    }
+
+    /// Generate isolux diagram with unit system for labels.
+    pub fn from_eulumdat_with_units(
+        ldt: &Eulumdat,
+        width: f64,
+        height: f64,
+        params: IsoluxParams,
+        units: UnitSystem,
+    ) -> Self {
         let margin_left = 60.0;
         let margin_right = 80.0; // For color legend
         let margin_top = 40.0;
@@ -169,8 +181,20 @@ impl IsoluxDiagram {
             }
         }
 
-        // Generate contour lines at standard lux levels
-        let contour_levels = [1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0];
+        // Generate contour lines at "nice" levels in the display unit.
+        // For Imperial, pick round foot-candle values and convert to lux for the grid.
+        let contour_levels: Vec<f64> = match units {
+            UnitSystem::Imperial => {
+                // Nice fc values → convert to lux (1 fc = 10.764 lux)
+                [0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+                    .iter()
+                    .map(|&fc| fc * 10.764)
+                    .collect()
+            }
+            UnitSystem::Metric => {
+                vec![1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0]
+            }
+        };
         let x_coords: Vec<f64> = (0..n)
             .map(|col| margin_left + (col as f64 + 0.5) * cell_w)
             .collect();
@@ -178,15 +202,17 @@ impl IsoluxDiagram {
             .map(|row| margin_top + (row as f64 + 0.5) * cell_h)
             .collect();
 
+        let illu_label = units.illuminance_label();
         let contours: Vec<IsoluxContour> = contour_levels
             .iter()
             .filter(|&&level| level <= max_lux && level > 0.0)
             .map(|&level| {
                 let cl: ContourLine = marching_squares(&lux_grid, &x_coords, &y_coords, level);
+                let display_val = units.convert_lux(level);
                 IsoluxContour {
                     lux_value: level,
                     paths: cl.paths,
-                    label: format!("{:.0} lx", level),
+                    label: format!("{display_val:.0} {illu_label}"),
                 }
             })
             .filter(|c| !c.paths.is_empty())

@@ -1,15 +1,17 @@
 use eulumdat::diagram::{
-    ButterflyDiagram, CartesianDiagram, ConeDiagram, FloodlightCartesianDiagram, HeatmapDiagram,
-    IsocandelaDiagram, IsoluxDiagram, IsoluxParams, PolarDiagram, SvgTheme, YScale,
+    ButterflyDiagram, CartesianDiagram, ConeDiagram, ConeDiagramLabels, FloodlightCartesianDiagram,
+    HeatmapDiagram, IsocandelaDiagram, IsoluxDiagram, IsoluxParams, PolarDiagram, SvgTheme, YScale,
 };
-use eulumdat::{BugDiagram, Eulumdat, IesParser, PhotometricComparison, Significance};
+use eulumdat::{BugDiagram, Eulumdat, IesParser, PhotometricComparison, Significance, UnitSystem};
 use leptos::ev;
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 
+use super::app::use_unit_system;
 use super::templates::{TemplateFormat, ALL_TEMPLATES};
+use crate::i18n::use_locale;
 
 /// Compare diagram mode
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -111,6 +113,7 @@ async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
 
 /// Generate the SVG(s) for a given diagram mode.
 /// Returns 1 SVG for overlay modes, 2 SVGs for side-by-side modes.
+#[allow(clippy::too_many_arguments)]
 fn render_diagrams(
     a: &Eulumdat,
     b: &Eulumdat,
@@ -118,18 +121,24 @@ fn render_diagrams(
     theme: &SvgTheme,
     la: &str,
     lb: &str,
+    units: UnitSystem,
+    cone_height: f64,
+    cone_c_plane: Option<f64>,
+    isolux_params: IsoluxParams,
+    polar_c_plane_a: f64,
+    polar_c_plane_b: f64,
 ) -> Vec<String> {
     match mode {
         CompareDiagramMode::Polar => {
-            let pa = PolarDiagram::from_eulumdat(a);
-            let pb = PolarDiagram::from_eulumdat(b);
+            let pa = PolarDiagram::from_eulumdat_for_plane(a, polar_c_plane_a);
+            let pb = PolarDiagram::from_eulumdat_for_plane(b, polar_c_plane_b);
             vec![PolarDiagram::to_overlay_svg(
                 &pa, &pb, 500.0, 500.0, theme, la, lb,
             )]
         }
         CompareDiagramMode::Cartesian => {
-            let ca = CartesianDiagram::from_eulumdat(a, 600.0, 400.0, 4);
-            let cb = CartesianDiagram::from_eulumdat(b, 600.0, 400.0, 4);
+            let ca = CartesianDiagram::from_eulumdat_for_plane(a, polar_c_plane_a, 600.0, 400.0);
+            let cb = CartesianDiagram::from_eulumdat_for_plane(b, polar_c_plane_b, 600.0, 400.0);
             vec![CartesianDiagram::to_overlay_svg(
                 &ca, &cb, 600.0, 400.0, theme, la, lb,
             )]
@@ -151,11 +160,18 @@ fn render_diagrams(
             ]
         }
         CompareDiagramMode::Cone => {
-            let ca = ConeDiagram::from_eulumdat(a, 3.0);
-            let cb = ConeDiagram::from_eulumdat(b, 3.0);
+            let ca = match cone_c_plane {
+                Some(c) => ConeDiagram::from_eulumdat_for_plane(a, cone_height, c),
+                None => ConeDiagram::from_eulumdat(a, cone_height),
+            };
+            let cb = match cone_c_plane {
+                Some(c) => ConeDiagram::from_eulumdat_for_plane(b, cone_height, c),
+                None => ConeDiagram::from_eulumdat(b, cone_height),
+            };
+            let labels = ConeDiagramLabels::default();
             vec![
-                ca.to_svg(400.0, 350.0, theme),
-                cb.to_svg(400.0, 350.0, theme),
+                ca.to_svg_with_units(400.0, 350.0, theme, &labels, units),
+                cb.to_svg_with_units(400.0, 350.0, theme, &labels, units),
             ]
         }
         CompareDiagramMode::Isocandela => {
@@ -167,12 +183,11 @@ fn render_diagrams(
             ]
         }
         CompareDiagramMode::Isolux => {
-            let params = IsoluxParams::default();
-            let ia = IsoluxDiagram::from_eulumdat(a, 400.0, 350.0, params);
-            let ib = IsoluxDiagram::from_eulumdat(b, 400.0, 350.0, params);
+            let ia = IsoluxDiagram::from_eulumdat_with_units(a, 400.0, 350.0, isolux_params, units);
+            let ib = IsoluxDiagram::from_eulumdat_with_units(b, 400.0, 350.0, isolux_params, units);
             vec![
-                ia.to_svg(400.0, 350.0, theme),
-                ib.to_svg(400.0, 350.0, theme),
+                ia.to_svg_with_units(400.0, 350.0, theme, units),
+                ib.to_svg_with_units(400.0, 350.0, theme, units),
             ]
         }
         CompareDiagramMode::Floodlight => {
@@ -215,8 +230,44 @@ pub fn ComparePanel(
     label_b: ReadSignal<Option<String>>,
     set_label_b: WriteSignal<Option<String>>,
 ) -> impl IntoView {
+    let unit_system = use_unit_system();
+    let locale = use_locale();
     let (diagram_mode, set_diagram_mode) = signal(CompareDiagramMode::default());
     let (drag_active, set_drag_active) = signal(false);
+
+    // Cone diagram controls
+    let (cmp_cone_height, set_cmp_cone_height) = signal(3.0_f64);
+    let (cmp_c_plane, set_cmp_c_plane) = signal(None::<f64>);
+
+    // Isolux diagram controls
+    let (cmp_isolux_height, set_cmp_isolux_height) = signal(10.0_f64);
+    let (cmp_tilt_angle, set_cmp_tilt_angle) = signal(0.0_f64);
+    let (cmp_area_size, set_cmp_area_size) = signal(20.0_f64);
+
+    // Per-file C-plane selection for Polar/Cartesian overlay
+    let (polar_c_plane_a, set_polar_c_plane_a) = signal(0.0_f64);
+    let (polar_c_plane_b, set_polar_c_plane_b) = signal(0.0_f64);
+    let (link_sliders, set_link_sliders) = signal(true);
+
+    // Expanded C-plane angles (half-circle 0..180) — memoized per file so DOM isn't recreated on slider move
+    let half_angles_a = Memo::new(move |_| {
+        let angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+        angles
+            .into_iter()
+            .filter(|&a| a < 180.0)
+            .collect::<Vec<f64>>()
+    });
+    let half_angles_b = Memo::new(move |_| {
+        ldt_b
+            .get()
+            .map(|b| {
+                eulumdat::SymmetryHandler::expand_c_angles(&b)
+                    .into_iter()
+                    .filter(|&a| a < 180.0)
+                    .collect::<Vec<f64>>()
+            })
+            .unwrap_or_default()
+    });
 
     // File A label derived from current_file
     let label_a = Memo::new(move |_| current_file.get().unwrap_or_else(|| "File A".to_string()));
@@ -309,7 +360,8 @@ pub fn ComparePanel(
         ldt_b.get().map(|b| {
             let la = label_a.get();
             let lb = label_b.get().unwrap_or_else(|| "File B".to_string());
-            PhotometricComparison::from_eulumdat(&a, &b, &la, &lb)
+            let units = unit_system.get();
+            PhotometricComparison::from_eulumdat_with_units(&a, &b, &la, &lb, units)
         })
     });
 
@@ -320,7 +372,28 @@ pub fn ComparePanel(
             let la = label_a.get();
             let lb = label_b.get().unwrap_or_else(|| "File B".to_string());
             let theme = SvgTheme::css_variables();
-            render_diagrams(&a, &b, diagram_mode.get(), &theme, &la, &lb)
+            let units = unit_system.get();
+            let isolux_params = IsoluxParams {
+                mounting_height: cmp_isolux_height.get(),
+                tilt_angle: cmp_tilt_angle.get(),
+                area_half_width: cmp_area_size.get(),
+                area_half_depth: cmp_area_size.get(),
+                grid_resolution: 60,
+            };
+            render_diagrams(
+                &a,
+                &b,
+                diagram_mode.get(),
+                &theme,
+                &la,
+                &lb,
+                units,
+                cmp_cone_height.get(),
+                cmp_c_plane.get(),
+                isolux_params,
+                polar_c_plane_a.get(),
+                polar_c_plane_b.get(),
+            )
         })
     });
 
@@ -482,6 +555,207 @@ pub fn ComparePanel(
                                         >{label}</button>
                                     }
                                 }).collect::<Vec<_>>()}
+                            </div>
+
+                            // C-plane sliders (shown in Polar/Cartesian modes)
+                            <div
+                                class="compare-controls isolux-controls"
+                                style=move || {
+                                    let mode = diagram_mode.get();
+                                    if mode == CompareDiagramMode::Polar || mode == CompareDiagramMode::Cartesian {
+                                        "display:flex"
+                                    } else {
+                                        "display:none"
+                                    }
+                                }
+                            >
+                                <div class="control-group">
+                                    <span>"File A C-plane"</span>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        prop:max=move || {
+                                            let ha = half_angles_a.get();
+                                            if ha.is_empty() { "0".to_string() } else { (ha.len() - 1).to_string() }
+                                        }
+                                        step="1"
+                                        prop:value=move || {
+                                            let ha = half_angles_a.get();
+                                            let cp = polar_c_plane_a.get();
+                                            ha.iter().position(|&x| (x - cp).abs() < 0.01)
+                                                .unwrap_or(0).to_string()
+                                        }
+                                        on:input=move |ev| {
+                                            if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
+                                                let ha = half_angles_a.get();
+                                                if let Some(&angle) = ha.get(idx) {
+                                                    set_polar_c_plane_a.set(angle);
+                                                    if link_sliders.get() {
+                                                        let hb = half_angles_b.get();
+                                                        if let Some(&nearest) = hb.iter()
+                                                            .min_by(|&&x, &&y| (x - angle).abs().partial_cmp(&(y - angle).abs()).unwrap())
+                                                        {
+                                                            set_polar_c_plane_b.set(nearest);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    />
+                                    <span class="control-value">{move || format!("C {:.0}°", polar_c_plane_a.get())}</span>
+                                </div>
+                                <div class="control-group">
+                                    <span>"File B C-plane"</span>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        prop:max=move || {
+                                            let hb = half_angles_b.get();
+                                            if hb.is_empty() { "0".to_string() } else { (hb.len() - 1).to_string() }
+                                        }
+                                        step="1"
+                                        prop:value=move || {
+                                            let hb = half_angles_b.get();
+                                            let cp = polar_c_plane_b.get();
+                                            hb.iter().position(|&x| (x - cp).abs() < 0.01)
+                                                .unwrap_or(0).to_string()
+                                        }
+                                        on:input=move |ev| {
+                                            if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
+                                                let hb = half_angles_b.get();
+                                                if let Some(&angle) = hb.get(idx) {
+                                                    set_polar_c_plane_b.set(angle);
+                                                    if link_sliders.get() {
+                                                        let ha = half_angles_a.get();
+                                                        if let Some(&nearest) = ha.iter()
+                                                            .min_by(|&&x, &&y| (x - angle).abs().partial_cmp(&(y - angle).abs()).unwrap())
+                                                        {
+                                                            set_polar_c_plane_a.set(nearest);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    />
+                                    <span class="control-value">{move || format!("C {:.0}°", polar_c_plane_b.get())}</span>
+                                </div>
+                                <div class="control-group link-checkbox">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            prop:checked=move || link_sliders.get()
+                                            on:input=move |ev| {
+                                                let checked = ev.target().unwrap().unchecked_into::<HtmlInputElement>().checked();
+                                                set_link_sliders.set(checked);
+                                            }
+                                        />
+                                        " Link sliders"
+                                    </label>
+                                </div>
+                            </div>
+
+                            // Cone controls
+                            <div
+                                class="compare-controls isolux-controls"
+                                style=move || if diagram_mode.get() == CompareDiagramMode::Cone { "display:flex" } else { "display:none" }
+                            >
+                                <div class="control-group">
+                                    <span>{move || locale.get().diagram.cone.mounting_height.clone()}</span>
+                                    <input
+                                        type="range"
+                                        min="1" max="15" step="0.5"
+                                        prop:value=move || cmp_cone_height.get().to_string()
+                                        on:input=move |ev| {
+                                            if let Ok(v) = event_target_value(&ev).parse::<f64>() {
+                                                set_cmp_cone_height.set(v);
+                                            }
+                                        }
+                                    />
+                                    <span class="control-value">{move || unit_system.get().format_distance(cmp_cone_height.get())}</span>
+                                </div>
+                                <div class="control-group">
+                                    <span>{move || locale.get().diagram.cone.c_plane.clone()}</span>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        prop:max=move || {
+                                            let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+                                            if c_angles.is_empty() { "0".to_string() } else { (c_angles.len() - 1).to_string() }
+                                        }
+                                        step="1"
+                                        prop:value=move || {
+                                            let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+                                            match cmp_c_plane.get() {
+                                                Some(cp) => c_angles.iter().position(|&x| (x - cp).abs() < 0.01)
+                                                    .unwrap_or(0).to_string(),
+                                                None => "0".to_string(),
+                                            }
+                                        }
+                                        on:input=move |ev| {
+                                            if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
+                                                let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+                                                if let Some(&angle) = c_angles.get(idx) {
+                                                    set_cmp_c_plane.set(Some(angle));
+                                                }
+                                            }
+                                        }
+                                    />
+                                    <span class="control-value">
+                                        {move || match cmp_c_plane.get() {
+                                            Some(cp) => format!("C {cp:.0}°"),
+                                            None => locale.get().diagram.cone.all_planes.clone(),
+                                        }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            // Isolux controls
+                            <div
+                                class="compare-controls isolux-controls"
+                                style=move || if diagram_mode.get() == CompareDiagramMode::Isolux { "display:flex" } else { "display:none" }
+                            >
+                                <div class="control-group">
+                                    <span>{move || locale.get().ui.floodlight.mounting_height.clone()}</span>
+                                    <input
+                                        type="range"
+                                        min="3" max="30" step="0.5"
+                                        prop:value=move || cmp_isolux_height.get().to_string()
+                                        on:input=move |ev| {
+                                            if let Ok(v) = event_target_value(&ev).parse::<f64>() {
+                                                set_cmp_isolux_height.set(v);
+                                            }
+                                        }
+                                    />
+                                    <span class="control-value">{move || unit_system.get().format_distance(cmp_isolux_height.get())}</span>
+                                </div>
+                                <div class="control-group">
+                                    <span>{move || locale.get().ui.floodlight.tilt_angle.clone()}</span>
+                                    <input
+                                        type="range"
+                                        min="0" max="80" step="1"
+                                        prop:value=move || cmp_tilt_angle.get().to_string()
+                                        on:input=move |ev| {
+                                            if let Ok(v) = event_target_value(&ev).parse::<f64>() {
+                                                set_cmp_tilt_angle.set(v);
+                                            }
+                                        }
+                                    />
+                                    <span class="control-value">{move || format!("{:.0}°", cmp_tilt_angle.get())}</span>
+                                </div>
+                                <div class="control-group">
+                                    <span>{move || locale.get().ui.floodlight.area_size.clone()}</span>
+                                    <input
+                                        type="range"
+                                        min="10" max="100" step="5"
+                                        prop:value=move || cmp_area_size.get().to_string()
+                                        on:input=move |ev| {
+                                            if let Ok(v) = event_target_value(&ev).parse::<f64>() {
+                                                set_cmp_area_size.set(v);
+                                            }
+                                        }
+                                    />
+                                    <span class="control-value">{move || unit_system.get().format_distance(cmp_area_size.get())}</span>
+                                </div>
                             </div>
 
                             // Diagram area

@@ -177,6 +177,7 @@ mod ies;
 mod parser;
 mod symmetry;
 pub mod type_b_conversion;
+pub mod units;
 mod validation;
 mod writer;
 
@@ -199,4 +200,5 @@ pub use ies::{
 };
 pub use symmetry::SymmetryHandler;
 pub use type_b_conversion::TypeBConversion;
+pub use units::UnitSystem;
 pub use validation::{validate, validate_strict, ValidationError, ValidationWarning};

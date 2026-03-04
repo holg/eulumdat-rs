@@ -1,5 +1,6 @@
 //! Isolux ground footprint component with tilt/height/area sliders
 
+use super::app::use_unit_system;
 use crate::i18n::use_locale;
 use eulumdat::diagram::{IsoluxDiagram, IsoluxParams, SvgTheme};
 use eulumdat::Eulumdat;
@@ -9,6 +10,7 @@ use leptos::prelude::*;
 #[component]
 pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
+    let unit_system = use_unit_system();
 
     let (mounting_height, set_mounting_height) = signal(10.0_f64);
     let (tilt_angle, set_tilt_angle) = signal(0.0_f64);
@@ -38,6 +40,7 @@ pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     // Generate SVG reactively
     let svg_content = move || {
         let ldt_val = ldt.get();
+        let units = unit_system.get();
         let params = IsoluxParams {
             mounting_height: mounting_height.get(),
             tilt_angle: tilt_angle.get(),
@@ -46,8 +49,9 @@ pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             grid_resolution: 60,
         };
         let theme = SvgTheme::css_variables_with_locale(&locale.get());
-        let diagram = IsoluxDiagram::from_eulumdat(&ldt_val, 600.0, 500.0, params);
-        diagram.to_svg(600.0, 500.0, &theme)
+        let diagram =
+            IsoluxDiagram::from_eulumdat_with_units(&ldt_val, 600.0, 500.0, params, units);
+        diagram.to_svg_with_units(600.0, 500.0, &theme, units)
     };
 
     view! {
@@ -61,7 +65,7 @@ pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         prop:value=move || mounting_height.get().to_string()
                         on:input=on_height_change
                     />
-                    <span class="control-value">{move || format!("{:.1} m", mounting_height.get())}</span>
+                    <span class="control-value">{move || unit_system.get().format_distance(mounting_height.get())}</span>
                 </label>
 
                 <label class="control-group">
@@ -83,7 +87,7 @@ pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         prop:value=move || area_size.get().to_string()
                         on:input=on_area_change
                     />
-                    <span class="control-value">{move || format!("{:.0} m", area_size.get())}</span>
+                    <span class="control-value">{move || unit_system.get().format_distance(area_size.get())}</span>
                 </label>
             </div>
 

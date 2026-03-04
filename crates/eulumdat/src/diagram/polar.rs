@@ -127,6 +127,71 @@ impl PolarDiagram {
         }
     }
 
+    /// Generate polar diagram data for a specific C-plane pair.
+    ///
+    /// Builds a diagram showing C_x on the right half and C_{x+180} on the left half.
+    /// Uses `ldt.sample()` which handles symmetry expansion and interpolation.
+    pub fn from_eulumdat_for_plane(ldt: &Eulumdat, c_plane: f64) -> Self {
+        let opposite = (c_plane + 180.0) % 360.0;
+        let mut points = Vec::new();
+        let mut max_intensity: f64 = 0.0;
+
+        // Right half: C_x at gamma angles
+        for &g_angle in &ldt.g_angles {
+            let intensity = ldt.sample(c_plane, g_angle);
+            max_intensity = max_intensity.max(intensity);
+
+            let angle_rad = -g_angle.to_radians() + FRAC_PI_2;
+            let x = intensity * angle_rad.cos();
+            let y = intensity * angle_rad.sin();
+
+            points.push(PolarPoint {
+                x,
+                y,
+                gamma: g_angle,
+                intensity,
+            });
+        }
+
+        // Left half: C_{x+180} at gamma angles (reversed to close the path)
+        for j in (0..ldt.g_angles.len()).rev() {
+            let g_angle = ldt.g_angles[j];
+            let intensity = ldt.sample(opposite, g_angle);
+            max_intensity = max_intensity.max(intensity);
+
+            let angle_rad = -g_angle.to_radians() + FRAC_PI_2;
+            let x = intensity * angle_rad.cos();
+            let y = intensity * angle_rad.sin();
+
+            points.push(PolarPoint {
+                x: -x,
+                y,
+                gamma: g_angle,
+                intensity,
+            });
+        }
+
+        let label = format!("C{:.0}-C{:.0}", c_plane, opposite);
+        let curve = PolarCurve {
+            points,
+            c_angle: c_plane,
+            label,
+        };
+
+        let scale = DiagramScale::from_max_intensity(max_intensity, 5);
+
+        Self {
+            c0_c180_curve: curve,
+            c90_c270_curve: PolarCurve {
+                points: Vec::new(),
+                c_angle: 0.0,
+                label: String::new(),
+            },
+            scale,
+            symmetry: ldt.symmetry,
+        }
+    }
+
     /// Check if the C90-C270 curve should be displayed
     ///
     /// For rotationally symmetric luminaires (symmetry 1), the C90-C270 curve

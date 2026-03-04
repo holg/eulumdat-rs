@@ -19,6 +19,7 @@
 use crate::bug_rating::BugDiagram;
 use crate::calculations::PhotometricSummary;
 use crate::eulumdat::Eulumdat;
+use crate::units::UnitSystem;
 
 /// Significance level of a metric delta.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -106,6 +107,17 @@ pub struct PhotometricComparison {
 impl PhotometricComparison {
     /// Compare two Eulumdat files.
     pub fn from_eulumdat(a: &Eulumdat, b: &Eulumdat, label_a: &str, label_b: &str) -> Self {
+        Self::from_eulumdat_with_units(a, b, label_a, label_b, UnitSystem::default())
+    }
+
+    /// Compare two Eulumdat files with unit system for dimension metrics.
+    pub fn from_eulumdat_with_units(
+        a: &Eulumdat,
+        b: &Eulumdat,
+        label_a: &str,
+        label_b: &str,
+        units: UnitSystem,
+    ) -> Self {
         let summary_a = PhotometricSummary::from_eulumdat(a);
         let summary_b = PhotometricSummary::from_eulumdat(b);
         let mut metrics = build_metrics(&summary_a, &summary_b);
@@ -139,28 +151,29 @@ impl PhotometricComparison {
         ));
 
         // Physical dimensions (need raw Eulumdat)
+        let dim_unit = units.dimension_label();
         metrics.push(metric(
             "Luminaire Length",
             "length",
-            "mm",
-            a.length,
-            b.length,
+            dim_unit,
+            units.convert_mm(a.length),
+            units.convert_mm(b.length),
             0.3,
         ));
         metrics.push(metric(
             "Luminaire Width",
             "width",
-            "mm",
-            a.width,
-            b.width,
+            dim_unit,
+            units.convert_mm(a.width),
+            units.convert_mm(b.width),
             0.3,
         ));
         metrics.push(metric(
             "Luminaire Height",
             "height",
-            "mm",
-            a.height,
-            b.height,
+            dim_unit,
+            units.convert_mm(a.height),
+            units.convert_mm(b.height),
             0.3,
         ));
 

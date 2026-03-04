@@ -74,6 +74,18 @@
         "medium_flood": "Medium Flood",
         "wide_flood": "Wide Flood",
         "very_wide_flood": "Very Wide Flood"
+      },
+      "c_plane": "C-Plane",
+      "all_planes": "All C-Planes",
+      "symmetric_note": "Rotationally symmetric",
+      "illuminance_table": {
+        "title": "Illuminance Table",
+        "height": "Height",
+        "beam_field_diameter": "Beam / Field ⌀",
+        "e_nadir": "E nadir",
+        "e_c0": "E beam C0",
+        "e_c90": "E beam C90",
+        "no_flux": "No luminous flux data"
       }
     },
     "greenhouse": {

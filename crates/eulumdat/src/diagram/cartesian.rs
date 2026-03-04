@@ -163,6 +163,93 @@ impl CartesianDiagram {
         }
     }
 
+    /// Generate cartesian diagram data for a single C-plane.
+    ///
+    /// Uses `ldt.sample()` which handles symmetry expansion and interpolation.
+    pub fn from_eulumdat_for_plane(ldt: &Eulumdat, c_plane: f64, width: f64, height: f64) -> Self {
+        let margin_left = 60.0;
+        let margin_right = 25.0;
+        let margin_top = 35.0;
+        let margin_bottom = 50.0;
+
+        let plot_width = width - margin_left - margin_right;
+        let plot_height = height - margin_top - margin_bottom;
+
+        let max_gamma = ldt.g_angles.last().copied().unwrap_or(90.0);
+
+        // Sample intensities for this C-plane
+        let sampled: Vec<f64> = ldt
+            .g_angles
+            .iter()
+            .map(|&g| ldt.sample(c_plane, g))
+            .collect();
+        let max_intensity = sampled.iter().copied().fold(0.0_f64, f64::max);
+
+        let y_ticks = if max_intensity > 0.0 {
+            let step = DiagramScale::nice_step(max_intensity, 5);
+            let mut ticks = Vec::new();
+            let mut v = 0.0;
+            while v <= max_intensity * 1.05 {
+                ticks.push(v);
+                v += step;
+            }
+            ticks
+        } else {
+            vec![0.0, 25.0, 50.0, 75.0, 100.0]
+        };
+
+        let y_max = y_ticks.last().copied().unwrap_or(100.0);
+
+        let x_ticks = {
+            let step = if max_gamma <= 90.0 { 15.0 } else { 30.0 };
+            let mut ticks = Vec::new();
+            let mut v = 0.0;
+            while v <= max_gamma {
+                ticks.push(v);
+                v += step;
+            }
+            ticks
+        };
+
+        let scale = DiagramScale {
+            max_intensity,
+            scale_max: y_max,
+            grid_values: y_ticks.clone(),
+        };
+
+        let palette = ColorPalette::default();
+        let mut points = Vec::new();
+        for (&g_angle, &intensity) in ldt.g_angles.iter().zip(sampled.iter()) {
+            let x = margin_left + plot_width * (g_angle / max_gamma);
+            let y = margin_top + plot_height * (1.0 - intensity / y_max);
+            points.push(CartesianPoint {
+                x,
+                y,
+                gamma: g_angle,
+                intensity,
+            });
+        }
+
+        let curve = CartesianCurve {
+            points,
+            c_angle: c_plane,
+            color: palette.color_at(0),
+            label: format!("C{:.0}°", c_plane),
+        };
+
+        Self {
+            curves: vec![curve],
+            x_ticks,
+            y_ticks,
+            scale,
+            max_gamma,
+            plot_width,
+            plot_height,
+            margin_left,
+            margin_top,
+        }
+    }
+
     /// Get data points for all curves (useful for non-SVG rendering)
     pub fn all_data_points(&self) -> Vec<(&CartesianCurve, Vec<Point2D>)> {
         self.curves

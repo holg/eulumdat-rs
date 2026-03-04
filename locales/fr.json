@@ -74,6 +74,18 @@
         "medium_flood": "Flood moyen",
         "wide_flood": "Flood large",
         "very_wide_flood": "Flood très large"
+      },
+      "c_plane": "Plan C",
+      "all_planes": "Tous les plans C",
+      "symmetric_note": "Symétrie de révolution",
+      "illuminance_table": {
+        "title": "Tableau d'éclairement",
+        "height": "Hauteur",
+        "beam_field_diameter": "Faisceau / Champ ⌀",
+        "e_nadir": "E nadir",
+        "e_c0": "E faisceau C0",
+        "e_c90": "E faisceau C90",
+        "no_flux": "Aucune donnée de flux"
       }
     },
     "greenhouse": {

@@ -188,3 +188,6 @@ tests/files/*.pdf
 test_website.py
 scripts/benchmark_python.py
 scripts/benchmark_wasm.py
+
+# Local temp files
+tmp/

@@ -1,3 +1,4 @@
+use super::app::use_unit_system;
 use crate::i18n::use_locale;
 use eulumdat::{
     Eulumdat, GldfPhotometricData, LampSet, PhotometricSummary, Symmetry, TypeIndicator,
@@ -341,88 +342,118 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
 #[component]
 pub fn DimensionsTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
+    let unit_system = use_unit_system();
+
+    // Helper: format mm value for display in current unit system
+    let fmt_mm = move |mm: f64| -> String {
+        let v = unit_system.get().convert_mm(mm);
+        if unit_system.get() == eulumdat::UnitSystem::Imperial {
+            format!("{v:.1}")
+        } else {
+            format!("{v:.0}")
+        }
+    };
+
+    // Helper: parse input value back to mm
+    let parse_to_mm = move |input: &HtmlInputElement| -> Option<f64> {
+        input
+            .value()
+            .parse::<f64>()
+            .ok()
+            .map(|v| unit_system.get().to_mm(v))
+    };
 
     view! {
-        <h4 class="mb-1">{move || locale.get().luminaire.physical.dimensions_mm.clone()}</h4>
+        <h4 class="mb-1">
+            {move || format!("{} ({})", locale.get().luminaire.physical.dimensions.clone(), unit_system.get().dimension_label())}
+        </h4>
         <div class="form-row">
             <div class="form-group">
                 <label>{move || locale.get().luminaire.physical.length_diameter.clone()}</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().length.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().length)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.length = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.length = v); }
                     } />
             </div>
             <div class="form-group">
                 <label>{move || locale.get().luminaire.physical.width_b.clone()}</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().width.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().width)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.width = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.width = v); }
                     } />
             </div>
             <div class="form-group">
                 <label>{move || locale.get().luminaire.physical.height_h.clone()}</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().height.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().height)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.height = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.height = v); }
                     } />
             </div>
         </div>
 
-        <h4 class="mb-1 mt-1">{move || locale.get().luminaire.physical.luminous_area_mm.clone()}</h4>
+        <h4 class="mb-1 mt-1">
+            {move || format!("{} ({})", locale.get().luminaire.physical.luminous_area.clone(), unit_system.get().dimension_label())}
+        </h4>
         <div class="form-row">
             <div class="form-group">
                 <label>{move || locale.get().luminaire.physical.luminous_length.clone()}</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().luminous_area_length.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().luminous_area_length)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.luminous_area_length = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.luminous_area_length = v); }
                     } />
             </div>
             <div class="form-group">
                 <label>{move || locale.get().luminaire.physical.luminous_width.clone()}</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().luminous_area_width.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().luminous_area_width)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.luminous_area_width = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.luminous_area_width = v); }
                     } />
             </div>
         </div>
 
-        <h4 class="mb-1 mt-1">{move || locale.get().luminaire.physical.luminous_height_c_planes.clone()}</h4>
+        <h4 class="mb-1 mt-1">
+            {move || {
+                let base = locale.get().luminaire.physical.luminous_height_c_planes.clone();
+                // Replace hardcoded "(mm)" with current unit label
+                base.replace("(mm)", &format!("({})", unit_system.get().dimension_label()))
+            }}
+        </h4>
         <div class="form-row">
             <div class="form-group">
                 <label>"HC0"</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().height_c0.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().height_c0)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.height_c0 = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.height_c0 = v); }
                     } />
             </div>
             <div class="form-group">
                 <label>"HC90"</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().height_c90.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().height_c90)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.height_c90 = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.height_c90 = v); }
                     } />
             </div>
             <div class="form-group">
                 <label>"HC180"</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().height_c180.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().height_c180)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.height_c180 = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.height_c180 = v); }
                     } />
             </div>
             <div class="form-group">
                 <label>"HC270"</label>
-                <input type="number" step="0.1" prop:value=move || ldt.get().height_c270.to_string()
+                <input type="number" step="0.1" prop:value=move || fmt_mm(ldt.get().height_c270)
                     on:change=move |e: ev::Event| {
                         let input: HtmlInputElement = e.target().unwrap().unchecked_into();
-                        if let Ok(v) = input.value().parse::<f64>() { set_ldt.update(|l| l.height_c270 = v); }
+                        if let Some(v) = parse_to_mm(&input) { set_ldt.update(|l| l.height_c270 = v); }
                     } />
             </div>
         </div>

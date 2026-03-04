@@ -14,7 +14,11 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Info { file, verbose } => commands::info(&file, verbose),
+        Commands::Info {
+            file,
+            verbose,
+            units,
+        } => commands::info(&file, verbose, units.to_unit_system()),
         Commands::Validate { file, strict } => commands::validate(&file, strict),
         Commands::Convert {
             input,
@@ -31,6 +35,7 @@ fn main() -> Result<()> {
             mounting_height,
             tilt,
             log_scale,
+            units,
         } => commands::diagram(
             &input,
             output.as_ref(),
@@ -41,6 +46,7 @@ fn main() -> Result<()> {
             mounting_height,
             tilt,
             log_scale,
+            units.to_unit_system(),
         ),
         Commands::Bug { file, svg, dark } => commands::bug(&file, svg.as_ref(), dark),
         Commands::Batch {
@@ -89,6 +95,7 @@ fn main() -> Result<()> {
             output,
             dark,
             significant_only,
+            units,
         } => commands::compare(
             &file_a,
             &file_b,
@@ -97,6 +104,7 @@ fn main() -> Result<()> {
             output.as_ref(),
             dark,
             significant_only,
+            units.to_unit_system(),
         ),
         Commands::Report {
             input,

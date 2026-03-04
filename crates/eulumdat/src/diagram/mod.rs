@@ -43,7 +43,7 @@ mod watchface;
 pub use butterfly::{ButterflyDiagram, ButterflyWing, CPlaneData};
 pub use cartesian::{CartesianCurve, CartesianDiagram, CartesianPoint};
 pub use color::{heatmap_color, hsl_to_rgb, Color, ColorPalette};
-pub use cone::ConeDiagram;
+pub use cone::{ConeDiagram, ConeIlluminanceRow, ConeIlluminanceTable};
 pub use floodlight_cartesian::{
     FloodlightCartesianDiagram, FloodlightCurve, FloodlightPoint, YScale,
 };

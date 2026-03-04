@@ -74,6 +74,18 @@
         "medium_flood": "Flood medio",
         "wide_flood": "Flood amplio",
         "very_wide_flood": "Flood muy amplio"
+      },
+      "c_plane": "Plano C",
+      "all_planes": "Todos los planos C",
+      "symmetric_note": "Simetría rotacional",
+      "illuminance_table": {
+        "title": "Tabla de iluminancia",
+        "height": "Altura",
+        "beam_field_diameter": "Haz / Campo ⌀",
+        "e_nadir": "E nadir",
+        "e_c0": "E haz C0",
+        "e_c90": "E haz C90",
+        "no_flux": "Sin datos de flujo"
       }
     },
     "greenhouse": {

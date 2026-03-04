@@ -9,6 +9,7 @@
 //! - Calculate illuminance heatmap using LDT photometric data
 //! - Export calculation grid to CSV
 
+use super::app::use_unit_system;
 use crate::i18n::use_locale;
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -81,6 +82,7 @@ pub fn MapsDesigner(
     _ldt_json: Option<String>,
 ) -> impl IntoView {
     let locale = use_locale();
+    let unit_system = use_unit_system();
     let (load_state, set_load_state) = signal(GMapsLoadState::NotLoaded);
     let (error_msg, set_error_msg) = signal::<Option<String>>(None);
     let (results, set_results) = signal::<Option<CalculationResults>>(None);
@@ -302,7 +304,7 @@ pub fn MapsDesigner(
                             // Grid spacing
                             <div style="display: flex; flex-direction: column; gap: 4px;">
                                 <label style="font-size: 11px; color: var(--text-secondary, #888);">
-                                    "Grid Spacing (m)"
+                                    {move || format!("Grid Spacing ({})", unit_system.get().distance_label())}
                                 </label>
                                 <input
                                     type="number"
@@ -374,7 +376,9 @@ pub fn MapsDesigner(
 
                             // Results
                             {move || {
-                                results.get().map(|r| view! {
+                                results.get().map(|r| {
+                                    let units = unit_system.get();
+                                    view! {
                                     <div style="padding: 12px; background: var(--bg-tertiary, #333); border-radius: 4px; font-size: 12px;">
                                         <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-primary, #fff);">
                                             "Calculation Results"
@@ -382,15 +386,15 @@ pub fn MapsDesigner(
                                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                             <div>
                                                 <div style="color: var(--text-secondary, #888);">"Min"</div>
-                                                <div style="font-size: 16px; font-weight: bold;">{format!("{:.1} lux", r.min_lux)}</div>
+                                                <div style="font-size: 16px; font-weight: bold;">{units.format_lux(r.min_lux)}</div>
                                             </div>
                                             <div>
                                                 <div style="color: var(--text-secondary, #888);">"Max"</div>
-                                                <div style="font-size: 16px; font-weight: bold;">{format!("{:.1} lux", r.max_lux)}</div>
+                                                <div style="font-size: 16px; font-weight: bold;">{units.format_lux(r.max_lux)}</div>
                                             </div>
                                             <div>
                                                 <div style="color: var(--text-secondary, #888);">"Average"</div>
-                                                <div style="font-size: 16px; font-weight: bold;">{format!("{:.1} lux", r.avg_lux)}</div>
+                                                <div style="font-size: 16px; font-weight: bold;">{units.format_lux(r.avg_lux)}</div>
                                             </div>
                                             <div>
                                                 <div style="color: var(--text-secondary, #888);">"Uniformity (U₀)"</div>
@@ -418,7 +422,7 @@ pub fn MapsDesigner(
                                             }
                                         }
                                     </div>
-                                })
+                                }})
                             }}
 
                             // Legend

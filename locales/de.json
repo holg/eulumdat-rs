@@ -74,6 +74,18 @@
         "medium_flood": "Mittel flutend",
         "wide_flood": "Breit flutend",
         "very_wide_flood": "Sehr breit flutend"
+      },
+      "c_plane": "C-Ebene",
+      "all_planes": "Alle C-Ebenen",
+      "symmetric_note": "Rotationssymmetrisch",
+      "illuminance_table": {
+        "title": "Beleuchtungsstärke-Tabelle",
+        "height": "Höhe",
+        "beam_field_diameter": "Strahl / Feld ⌀",
+        "e_nadir": "E Nadir",
+        "e_c0": "E Strahl C0",
+        "e_c90": "E Strahl C90",
+        "no_flux": "Keine Lichtstromdaten"
       }
     },
     "greenhouse": {

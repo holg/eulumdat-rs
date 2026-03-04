@@ -2518,6 +2518,133 @@ textarea::placeholder {
     }
 }
 
+/* C-Plane Control */
+.c-plane-control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--background);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.c-plane-control label {
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.c-plane-control input[type="range"] {
+    width: 160px;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.c-plane-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.c-plane-control input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.c-plane-control .value-display {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 80px;
+}
+
+.c-plane-control.symmetric-note {
+    justify-content: center;
+    font-style: italic;
+}
+
+/* Illuminance Data Table */
+.illuminance-table-wrapper {
+    margin-top: 0.5rem;
+}
+
+.illuminance-table-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.illuminance-no-data {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.illuminance-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.illuminance-data-table th {
+    text-align: right;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.illuminance-data-table td {
+    text-align: right;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.illuminance-data-table tbody tr:hover {
+    background: var(--surface);
+}
+
+.illuminance-data-table th:first-child,
+.illuminance-data-table td:first-child {
+    text-align: left;
+}
+
+@media (max-width: 600px) {
+    .c-plane-control {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .c-plane-control input[type="range"] {
+        width: 100%;
+        order: 3;
+    }
+
+    .illuminance-data-table {
+        font-size: 0.7rem;
+    }
+
+    .illuminance-data-table th,
+    .illuminance-data-table td {
+        padding: 0.25rem 0.3rem;
+    }
+}
+
 /* 3D Diagram Tab */
 .diagram-3d-tab {
     display: flex;

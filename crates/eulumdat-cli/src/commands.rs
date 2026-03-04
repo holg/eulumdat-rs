@@ -56,7 +56,7 @@ pub fn load_atla(path: &PathBuf) -> Result<LuminaireOpticalData> {
     }
 }
 
-pub fn info(file: &PathBuf, verbose: bool) -> Result<()> {
+pub fn info(file: &PathBuf, verbose: bool, units: eulumdat::UnitSystem) -> Result<()> {
     let ldt = load_file(file)?;
 
     println!("File: {}", file.display());
@@ -67,10 +67,11 @@ pub fn info(file: &PathBuf, verbose: bool) -> Result<()> {
     println!("Manufacturer:   {}", ldt.identification);
     println!("Date:           {}", ldt.date_user);
     println!();
-    println!("=== Dimensions (mm) ===");
-    println!("Length:         {:.1}", ldt.length);
-    println!("Width:          {:.1}", ldt.width);
-    println!("Height:         {:.1}", ldt.height);
+    let dim_label = units.dimension_label();
+    println!("=== Dimensions ({dim_label}) ===");
+    println!("Length:         {}", units.format_dimension(ldt.length));
+    println!("Width:          {}", units.format_dimension(ldt.width));
+    println!("Height:         {}", units.format_dimension(ldt.height));
     println!();
     println!("=== Photometric Data ===");
     println!("Type:           {:?}", ldt.type_indicator);
@@ -254,6 +255,7 @@ pub fn diagram(
     mounting_height: f64,
     tilt: f64,
     log_scale: bool,
+    units: eulumdat::UnitSystem,
 ) -> Result<()> {
     use eulumdat::diagram::*;
 
@@ -287,7 +289,7 @@ pub fn diagram(
         DiagramType::Cone => {
             let ldt = load_file(input)?;
             let diagram = ConeDiagram::from_eulumdat(&ldt, mounting_height);
-            diagram.to_svg(width, height, &theme)
+            diagram.to_svg_with_units(width, height, &theme, &ConeDiagramLabels::default(), units)
         }
         DiagramType::BeamAngle => {
             let ldt = load_file(input)?;
@@ -364,8 +366,9 @@ pub fn diagram(
                 area_half_depth: 20.0,
                 grid_resolution: 80,
             };
-            let diagram = IsoluxDiagram::from_eulumdat(&ldt, width, height, params);
-            diagram.to_svg(width, height, &theme)
+            let diagram =
+                IsoluxDiagram::from_eulumdat_with_units(&ldt, width, height, params, units);
+            diagram.to_svg_with_units(width, height, &theme, units)
         }
         DiagramType::Isocandela => {
             let ldt = load_file(input)?;
@@ -1165,6 +1168,7 @@ pub fn report(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn compare(
     file_a: &PathBuf,
     file_b: &PathBuf,
@@ -1173,6 +1177,7 @@ pub fn compare(
     output: Option<&PathBuf>,
     dark: bool,
     significant_only: bool,
+    units: eulumdat::UnitSystem,
 ) -> Result<()> {
     let ldt_a = load_file(file_a)?;
     let ldt_b = load_file(file_b)?;
@@ -1188,7 +1193,8 @@ pub fn compare(
         .unwrap_or("B")
         .to_string();
 
-    let comparison = PhotometricComparison::from_eulumdat(&ldt_a, &ldt_b, &label_a, &label_b);
+    let comparison =
+        PhotometricComparison::from_eulumdat_with_units(&ldt_a, &ldt_b, &label_a, &label_b, units);
 
     // Print comparison table
     match format {

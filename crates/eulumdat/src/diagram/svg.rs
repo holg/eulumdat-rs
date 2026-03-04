@@ -34,6 +34,7 @@ use super::{
     FloodlightCartesianDiagram, HeatmapDiagram, IsocandelaDiagram, IsoluxDiagram, PolarDiagram,
     YScale,
 };
+use crate::units::UnitSystem;
 
 /// Detail level for SVG rendering
 ///
@@ -2575,6 +2576,8 @@ pub struct ConeDiagramLabels {
     pub floor: String,
     /// Meter unit (m)
     pub meter: String,
+    /// C-Plane label (e.g. "C-Plane")
+    pub c_plane_label: String,
 }
 
 impl Default for ConeDiagramLabels {
@@ -2589,6 +2592,7 @@ impl Default for ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "Floor".to_string(),
             meter: "m".to_string(),
+            c_plane_label: "C-Plane".to_string(),
         }
     }
 }
@@ -2606,6 +2610,7 @@ impl ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "Boden".to_string(),
             meter: "m".to_string(),
+            c_plane_label: "C-Ebene".to_string(),
         }
     }
 
@@ -2621,6 +2626,7 @@ impl ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "地面".to_string(),
             meter: "m".to_string(),
+            c_plane_label: "C平面".to_string(),
         }
     }
 
@@ -2636,6 +2642,7 @@ impl ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "Sol".to_string(),
             meter: "m".to_string(),
+            c_plane_label: "Plan C".to_string(),
         }
     }
 
@@ -2651,6 +2658,7 @@ impl ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "Pavimento".to_string(),
             meter: "m".to_string(),
+            c_plane_label: "Piano C".to_string(),
         }
     }
 
@@ -2666,6 +2674,7 @@ impl ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "Пол".to_string(),
             meter: "м".to_string(),
+            c_plane_label: "C-плоскость".to_string(),
         }
     }
 
@@ -2681,6 +2690,7 @@ impl ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "Suelo".to_string(),
             meter: "m".to_string(),
+            c_plane_label: "Plano C".to_string(),
         }
     }
 
@@ -2696,6 +2706,7 @@ impl ConeDiagramLabels {
             intensity_10: "10%".to_string(),
             floor: "Piso".to_string(),
             meter: "m".to_string(),
+            c_plane_label: "Plano C".to_string(),
         }
     }
 }
@@ -2707,6 +2718,25 @@ impl ConeDiagram {
     /// the luminaire at top, and floor with diameter annotations.
     pub fn to_svg(&self, width: f64, height: f64, theme: &SvgTheme) -> String {
         self.to_svg_with_labels(width, height, theme, &ConeDiagramLabels::default())
+    }
+
+    /// Generate SVG with unit system for distance labels.
+    pub fn to_svg_with_units(
+        &self,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        labels: &ConeDiagramLabels,
+        units: UnitSystem,
+    ) -> String {
+        let mut labels = labels.clone();
+        labels.meter = units.distance_label().to_string();
+        // Create a copy with converted distance values for display
+        let mut converted = self.clone();
+        converted.mounting_height = units.convert_meters(self.mounting_height);
+        converted.beam_diameter = units.convert_meters(self.beam_diameter);
+        converted.field_diameter = units.convert_meters(self.field_diameter);
+        converted.to_svg_with_labels(width, height, theme, &labels)
     }
 
     /// Generate SVG string with custom labels (for i18n)
@@ -3003,6 +3033,18 @@ impl ConeDiagram {
             self.beam_classification()
         ));
 
+        // C-plane annotation (below classification, top right)
+        if let Some(c) = self.selected_c_plane {
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="48" text-anchor="end" font-size="11" fill="{}" font-family="{}">{} C{:.0}°</text>"#,
+                width - 15.0,
+                theme.text_secondary,
+                theme.font_family,
+                labels.c_plane_label,
+                c
+            ));
+        }
+
         svg.push_str("</svg>");
         svg
     }
@@ -3288,6 +3330,17 @@ impl ConeDiagram {
 impl IsoluxDiagram {
     /// Generate complete SVG string for the isolux ground footprint diagram
     pub fn to_svg(&self, width: f64, height: f64, theme: &SvgTheme) -> String {
+        self.to_svg_with_units(width, height, theme, UnitSystem::default())
+    }
+
+    /// Generate SVG with unit system for labels (lx/fc, m/ft).
+    pub fn to_svg_with_units(
+        &self,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        units: UnitSystem,
+    ) -> String {
         let margin_left = self.margin_left;
         let margin_top = self.margin_top;
         let plot_width = self.plot_width;
@@ -3307,12 +3360,13 @@ impl IsoluxDiagram {
         ));
 
         // Title
+        let dist_label = units.distance_label();
+        let h_display = units.convert_meters(self.params.mounting_height);
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="{}" font-family="{}">Isolux Footprint (h={:.1}m, tilt={:.0}°)</text>"#,
+            r#"<text x="{:.1}" y="22" text-anchor="middle" font-size="14" font-weight="bold" fill="{}" font-family="{}">Isolux Footprint (h={h_display:.1}{dist_label}, tilt={:.0}°)</text>"#,
             width / 2.0,
             theme.text,
             theme.font_family,
-            self.params.mounting_height,
             self.params.tilt_angle
         ));
 
@@ -3378,43 +3432,41 @@ impl IsoluxDiagram {
             r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="4" fill="white" stroke="black" stroke-width="1.5"/>"#
         ));
 
-        // Axis labels (in meters)
+        // Axis labels (in meters or feet)
         let hw = self.params.area_half_width;
         let hd = self.params.area_half_depth;
         let x_label_positions = [-1.0, -0.5, 0.0, 0.5, 1.0];
         for &frac in &x_label_positions {
             let x = margin_left + plot_width * ((frac + 1.0) / 2.0);
-            let meters = hw * frac;
+            let val = units.convert_meters(hw * frac);
             svg.push_str(&format!(
-                r#"<text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">{:.0}m</text>"#,
+                r#"<text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">{val:.0}{dist_label}</text>"#,
                 margin_top + plot_height + 16.0,
                 theme.text_secondary,
                 theme.font_family,
-                meters
             ));
         }
         for &frac in &x_label_positions {
             let y = margin_top + plot_height * ((1.0 - frac) / 2.0);
-            let meters = hd * frac;
+            let val = units.convert_meters(hd * frac);
             svg.push_str(&format!(
-                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="{}" font-family="{}">{:.0}m</text>"#,
+                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="{}" font-family="{}">{val:.0}{dist_label}</text>"#,
                 margin_left - 6.0,
                 theme.text_secondary,
                 theme.font_family,
-                meters
             ));
         }
 
         // Axis titles
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}">X (m)</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}">X ({dist_label})</text>"#,
             margin_left + plot_width / 2.0,
             height - 6.0,
             theme.text,
             theme.font_family
         ));
         svg.push_str(&format!(
-            r#"<text x="14" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}" transform="rotate(-90, 14, {:.1})">Y (m)</text>"#,
+            r#"<text x="14" y="{:.1}" text-anchor="middle" font-size="12" fill="{}" font-family="{}" transform="rotate(-90, 14, {:.1})">Y ({dist_label})</text>"#,
             margin_top + plot_height / 2.0,
             theme.text,
             theme.font_family,
@@ -3436,10 +3488,17 @@ impl IsoluxDiagram {
             ));
         }
         // Legend labels
+        let illu_label = units.illuminance_label();
         let legend_labels = [
-            (0.0, format!("{:.0} lx", self.max_lux)),
-            (0.5, format!("{:.0} lx", self.max_lux * 0.5)),
-            (1.0, "0 lx".to_string()),
+            (
+                0.0,
+                format!("{:.0} {illu_label}", units.convert_lux(self.max_lux)),
+            ),
+            (
+                0.5,
+                format!("{:.0} {illu_label}", units.convert_lux(self.max_lux * 0.5)),
+            ),
+            (1.0, format!("0 {illu_label}")),
         ];
         for &(frac, ref label) in &legend_labels {
             let y = margin_top + frac * legend_h;
@@ -3460,12 +3519,12 @@ impl IsoluxDiagram {
 
         // Max lux annotation
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="10" fill="{}" font-family="{}">E_max = {:.1} lx</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="10" fill="{}" font-family="{}">E_max = {:.1} {illu_label}</text>"#,
             margin_left + plot_width,
             margin_top + plot_height + 38.0,
             theme.text_secondary,
             theme.font_family,
-            self.max_lux
+            units.convert_lux(self.max_lux)
         ));
 
         svg.push_str("</svg>");
@@ -3991,49 +4050,81 @@ impl PolarDiagram {
             theme.text
         ));
 
-        // Legend (4 entries)
-        let legend_y = size - 80.0;
+        // Legend — dynamic entries based on which curves are present
+        let a_has_c90 = a.show_c90_c270();
+        let b_has_c90 = b.show_c90_c270();
+        let entry_count = 1 + a_has_c90 as usize + 1 + b_has_c90 as usize;
+        let legend_height = entry_count as f64 * 18.0 + 10.0;
+        let legend_y = size - legend_height - 15.0;
         svg.push_str(&format!(r#"<g transform="translate(15, {legend_y:.1})">"#));
         svg.push_str(&format!(
-            r#"<rect x="-5" y="-5" width="170" height="75" fill="{}" stroke="{}" stroke-width="1" rx="4"/>"#,
+            r#"<rect x="-5" y="-5" width="170" height="{legend_height:.1}" fill="{}" stroke="{}" stroke-width="1" rx="4"/>"#,
             theme.legend_bg, theme.axis
         ));
-        // A C0-C180
+        let mut row = 0;
+        // A primary curve
+        let y = row as f64 * 18.0 + 8.0;
         svg.push_str(&format!(
-            r#"<line x1="0" y1="8" x2="18" y2="8" stroke="{}" stroke-width="2.5"/>"#,
+            r#"<line x1="0" y1="{y:.1}" x2="18" y2="{y:.1}" stroke="{}" stroke-width="2.5"/>"#,
             color_a_c0
         ));
         svg.push_str(&format!(
-            r#"<text x="24" y="12" font-size="11" fill="{}" font-family="{}">{} C0-C180</text>"#,
-            theme.text, theme.font_family, label_a
+            r#"<text x="24" y="{:.1}" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
+            y + 4.0,
+            theme.text,
+            theme.font_family,
+            label_a,
+            a.c0_c180_curve.label
         ));
-        // A C90-C270
+        row += 1;
+        // A secondary curve
+        if a_has_c90 {
+            let y = row as f64 * 18.0 + 8.0;
+            svg.push_str(&format!(
+                r#"<line x1="0" y1="{y:.1}" x2="18" y2="{y:.1}" stroke="{}" stroke-width="2.5" stroke-dasharray="4,2"/>"#,
+                color_a_c90
+            ));
+            svg.push_str(&format!(
+                r#"<text x="24" y="{:.1}" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
+                y + 4.0,
+                theme.text,
+                theme.font_family,
+                label_a,
+                a.c90_c270_curve.label
+            ));
+            row += 1;
+        }
+        // B primary curve
+        let y = row as f64 * 18.0 + 8.0;
         svg.push_str(&format!(
-            r#"<line x1="0" y1="26" x2="18" y2="26" stroke="{}" stroke-width="2.5" stroke-dasharray="4,2"/>"#,
-            color_a_c90
-        ));
-        svg.push_str(&format!(
-            r#"<text x="24" y="30" font-size="11" fill="{}" font-family="{}">{} C90-C270</text>"#,
-            theme.text, theme.font_family, label_a
-        ));
-        // B C0-C180
-        svg.push_str(&format!(
-            r#"<line x1="0" y1="44" x2="18" y2="44" stroke="{}" stroke-width="2.5"/>"#,
+            r#"<line x1="0" y1="{y:.1}" x2="18" y2="{y:.1}" stroke="{}" stroke-width="2.5"/>"#,
             color_b_c0
         ));
         svg.push_str(&format!(
-            r#"<text x="24" y="48" font-size="11" fill="{}" font-family="{}">{} C0-C180</text>"#,
-            theme.text, theme.font_family, label_b
+            r#"<text x="24" y="{:.1}" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
+            y + 4.0,
+            theme.text,
+            theme.font_family,
+            label_b,
+            b.c0_c180_curve.label
         ));
-        // B C90-C270
-        svg.push_str(&format!(
-            r#"<line x1="0" y1="62" x2="18" y2="62" stroke="{}" stroke-width="2.5" stroke-dasharray="4,2"/>"#,
-            color_b_c90
-        ));
-        svg.push_str(&format!(
-            r#"<text x="24" y="66" font-size="11" fill="{}" font-family="{}">{} C90-C270</text>"#,
-            theme.text, theme.font_family, label_b
-        ));
+        row += 1;
+        // B secondary curve
+        if b_has_c90 {
+            let y = row as f64 * 18.0 + 8.0;
+            svg.push_str(&format!(
+                r#"<line x1="0" y1="{y:.1}" x2="18" y2="{y:.1}" stroke="{}" stroke-width="2.5" stroke-dasharray="4,2"/>"#,
+                color_b_c90
+            ));
+            svg.push_str(&format!(
+                r#"<text x="24" y="{:.1}" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
+                y + 4.0,
+                theme.text,
+                theme.font_family,
+                label_b,
+                b.c90_c270_curve.label
+            ));
+        }
         svg.push_str("</g>");
 
         // Unit label

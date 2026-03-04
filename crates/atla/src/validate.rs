@@ -389,6 +389,42 @@ fn validate_tm32_24(doc: &LuminaireOpticalData, result: &mut ValidationResult) {
             column: None,
         });
     }
+
+    // TM-32-24 requires physical dimensions for BIM integration
+    match doc.luminaire.as_ref().and_then(|l| l.dimensions.as_ref()) {
+        None => {
+            result.errors.push(ValidationMessage {
+                code: "TM32-E003".to_string(),
+                message: "TM-32-24: Luminaire dimensions are required for BIM integration"
+                    .to_string(),
+                line: None,
+                column: None,
+            });
+        }
+        Some(dims) => {
+            if dims.length == 0.0 || dims.width == 0.0 || dims.height == 0.0 {
+                let mut zero_fields = Vec::new();
+                if dims.length == 0.0 {
+                    zero_fields.push("length");
+                }
+                if dims.width == 0.0 {
+                    zero_fields.push("width");
+                }
+                if dims.height == 0.0 {
+                    zero_fields.push("height");
+                }
+                result.errors.push(ValidationMessage {
+                    code: "TM32-E004".to_string(),
+                    message: format!(
+                        "TM-32-24: Luminaire {} must be non-zero for BIM integration",
+                        zero_fields.join(", ")
+                    ),
+                    line: None,
+                    column: None,
+                });
+            }
+        }
+    }
 }
 
 /// TM-33-23 specific emitter validation
@@ -1294,6 +1330,15 @@ mod tests {
             rg: None,
         });
         doc.emitters[0].rated_lumens = Some(3000.0);
+        // BIM requires physical dimensions
+        doc.luminaire = Some(Luminaire {
+            dimensions: Some(Dimensions {
+                length: 600.0,
+                width: 300.0,
+                height: 80.0,
+            }),
+            ..Default::default()
+        });
         doc
     }
 
@@ -1397,5 +1442,31 @@ mod tests {
         // Auto-detect should apply TM-32-24 rules
         let result = validate_with_schema(&doc, ValidationSchema::Auto);
         assert!(result.is_valid());
+    }
+
+    #[test]
+    fn test_tm32_24_requires_dimensions() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.luminaire = None;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| e.code == "TM32-E003"));
+    }
+
+    #[test]
+    fn test_tm32_24_rejects_zero_dimensions() {
+        let mut doc = create_tm32_24_valid_doc();
+        doc.luminaire
+            .as_mut()
+            .unwrap()
+            .dimensions
+            .as_mut()
+            .unwrap()
+            .height = 0.0;
+
+        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| e.code == "TM32-E004"));
     }
 }

@@ -225,6 +225,22 @@ pub struct DiagramCone {
     pub floor: String,
     pub meter: String,
     pub classification: ConeClassification,
+    pub c_plane: String,
+    pub all_planes: String,
+    pub symmetric_note: String,
+    pub illuminance_table: ConeIlluminanceTableLocale,
+}
+
+/// Cone illuminance table translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ConeIlluminanceTableLocale {
+    pub title: String,
+    pub height: String,
+    pub beam_field_diameter: String,
+    pub e_nadir: String,
+    pub e_c0: String,
+    pub e_c90: String,
+    pub no_flux: String,
 }
 
 /// Beam classification labels

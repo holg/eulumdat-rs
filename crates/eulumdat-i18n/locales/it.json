@@ -74,6 +74,18 @@
         "medium_flood": "Flood medio",
         "wide_flood": "Flood largo",
         "very_wide_flood": "Flood molto largo"
+      },
+      "c_plane": "Piano C",
+      "all_planes": "Tutti i piani C",
+      "symmetric_note": "Simmetria rotazionale",
+      "illuminance_table": {
+        "title": "Tabella illuminamento",
+        "height": "Altezza",
+        "beam_field_diameter": "Fascio / Campo ⌀",
+        "e_nadir": "E nadir",
+        "e_c0": "E fascio C0",
+        "e_c90": "E fascio C90",
+        "no_flux": "Nessun dato di flusso"
       }
     },
     "greenhouse": {

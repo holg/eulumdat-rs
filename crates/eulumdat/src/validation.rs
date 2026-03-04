@@ -172,6 +172,21 @@ pub fn validate(ldt: &Eulumdat) -> Vec<ValidationWarning> {
         });
     }
 
+    // W045: Zero luminaire length (every real luminaire has physical extent)
+    if ldt.length == 0.0 {
+        warnings.push(ValidationWarning {
+            code: "W045",
+            message: "Luminaire length is zero — no real luminaire has zero length".to_string(),
+        });
+    }
+    // W046: Zero luminaire height
+    if ldt.height == 0.0 {
+        warnings.push(ValidationWarning {
+            code: "W046",
+            message: "Luminaire height is zero — no real luminaire has zero height".to_string(),
+        });
+    }
+
     // W015: Luminous area dimensions
     if ldt.luminous_area_length < 0.0 {
         warnings.push(ValidationWarning {
@@ -342,7 +357,7 @@ pub fn validate(ldt: &Eulumdat) -> Vec<ValidationWarning> {
 
     // W033: C-plane angle range
     for (i, &angle) in ldt.c_angles.iter().enumerate() {
-        if !(0.0..360.0).contains(&angle) {
+        if !(0.0..=360.0).contains(&angle) {
             warnings.push(ValidationWarning {
                 code: "W033",
                 message: format!("C-plane angle C[{}]={} is out of range (0-360)", i, angle),
@@ -575,6 +590,9 @@ mod tests {
         ldt.c_angles = vec![0.0];
         ldt.g_angles = vec![0.0, 45.0, 90.0];
         ldt.intensities = vec![vec![100.0, 80.0, 50.0]];
+        ldt.length = 600.0;
+        ldt.width = 300.0;
+        ldt.height = 80.0;
         ldt.lamp_sets.push(LampSet {
             num_lamps: 1,
             lamp_type: "LED".to_string(),
@@ -616,5 +634,26 @@ mod tests {
         ldt.num_g_planes = 5; // But only 3 G-angles
         let result = validate_strict(&ldt);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_zero_dimensions() {
+        let mut ldt = create_valid_ldt();
+        ldt.length = 0.0;
+        ldt.height = 0.0;
+        let warnings = validate(&ldt);
+        assert!(warnings.iter().any(|w| w.code == "W045"));
+        assert!(warnings.iter().any(|w| w.code == "W046"));
+    }
+
+    #[test]
+    fn test_zero_width_is_valid_circular() {
+        let mut ldt = create_valid_ldt();
+        ldt.width = 0.0; // 0 = circular cross-section, valid in LDT
+        let warnings = validate(&ldt);
+        // Should NOT produce a zero-width warning
+        assert!(!warnings
+            .iter()
+            .any(|w| w.code == "W045" || w.code == "W046"));
     }
 }

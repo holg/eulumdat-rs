@@ -7,7 +7,7 @@
 //! The crate is organized into two main modules:
 //!
 //! - [`photometric`] - Generic photometric lighting for any Bevy application
-//! - [`viewer`] - Demo application with pre-built scenes and controls
+//! - `viewer` - Demo application with pre-built scenes and controls (requires `viewer` feature)
 //!
 //! # Feature Flags
 //!

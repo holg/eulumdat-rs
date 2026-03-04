@@ -889,15 +889,17 @@ impl IesParser {
         // Store issue date in date_user field
         ldt.date_user = ies.issue_date.clone();
 
-        // Type indicator based on dimensions
-        ldt.type_indicator = if ies.length > ies.width * 2.0 {
-            TypeIndicator::Linear
-        } else {
-            TypeIndicator::PointSourceSymmetric
-        };
-
         // Determine symmetry from horizontal angles
         ldt.symmetry = Self::detect_symmetry(&ies.horizontal_angles);
+
+        // Type indicator based on dimensions and symmetry
+        ldt.type_indicator = if ies.length > ies.width * 2.0 {
+            TypeIndicator::Linear
+        } else if ldt.symmetry == Symmetry::VerticalAxis {
+            TypeIndicator::PointSourceSymmetric
+        } else {
+            TypeIndicator::PointSourceOther
+        };
 
         // Store angles
         ldt.c_angles = ies.horizontal_angles.clone();
@@ -974,7 +976,8 @@ impl IesParser {
 
         // Photometric parameters
         ldt.conversion_factor = ies.multiplier;
-        ldt.downward_flux_fraction = 0.0; // Will be calculated
+        ldt.downward_flux_fraction =
+            crate::calculations::PhotometricCalculations::downward_flux(&ldt, 90.0);
         ldt.light_output_ratio = 100.0; // Default
 
         Ok(ldt)

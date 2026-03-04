@@ -74,6 +74,18 @@
         "medium_flood": "中泛光",
         "wide_flood": "宽泛光",
         "very_wide_flood": "超宽泛光"
+      },
+      "c_plane": "C平面",
+      "all_planes": "所有C平面",
+      "symmetric_note": "旋转对称",
+      "illuminance_table": {
+        "title": "照度表",
+        "height": "高度",
+        "beam_field_diameter": "光束 / 照射 ⌀",
+        "e_nadir": "E 天底",
+        "e_c0": "E 光束 C0",
+        "e_c90": "E 光束 C90",
+        "no_flux": "无光通量数据"
       }
     },
     "greenhouse": {
