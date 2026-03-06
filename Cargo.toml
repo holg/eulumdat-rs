@@ -28,7 +28,9 @@ thiserror = "1.0"  # Required for uniffi error types
 # egui dependencies
 eframe = "0.29"
 egui = "0.29"
+rfd = "0.15"
 three-d = { version = "0.18", default-features = false }
+toml = "0.9"
 
 # WASM dependencies
 base64 = "0.22"
