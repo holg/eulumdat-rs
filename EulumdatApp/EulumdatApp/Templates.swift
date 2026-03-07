@@ -66,6 +66,7 @@ private class BundleFinder {}
 /// Template file format
 enum TemplateFormat {
     case ldt
+    case ies
     case atlaXml
 }
 
@@ -90,6 +91,30 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
     case atlaIncandescent
     case atlaHeatLamp
     case atlaUvBlacklight
+    // TM-33-23 horticultural templates
+    case tm33Minimal
+    case tm33CustomData
+    case tm33HortLed
+    case tm33FarRed
+    case tm33Uv
+    case tm33Seedling
+    // TM-32-24 BIM templates
+    case tm32OfficeDownlight
+    case tm32RoadLuminaire
+    // Floodlight templates (FL MAX LUM)
+    case fl600wSym30
+    case fl600wSym60
+    case fl900wSym30
+    case fl900wSym60
+    case fl900wAsym
+    case fl1200wSym10
+    case fl1200wSym30
+    case fl1200wSym60
+    case fl1200wAsym
+    // AEC IES templates
+    case aecItalo
+    case aecMaxwellCie
+    case aecMaxwellIesna
 
     var id: String { rawValue }
 
@@ -112,6 +137,26 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
         case .atlaIncandescent: return String(localized: "template.atlaIncandescent")
         case .atlaHeatLamp: return String(localized: "template.atlaHeatLamp")
         case .atlaUvBlacklight: return String(localized: "template.atlaUvBlacklight")
+        case .tm33Minimal: return "TM-33-23 Minimal"
+        case .tm33CustomData: return "TM-33-23 Custom Data"
+        case .tm33HortLed: return "TM-33-23 Horticultural LED"
+        case .tm33FarRed: return "TM-33-23 Far-Red (730nm)"
+        case .tm33Uv: return "TM-33-23 UV-A/B Supplemental"
+        case .tm33Seedling: return "TM-33-23 Seedling/Clone"
+        case .tm32OfficeDownlight: return "TM-32-24 Office Downlight (BIM)"
+        case .tm32RoadLuminaire: return "TM-32-24 Road Luminaire (BIM)"
+        case .fl600wSym30: return "FL MAX LUM 600W SYM 30°"
+        case .fl600wSym60: return "FL MAX LUM 600W SYM 60°"
+        case .fl900wSym30: return "FL MAX LUM 900W SYM 30°"
+        case .fl900wSym60: return "FL MAX LUM 900W SYM 60°"
+        case .fl900wAsym: return "FL MAX LUM 900W ASYM 50×110°"
+        case .fl1200wSym10: return "FL MAX LUM 1200W SYM 10°"
+        case .fl1200wSym30: return "FL MAX LUM 1200W SYM 30°"
+        case .fl1200wSym60: return "FL MAX LUM 1200W SYM 60°"
+        case .fl1200wAsym: return "FL MAX LUM 1200W ASYM 50×110°"
+        case .aecItalo: return "AEC: ITALO 1 5P5"
+        case .aecMaxwellCie: return "AEC: Maxwell 8-T4 (CIE)"
+        case .aecMaxwellIesna: return "AEC: Maxwell 8-T4 (IESNA)"
         }
     }
 
@@ -133,6 +178,26 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
         case .atlaIncandescent: return String(localized: "template.atlaIncandescent.desc")
         case .atlaHeatLamp: return String(localized: "template.atlaHeatLamp.desc")
         case .atlaUvBlacklight: return String(localized: "template.atlaUvBlacklight.desc")
+        case .tm33Minimal: return "Minimal valid TM-33-23 document with all required fields"
+        case .tm33CustomData: return "TM-33-23 with multiple CustomData blocks and extended fields"
+        case .tm33HortLed: return "600W full spectrum LED panel with PPFD metrics and spectral data"
+        case .tm33FarRed: return "120W far-red supplemental for flowering enhancement"
+        case .tm33Uv: return "60W UV-A/UV-B for secondary metabolite enhancement"
+        case .tm33Seedling: return "200W high-blue LED for seedling and clone propagation"
+        case .tm32OfficeDownlight: return "6\" LED downlight with complete TM-32-24 BIM parameters"
+        case .tm32RoadLuminaire: return "150W LED road luminaire with emergency backup and full BIM data"
+        case .fl600wSym30: return "600W floodlight with symmetric 30° beam"
+        case .fl600wSym60: return "600W floodlight with symmetric 60° beam"
+        case .fl900wSym30: return "900W floodlight with symmetric 30° beam"
+        case .fl900wSym60: return "900W floodlight with symmetric 60° beam"
+        case .fl900wAsym: return "900W floodlight with asymmetric 50×110° beam"
+        case .fl1200wSym10: return "1200W floodlight with symmetric 10° narrow beam"
+        case .fl1200wSym30: return "1200W floodlight with symmetric 30° beam"
+        case .fl1200wSym60: return "1200W floodlight with symmetric 60° beam"
+        case .fl1200wAsym: return "1200W floodlight with asymmetric 50×110° beam"
+        case .aecItalo: return "ITALO 1 5P5 S05 architectural luminaire (IES format)"
+        case .aecMaxwellCie: return "Maxwell 8-T4 LUXEON 5050 measured photometry (CIE format)"
+        case .aecMaxwellIesna: return "Maxwell 8-T4 LUXEON 5050 measured photometry (IESNA format)"
         }
     }
 
@@ -146,13 +211,23 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
         case .floorUplight: return "lamp.floor"
         case .wikiBatwing: return "light.panel"
         case .wikiSpotlight: return "light.min"
-        case .wikiFlood: return "light.flood.fill"
+        case .wikiFlood: return "light.max"
         case .atlaGrowLight, .atlaGrowLightRB: return "leaf.fill"
         case .atlaFluorescent: return "lightbulb.led.wide.fill"
         case .atlaHalogen: return "lightbulb.fill"
         case .atlaIncandescent: return "lightbulb"
         case .atlaHeatLamp: return "flame.fill"
         case .atlaUvBlacklight: return "waveform"
+        case .tm33Minimal, .tm33CustomData: return "doc.text"
+        case .tm33HortLed, .tm33Seedling: return "leaf.fill"
+        case .tm33FarRed: return "sun.max.fill"
+        case .tm33Uv: return "waveform"
+        case .tm32OfficeDownlight: return "building.2"
+        case .tm32RoadLuminaire: return "road.lanes"
+        case .fl600wSym30, .fl600wSym60, .fl900wSym30, .fl900wSym60,
+             .fl1200wSym10, .fl1200wSym30, .fl1200wSym60: return "lightbulb.max"
+        case .fl900wAsym, .fl1200wAsym: return "lightbulb.max.fill"
+        case .aecItalo, .aecMaxwellCie, .aecMaxwellIesna: return "building.columns"
         }
     }
 
@@ -160,8 +235,12 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
     var format: TemplateFormat {
         switch self {
         case .atlaGrowLight, .atlaGrowLightRB, .atlaFluorescent,
-             .atlaHalogen, .atlaIncandescent, .atlaHeatLamp, .atlaUvBlacklight:
+             .atlaHalogen, .atlaIncandescent, .atlaHeatLamp, .atlaUvBlacklight,
+             .tm33Minimal, .tm33CustomData, .tm33HortLed, .tm33FarRed, .tm33Uv, .tm33Seedling,
+             .tm32OfficeDownlight, .tm32RoadLuminaire:
             return .atlaXml
+        case .aecItalo, .aecMaxwellCie, .aecMaxwellIesna:
+            return .ies
         default:
             return .ldt
         }
@@ -169,7 +248,7 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
 
     /// Whether this template has spectral data
     var hasSpectralData: Bool {
-        format == .atlaXml
+        format == .atlaXml && self != .tm33Minimal && self != .tm33CustomData
     }
 
     /// The filename of the template in the bundle (without extension)
@@ -191,12 +270,41 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
         case .atlaIncandescent: return "_atla_incandescent"
         case .atlaHeatLamp: return "_atla_heat_lamp"
         case .atlaUvBlacklight: return "_atla_uv_blacklight"
+        case .tm33Minimal: return "tm-33-23_minimal"
+        case .tm33CustomData: return "tm-33-23_with_custom_data"
+        case .tm33HortLed: return "tm-33-23_horticultural_led"
+        case .tm33FarRed: return "tm-33-23_far_red_supplemental"
+        case .tm33Uv: return "tm-33-23_uv_supplemental"
+        case .tm33Seedling: return "tm-33-23_seedling_propagation"
+        case .tm32OfficeDownlight: return "tm-32-24_office_downlight_bim"
+        case .tm32RoadLuminaire: return "tm-32-24_road_luminaire_bim"
+        case .fl600wSym30: return "4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL"
+        case .fl600wSym60: return "4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL"
+        case .fl900wSym30: return "4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL"
+        case .fl900wSym60: return "4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL"
+        case .fl900wAsym: return "4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL"
+        case .fl1200wSym10: return "4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL"
+        case .fl1200wSym30: return "4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL"
+        case .fl1200wSym60: return "4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL"
+        case .fl1200wAsym: return "4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL"
+        case .aecItalo: return "ITALO 1 5P5 S05 3.140-3M"
+        case .aecMaxwellCie: return "S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE"
+        case .aecMaxwellIesna: return "S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA"
         }
     }
 
     /// File extension for this template
     var fileExtension: String {
-        format == .atlaXml ? "xml" : "ldt"
+        switch self {
+        case .aecItalo, .aecMaxwellCie: return "IES"
+        case .aecMaxwellIesna: return "ies"
+        default:
+            switch format {
+            case .atlaXml: return "xml"
+            case .ies: return "ies"
+            case .ldt: return "ldt"
+            }
+        }
     }
 
     /// Load the template content from the bundled file
@@ -204,43 +312,45 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
         let bundle = Bundle.resourceBundle
         let ext = fileExtension
 
+        // Find the URL
+        var url: URL?
+
         // Try with subdirectory
-        if let url = bundle.url(forResource: fileName, withExtension: ext, subdirectory: "Templates") {
-            do {
-                return try String(contentsOf: url, encoding: .utf8)
-            } catch {
-                print("Failed to read template \(fileName): \(error)")
-            }
-        }
+        url = bundle.url(forResource: fileName, withExtension: ext, subdirectory: "Templates")
 
         // Try without subdirectory (flat bundle)
-        if let url = bundle.url(forResource: fileName, withExtension: ext) {
-            do {
-                return try String(contentsOf: url, encoding: .utf8)
-            } catch {
-                print("Failed to read template \(fileName): \(error)")
-            }
+        if url == nil {
+            url = bundle.url(forResource: fileName, withExtension: ext)
         }
 
         // Try direct path construction
-        if let resourcePath = bundle.resourcePath {
+        if url == nil, let resourcePath = bundle.resourcePath {
             let directPath = (resourcePath as NSString).appendingPathComponent("Templates/\(fileName).\(ext)")
             if FileManager.default.fileExists(atPath: directPath) {
-                do {
-                    return try String(contentsOfFile: directPath, encoding: .utf8)
-                } catch {
-                    print("Failed to read template at \(directPath): \(error)")
-                }
+                url = URL(fileURLWithPath: directPath)
             }
         }
 
-        print("Template file not found: \(fileName).\(ext) in bundle: \(bundle.bundlePath)")
+        guard let fileUrl = url else {
+            print("Template file not found: \(fileName).\(ext) in bundle: \(bundle.bundlePath)")
+            return nil
+        }
+
+        // Try ISO Latin-1 first (handles LDT/IES files with extended chars), then UTF-8
+        if let content = try? String(contentsOf: fileUrl, encoding: .isoLatin1) {
+            return content
+        }
+        if let content = try? String(contentsOf: fileUrl, encoding: .utf8) {
+            return content
+        }
+
+        print("Failed to read template \(fileName).\(ext)")
         return nil
     }
 
     /// Load the LDT content (for backwards compatibility)
     func loadLdtContent() -> String? {
-        if format == .ldt {
+        if format == .ldt || format == .ies {
             return loadContent()
         }
         // For ATLA templates, we need to convert via AtlaDocument
@@ -259,6 +369,13 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
                 return try parseLdt(content: content)
             } catch {
                 print("Failed to parse LDT template \(fileName): \(error)")
+                return nil
+            }
+        case .ies:
+            do {
+                return try parseIes(content: content)
+            } catch {
+                print("Failed to parse IES template \(fileName): \(error)")
                 return nil
             }
         case .atlaXml:
@@ -286,6 +403,13 @@ enum LuminaireTemplate: String, CaseIterable, Identifiable {
                 return try AtlaDocument.fromLdt(content: content)
             } catch {
                 print("Failed to create ATLA from LDT template \(fileName): \(error)")
+                return nil
+            }
+        case .ies:
+            do {
+                return try AtlaDocument.fromIes(content: content)
+            } catch {
+                print("Failed to create ATLA from IES template \(fileName): \(error)")
                 return nil
             }
         case .atlaXml:
@@ -317,12 +441,13 @@ struct TemplateManager {
         print("Resource bundle: \(bundle.bundlePath)")
         print("Bundled template files:")
         for template in LuminaireTemplate.allCases {
-            if let url = bundle.url(forResource: template.fileName, withExtension: "ldt", subdirectory: "Templates") {
+            let ext = template.fileExtension
+            if let url = bundle.url(forResource: template.fileName, withExtension: ext, subdirectory: "Templates") {
                 print("  ✓ \(template.rawValue): \(url.path)")
-            } else if let url = bundle.url(forResource: template.fileName, withExtension: "ldt") {
+            } else if let url = bundle.url(forResource: template.fileName, withExtension: ext) {
                 print("  ✓ \(template.rawValue): \(url.path) (flat)")
             } else {
-                print("  ✗ \(template.rawValue): NOT FOUND (\(template.fileName).ldt)")
+                print("  ✗ \(template.rawValue): NOT FOUND (\(template.fileName).\(ext))")
             }
         }
     }

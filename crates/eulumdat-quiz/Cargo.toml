@@ -1,0 +1,15 @@
+[package]
+name = "eulumdat-quiz"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Photometric knowledge quiz engine for lighting professionals"
+
+[features]
+default = []
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

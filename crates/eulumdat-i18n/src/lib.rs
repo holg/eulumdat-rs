@@ -119,6 +119,8 @@ pub struct Locale {
     pub validation: ValidationLocale,
     pub ui: UiLocale,
     pub report: ReportLocale,
+    #[serde(default)]
+    pub comparison: ComparisonLocale,
 }
 
 /// Locale metadata
@@ -464,7 +466,7 @@ pub struct DirectRatiosLocale {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ValidationLocale {
     pub level: ValidationLevel,
-    pub messages: ValidationMessages,
+    pub messages: ValidationMessageLocale,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -474,13 +476,63 @@ pub struct ValidationLevel {
     pub info: String,
 }
 
+/// Validation message translations keyed by code (W001–W046, E001–E006).
+/// Messages may contain `{0}`, `{1}`, … placeholders for dynamic values.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ValidationMessages {
-    pub missing_manufacturer: String,
-    pub missing_flux: String,
-    pub invalid_angles: String,
-    pub intensity_mismatch: String,
-    pub symmetry_violation: String,
+pub struct ValidationMessageLocale {
+    pub w001: String,
+    pub w002: String,
+    pub w003: String,
+    pub w004: String,
+    pub w005: String,
+    pub w006: String,
+    pub w007: String,
+    pub w008: String,
+    pub w009: String,
+    pub w010: String,
+    pub w011: String,
+    pub w012: String,
+    pub w013: String,
+    pub w014: String,
+    pub w015: String,
+    pub w016: String,
+    pub w017: String,
+    pub w018: String,
+    pub w019: String,
+    pub w020: String,
+    pub w021: String,
+    pub w022: String,
+    pub w023: String,
+    pub w024: String,
+    pub w025: String,
+    pub w026: String,
+    pub w027: String,
+    pub w028: String,
+    pub w029: String,
+    pub w030: String,
+    pub w031: String,
+    pub w032: String,
+    pub w033: String,
+    pub w034: String,
+    pub w035: String,
+    pub w036: String,
+    pub w037: String,
+    pub w038: String,
+    pub w039: String,
+    pub w040: String,
+    pub w041: String,
+    pub w042: String,
+    pub w043: String,
+    pub w044: String,
+    pub w045: String,
+    pub w046: String,
+    pub w047: String,
+    pub e001: String,
+    pub e002: String,
+    pub e003: String,
+    pub e004: String,
+    pub e005: String,
+    pub e006: String,
 }
 
 /// UI translations
@@ -508,6 +560,7 @@ pub struct UiLocale {
     pub language: UiLanguage,
     pub template: UiTemplate,
     pub messages: UiMessages,
+    pub compare: UiCompare,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -556,6 +609,7 @@ pub struct UiTabs {
     pub cartesian: String,
     pub cone: String,
     pub export: String,
+    pub compare: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -802,6 +856,79 @@ pub struct UiMessages {
     pub no_file: String,
 }
 
+/// Compare panel translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UiCompare {
+    pub title: String,
+    pub drop_hint: String,
+    pub browse: String,
+    pub or: String,
+    pub select_template: String,
+    pub file_b: String,
+    pub file_b_label: String,
+    pub clear: String,
+    pub similarity: String,
+    pub export_pdf: String,
+    pub export_typ: String,
+    pub exporting: String,
+    pub file_a_c_plane: String,
+    pub file_b_c_plane: String,
+    pub link_sliders: String,
+    pub metric: String,
+    pub file_a: String,
+    pub delta: String,
+    pub percent: String,
+    pub empty_title: String,
+    pub empty_hint: String,
+}
+
+/// Comparison locale (metric names for photometric comparison)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ComparisonLocale {
+    pub metrics: ComparisonMetricLocale,
+}
+
+/// Comparison metric name translations keyed by metric key.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ComparisonMetricLocale {
+    pub total_lamp_flux: String,
+    pub calculated_flux: String,
+    pub lor: String,
+    pub dlor: String,
+    pub ulor: String,
+    pub lamp_efficacy: String,
+    pub luminaire_efficacy: String,
+    pub total_wattage: String,
+    pub beam_angle: String,
+    pub field_angle: String,
+    pub beam_angle_cie: String,
+    pub field_angle_cie: String,
+    pub upward_beam_angle: String,
+    pub upward_field_angle: String,
+    pub max_intensity: String,
+    pub min_intensity: String,
+    pub avg_intensity: String,
+    pub spacing_c0: String,
+    pub spacing_c90: String,
+    pub zonal_0_30: String,
+    pub zonal_30_60: String,
+    pub zonal_60_90: String,
+    pub zonal_90_120: String,
+    pub zonal_120_150: String,
+    pub zonal_150_180: String,
+    pub cie_n1: String,
+    pub cie_n2: String,
+    pub cie_n3: String,
+    pub cie_n4: String,
+    pub cie_n5: String,
+    pub bug_b: String,
+    pub bug_u: String,
+    pub bug_g: String,
+    pub length: String,
+    pub width: String,
+    pub height: String,
+}
+
 /// Report translations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportLocale {
@@ -888,6 +1015,123 @@ impl Locale {
     pub fn for_code(code: &str) -> Self {
         Self::for_language(Language::from_code(code))
     }
+
+    /// Look up a validation message template by code (e.g. "W001", "E001").
+    /// Returns the template string which may contain `{0}`, `{1}`, … placeholders.
+    pub fn validation_message(&self, code: &str) -> Option<&str> {
+        let m = &self.validation.messages;
+        let s = match code {
+            "W001" => &m.w001,
+            "W002" => &m.w002,
+            "W003" => &m.w003,
+            "W004" => &m.w004,
+            "W005" => &m.w005,
+            "W006" => &m.w006,
+            "W007" => &m.w007,
+            "W008" => &m.w008,
+            "W009" => &m.w009,
+            "W010" => &m.w010,
+            "W011" => &m.w011,
+            "W012" => &m.w012,
+            "W013" => &m.w013,
+            "W014" => &m.w014,
+            "W015" => &m.w015,
+            "W016" => &m.w016,
+            "W017" => &m.w017,
+            "W018" => &m.w018,
+            "W019" => &m.w019,
+            "W020" => &m.w020,
+            "W021" => &m.w021,
+            "W022" => &m.w022,
+            "W023" => &m.w023,
+            "W024" => &m.w024,
+            "W025" => &m.w025,
+            "W026" => &m.w026,
+            "W027" => &m.w027,
+            "W028" => &m.w028,
+            "W029" => &m.w029,
+            "W030" => &m.w030,
+            "W031" => &m.w031,
+            "W032" => &m.w032,
+            "W033" => &m.w033,
+            "W034" => &m.w034,
+            "W035" => &m.w035,
+            "W036" => &m.w036,
+            "W037" => &m.w037,
+            "W038" => &m.w038,
+            "W039" => &m.w039,
+            "W040" => &m.w040,
+            "W041" => &m.w041,
+            "W042" => &m.w042,
+            "W043" => &m.w043,
+            "W044" => &m.w044,
+            "W045" => &m.w045,
+            "W046" => &m.w046,
+            "W047" => &m.w047,
+            "E001" => &m.e001,
+            "E002" => &m.e002,
+            "E003" => &m.e003,
+            "E004" => &m.e004,
+            "E005" => &m.e005,
+            "E006" => &m.e006,
+            _ => return None,
+        };
+        Some(s.as_str())
+    }
+
+    /// Look up a comparison metric name by key (e.g. "total_lamp_flux").
+    pub fn comparison_metric_name(&self, key: &str) -> Option<&str> {
+        let m = &self.comparison.metrics;
+        let s = match key {
+            "total_lamp_flux" => &m.total_lamp_flux,
+            "calculated_flux" => &m.calculated_flux,
+            "lor" => &m.lor,
+            "dlor" => &m.dlor,
+            "ulor" => &m.ulor,
+            "lamp_efficacy" => &m.lamp_efficacy,
+            "luminaire_efficacy" => &m.luminaire_efficacy,
+            "total_wattage" => &m.total_wattage,
+            "beam_angle" => &m.beam_angle,
+            "field_angle" => &m.field_angle,
+            "beam_angle_cie" => &m.beam_angle_cie,
+            "field_angle_cie" => &m.field_angle_cie,
+            "upward_beam_angle" => &m.upward_beam_angle,
+            "upward_field_angle" => &m.upward_field_angle,
+            "max_intensity" => &m.max_intensity,
+            "min_intensity" => &m.min_intensity,
+            "avg_intensity" => &m.avg_intensity,
+            "spacing_c0" => &m.spacing_c0,
+            "spacing_c90" => &m.spacing_c90,
+            "zonal_0_30" => &m.zonal_0_30,
+            "zonal_30_60" => &m.zonal_30_60,
+            "zonal_60_90" => &m.zonal_60_90,
+            "zonal_90_120" => &m.zonal_90_120,
+            "zonal_120_150" => &m.zonal_120_150,
+            "zonal_150_180" => &m.zonal_150_180,
+            "cie_n1" => &m.cie_n1,
+            "cie_n2" => &m.cie_n2,
+            "cie_n3" => &m.cie_n3,
+            "cie_n4" => &m.cie_n4,
+            "cie_n5" => &m.cie_n5,
+            "bug_b" => &m.bug_b,
+            "bug_u" => &m.bug_u,
+            "bug_g" => &m.bug_g,
+            "length" => &m.length,
+            "width" => &m.width,
+            "height" => &m.height,
+            _ => return None,
+        };
+        Some(s.as_str())
+    }
+}
+
+/// Replace `{0}`, `{1}`, … placeholders in a template string with provided args.
+pub fn format_template(template: &str, args: &[&dyn std::fmt::Display]) -> String {
+    let mut result = template.to_string();
+    for (i, arg) in args.iter().enumerate() {
+        result = result.replace(&format!("{{{}}}", i), &arg.to_string());
+    }
+    result
 }
 
 impl Default for Locale {

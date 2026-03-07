@@ -1,0 +1,2003 @@
+{
+  "ui": {
+    "title": "Quiz sulle Conoscenze Fotometriche",
+    "configure": "Configura il Tuo Quiz",
+    "categories": "Categorie",
+    "select_all": "Seleziona Tutto",
+    "select_none": "Deseleziona Tutto",
+    "difficulty": "Difficoltà",
+    "all_levels": "Tutti i Livelli",
+    "beginner": "Principiante",
+    "intermediate": "Intermedio",
+    "expert": "Esperto",
+    "num_questions": "Numero di Domande",
+    "questions_available": "{0} domande disponibili",
+    "questions_selected": "{0} di {1} domande selezionate",
+    "start_quiz": "Inizia il Quiz →",
+    "question_of": "Domanda {0} di {1}",
+    "correct_count": "{0} corrette / {1} sbagliate",
+    "correct": "✓ Corretto!",
+    "wrong": "✗ Sbagliato",
+    "reference": "Riferimento: ",
+    "next_question": "Prossima Domanda →",
+    "see_results": "Vedi Risultati →",
+    "skip": "Salta →",
+    "excellent": "Eccellente!",
+    "good_job": "Ottimo Lavoro!",
+    "keep_learning": "Continua a Studiare!",
+    "try_again": "Riprova!",
+    "score_detail": "{0} corrette, {1} sbagliate, {2} saltate su {3}",
+    "by_category": "Per Categoria",
+    "by_difficulty": "Per Difficoltà",
+    "try_again_btn": "Riprova",
+    "back_to_editor": "← Torna all'Editor Eulumdat",
+    "powered_by": "Powered by eulumdat-quiz",
+    "questions_across": "{0} domande in {1} categorie",
+    "polar_diagram": "Diagramma Polare",
+    "cartesian_diagram": "Diagramma Cartesiano",
+    "symmetric": "Simmetrico (Isym=4)",
+    "asymmetric": "Asimmetrico",
+    "projector_narrow": "Proiettore / Fascio Stretto",
+    "heatmap": "Mappa di calore"
+  },
+  "categories": {
+    "eulumdat_format": "Formato EULUMDAT",
+    "ies_format": "Formato IES",
+    "symmetry": "Simmetria",
+    "coordinate_systems": "Sistemi di Coordinate",
+    "photometric_calc": "Calcoli Fotometrici",
+    "bug_rating": "Classificazione BUG",
+    "ugr_glare": "UGR e Abbagliamento",
+    "color_science": "Scienza del Colore",
+    "horticultural": "Illuminazione Orticola",
+    "bim_integration": "Integrazione BIM",
+    "modern_formats": "Formati Moderni",
+    "validation": "Validazione",
+    "units": "Unità e Conversioni",
+    "diagram_types": "Tipi di Diagramma",
+    "standards": "Norme e Conformità",
+    "diagram_reading": "Lettura dei diagrammi"
+  },
+  "questions": {
+    "1001": {
+      "text": "Quale estensione di file utilizza il formato EULUMDAT?",
+      "options": [
+        ".ies",
+        ".ldt",
+        ".pho",
+        ".lum"
+      ],
+      "explanation": "I file EULUMDAT utilizzano l'estensione .ldt (Leuchten-Daten-Transfer = Trasferimento Dati Apparecchi)."
+    },
+    "1002": {
+      "text": "In quale unità sono memorizzati i valori di intensità in un file EULUMDAT?",
+      "options": [
+        "Candele (cd)",
+        "Lumen (lm)",
+        "cd/klm (candele per kilolumen)",
+        "Lux (lx)"
+      ],
+      "explanation": "EULUMDAT memorizza le intensità in cd/klm (candele per kilolumen), normalizzando i valori a una lampada da 1000 lumen."
+    },
+    "1003": {
+      "text": "In quale unità sono memorizzate le dimensioni dell'apparecchio in un file EULUMDAT?",
+      "options": [
+        "Centimetri (cm)",
+        "Millimetri (mm)",
+        "Metri (m)",
+        "Pollici (in)"
+      ],
+      "explanation": "EULUMDAT memorizza le dimensioni dell'apparecchio (lunghezza, larghezza, altezza) in millimetri."
+    },
+    "1004": {
+      "text": "Chi ha proposto il formato EULUMDAT?",
+      "options": [
+        "Comitato Tecnico CIE",
+        "Axel Stockmar",
+        "Comitato Standard IESNA",
+        "Philips Lighting"
+      ],
+      "explanation": "Il formato EULUMDAT è stato proposto da Axel Stockmar nel 1990."
+    },
+    "1005": {
+      "text": "Cosa specifica la Riga 3 di un file EULUMDAT?",
+      "options": [
+        "Nome dell'apparecchio",
+        "Numero di piani C",
+        "Indicatore di simmetria (Isym, 0-4)",
+        "Rapporto di emissione luminosa"
+      ],
+      "explanation": "La Riga 3 contiene l'indicatore di simmetria Isym (0=nessuna, 1=asse verticale, 2=C0-C180, 3=C90-C270, 4=entrambi i piani)."
+    },
+    "1006": {
+      "text": "Qual è il numero massimo di set di lampade consentiti in un file EULUMDAT?",
+      "options": [
+        "5",
+        "10",
+        "20",
+        "Illimitato"
+      ],
+      "explanation": "Un file EULUMDAT può contenere fino a 20 set di lampade, anche se la maggior parte dei file ne utilizza solo 1."
+    },
+    "1007": {
+      "text": "Cosa rappresenta l'indicatore di tipo alla Riga 2?",
+      "options": [
+        "Numero di versione del file",
+        "Tipo di apparecchio (sorgente puntiforme, lineare, areale)",
+        "Codice del produttore",
+        "ID del laboratorio di misura"
+      ],
+      "explanation": "La Riga 2 contiene Itype: 1=sorgente puntiforme con simmetria C0-C180, 2=sorgente lineare, 3=sorgente puntiforme con qualsiasi simmetria."
+    },
+    "1008": {
+      "text": "Qual è il numero massimo di piani C (Mc) in un file EULUMDAT?",
+      "options": [
+        "36",
+        "360",
+        "721",
+        "1000"
+      ],
+      "explanation": "Mc può arrivare fino a 721, corrispondente a incrementi di 0,5° su 360° (721 valori da 0 a 360)."
+    },
+    "1009": {
+      "text": "Qual è l'intervallo di valori del rapporto di emissione luminosa (LOR) in un file EULUMDAT?",
+      "options": [
+        "Da 0 a 1",
+        "Da 0 a 100",
+        "Da 0 a 255",
+        "Da 0 a 1000"
+      ],
+      "explanation": "Il LOR in EULUMDAT è memorizzato come percentuale da 0 a 100."
+    },
+    "1010": {
+      "text": "Come vengono gestite le virgole decimali europee durante il parsing EULUMDAT?",
+      "options": [
+        "Vengono ignorate",
+        "Causano un errore di parsing",
+        "Le virgole vengono convertite in punti prima del parsing",
+        "Sia la virgola che il punto sono nativamente separatori decimali validi"
+      ],
+      "explanation": "Poiché EULUMDAT ha origine in Europa, molti file utilizzano la virgola come separatore decimale. I parser convertono le virgole in punti per l'analisi numerica."
+    },
+    "1011": {
+      "text": "Quale codifica di fallback viene utilizzata per i file EULUMDAT legacy?",
+      "options": [
+        "ASCII",
+        "UTF-16",
+        "ISO-8859-1 (Latin-1)",
+        "Windows-1250"
+      ],
+      "explanation": "I file EULUMDAT legacy spesso utilizzano la codifica ISO-8859-1 (Latin-1) per i caratteri europei. I parser moderni provano prima UTF-8, poi ricorrono a Latin-1."
+    },
+    "1012": {
+      "text": "Cosa indica un conteggio lampade negativo in un file EULUMDAT?",
+      "options": [
+        "Il file è corrotto",
+        "Modalità fotometria assoluta",
+        "Il conteggio lampade è sconosciuto",
+        "Configurazioni multiple di lampade"
+      ],
+      "explanation": "Un valore negativo per il numero di lampade indica la modalità fotometria assoluta, in cui i valori di intensità sono in cd effettivi anziché in cd/klm."
+    },
+    "1013": {
+      "text": "In che anno è stato proposto per la prima volta il formato EULUMDAT?",
+      "options": [
+        "1985",
+        "1990",
+        "1995",
+        "2000"
+      ],
+      "explanation": "Il formato EULUMDAT è stato proposto per la prima volta da Axel Stockmar nel 1990 come standard per lo scambio di dati fotometrici degli apparecchi in Europa."
+    },
+    "1014": {
+      "text": "Quale riga di un file EULUMDAT contiene il nome dell'apparecchio?",
+      "options": [
+        "Riga 1",
+        "Riga 4",
+        "Riga 5",
+        "Riga 6"
+      ],
+      "explanation": "La Riga 1 di un file EULUMDAT contiene l'identificazione del produttore/azienda, e la Riga 4 contiene il nome dell'apparecchio."
+    },
+    "1015": {
+      "text": "Qual è la relazione tra Mc (numero di piani C memorizzati) e Isym (simmetria)?",
+      "options": [
+        "Mc è sempre il numero completo di piani indipendentemente dalla simmetria",
+        "Per Isym=1, Mc=1; per Isym=4, Mc=Nc/4+1",
+        "La simmetria non ha effetto su Mc",
+        "Mc viene raddoppiato per ogni livello di simmetria"
+      ],
+      "explanation": "La simmetria determina quanti piani C vengono memorizzati: Isym=0 memorizza tutti, Isym=1 ne memorizza solo 1, Isym=2 ne memorizza la metà+1, Isym=4 ne memorizza un quarto+1."
+    },
+    "2001": {
+      "text": "Quale organizzazione pubblica il formato di file fotometrico IES?",
+      "options": [
+        "CIE",
+        "IESNA (Illuminating Engineering Society)",
+        "NEMA",
+        "ISO"
+      ],
+      "explanation": "Il formato di file IES è pubblicato dalla Illuminating Engineering Society of North America (IESNA)."
+    },
+    "2002": {
+      "text": "Quale norma definisce il formato di file IES?",
+      "options": [
+        "CIE 102",
+        "ANSI/IESNA LM-63",
+        "EN 13032",
+        "ISO 10527"
+      ],
+      "explanation": "Il formato di file IES è definito dalla ANSI/IESNA LM-63 (Standard File Format for the Electronic Transfer of Photometric Data)."
+    },
+    "2003": {
+      "text": "Quale parola chiave inizia un file IES?",
+      "options": [
+        "IESNA",
+        "BEGIN",
+        "HEADER",
+        "VERSION"
+      ],
+      "explanation": "I file IES iniziano con la parola chiave IESNA (es. 'IESNA:LM-63-2002' o semplicemente 'IESNA91')."
+    },
+    "2004": {
+      "text": "Quali sono i tre tipi fotometrici IES?",
+      "options": [
+        "Tipo 1 (interni), Tipo 2 (esterni), Tipo 3 (industriale)",
+        "Tipo A (automobilistico), Tipo B (proiettore), Tipo C (architettonico)",
+        "Tipo I (simmetrico), Tipo II (asimmetrico), Tipo III (multi-fascio)",
+        "Tipo X (orizzontale), Tipo Y (verticale), Tipo Z (sferico)"
+      ],
+      "explanation": "IES definisce il Tipo A (automobilistico, attorno all'asse orizzontale), Tipo B (proiettore, attorno all'asse verticale/orizzontale) e Tipo C (architettonico, piani C dal nadir)."
+    },
+    "2005": {
+      "text": "Quale tipo fotometrico IES è il più comunemente usato?",
+      "options": [
+        "Tipo A",
+        "Tipo B",
+        "Tipo C",
+        "Tutti ugualmente comuni"
+      ],
+      "explanation": "Il Tipo C è di gran lunga il più comune, utilizzato per praticamente tutta l'illuminazione architettonica e generale. I Tipi A e B sono rari."
+    },
+    "2006": {
+      "text": "Come viene indicata la fotometria assoluta in un file IES?",
+      "options": [],
+      "explanation": "Quando lumens_per_lamp è impostato a -1, il file IES utilizza la modalità fotometria assoluta in cui le intensità sono espresse in candele effettive."
+    },
+    "2007": {
+      "text": "In quale unità sono memorizzati i valori di intensità IES per impostazione predefinita?",
+      "options": [
+        "cd/klm",
+        "Candele (cd)",
+        "Lumen (lm)",
+        "cd/m²"
+      ],
+      "explanation": "I file IES memorizzano i valori di intensità in candele (cd). Questo differisce da EULUMDAT che utilizza cd/klm."
+    },
+    "2008": {
+      "text": "Quante versioni del formato di file IES esistono?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "explanation": "Esistono 4 versioni: LM-63-1991, LM-63-1995, LM-63-2002 e LM-63-2019."
+    },
+    "2009": {
+      "text": "Cosa specifica la parola chiave TILT in un file IES?",
+      "options": [
+        "L'angolo di montaggio dell'apparecchio",
+        "Fattori moltiplicativi per posizioni inclinate dell'apparecchio",
+        "L'inclinazione del centro fotometrico",
+        "L'angolo della lampada all'interno dell'apparecchio"
+      ],
+      "explanation": "TILT specifica i fattori moltiplicativi per regolare i valori in candele quando l'apparecchio è inclinato rispetto alla posizione predefinita. TILT=NONE significa che non è necessario alcun aggiustamento."
+    },
+    "2010": {
+      "text": "Quale estensione di file utilizzano i file IES?",
+      "options": [
+        ".ldt",
+        ".ies",
+        ".pho",
+        ".dat"
+      ],
+      "explanation": "I file IES utilizzano l'estensione .ies."
+    },
+    "2011": {
+      "text": "Cosa significa il codice tipo di generazione file '1' in un file IES?",
+      "options": [
+        "Fotometria generata al computer",
+        "Fotometria testata presso un laboratorio indipendente",
+        "Fotometria misurata sul campo",
+        "Valori stimati dal produttore"
+      ],
+      "explanation": "Il tipo di generazione file 1 indica fotometria testata presso un laboratorio di prova indipendente, la più alta designazione di qualità."
+    },
+    "2012": {
+      "text": "Quale parola chiave in un file IES identifica il produttore dell'apparecchio?",
+      "options": [],
+      "explanation": "La parola chiave [MANUFAC] identifica il produttore dell'apparecchio nei file IES."
+    },
+    "3001": {
+      "text": "Quanti tipi di simmetria sono definiti nel formato EULUMDAT?",
+      "options": [
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "explanation": "EULUMDAT definisce 5 tipi di simmetria: Isym 0 (nessuna), 1 (asse verticale), 2 (piano C0-C180), 3 (piano C90-C270), 4 (entrambi i piani)."
+    },
+    "3002": {
+      "text": "Quale tipo di apparecchio ha tipicamente simmetria rotazionale (Isym=1)?",
+      "options": [
+        "Fluorescente lineare",
+        "Downlight rotondo",
+        "Lampione stradale",
+        "Illuminatore a parete (wall washer)"
+      ],
+      "explanation": "I downlight rotondi e le sorgenti puntiformi con apertura circolare hanno tipicamente simmetria rotazionale — la loro distribuzione luminosa è identica in tutti i piani C."
+    },
+    "3003": {
+      "text": "Quanti piani C vengono memorizzati per la simmetria VerticalAxis (Isym=1)?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "4"
+      ],
+      "explanation": "Isym=1 (simmetria rotazionale) memorizza solo 1 piano C poiché la distribuzione è identica in tutte le direzioni."
+    },
+    "3004": {
+      "text": "Cosa memorizza la simmetria BothPlanes (Isym=4)?",
+      "options": [
+        "Dati completi a 360°",
+        "Metà dei dati (0-180°)",
+        "Un quarto dei dati (0-90°)",
+        "Solo i piani 0° e 90°"
+      ],
+      "explanation": "Isym=4 memorizza un quarto dei dati (piani C da 0° a 90°). I dati rimanenti vengono generati per specularità attraverso entrambi i piani C0-C180 e C90-C270."
+    },
+    "3005": {
+      "text": "Per la simmetria PlaneC0C180 (Isym=2), quale intervallo di piani C viene memorizzato?",
+      "options": [
+        "Da 0° a 90°",
+        "Da 0° a 180°",
+        "Da 0° a 270°",
+        "Da 0° a 360°"
+      ],
+      "explanation": "Isym=2 memorizza i piani C da 0° a 180°. I dati per 180°-360° vengono ottenuti per specularità dalla metà memorizzata."
+    },
+    "3006": {
+      "text": "È possibile interrogare l'intensità a C=270° con simmetria BothPlanes (Isym=4)?",
+      "options": [
+        "No, è disponibile solo 0-90°",
+        "Sì, tramite specularità automatica che espande a 360° completi",
+        "Solo se l'interpolazione è abilitata",
+        "Solo per angoli gamma inferiori a 90°"
+      ],
+      "explanation": "L'algoritmo di espansione della simmetria specchia automaticamente i dati del quarto per generare la distribuzione completa a 360°. C=270° viene mappato su C=90° tramite lo specchio C90-C270."
+    },
+    "3007": {
+      "text": "Qual è il rapporto approssimativo di compressione dati per VerticalAxis (Isym=1) rispetto a dati completi a 360° con risoluzione di 1°?",
+      "options": [
+        "2:1",
+        "90:1",
+        "180:1",
+        "360:1"
+      ],
+      "explanation": "Con risoluzione di 1°, i dati completi hanno 361 piani C mentre Isym=1 ne memorizza solo 1. Questo corrisponde approssimativamente a un rapporto di compressione di 360:1."
+    },
+    "3008": {
+      "text": "Cosa significa Isym=0 (nessuna simmetria)?",
+      "options": [
+        "L'apparecchio è perfettamente simmetrico",
+        "Vengono memorizzati i dati fotometrici completi a 360°",
+        "Non sono disponibili dati fotometrici",
+        "Viene misurato un solo piano C"
+      ],
+      "explanation": "Isym=0 significa che non viene fatta alcuna assunzione di simmetria, quindi il file memorizza la distribuzione completa a 360° con tutti i piani C misurati."
+    },
+    "3009": {
+      "text": "Quale tipo di simmetria è più comune per gli apparecchi fluorescenti lineari?",
+      "options": [
+        "Isym=0 (nessuna)",
+        "Isym=1 (asse verticale)",
+        "Isym=2 (piano C0-C180)",
+        "Isym=4 (entrambi i piani)"
+      ],
+      "explanation": "Gli apparecchi fluorescenti lineari hanno tipicamente simmetria rispetto sia al piano longitudinale (C0-C180) che al piano trasversale (C90-C270), rendendo Isym=4 il più comune."
+    },
+    "3010": {
+      "text": "Nella conversione da IES a EULUMDAT, come viene mappata la simmetria laterale IES?",
+      "options": [
+        "Si mappa direttamente su Isym=2",
+        "Non esiste una mappatura equivalente",
+        "I tipi di simmetria IES si mappano sui valori Isym in base agli intervalli dei piani C",
+        "I file IES non supportano la simmetria"
+      ],
+      "explanation": "La simmetria laterale IES (piani C da 0° a 180°) si mappa su Isym=2. La simmetria quadrilaterale IES (0°-90°) si mappa su Isym=4. La distribuzione completa si mappa su Isym=0."
+    },
+    "4001": {
+      "text": "Cosa rappresenta gamma = 0° nei sistemi di coordinate fotometriche?",
+      "options": [
+        "Zenit (verso l'alto)",
+        "Nadir (verso il basso)",
+        "Orizzontale",
+        "Fronte dell'apparecchio"
+      ],
+      "explanation": "Gamma = 0° è il nadir, cioè direttamente verso il basso dall'apparecchio. Questa è la direzione di riferimento per la fotometria di Tipo C."
+    },
+    "4002": {
+      "text": "Cosa rappresenta gamma = 90°?",
+      "options": [
+        "Nadir",
+        "Zenit",
+        "Orizzontale",
+        "45° sotto l'orizzontale"
+      ],
+      "explanation": "Gamma = 90° è il piano orizzontale, perpendicolare all'asse verticale dell'apparecchio."
+    },
+    "4003": {
+      "text": "Cosa rappresenta C = 0°?",
+      "options": [
+        "Lato sinistro dell'apparecchio",
+        "Lato destro dell'apparecchio",
+        "Fronte dell'apparecchio",
+        "Parte superiore dell'apparecchio"
+      ],
+      "explanation": "C = 0° è definito come la parte frontale dell'apparecchio. I piani C ruotano attorno all'asse verticale: C90° è a destra, C180° è dietro, C270° è a sinistra."
+    },
+    "4004": {
+      "text": "Qual è l'angolo gamma allo zenit (direttamente verso l'alto)?",
+      "options": [
+        "0°",
+        "90°",
+        "180°",
+        "270°"
+      ],
+      "explanation": "Gamma = 180° è lo zenit (direttamente verso l'alto). L'angolo gamma è misurato dal nadir (0°) attraverso l'orizzontale (90°) fino allo zenit (180°)."
+    },
+    "4005": {
+      "text": "Nella fotometria di Tipo C, in quale direzione punta C = 180°?",
+      "options": [
+        "Fronte",
+        "Lato destro",
+        "Retro",
+        "Lato sinistro"
+      ],
+      "explanation": "C = 180° punta verso il retro dell'apparecchio. Il sistema dei piani C è: 0° fronte, 90° destra, 180° retro, 270° sinistra."
+    },
+    "4006": {
+      "text": "Quale tipo fotometrico utilizza angoli orizzontali e verticali invece di piani C e gamma?",
+      "options": [
+        "Tipo A",
+        "Tipo B",
+        "Tipo C",
+        "Sia A che B"
+      ],
+      "explanation": "La fotometria di Tipo B utilizza angoli orizzontali (H) e verticali (V), comunemente per i proiettori. Il Tipo C utilizza angoli di piano C e gamma."
+    },
+    "4007": {
+      "text": "Quale trasformazione converte gli angoli Tipo B (H,V) in Tipo C (C,γ)?",
+      "options": [
+        "C = H, γ = V (mappatura diretta)",
+        "γ = arccos(cos(V)·cos(H)), C = atan2(sin(H), sin(V)·cos(H))",
+        "C = V + 90°, γ = H",
+        "Non esiste alcuna conversione matematica"
+      ],
+      "explanation": "La conversione utilizza la trigonometria sferica: γ = arccos(cos(V)·cos(H)) e C = atan2(sin(H), sin(V)·cos(H))."
+    },
+    "4008": {
+      "text": "Cos'è il 'centro fotometrico' di un apparecchio?",
+      "options": [
+        "Il centro geometrico dell'involucro",
+        "Il punto dal quale vengono misurati gli angoli fotometrici",
+        "Il punto più luminoso sulla superficie dell'apparecchio",
+        "Il centro della sorgente luminosa (lampada)"
+      ],
+      "explanation": "Il centro fotometrico è il punto di origine dal quale vengono riferite tutte le misurazioni angolari (piano C e gamma). Può differire dal centro geometrico."
+    },
+    "4009": {
+      "text": "Quanti gradi compongono una rotazione completa attorno ai piani C?",
+      "options": [
+        "90°",
+        "180°",
+        "270°",
+        "360°"
+      ],
+      "explanation": "I piani C formano una rotazione completa di 360° attorno all'asse verticale dell'apparecchio."
+    },
+    "4010": {
+      "text": "Qual è l'intervallo tipico dell'angolo gamma per un downlight?",
+      "options": [
+        "Da 0° a 90°",
+        "Da 0° a 180°",
+        "Da 90° a 180°",
+        "Da 0° a 360°"
+      ],
+      "explanation": "I downlight emettono luce principalmente nell'emisfero inferiore (da 0° a 90° dal nadir), quindi i loro dati significativi di intensità sono in questo intervallo gamma."
+    },
+    "5001": {
+      "text": "Cosa significa LOR?",
+      "options": [
+        "Light Output Ratio (Rapporto di Emissione Luminosa)",
+        "Luminous Optical Rating",
+        "Light Operating Range",
+        "Lamp Output Rating"
+      ],
+      "explanation": "LOR (Light Output Ratio) è il rapporto tra il flusso luminoso totale emesso dall'apparecchio e il flusso totale emesso dalla/e lampada/e."
+    },
+    "5002": {
+      "text": "In quale unità si misura l'efficienza luminosa?",
+      "options": [
+        "cd/m²",
+        "lm/W (lumen per watt)",
+        "W/m²",
+        "cd/klm"
+      ],
+      "explanation": "L'efficienza luminosa misura quanto efficacemente una sorgente luminosa converte la potenza elettrica in luce visibile, in lumen per watt (lm/W)."
+    },
+    "5003": {
+      "text": "Cosa significa DFF?",
+      "options": [
+        "Direct Flux Fraction",
+        "Downward Flux Fraction (Frazione di Flusso verso il Basso)",
+        "Diffuse Field Factor",
+        "Directional Flux Factor"
+      ],
+      "explanation": "DFF (Downward Flux Fraction) è la percentuale del flusso totale dell'apparecchio emessa al di sotto del piano orizzontale."
+    },
+    "5004": {
+      "text": "Qual è la definizione IES dell'angolo di fascio?",
+      "options": [
+        "Angolo in cui l'intensità scende al 10% del massimo",
+        "Angolo completo in cui l'intensità ≥ 50% del massimo",
+        "Semi-angolo in cui l'intensità è uguale al centro del fascio",
+        "Angolo contenente il 90% del flusso totale"
+      ],
+      "explanation": "L'angolo di fascio IES è l'angolo completo tra le due direzioni in cui l'intensità scende al 50% del valore massimo di intensità."
+    },
+    "5005": {
+      "text": "Come differisce la definizione CIE dell'angolo di fascio da quella IES?",
+      "options": [
+        "CIE usa la soglia del 10% invece del 50%",
+        "CIE fa riferimento all'intensità del centro del fascio invece del massimo",
+        "CIE usa il semi-angolo invece dell'angolo completo",
+        "Non c'è differenza"
+      ],
+      "explanation": "L'angolo di fascio CIE utilizza il 50% dell'intensità del centro del fascio (nadir/C0/γ0), mentre IES utilizza il 50% dell'intensità massima. Differiscono per distribuzioni batwing dove il massimo ≠ centro."
+    },
+    "5006": {
+      "text": "Quale soglia di intensità definisce l'angolo di campo?",
+      "options": [
+        "50% del massimo",
+        "25% del massimo",
+        "10% del massimo",
+        "5% del massimo"
+      ],
+      "explanation": "L'angolo di campo è l'angolo completo in cui l'intensità scende al 10% dell'intensità massima (IES) o del centro del fascio (CIE)."
+    },
+    "5007": {
+      "text": "Gli angoli di fascio e di campo sono semi-angoli o angoli completi?",
+      "options": [
+        "Semi-angoli",
+        "Angoli completi",
+        "Dipende dalla norma",
+        "Quarti d'angolo"
+      ],
+      "explanation": "Secondo la CIE S 017:2020, sia l'angolo di fascio che l'angolo di campo sono angoli completi (l'angolo totale del cono, non la metà). Un 'angolo di fascio di 30°' significa ±15° dal centro."
+    },
+    "5008": {
+      "text": "Cosa significa DLOR?",
+      "options": [
+        "Direct Light Output Ratio",
+        "Downward Light Output Ratio (Rapporto di Emissione Luminosa verso il Basso)",
+        "Distributed Luminous Output Rating",
+        "Differential Light Output Ratio"
+      ],
+      "explanation": "DLOR (Downward Light Output Ratio) è il rapporto tra il flusso luminoso verso il basso dall'apparecchio e il flusso totale della lampada. DLOR = LOR × DFF."
+    },
+    "5009": {
+      "text": "Cosa sono i codici di flusso CIE da N1 a N5?",
+      "options": [
+        "N1=efficienza, N2=CRI, N3=CCT, N4=angolo di fascio, N5=angolo di campo",
+        "N1=DLOR, N2=flusso 0-60°, N3=flusso 0-40°, N4=ULOR, N5=flusso 90-120°",
+        "N1=flusso totale, N2=cd di picco, N3=cd medio, N4=cd minimo, N5=uniformità",
+        "N1=rosso, N2=verde, N3=blu, N4=bianco, N5=ambra percentuali"
+      ],
+      "explanation": "Codici di flusso CIE: N1=DLOR (0-90°), N2=flusso nella zona 0-60°, N3=flusso nella zona 0-40°, N4=ULOR (90-180°), N5=flusso nella zona 90-120°."
+    },
+    "5010": {
+      "text": "Quali sono i 10 indici di locale standard utilizzati per le tabelle CU (Coefficiente di Utilizzazione)?",
+      "options": [
+        "1, 2, 3, 4, 5, 6, 7, 8, 9, 10",
+        "0,60, 0,80, 1,00, 1,25, 1,50, 2,00, 2,50, 3,00, 4,00, 5,00",
+        "0,5, 1,0, 1,5, 2,0, 2,5, 3,0, 3,5, 4,0, 4,5, 5,0",
+        "0,1, 0,2, 0,3, 0,4, 0,5, 0,6, 0,7, 0,8, 0,9, 1,0"
+      ],
+      "explanation": "I valori standard dell'indice di locale (k) sono: 0,60, 0,80, 1,00, 1,25, 1,50, 2,00, 2,50, 3,00, 4,00, 5,00."
+    },
+    "5011": {
+      "text": "In quale unità si misura il flusso luminoso?",
+      "options": [
+        "Candele (cd)",
+        "Lumen (lm)",
+        "Lux (lx)",
+        "Watt (W)"
+      ],
+      "explanation": "Il flusso luminoso si misura in lumen (lm), che rappresenta la quantità totale di luce visibile emessa da una sorgente."
+    },
+    "5012": {
+      "text": "Come è correlata l'intensità luminosa al flusso luminoso?",
+      "options": [
+        "Intensità = Flusso × Area",
+        "Intensità = Flusso / Angolo solido (cd = lm/sr)",
+        "Intensità = Flusso × Distanza²",
+        "Sono grandezze indipendenti"
+      ],
+      "explanation": "L'intensità luminosa (cd) = flusso luminoso (lm) per unità di angolo solido (sr). Una candela equivale a un lumen per steradiante."
+    },
+    "5013": {
+      "text": "A cosa serve il criterio di spaziatura (rapporto S/H)?",
+      "options": [
+        "Calcolo dell'apertura del fascio",
+        "Determinazione della spaziatura massima degli apparecchi per un'illuminazione uniforme",
+        "Misura delle dimensioni del portalampada",
+        "Definizione degli intervalli di manutenzione"
+      ],
+      "explanation": "Il criterio di spaziatura (S/H = Spaziatura / Altezza di montaggio) determina la distanza massima tra gli apparecchi per ottenere un'uniformità di illuminamento accettabile."
+    },
+    "5014": {
+      "text": "Quando gli angoli di fascio IES e CIE differiscono significativamente?",
+      "options": [
+        "Per faretti a fascio stretto",
+        "Per distribuzioni batwing dove l'intensità al centro del fascio < intensità massima",
+        "Per apparecchi a luce indiretta verso l'alto",
+        "Non differiscono mai significativamente"
+      ],
+      "explanation": "Per le distribuzioni batwing, l'intensità massima si verifica fuori asse (non al centro/nadir), quindi il 50% del massimo ≠ 50% del centro del fascio, dando angoli di fascio diversi."
+    },
+    "5015": {
+      "text": "Cos'è la legge dell'inverso del quadrato in fotometria?",
+      "options": [
+        "Illuminamento = Intensità / Distanza²",
+        "Intensità = Flusso × Distanza²",
+        "Flusso = Illuminamento × Distanza",
+        "Illuminamento = Flusso / Area²"
+      ],
+      "explanation": "La legge dell'inverso del quadrato afferma che l'illuminamento (E) = intensità luminosa (I) / distanza² (d²). Raddoppiando la distanza si riduce l'illuminamento di 4 volte."
+    },
+    "6001": {
+      "text": "Cosa significa BUG nell'illuminazione?",
+      "options": [
+        "Brightness Under Glass",
+        "Backlight, Uplight, Glare (Retroilluminazione, Luce verso l'Alto, Abbagliamento)",
+        "Beam Uniformity Grade",
+        "Brightness Utilization Guide"
+      ],
+      "explanation": "BUG sta per Backlight, Uplight, Glare — tre categorie di emissione luminosa indesiderata dagli apparecchi per esterni."
+    },
+    "6002": {
+      "text": "Quale norma definisce le classificazioni BUG?",
+      "options": [
+        "CIE 150:2017",
+        "EN 13201",
+        "IESNA TM-15-11",
+        "IDA 530"
+      ],
+      "explanation": "Le classificazioni BUG sono definite dalla IESNA TM-15-11 (Luminaire Classification System for Outdoor Luminaires)."
+    },
+    "6003": {
+      "text": "Una classificazione BUG più bassa o più alta è migliore per ridurre l'inquinamento luminoso?",
+      "options": [
+        "Più alta è meglio",
+        "Più bassa è meglio (B0-U0-G0 è ottimale)",
+        "Dipende dall'applicazione",
+        "Le classificazioni BUG non riguardano l'inquinamento luminoso"
+      ],
+      "explanation": "Classificazioni BUG inferiori indicano meno luce sprecata/indesiderata. B0-U0-G0 è la classificazione ideale con retroilluminazione, luce verso l'alto e abbagliamento minimi."
+    },
+    "6004": {
+      "text": "Quale intervallo angolare (dal nadir) definisce la zona Uplight?",
+      "options": [
+        "0-30°",
+        "60-80°",
+        "80-90°",
+        "90-180° (sopra l'orizzontale)"
+      ],
+      "explanation": "L'Uplight è tutta la luce emessa sopra il piano orizzontale (gamma 90-180°), suddivisa in UL (90-100°) e UH (100-180°)."
+    },
+    "6005": {
+      "text": "Quale intervallo utilizza la scala BUG per ciascun componente?",
+      "options": [
+        "Da 0 a 3",
+        "Da 0 a 5",
+        "Da 0 a 10",
+        "Da 1 a 5"
+      ],
+      "explanation": "Ciascun componente BUG (B, U, G) è classificato su una scala da 0 a 5, dove 0 è il migliore (meno inquinamento) e 5 è il peggiore."
+    },
+    "6006": {
+      "text": "Quali programmi di conformità utilizzano le classificazioni BUG?",
+      "options": [
+        "Solo IDA Dark Sky",
+        "IDA/IES MLO, LEED v4, California Title 24",
+        "Solo certificazione LEED",
+        "Solo norme europee EN"
+      ],
+      "explanation": "Le classificazioni BUG sono utilizzate da IDA/IES Model Lighting Ordinance (MLO), credito LEED v4 per la Riduzione dell'Inquinamento Luminoso e California Title 24."
+    },
+    "6007": {
+      "text": "Qual è la soglia in lumen per U0 (classificazione zero uplight)?",
+      "options": [
+        "< 10 lumen",
+        "< 1 lumen",
+        "0 lumen in entrambe le zone UL e UH",
+        "< 50 lumen di uplight totale"
+      ],
+      "explanation": "U0 richiede esattamente 0 lumen in entrambe le zone UL (90-100°) e UH (100-180°) — nessun uplight in assoluto."
+    },
+    "6008": {
+      "text": "Quale intervallo di angolo gamma definisce 'Backlight Very High' (BVH)?",
+      "options": [
+        "60-70° dal nadir",
+        "70-80° dal nadir",
+        "80-90° dal nadir",
+        "90-100° dal nadir"
+      ],
+      "explanation": "BVH (Backlight Very High) è la zona 80-90° dal nadir, che rappresenta l'emissione luminosa quasi orizzontale dietro l'apparecchio."
+    },
+    "6009": {
+      "text": "Quante zone angolari vengono utilizzate nel sistema di classificazione BUG?",
+      "options": [
+        "3",
+        "5",
+        "8",
+        "12"
+      ],
+      "explanation": "Il sistema BUG divide l'emisfero in 8 zone: FH, FVH, FL, FM (avanti), BH, BVH, BL, BM (dietro), più UL e UH (uplight)."
+    },
+    "6010": {
+      "text": "Qual è il requisito massimo di uplight per il 'Fixture Seal of Approval' IDA?",
+      "options": [
+        "U0 (zero uplight)",
+        "U1 (uplight minimo)",
+        "U2 o inferiore",
+        "Nessun requisito di uplight"
+      ],
+      "explanation": "Il Fixture Seal of Approval dell'International Dark-Sky Association (IDA) richiede U0 — assolutamente zero emissione verso l'alto."
+    },
+    "6011": {
+      "text": "Perché le classificazioni BUG sono importanti per l'illuminazione esterna?",
+      "options": [
+        "Misurano l'efficienza energetica",
+        "Quantificano l'impatto dell'inquinamento luminoso e contribuiscono a ridurre il bagliore del cielo",
+        "Valutano la resistenza alle intemperie dell'apparecchio",
+        "Misurano la qualità cromatica della luce"
+      ],
+      "explanation": "Le classificazioni BUG quantificano la luce sprecata (retroilluminazione, uplight, abbagliamento), direttamente correlata all'inquinamento luminoso, al bagliore del cielo e all'intrusione luminosa."
+    },
+    "6012": {
+      "text": "Cosa misura il componente Glare (G) nel BUG?",
+      "options": [
+        "Flusso totale dell'apparecchio",
+        "Intensità luminosa ad angolo elevato che causa abbagliamento debilitante o di disagio",
+        "Luce riflessa dal suolo",
+        "La temperatura di colore della sorgente luminosa"
+      ],
+      "explanation": "La classificazione G misura l'intensità nelle zone frontali ad angolo elevato (FH: 60-80° e FVH: 80-90°) che possono causare abbagliamento per conducenti e pedoni."
+    },
+    "7001": {
+      "text": "Cosa significa UGR?",
+      "options": [
+        "Universal Glare Rating",
+        "Unified Glare Rating (Indice Unificato di Abbagliamento)",
+        "Uniform Glare Ratio",
+        "Unit Glare Reference"
+      ],
+      "explanation": "UGR sta per Unified Glare Rating, una misura dell'abbagliamento di disagio degli apparecchi in ambienti interni."
+    },
+    "7002": {
+      "text": "Un valore UGR più alto o più basso è auspicabile?",
+      "options": [
+        "Più alto è meglio",
+        "Più basso è meglio (meno abbagliamento)",
+        "UGR = 19 è sempre ottimale",
+        "Dipende dalle dimensioni del locale"
+      ],
+      "explanation": "Valori UGR più bassi indicano meno abbagliamento di disagio. Limiti tipici: uffici ≤19, corridoi ≤25, lavoro di dettaglio ≤16."
+    },
+    "7003": {
+      "text": "Qual è il limite UGR tipico per gli ambienti ufficio?",
+      "options": [
+        "≤ 13",
+        "≤ 16",
+        "≤ 19",
+        "≤ 25"
+      ],
+      "explanation": "La EN 12464-1 specifica UGR ≤ 19 per uffici generici. Compiti più impegnativi come il disegno tecnico richiedono ≤ 16."
+    },
+    "7004": {
+      "text": "Quali fattori considera la formula UGR?",
+      "options": [
+        "Solo luminanza dell'apparecchio e riflettanze del locale",
+        "Luminanza dell'apparecchio, angolo solido, indice di posizione e luminanza di sfondo",
+        "Solo l'angolo di fascio e l'altezza di montaggio",
+        "Solo il flusso luminoso totale e le dimensioni del locale"
+      ],
+      "explanation": "UGR = 8 × log₁₀((0,25/Lₕ) × Σ(L²×ω/p²)) — considerando la luminanza dell'apparecchio (L), l'angolo solido (ω), l'indice di posizione (p) e la luminanza di sfondo (Lₕ)."
+    },
+    "7005": {
+      "text": "Qual è la formula UGR?",
+      "options": [
+        "UGR = L × ω / p",
+        "UGR = 8 × log₁₀((0,25/Lₕ) × Σ(L²×ω/p²))",
+        "UGR = 10 × log₁₀(L/Lₕ)",
+        "UGR = (L × A) / (d² × p)"
+      ],
+      "explanation": "La formula UGR è UGR = 8 × log₁₀((0,25/Lₕ) × Σ(L²×ω/p²)), dove Lₕ è la luminanza di sfondo, L è la luminanza della sorgente, ω è l'angolo solido e p è l'indice di posizione."
+    },
+    "7006": {
+      "text": "Quali dimensioni standard del locale vengono utilizzate per il calcolo delle tabelle UGR?",
+      "options": [
+        "Sempre 3m × 3m × 3m",
+        "Rapporti X/Y standardizzati con altezza di montaggio, secondo CIE 190:2010",
+        "Qualsiasi dimensione del locale specificata dal progettista",
+        "Solo 10m × 10m × 3m"
+      ],
+      "explanation": "La CIE 190:2010 definisce le dimensioni standard del locale come rapporti X/H e Y/H (dimensioni del locale rispetto all'altezza di montaggio) per la generazione delle tabelle UGR."
+    },
+    "7007": {
+      "text": "Cosa rappresenta l''indice di posizione' (p) nella formula UGR?",
+      "options": [
+        "La posizione dell'apparecchio nella griglia del soffitto",
+        "Lo spostamento dell'apparecchio dalla linea di vista dell'osservatore",
+        "L'altezza dell'apparecchio sopra il pavimento",
+        "La distanza tra apparecchi adiacenti"
+      ],
+      "explanation": "L'indice di posizione tiene conto di quanto la sorgente di abbagliamento è spostata dalla linea di vista diretta dell'osservatore. Le sorgenti direttamente davanti hanno valori p più bassi (più abbagliamento)."
+    },
+    "7008": {
+      "text": "Quale norma definisce l'UGR?",
+      "options": [
+        "CIE 117:1995",
+        "IESNA TM-15-11",
+        "EN 13201",
+        "ISO 8995"
+      ],
+      "explanation": "L'UGR è stato definito dal Rapporto Tecnico CIE 117:1995 'Discomfort Glare in Interior Lighting'."
+    },
+    "7009": {
+      "text": "Qual è il passo UGR utilizzato nelle specifiche standard?",
+      "options": [
+        "1 unità",
+        "2 unità",
+        "3 unità",
+        "5 unità"
+      ],
+      "explanation": "I valori UGR sono specificati a passi di 3: 10, 13, 16, 19, 22, 25, 28. Una variazione di 3 unità è considerata la differenza minima percepibile."
+    },
+    "7010": {
+      "text": "Quale limite UGR è tipico per corridoi e disimpegni?",
+      "options": [
+        "≤ 16",
+        "≤ 19",
+        "≤ 22",
+        "≤ 25"
+      ],
+      "explanation": "I corridoi e le aree di circolazione hanno un limite UGR più permissivo di ≤25 poiché le persone sono in movimento anziché svolgere compiti visivi prolungati."
+    },
+    "8001": {
+      "text": "In quale unità si misura la temperatura di colore?",
+      "options": [
+        "Celsius (°C)",
+        "Kelvin (K)",
+        "Fahrenheit (°F)",
+        "Nanometri (nm)"
+      ],
+      "explanation": "La temperatura di colore correlata (CCT) si misura in Kelvin (K)."
+    },
+    "8002": {
+      "text": "2700K è considerata luce calda o fredda?",
+      "options": [
+        "Fredda (bluastra)",
+        "Calda (giallastra/tipo incandescente)",
+        "Neutra",
+        "Luce diurna"
+      ],
+      "explanation": "2700K è bianco caldo, simile alle tradizionali lampadine a incandescenza. Kelvin più bassi = colore più caldo. 5000K+ = fredda/luce diurna."
+    },
+    "8003": {
+      "text": "Cosa significa CRI?",
+      "options": [
+        "Color Rendering Index (Indice di Resa Cromatica)",
+        "Chromatic Reference Indicator",
+        "Color Reproduction Intensity",
+        "Calibrated Rendering Instrument"
+      ],
+      "explanation": "CRI (Color Rendering Index, Indice di Resa Cromatica) misura quanto accuratamente una sorgente luminosa rende i colori rispetto a un illuminante di riferimento."
+    },
+    "8004": {
+      "text": "Quale gruppo CRI in EULUMDAT ha Ra ≥ 90?",
+      "options": [
+        "Gruppo 1A",
+        "Gruppo 1B",
+        "Gruppo 2A",
+        "Gruppo 3"
+      ],
+      "explanation": "Il Gruppo CRI 1A rappresenta Ra ≥ 90, la massima qualità di resa cromatica. 1B = 80-89, 2A = 70-79, 2B = 60-69."
+    },
+    "8005": {
+      "text": "Cosa misura il TM-30 Rf?",
+      "options": [
+        "Precisione della temperatura di colore",
+        "Fedeltà (accuratezza cromatica, 0-100)",
+        "Gamut (saturazione cromatica)",
+        "Frequenza di sfarfallio"
+      ],
+      "explanation": "Il TM-30 Rf (Indice di Fedeltà) misura l'accuratezza cromatica su una scala da 0 a 100, simile al CRI Ra ma utilizzando 99 campioni di valutazione del colore invece di 8."
+    },
+    "8006": {
+      "text": "Cosa misura il TM-30 Rg?",
+      "options": [
+        "Fedeltà cromatica",
+        "Gamut (saturazione cromatica, 60-140, 100=riferimento)",
+        "Indice di abbagliamento",
+        "Emissione di luce verde"
+      ],
+      "explanation": "Il TM-30 Rg (Indice di Gamut) misura la saturazione cromatica: 100 = uguale al riferimento, >100 = saturazione aumentata, <100 = desaturato."
+    },
+    "8007": {
+      "text": "Cosa significa un valore Duv positivo?",
+      "options": [
+        "Tonalità rosata (sotto il luogo planckiano)",
+        "Tonalità verdastra (sopra il luogo planckiano)",
+        "Luce bianca perfetta",
+        "Valore CRI elevato"
+      ],
+      "explanation": "Un Duv positivo indica che la cromaticità è sopra il luogo planckiano (corpo nero), dando una tonalità verdastra. Duv negativo = tonalità rosata."
+    },
+    "8008": {
+      "text": "Perché R9 (resa del rosso profondo) viene riportato separatamente dal CRI Ra?",
+      "options": [
+        "R9 non fa parte dello standard CRI",
+        "La resa del rosso profondo è critica ma viene mediata nel calcolo del Ra",
+        "R9 misura una proprietà fisica diversa",
+        "R9 è rilevante solo per l'illuminazione orticola"
+      ],
+      "explanation": "Il CRI Ra media 8 colori campione pastello (R1-R8). Il rosso profondo (R9) è critico per i toni della pelle, gli alimenti e l'arte, ma viene mediato. Molti LED hanno un R9 scarso nonostante un Ra elevato."
+    },
+    "8009": {
+      "text": "Quale intervallo di CCT è considerato 'bianco neutro'?",
+      "options": [
+        "2200-2700K",
+        "3000-3500K",
+        "3500-4500K",
+        "5000-6500K"
+      ],
+      "explanation": "Il bianco neutro è approssimativamente 3500-4500K. Sotto 3500K è bianco caldo, sopra 4500-5000K è bianco freddo/luce diurna."
+    },
+    "8010": {
+      "text": "Qual è il valore massimo raggiungibile di CRI (Ra)?",
+      "options": [
+        "95",
+        "99",
+        "100",
+        "Non c'è un massimo"
+      ],
+      "explanation": "Il CRI Ra va da 0 a 100, dove 100 significa resa cromatica perfetta identica all'illuminante di riferimento."
+    },
+    "8011": {
+      "text": "Quale CCT approssimativa ha la luce diurna tipica?",
+      "options": [
+        "2700K",
+        "3500K",
+        "5600K",
+        "8000K"
+      ],
+      "explanation": "La luce diurna standard (illuminante CIE D55/D65) ha una CCT di circa 5500-6500K."
+    },
+    "8012": {
+      "text": "Cosa significa SPD nella scienza del colore?",
+      "options": [
+        "Standard Power Distribution",
+        "Spectral Power Distribution (Distribuzione Spettrale di Potenza)",
+        "Source Power Density",
+        "Spectral Photometric Data"
+      ],
+      "explanation": "SPD (Spectral Power Distribution) descrive la potenza emessa da una sorgente luminosa a ciascuna lunghezza d'onda nello spettro visibile."
+    },
+    "9001": {
+      "text": "Quale intervallo di lunghezze d'onda definisce il PAR (Radiazione Fotosinteticamente Attiva)?",
+      "options": [
+        "200-400nm",
+        "400-700nm",
+        "300-800nm",
+        "500-600nm"
+      ],
+      "explanation": "Il PAR è definito come la radiazione nell'intervallo di lunghezze d'onda 400-700nm, che le piante utilizzano per la fotosintesi."
+    },
+    "9002": {
+      "text": "In quale unità si misura il PPFD?",
+      "options": [
+        "lm/m²",
+        "W/m²",
+        "µmol/(m²·s)",
+        "cd/m²"
+      ],
+      "explanation": "Il PPFD (Photosynthetic Photon Flux Density) si misura in micromoli per metro quadrato per secondo (µmol/m²/s)."
+    },
+    "9003": {
+      "text": "Cosa significa PPF?",
+      "options": [
+        "Photometric Power Factor",
+        "Photosynthetic Photon Flux (Flusso Fotonico Fotosintetico)",
+        "Peak Power Frequency",
+        "Plant Protection Factor"
+      ],
+      "explanation": "PPF (Photosynthetic Photon Flux) misura il numero totale di fotoni nell'intervallo 400-700nm emessi al secondo, in µmol/s."
+    },
+    "9004": {
+      "text": "Quale zona spettrale (intervallo di lunghezze d'onda) promuove principalmente la fioritura nelle piante?",
+      "options": [
+        "Blu (400-500nm)",
+        "Verde (500-600nm)",
+        "Rosso (600-700nm)",
+        "Rosso lontano (700-800nm)"
+      ],
+      "explanation": "La luce rossa (600-700nm) è il principale motore della fotosintesi e della fioritura. La clorofilla a ha il picco di assorbimento intorno a 660nm."
+    },
+    "9005": {
+      "text": "Cosa controlla il rapporto R:FR (Rosso/Rosso Lontano) nelle piante?",
+      "options": [
+        "Colore delle foglie (verde vs rosso)",
+        "Morfologia — alto R:FR = compatto, basso R:FR = allungato",
+        "Velocità di crescita delle radici",
+        "Contenuto di zucchero nei frutti"
+      ],
+      "explanation": "Il rapporto R:FR controlla la risposta del fitocromo: un R:FR alto promuove la crescita compatta, un R:FR basso innesca l'evitamento dell'ombra (allungamento, riduzione della ramificazione)."
+    },
+    "9006": {
+      "text": "Cos'è il DLI e quali sono i valori tipici per le piantine?",
+      "options": [
+        "Daily Light Integral, 0,5-1 mol/m²/giorno",
+        "Daily Light Integral, 3-6 mol/m²/giorno",
+        "Intensità Luminosa Diretta, 100-200 lux",
+        "Indice di Luminanza Diurna, 50-100 cd/m²"
+      ],
+      "explanation": "Il DLI (Daily Light Integral) è la luce fotosintetica totale ricevuta al giorno, in mol/m²/giorno. Le piantine necessitano di 3-6, le piante in fioritura di 14-25."
+    },
+    "9007": {
+      "text": "Cosa promuove principalmente la luce blu (400-500nm) nelle piante?",
+      "options": [
+        "Fioritura e fruttificazione",
+        "Sviluppo radicale",
+        "Crescita vegetativa, espansione fogliare e apertura stomatica",
+        "Germinazione dei semi"
+      ],
+      "explanation": "La luce blu promuove la crescita vegetativa, l'espansione fogliare, l'apertura stomatica e il fototropismo (crescita direzionale verso la luce)."
+    },
+    "9008": {
+      "text": "Qual è l'unità di efficienza fotonica utilizzata per classificare gli apparecchi per orticoltura?",
+      "options": [
+        "lm/W",
+        "µmol/J (µmol/s per watt)",
+        "W/nm",
+        "cd/W"
+      ],
+      "explanation": "L'efficienza degli apparecchi per orticoltura si misura in µmol/J (micromoli per joule), o equivalentemente µmol/s per watt. I migliori LED raggiungono oltre 3,0 µmol/J."
+    },
+    "9009": {
+      "text": "Perché i lumen standard (lm) non possono essere utilizzati per misurare la luce orticola?",
+      "options": [
+        "I lumen sono troppo imprecisi",
+        "I lumen pesano la risposta visiva umana, non la risposta fotosintetica",
+        "I lumen non misurano la luce visibile",
+        "Le piante utilizzano solo la luce infrarossa"
+      ],
+      "explanation": "I lumen utilizzano la curva di sensibilità V(λ) dell'occhio umano, che ha il picco a 555nm (verde). Le piante utilizzano tutte le lunghezze d'onda PAR (400-700nm) in modo approssimativamente uguale, quindi il conteggio dei fotoni (µmol) è più rilevante."
+    },
+    "9010": {
+      "text": "Quale ruolo svolge l'UV-A (315-400nm) nell'illuminazione orticola?",
+      "options": [
+        "Nessun effetto sulle piante",
+        "Promuove l'efficienza della fotosintesi",
+        "Stimola metaboliti secondari (flavonoidi, antocianine) per la difesa da parassiti/UV",
+        "Utilizzato principalmente per la sterilizzazione"
+      ],
+      "explanation": "L'UV-A stimola la produzione di metaboliti secondari come flavonoidi e antocianine, che agiscono come protezione UV e deterrenti per i parassiti, e possono migliorare sapore e colore."
+    },
+    "10001": {
+      "text": "Cosa significa BIM?",
+      "options": [
+        "Building Information Modeling (Modellazione delle Informazioni dell'Edificio)",
+        "Built-In Measurement",
+        "Brightness Integration Method",
+        "Beam Intensity Mapping"
+      ],
+      "explanation": "BIM sta per Building Information Modeling, un processo per la creazione e la gestione di rappresentazioni digitali degli edifici."
+    },
+    "10002": {
+      "text": "Quale norma definisce i parametri BIM per i prodotti di illuminazione?",
+      "options": [
+        "ISO 19650",
+        "ANSI/IES TM-32-24",
+        "CIE 117:1995",
+        "EN 12464-1"
+      ],
+      "explanation": "La ANSI/IES TM-32-24 definisce i parametri standard per rappresentare i prodotti di illuminazione negli ambienti BIM."
+    },
+    "10003": {
+      "text": "Quali due forme di involucro definisce il TM-32-24 per la geometria dell'apparecchio?",
+      "options": [
+        "Sfera e cono",
+        "Parallelepipedo e cilindro",
+        "Rettangolo e cerchio",
+        "Scatola e tubo"
+      ],
+      "explanation": "Il TM-32-24 definisce due forme semplificate di involucro: parallelepipedo (scatola rettangolare) e cilindro per la rappresentazione BIM."
+    },
+    "10004": {
+      "text": "Quale sistema identificativo utilizza il TM-32-24 per la classificazione degli apparecchi?",
+      "options": [
+        "Codici a barre UPC",
+        "GUID NEMA (Globally Unique Identifiers)",
+        "Codici prodotto ISO",
+        "Numeri EAN"
+      ],
+      "explanation": "Il TM-32-24 utilizza i GUID NEMA per l'identificazione univoca dei prodotti nei sistemi BIM."
+    },
+    "10005": {
+      "text": "A cosa serve il fattore melanopico nel TM-32-24?",
+      "options": [
+        "Misura della durata della lampada",
+        "Valutazione dell'impatto sul ritmo circadiano (soppressione della melatonina)",
+        "Determinazione della qualità di resa cromatica",
+        "Calcolo dell'efficienza energetica"
+      ],
+      "explanation": "Il fattore melanopico quantifica l'impatto di una sorgente luminosa sul ritmo circadiano misurando il suo potenziale di sopprimere la produzione di melatonina tramite le cellule gangliari retiniche intrinsecamente fotosensibili (ipRGC)."
+    },
+    "10006": {
+      "text": "Quale formato di file utilizza il TM-32-24 per lo scambio dati BIM?",
+      "options": [
+        "JSON",
+        "XML",
+        "CSV",
+        "IFC"
+      ],
+      "explanation": "Il TM-32-24 utilizza XML per lo scambio strutturato di dati dei parametri degli apparecchi negli ambienti BIM."
+    },
+    "10007": {
+      "text": "Perché l'integrazione BIM è importante per la progettazione illuminotecnica?",
+      "options": [
+        "Rende le luci più luminose",
+        "Permette la progettazione coordinata con i sistemi architettonici e MEP",
+        "Riduce il consumo di elettricità",
+        "È obbligatoria per legge in tutti i paesi"
+      ],
+      "explanation": "L'integrazione BIM permette ai progettisti illuminotecnici di coordinarsi con l'architettura, la struttura e i sistemi MEP (meccanici, elettrici, idraulici) in un modello digitale condiviso."
+    },
+    "10008": {
+      "text": "Quali tipi di montaggio definisce il TM-32-24?",
+      "options": [
+        "Solo a parete e a soffitto",
+        "Da incasso, a plafone, sospeso, a pavimento, a parete, su binario e autoportante",
+        "Interni ed esterni",
+        "Fisso e regolabile"
+      ],
+      "explanation": "Il TM-32-24 definisce diversi tipi di montaggio tra cui da incasso, a plafone, sospeso, a pavimento, a parete, su binario e autoportante per coprire tutti gli scenari di installazione."
+    },
+    "11001": {
+      "text": "Quale limitazione condividono i formati tradizionali LDT e IES?",
+      "options": [
+        "Non possono memorizzare dati di intensità",
+        "Non possono memorizzare dati di distribuzione spettrale di potenza (SPD)",
+        "Non sono leggibili dalle macchine",
+        "Possono memorizzare un solo piano C"
+      ],
+      "explanation": "Né LDT né IES possono memorizzare dati completi di distribuzione spettrale di potenza — trasportano solo informazioni fotometriche (intensità) e informazioni cromatiche di base (CCT, gruppo CRI)."
+    },
+    "11002": {
+      "text": "Quali norme di formato sono equivalenti a IES TM-33?",
+      "options": [
+        "EULUMDAT e CIE 102",
+        "ATLA S001 e UNI 11733",
+        "GLDF e ROLF",
+        "EN 13032 e ISO 10527"
+      ],
+      "explanation": "IES TM-33-23, ATLA S001 e UNI 11733 sono norme equivalenti che definiscono lo stesso formato di dati fotometrici basato su XML."
+    },
+    "11003": {
+      "text": "Quale tipo di dati chiave supporta il TM-33 che LDT/IES non possono?",
+      "options": [
+        "Configurazioni multiple di apparecchi",
+        "Distribuzione spettrale di potenza (SPD) completa",
+        "Geometria 3D dell'apparecchio",
+        "Istruzioni di installazione"
+      ],
+      "explanation": "Il principale vantaggio del TM-33 è il supporto nativo per i dati di distribuzione spettrale di potenza, che consente calcoli di scienza del colore direttamente dal file."
+    },
+    "11004": {
+      "text": "Quanto sono più piccoli i file JSON TM-33 rispetto all'equivalente XML?",
+      "options": [
+        "~10% più piccoli",
+        "~50% più piccoli",
+        "~90% più piccoli",
+        "Stessa dimensione"
+      ],
+      "explanation": "La codifica JSON del TM-33 è circa il 90% più piccola dell'XML, principalmente perché elimina i tag XML verbose e utilizza una notazione array compatta per i dati di intensità."
+    },
+    "11005": {
+      "text": "Quali formati di serializzazione supporta il TM-33?",
+      "options": [
+        "Solo XML",
+        "XML e JSON",
+        "XML, JSON e YAML",
+        "Solo JSON"
+      ],
+      "explanation": "Il TM-33 definisce sia la serializzazione XML che JSON, con XML come formato canonico e JSON come alternativa compatta."
+    },
+    "11006": {
+      "text": "Cos'è GLDF (Global Lighting Data Format)?",
+      "options": [
+        "Un nuovo formato di file fotometrico che sostituisce IES",
+        "Un formato contenitore per i dati dei prodotti di illuminazione che include fotometria, geometria e metadati",
+        "Una norma di gestione del colore",
+        "Un formato di file BIM"
+      ],
+      "explanation": "GLDF è un formato contenitore completo che raggruppa dati fotometrici (LDT/IES/TM-33), geometria 3D, metadati di prodotto e configurazioni varianti."
+    },
+    "11007": {
+      "text": "Quale di questi NON è un formato di file di dati fotometrici?",
+      "options": [
+        ".ldt (EULUMDAT)",
+        ".ies (IESNA)",
+        ".dwg (AutoCAD)",
+        "TM-33 XML"
+      ],
+      "explanation": ".dwg è un formato di file di disegno AutoCAD, non un formato di dati fotometrici. LDT, IES e TM-33 XML memorizzano tutti distribuzioni di intensità fotometrica."
+    },
+    "11008": {
+      "text": "Quali dati per l'orticoltura può memorizzare il TM-33 che LDT/IES non possono?",
+      "options": [
+        "Tassi di crescita delle piante",
+        "Dati spettrali per lunghezza d'onda che consentono calcoli PAR/PPF/PPFD",
+        "Requisiti di umidità del suolo",
+        "Raccomandazioni sui fertilizzanti"
+      ],
+      "explanation": "Il supporto dei dati spettrali del TM-33 consente il calcolo di metriche per l'orticoltura (PAR, PPF, PPFD, DLI, rapporto R:FR) direttamente dai dati del file."
+    },
+    "12001": {
+      "text": "Qual è lo scopo della validazione dei file fotometrici?",
+      "options": [
+        "Rendere il file più piccolo",
+        "Rilevare errori, incongruenze e problemi di qualità dei dati",
+        "Convertire tra formati di file",
+        "Crittografare i dati"
+      ],
+      "explanation": "La validazione controlla i file fotometrici per errori (dati corrotti, campi mancanti), incongruenze (valori non corrispondenti) e avvisi di qualità (pattern insoliti)."
+    },
+    "12002": {
+      "text": "Cosa indica un avviso di validazione riguardo un 'apparecchio a dimensioni zero'?",
+      "options": [
+        "Il file è corrotto",
+        "L'apparecchio non ha dimensioni fisiche specificate (lunghezza/larghezza/altezza tutte a zero)",
+        "I valori di intensità sono tutti zero",
+        "Il file non ha piani C"
+      ],
+      "explanation": "Un avviso di dimensioni zero significa che la dimensione fisica dell'apparecchio non è specificata (0×0×0mm), il che può essere intenzionale per sorgenti puntiformi ma è spesso un'omissione."
+    },
+    "12003": {
+      "text": "Cosa potrebbe causare un errore di validazione 'LOR superiore al 100%'?",
+      "options": [
+        "Un apparecchio molto efficiente",
+        "Errore di inserimento dati o artefatto di misura",
+        "L'apparecchio amplifica la luce",
+        "Il file utilizza la fotometria assoluta"
+      ],
+      "explanation": "Un LOR > 100% è fisicamente impossibile (un apparecchio non può emettere più luce di quella prodotta dalle sue lampade). Questo indica un errore di inserimento dati o un artefatto di misura."
+    },
+    "12004": {
+      "text": "Cosa indica un avviso di 'spaziatura gamma non uniforme'?",
+      "options": [
+        "Il file ha troppi angoli gamma",
+        "Gli angoli gamma non sono distribuiti uniformemente, il che può indicare problemi di misura",
+        "L'intervallo gamma è troppo stretto",
+        "Il file utilizza la convenzione angolare sbagliata"
+      ],
+      "explanation": "Sebbene la spaziatura non uniforme sia tecnicamente valida, può indicare artefatti di misura, dati modificati manualmente o problemi di conversione da un altro formato."
+    },
+    "12005": {
+      "text": "Qual è la differenza tra un avviso di validazione e un errore di validazione?",
+      "options": [
+        "Non c'è differenza",
+        "Gli avvisi sono informativi; gli errori indicano che il file potrebbe essere inutilizzabile",
+        "Gli errori sono informativi; gli avvisi indicano problemi",
+        "Gli avvisi si applicano ai file IES; gli errori si applicano ai file LDT"
+      ],
+      "explanation": "Gli avvisi evidenziano potenziali problemi che non impediscono l'utilizzo (es. metadati mancanti). Gli errori indicano problemi strutturali che possono rendere i dati inaffidabili."
+    },
+    "12006": {
+      "text": "Cosa significa 'discontinuità di intensità' nella validazione fotometrica?",
+      "options": [
+        "Un salto improvviso di intensità tra angoli adiacenti senza spiegazione fisica",
+        "I valori di intensità sono tutti uguali",
+        "Il file ha valori di intensità mancanti",
+        "L'intensità supera la scala massima"
+      ],
+      "explanation": "Una discontinuità di intensità è un cambiamento improvviso e irragionevolmente grande tra angoli di misura adiacenti, che può indicare un errore nei dati o un artefatto di misura."
+    },
+    "12007": {
+      "text": "Cosa bisogna verificare quando un file riporta 0 lumen di flusso totale?",
+      "options": [
+        "Niente — 0 lumen è normale",
+        "Se è in uso la modalità fotometria assoluta",
+        "Se il file utilizza unità metriche",
+        "Se il file è crittografato"
+      ],
+      "explanation": "0 flusso totale può essere valido in modalità fotometria assoluta (conteggio lampade negativo). In caso contrario, indica dati della lampada mancanti o un errore di calcolo."
+    },
+    "12008": {
+      "text": "Quale controllo di validazione rileva dati asimmetrici in un file dichiarato come simmetrico?",
+      "options": [
+        "Controllo della versione del formato",
+        "Confronto dei valori di intensità attraverso i piani C specchiati",
+        "Verifica del calcolo del flusso totale",
+        "Verifica dell'intestazione del file"
+      ],
+      "explanation": "Se un file dichiara la simmetria (es. Isym=4) ma i dati memorizzati mostrano differenze significative attraverso i piani speculari attesi, ciò indica una classificazione di simmetria errata."
+    },
+    "13001": {
+      "text": "Cosa misura il lux (lx)?",
+      "options": [
+        "Flusso luminoso",
+        "Intensità luminosa",
+        "Illuminamento (luce che cade su una superficie)",
+        "Luminanza (luce che lascia una superficie)"
+      ],
+      "explanation": "Il lux misura l'illuminamento — la quantità di flusso luminoso per unità di area che cade su una superficie. 1 lux = 1 lumen per metro quadrato."
+    },
+    "13002": {
+      "text": "Qual è l'equivalente imperiale del lux?",
+      "options": [
+        "Candlepower",
+        "Foot-candle (fc)",
+        "Foot-lambert",
+        "Lumen per piede quadrato"
+      ],
+      "explanation": "Il foot-candle (fc) è l'unità imperiale di illuminamento. 1 foot-candle = 10,764 lux."
+    },
+    "13003": {
+      "text": "Quanti lux equivalgono a un foot-candle?",
+      "options": [
+        "1,0",
+        "3,281",
+        "10,764",
+        "100"
+      ],
+      "explanation": "1 foot-candle = 10,764 lux (poiché 1 metro quadrato = 10,764 piedi quadrati)."
+    },
+    "13004": {
+      "text": "Cos'è uno steradiante (sr)?",
+      "options": [
+        "Un'unità di angolo",
+        "Un'unità di angolo solido (cono 3D)",
+        "Un'unità di luminanza",
+        "Un'unità di lunghezza d'onda"
+      ],
+      "explanation": "Uno steradiante è l'unità SI dell'angolo solido — l'equivalente 3D di un radiante. Una sfera completa sottende 4π steradianti."
+    },
+    "13005": {
+      "text": "Cosa misura cd/m²?",
+      "options": [
+        "Illuminamento",
+        "Intensità luminosa",
+        "Luminanza (brillanza di una superficie)",
+        "Flusso luminoso"
+      ],
+      "explanation": "cd/m² (candele per metro quadrato, detto anche 'nit') misura la luminanza — l'intensità della luce per unità di area che lascia una superficie in una data direzione."
+    },
+    "13006": {
+      "text": "Cosa significa cd/klm?",
+      "options": [
+        "Candele per kilolux",
+        "Candele per kilolumen",
+        "Candele per chilometro",
+        "Centigradi per kilolumen"
+      ],
+      "explanation": "cd/klm significa candele per kilolumen — intensità normalizzata a una lampada da 1000 lumen. Questa è l'unità utilizzata nei file EULUMDAT."
+    },
+    "13007": {
+      "text": "Come si convertono i cd/klm in candele assolute?",
+      "options": [
+        "cd = cd/klm × 1000",
+        "cd = cd/klm × (flusso_totale / 1000)",
+        "cd = cd/klm / flusso_totale",
+        "Non è possibile alcuna conversione"
+      ],
+      "explanation": "cd assolute = (cd/klm) × (flusso_luminoso_totale / 1000). Poiché cd/klm è normalizzato a 1000 lumen, si moltiplica per il rapporto di flusso effettivo."
+    },
+    "13008": {
+      "text": "A cosa si riferisce l''efficienza' di una sorgente luminosa?",
+      "options": [
+        "Quanto dura la lampada",
+        "Quanta luce (lumen) viene prodotta per watt di potenza",
+        "L'angolo di fascio dell'apparecchio",
+        "La precisione della temperatura di colore"
+      ],
+      "explanation": "L'efficienza luminosa (lm/W) misura quanto efficacemente una sorgente luminosa converte la potenza elettrica in luce visibile. Più alta = più efficiente."
+    },
+    "13009": {
+      "text": "Qual è l'efficienza luminosa teorica massima della luce bianca?",
+      "options": [
+        "100 lm/W",
+        "250 lm/W",
+        "~350 lm/W",
+        "683 lm/W"
+      ],
+      "explanation": "Il massimo teorico per la luce bianca è circa 350 lm/W. Il massimo assoluto (683 lm/W) è raggiungibile solo a 555nm monocromatico verde."
+    },
+    "13010": {
+      "text": "Qual è la relazione tra lux e lumen?",
+      "options": [
+        "1 lux = 1 lumen per metro quadrato",
+        "1 lux = 1 lumen",
+        "1 lux = 1 lumen per steradiante",
+        "Misurano cose diverse e non sono correlati"
+      ],
+      "explanation": "1 lux = 1 lumen per metro quadrato (lm/m²). Il lux è la densità del flusso luminoso su una superficie."
+    },
+    "14001": {
+      "text": "Cosa mostra un diagramma polare?",
+      "options": [
+        "Distribuzione della temperatura di colore",
+        "Distribuzione dell'intensità luminosa in un singolo piano",
+        "Consumo energetico nel tempo",
+        "Curva di durata della lampada"
+      ],
+      "explanation": "Un diagramma polare mostra la distribuzione dell'intensità luminosa di un apparecchio in uno specifico piano C, rappresentata in coordinate polari (angolari)."
+    },
+    "14002": {
+      "text": "In un diagramma polare standard, dove si trova 0° (nadir)?",
+      "options": [
+        "In alto",
+        "In basso",
+        "A destra",
+        "A sinistra"
+      ],
+      "explanation": "Nella convenzione standard, 0° (nadir/direttamente verso il basso) si trova in basso nel diagramma polare, e 180° (zenit) in alto."
+    },
+    "14003": {
+      "text": "Cosa rappresenta un diagramma fotometrico cartesiano (rettangolare)?",
+      "options": [
+        "Intensità in funzione dell'angolo gamma in coordinate rettangolari",
+        "Piano C in funzione dell'angolo gamma",
+        "Illuminamento in funzione della distanza",
+        "Consumo di potenza nel tempo"
+      ],
+      "explanation": "Un diagramma cartesiano rappresenta l'intensità (asse Y) in funzione dell'angolo gamma (asse X) in coordinate rettangolari, con una curva per ciascun piano C."
+    },
+    "14004": {
+      "text": "Cosa visualizza una mappa termica fotometrica?",
+      "options": [
+        "Distribuzione della temperatura dell'apparecchio",
+        "Valori di intensità su tutti i piani C e gli angoli gamma come griglia colorata",
+        "Pattern di consumo energetico",
+        "Penetrazione della luce diurna in un ambiente"
+      ],
+      "explanation": "Una mappa termica fotometrica mostra i valori di intensità come colori su una griglia 2D con i piani C su un asse e gli angoli gamma sull'altro, dando una panoramica completa della distribuzione luminosa."
+    },
+    "14005": {
+      "text": "Cosa illustra un diagramma a cono?",
+      "options": [
+        "La forma fisica dell'apparecchio",
+        "Angoli di fascio e di campo come coni proiettati che mostrano l'area illuminata su una superficie",
+        "Il cono di visione dell'occhio umano",
+        "La geometria del riflettore all'interno dell'apparecchio"
+      ],
+      "explanation": "Un diagramma a cono mostra i coni dell'angolo di fascio e dell'angolo di campo proiettati dall'apparecchio a una superficie target, illustrando il diametro dell'area illuminata a una data altezza di montaggio."
+    },
+    "14006": {
+      "text": "Cosa mostra un diagramma a farfalla (3D)?",
+      "options": [
+        "L'apparecchio visto dall'alto",
+        "Distribuzione dell'intensità in più piani C simultaneamente, creando una forma 3D",
+        "La distribuzione spettrale della luce",
+        "Il disegno meccanico dell'apparecchio"
+      ],
+      "explanation": "Un diagramma a farfalla sovrappone le distribuzioni di intensità da più piani C in una prospettiva 3D, mostrando la distribuzione spaziale completa della luce. Prende il nome dall'aspetto ad ala di farfalla in molti apparecchi."
+    },
+    "14007": {
+      "text": "Cos'è un diagramma isolux?",
+      "options": [
+        "Un diagramma che mostra linee di uguale intensità sulla superficie dell'apparecchio",
+        "Una mappa con curve di livello che mostra linee di uguale illuminamento su una superficie target",
+        "Un diagramma di zone illuminate isolate",
+        "Un grafico che confronta modelli di apparecchi"
+      ],
+      "explanation": "Un diagramma isolux è una mappa con curve di livello che mostra linee di uguale illuminamento (lux) su una superficie orizzontale o verticale, utile per valutare l'uniformità dell'illuminazione."
+    },
+    "14008": {
+      "text": "Perché in un diagramma polare vengono tipicamente mostrati due piani C?",
+      "options": [
+        "Uno per interni, uno per esterni",
+        "C0-C180 (longitudinale) e C90-C270 (trasversale) per mostrare entrambi gli assi della distribuzione",
+        "Uno per l'angolo di fascio, uno per l'angolo di campo",
+        "Uno per i lumen, uno per le candele"
+      ],
+      "explanation": "Il piano C0-C180 mostra la distribuzione longitudinale (fronte-retro) e il piano C90-C270 mostra la distribuzione trasversale (lato-lato), dando un quadro completo per gli apparecchi asimmetrici."
+    },
+    "14009": {
+      "text": "Cosa rappresenta la distanza radiale dal centro in un diagramma polare?",
+      "options": [
+        "Angolo",
+        "Intensità luminosa",
+        "Distanza dall'apparecchio",
+        "Illuminamento"
+      ],
+      "explanation": "In un diagramma polare, la distanza radiale dal centro rappresenta l'intensità luminosa (cd o cd/klm). La posizione angolare rappresenta l'angolo gamma."
+    },
+    "14010": {
+      "text": "Quale tipo di distribuzione crea un pattern 'batwing' in un diagramma cartesiano?",
+      "options": [
+        "Un faretto a fascio stretto",
+        "Una distribuzione con intensità minima al nadir e picchi ad angoli fuori asse",
+        "Una sorgente omnidirezionale perfettamente uniforme",
+        "Un apparecchio a luce indiretta verso l'alto"
+      ],
+      "explanation": "Una distribuzione batwing ha intensità ridotta al nadir (0°) con picchi ad angoli più ampi (es. 30-45°), creando una forma a W nella vista cartesiana. Questo fornisce una migliore uniformità sulle superfici di lavoro."
+    },
+    "15001": {
+      "text": "Cosa significa CIE?",
+      "options": [
+        "Committee for Illumination Engineering",
+        "Commission Internationale de l'Éclairage (Commissione Internazionale dell'Illuminazione)",
+        "Certified Illumination Expert",
+        "Center for Industrial Electrics"
+      ],
+      "explanation": "CIE sta per Commission Internationale de l'Éclairage, la Commissione Internazionale dell'Illuminazione — l'autorità mondiale sulla scienza della luce e del colore."
+    },
+    "15002": {
+      "text": "Quale norma europea copre l'illuminazione degli ambienti di lavoro interni?",
+      "options": [
+        "EN 13201",
+        "EN 12464-1",
+        "EN 15193",
+        "EN 62722"
+      ],
+      "explanation": "La EN 12464-1 specifica i requisiti di illuminazione per i luoghi di lavoro interni, inclusi livelli di illuminamento, uniformità, limiti UGR e resa cromatica."
+    },
+    "15003": {
+      "text": "Cosa copre la EN 13201?",
+      "options": [
+        "Illuminazione interna",
+        "Illuminazione stradale e viaria",
+        "Illuminazione di emergenza",
+        "Illuminazione sportiva"
+      ],
+      "explanation": "La EN 13201 è la norma europea per l'illuminazione stradale, che definisce le classi di illuminazione (M, C, P, S, A, ES, EV) e i requisiti prestazionali."
+    },
+    "15004": {
+      "text": "Cos'è IDA nel contesto dell'illuminazione?",
+      "options": [
+        "International Design Association",
+        "International Dark-Sky Association",
+        "Indoor Design Authority",
+        "Illumination Data Archive"
+      ],
+      "explanation": "IDA (International Dark-Sky Association) promuove un'illuminazione esterna responsabile per minimizzare l'inquinamento luminoso, l'abbagliamento e l'impatto sulla fauna selvatica."
+    },
+    "15005": {
+      "text": "Quale credito illuminotecnico offre LEED v4?",
+      "options": [
+        "Certificazione Energy Star",
+        "Credito per la Riduzione dell'Inquinamento Luminoso",
+        "Credito per l'Ottimizzazione della Luce Diurna",
+        "Credito per l'Illuminazione Intelligente"
+      ],
+      "explanation": "LEED v4 include un credito 'Riduzione dell'Inquinamento Luminoso' (SS Credit) che utilizza le classificazioni BUG per valutare l'impatto ambientale dell'illuminazione esterna."
+    },
+    "15006": {
+      "text": "Cosa richiede il California Title 24 per l'illuminazione esterna?",
+      "options": [
+        "Solo sorgenti LED",
+        "Apparecchi con classificazione BUG che rispettano i valori massimi ammissibili per zona illuminotecnica",
+        "Sensori di movimento su tutti gli apparecchi",
+        "Solo illuminazione a energia solare"
+      ],
+      "explanation": "Il California Title 24 (Codice Energetico) richiede che gli apparecchi per esterni abbiano classificazioni BUG che non superino i valori massimi ammissibili per la zona illuminotecnica applicabile (LZ0-LZ4)."
+    },
+    "15007": {
+      "text": "Cosa significa NEMA?",
+      "options": [
+        "National Energy Management Authority",
+        "National Electrical Manufacturers Association",
+        "National Emergency Monitoring Agency",
+        "North European Measurement Association"
+      ],
+      "explanation": "NEMA sta per National Electrical Manufacturers Association, che pubblica norme per le apparecchiature elettriche, inclusa l'illuminazione."
+    },
+    "15008": {
+      "text": "Quali sono le zone illuminotecniche definite nel MLO IES/IDA?",
+      "options": [
+        "Zone dalla A alla F",
+        "LZ0 (nessuna luce ambientale), LZ1 (bassa), LZ2 (moderata), LZ3 (moderatamente alta), LZ4 (alta)",
+        "Solo interni ed esterni",
+        "Residenziale, commerciale, industriale"
+      ],
+      "explanation": "Il Model Lighting Ordinance definisce 5 zone: LZ0 (selvaggio/protetto), LZ1 (rurale/basso), LZ2 (suburbano/moderato), LZ3 (urbano/moderatamente alto), LZ4 (commerciale ad alta attività)."
+    },
+    "15009": {
+      "text": "Di cosa tratta la CIE 102?",
+      "options": [
+        "Misura della resa cromatica",
+        "Pratica raccomandata per il trasferimento di dati fotometrici",
+        "Calcolo dell'indice di abbagliamento",
+        "Metodi di simulazione della luce diurna"
+      ],
+      "explanation": "La CIE 102:1993 'Recommended File Format for the Electronic Transfer of Luminaire Photometric Data' definisce le convenzioni per la presentazione dei diagrammi fotometrici."
+    },
+    "15010": {
+      "text": "Qual è la relazione tra ISO 8995 e EN 12464?",
+      "options": [
+        "Sono norme non correlate",
+        "ISO 8995 e EN 12464-1 sono norme internazionali/europee armonizzate per l'illuminazione dei luoghi di lavoro",
+        "ISO 8995 sostituisce EN 12464",
+        "EN 12464 copre gli esterni; ISO 8995 copre gli interni"
+      ],
+      "explanation": "ISO 8995 (CIE S 008) e EN 12464-1 sono norme armonizzate che coprono i requisiti di illuminazione per i luoghi di lavoro interni, con EN 12464-1 come implementazione europea."
+    },
+    "16001": {
+      "text": "Il piano C0 di un apparecchio stradale punta lungo l'asse della strada nel suo file LDT, ma il software di progettazione illuminotecnica assume che C0 punti perpendicolarmente alla strada. Cosa serve?",
+      "options": [
+        "Convertire il file da LDT a IES",
+        "Ruotare i dati del piano C di 90° (scambiare il riferimento C0↔C90)",
+        "Specchiare gli angoli gamma",
+        "Cambiare il tipo di simmetria a Isym=0"
+      ],
+      "explanation": "La specifica EULUMDAT definisce C0 come 'fronte' ma non prescrive cosa significhi fisicamente 'fronte'. Diversi produttori e software utilizzano convenzioni diverse — alcuni allineano C0 lungo la strada, altri perpendicolarmente. Una rotazione di 90° del piano C risolve questa discrepanza senza modificare i dati fotometrici."
+    },
+    "16002": {
+      "text": "Perché due file LDT per lo stesso apparecchio fisico possono mostrare diagrammi polari diversi anche se entrambi sono corretti?",
+      "options": [
+        "Un file ha una risoluzione maggiore dell'angolo gamma",
+        "La direzione di riferimento C0 è stata scelta diversamente da ciascun laboratorio",
+        "Uno usa cd/klm e l'altro usa cd",
+        "I tipi di simmetria sono diversi"
+      ],
+      "explanation": "Il formato EULUMDAT non impone una direzione di riferimento C0 universale. Un laboratorio può definire C0 come l'asse lungo dell'apparecchio, un altro come l'asse corto. Entrambi sono validi ma producono diagrammi polari ruotati di 90°. Questa è una fonte comune di confusione quando si confrontano file da fonti diverse."
+    },
+    "16003": {
+      "text": "Quando si esegue una rotazione di 90° del piano C su dati fotometrici asimmetrici, quale mappatura è corretta?",
+      "options": [
+        "Aggiungere 90° a tutti gli angoli gamma",
+        "Spostare i dati di intensità: I(C,γ) → I(C+90°,γ), con wrap a 360°",
+        "Scambiare solo le curve C0-C180 e C90-C270",
+        "Moltiplicare tutti gli angoli del piano C per cos(90°)"
+      ],
+      "explanation": "Una rotazione del piano C sposta il riferimento azimutale. Ogni valore di intensità all'angolo (C,γ) si sposta a (C+90°,γ). Per dati asimmetrici (Isym=0), l'intero set di dati deve essere reindicizzato con angoli C sfasati di 90° e wrap a 360°. Per dati simmetrici, la simmetria potrebbe dover cambiare."
+    },
+    "16004": {
+      "text": "Da dove provengono i valori di intensità in un file fotometrico?",
+      "options": [
+        "Sono calcolati dalla geometria dell'apparecchio",
+        "Sono misurati con un goniofotometro o una sfera integratrice",
+        "Sono stimati dal software di progettazione del produttore",
+        "Sono derivati dalla scheda tecnica della lampada"
+      ],
+      "explanation": "I file di dati fotometrici contengono distribuzioni di intensità misurate in laboratorio. Un goniofotometro ruota l'apparecchio (o il rilevatore) attraverso molti angoli e registra l'intensità luminosa effettiva. Una sfera integratrice misura il flusso totale. I dati rappresentano misurazioni fisiche reali, non calcoli teorici."
+    },
+    "16005": {
+      "text": "Un utente vuole modificare il valore dei lumen in un file fotometrico per adattarlo a un diverso driver LED. È appropriato?",
+      "options": [
+        "Sì, i valori dei lumen possono essere liberamente regolati",
+        "Solo se la forma della distribuzione di intensità rimane la stessa",
+        "No — cambiare i lumen richiede una nuova misura poiché la distribuzione può cambiare con correnti di pilotaggio diverse",
+        "Sì, ma solo nei file IES, non EULUMDAT"
+      ],
+      "explanation": "I dati fotometrici rappresentano una specifica condizione operativa. Cambiare la corrente di pilotaggio influisce non solo sul flusso totale ma potenzialmente sulla forma della distribuzione di intensità, sulla temperatura di colore e sul comportamento termico. Nuove condizioni operative richiedono nuove misurazioni. Il ridimensionamento lineare dei lumen è solo un'approssimazione."
+    },
+    "16006": {
+      "text": "In quale specifica condizione è valido scalare linearmente i valori di intensità in un file fotometrico?",
+      "options": [
+        "Quando l'apparecchio utilizza una sorgente LED",
+        "Quando la forma della distribuzione di intensità è indipendente dal livello di flusso (fotometria relativa, stessa ottica)",
+        "Ogni volta che l'utente ha bisogno di un diverso pacchetto lumen",
+        "Il ridimensionamento lineare non è mai valido"
+      ],
+      "explanation": "Il ridimensionamento lineare è valido solo quando la forma della distribuzione rimane costante attraverso i livelli di flusso — cioè l'ottica non cambia e gli effetti termici sono trascurabili. Nella fotometria relativa (cd/klm), la distribuzione è già normalizzata. Per la fotometria assoluta, il ridimensionamento assume che la sorgente sia un dimmer perfetto, cosa che LED e lampade reali non sono."
+    },
+    "16007": {
+      "text": "Qual è la differenza chiave tra un goniofotometro e una sfera integratrice?",
+      "options": [
+        "I goniofotometri sono più precisi",
+        "Un goniofotometro misura la distribuzione direzionale dell'intensità; una sfera integratrice misura il flusso luminoso totale",
+        "Le sfere integratrici funzionano solo con i LED",
+        "I goniofotometri sono utilizzati solo per i file IES"
+      ],
+      "explanation": "Un goniofotometro misura l'intensità a molti angoli (piano C × gamma) per costruire la distribuzione completa utilizzata nei file LDT/IES. Una sfera integratrice cattura tutta la luce emessa per misurare il flusso luminoso totale. Entrambi possono essere usati insieme: goniofotometro per la forma della distribuzione, sfera integratrice per la calibrazione del flusso assoluto."
+    },
+    "16008": {
+      "text": "Un file LDT mostra LOR = 101,5%. Qual è la causa più probabile?",
+      "options": [
+        "L'apparecchio amplifica la luce",
+        "Incertezza di misura o errori di arrotondamento nel laboratorio di prova",
+        "Il file utilizza la fotometria assoluta",
+        "Il flusso della lampada è stato misurato separatamente dall'apparecchio"
+      ],
+      "explanation": "Un LOR > 100% è fisicamente impossibile (un apparecchio non può emettere più luce delle lampade nude). Valori leggermente superiori al 100% risultano tipicamente dall'incertezza di misura, dall'arrotondamento nel formato file o da differenze tra il flusso della lampada usato per la normalizzazione e il flusso effettivo della lampada durante il test dell'apparecchio. I buoni validatori segnalano questo come un avviso."
+    },
+    "16009": {
+      "text": "Un file LDT ha valori di intensità in C0 che sembrano appartenere a C90 (le distribuzioni longitudinale e trasversale appaiono scambiate). Cosa è successo?",
+      "options": [
+        "Il file è corrotto",
+        "Il goniofotometro del produttore era orientato a 90° di differenza rispetto a quanto l'osservatore si aspetta",
+        "Il flag di simmetria è sbagliato",
+        "Il file utilizza fotometria di Tipo B"
+      ],
+      "explanation": "Questo è il classico problema di rotazione C0/C90. Non esiste una norma universale per quale direzione fisica si mappi su C0 — dipende da come l'apparecchio è stato montato sul goniofotometro. Alcuni laboratori allineano C0 con l'asse lungo dell'apparecchio, altri con l'asse corto. I dati sono corretti; l'orientamento di riferimento è diverso."
+    },
+    "16010": {
+      "text": "Un file fotometrico mostra 0 flusso luminoso totale ma ha valori di intensità diversi da zero. Cosa indica?",
+      "options": [
+        "Il file è corrotto",
+        "L'apparecchio emette solo luce UV",
+        "Il file utilizza la fotometria assoluta (conteggio lampade negativo)",
+        "I valori di intensità sono nell'unità sbagliata"
+      ],
+      "explanation": "In EULUMDAT, un numero negativo di lampade segnala la modalità fotometria assoluta in cui i valori di intensità sono in candele (cd), non in cd/klm. Il campo del flusso della lampada può essere zero poiché il flusso è implicito nei valori di intensità assoluta. I validatori dovrebbero verificare questo prima di segnalare un flusso zero come errore."
+    },
+    "16011": {
+      "text": "Nella conversione di un file IES con fotometria di Tipo A in EULUMDAT, qual è la sfida principale?",
+      "options": [
+        "I file IES non possono memorizzare abbastanza cifre decimali",
+        "Il Tipo A utilizza un sistema di coordinate angolari completamente diverso che richiede una trasformazione trigonometrica",
+        "EULUMDAT non può rappresentare lo stesso numero di punti di misura",
+        "La conversione è semplice senza sfide"
+      ],
+      "explanation": "La fotometria IES di Tipo A utilizza un sistema di coordinate in cui il primo asse di rotazione è orizzontale (come un'inclinazione), rendendolo incompatibile con il sistema Tipo C di EULUMDAT. La conversione richiede trasformazioni trigonometriche sferiche simili alla conversione Tipo B→C, e può introdurre artefatti di interpolazione ai poli."
+    },
+    "16012": {
+      "text": "Un file LDT scaricato dal sito web di un produttore tedesco utilizza le virgole come separatori decimali (es. '123,45' invece di '123.45'). Cosa dovrebbe fare un parser?",
+      "options": [
+        "Rifiutare il file come non valido",
+        "Sostituire le virgole con i punti prima di analizzare i valori numerici",
+        "Analizzare solo i valori interi e ignorare i decimali",
+        "Utilizzare la locale di sistema per determinare il separatore"
+      ],
+      "explanation": "Molti file LDT europei utilizzano le virgole come separatori decimali, riflettendo le convenzioni locali di formattazione numerica. I parser robusti dovrebbero convertire le virgole in punti prima dell'analisi. Utilizzare la locale di sistema sarebbe inaffidabile poiché la locale del file può differire dalla locale del parser."
+    },
+    "16013": {
+      "text": "Un diagramma polare mostra un picco stretto a gamma=0° e intensità quasi nulla altrove. Che tipo di apparecchio è?",
+      "options": [
+        "Un wall washer con distribuzione ampia",
+        "Un faretto a fascio stretto o proiettore",
+        "Un plafoniere fluorescente",
+        "Un apparecchio a luce indiretta verso l'alto"
+      ],
+      "explanation": "Un picco stretto al nadir (γ=0°) con intensità minima ad altri angoli indica un fascio strettamente focalizzato — tipico di faretti, proiettori o downlight a fascio stretto con ottica a riflettore. L'angolo di fascio sarebbe molto piccolo (< 15°)."
+    },
+    "16014": {
+      "text": "Due diagrammi polari sembrano identici, ma uno mostra l'intensità in cd/klm e l'altro in cd. Possono essere confrontati direttamente?",
+      "options": [
+        "Sì, cd e cd/klm sono la stessa unità",
+        "No — cd/klm (relativo) deve essere moltiplicato per flusso totale/1000 per convertire in cd (assoluto)",
+        "Solo se entrambi gli apparecchi hanno lo stesso LOR",
+        "No, utilizzano sistemi di coordinate incompatibili"
+      ],
+      "explanation": "cd/klm (candele per kilolumen) è un'unità relativa normalizzata a 1000 lumen di flusso totale. Per convertire in candele assolute: I(cd) = I(cd/klm) × Φ/1000, dove Φ è il flusso luminoso totale in lumen. Confrontare direttamente i valori cd/klm confronta solo le forme della distribuzione, non i livelli di luce effettivi."
+    },
+    "16015": {
+      "text": "Un produttore dichiara Isym=4 (simmetria su entrambi i piani) per un pannello LED, ma le curve C0 e C90 misurate differiscono del 15%. Qual è l'interpretazione corretta?",
+      "options": [
+        "Il file è valido — una differenza del 15% è nella tolleranza normale",
+        "Il flag di simmetria è sbagliato; il file dovrebbe usare Isym=2 o Isym=0 per una rappresentazione accurata",
+        "L'apparecchiatura di misura era mal calibrata",
+        "I pannelli LED hanno sempre Isym=4 indipendentemente dalla distribuzione effettiva"
+      ],
+      "explanation": "Isym=4 memorizza solo un quarto dei dati (0-90°) e li specchia per riempire 360°, il che significa che le intensità C0 e C90 sono forzate ad essere identiche. Una differenza reale del 15% indica che l'apparecchio non è veramente simmetrico rispetto a entrambi i piani. Usare Isym=0 o Isym=2 preserverebbe la distribuzione asimmetrica effettiva. Forzare Isym=4 scarta silenziosamente differenze fotometriche reali."
+    },
+    "17001": {
+      "text": "Osservando il diagramma polare: quale curva è mostrata in blu?",
+      "options": [
+        "Il piano C90-C270 (trasversale)",
+        "Il piano C0-C180 (longitudinale)",
+        "L'illuminamento orizzontale",
+        "La distribuzione spettrale"
+      ],
+      "explanation": "Per convenzione, la curva blu rappresenta il piano C0-C180 (distribuzione longitudinale). La curva rossa mostra C90-C270 (trasversale)."
+    },
+    "17002": {
+      "text": "Nel diagramma polare visualizzato, dove si trova l'intensità più alta?",
+      "options": [
+        "In alto (180°, zenit)",
+        "In basso (0°, nadir — verso il basso)",
+        "All'orizzontale (90°)",
+        "Distribuita uniformemente ovunque"
+      ],
+      "explanation": "Il diagramma mostra l'intensità più alta vicino al nadir (0°, verso il basso), dove la curva si estende più lontano dal centro."
+    },
+    "17003": {
+      "text": "Cosa rappresentano i cerchi concentrici (griglia) nel diagramma polare?",
+      "options": [
+        "Distanza dall'apparecchio in metri",
+        "Valori fissi di intensità (cd/klm) a intervalli regolari",
+        "Zone di temperatura colore",
+        "Classificazioni di efficienza"
+      ],
+      "explanation": "I cerchi concentrici rappresentano livelli uguali di intensità in cd/klm. Ogni cerchio è un incremento fisso."
+    },
+    "17004": {
+      "text": "Quando le curve blu e rossa quasi si sovrappongono nel diagramma polare, cosa indica sull'apparecchio?",
+      "options": [
+        "L'apparecchio è guasto",
+        "La distribuzione è quasi uguale in tutte le direzioni intorno all'asse verticale",
+        "L'apparecchio non emette luce",
+        "I dati di misura sono errati"
+      ],
+      "explanation": "Curve C0-C180 (blu) e C90-C270 (rossa) sovrapposte indicano che l'apparecchio ha quasi la stessa distribuzione in tutti i piani C."
+    },
+    "17005": {
+      "text": "Se un diagramma polare non mostra alcuna curva rossa, solo blu, cosa significa?",
+      "options": [
+        "L'apparecchio è difettoso",
+        "L'apparecchio ha simmetria assiale verticale (Isym=1) — tutti i piani C sono identici",
+        "I dati C90-C270 non sono stati misurati",
+        "La curva rossa è nascosta dietro quella blu"
+      ],
+      "explanation": "Con simmetria rotazionale (Isym=1), C90-C270 è identico a C0-C180, quindi viene visualizzata una sola curva."
+    },
+    "17006": {
+      "text": "Confrontate i diagrammi polari simmetrico e asimmetrico: come identificare visivamente quello asimmetrico?",
+      "options": [
+        "Ha più cerchi di griglia",
+        "Le metà sinistra e destra della curva hanno forme diverse",
+        "Usa linee più spesse",
+        "Ha un raggio complessivo maggiore"
+      ],
+      "explanation": "Un apparecchio asimmetrico (come un lampione stradale) ha metà sinistra e destra visibilmente diverse nel diagramma polare."
+    },
+    "17007": {
+      "text": "Il diagramma polare di un apparecchio stradale mostra l'intensità proiettata principalmente da un lato. Quale lato rappresenta la direzione 'avanti' (lato strada)?",
+      "options": [
+        "La parte superiore (zenit)",
+        "La metà destra (lato C0)",
+        "La metà sinistra (lato C180)",
+        "La parte inferiore (nadir)"
+      ],
+      "explanation": "Per convenzione, C0 è il 'fronte' dell'apparecchio, mostrato nella metà destra del diagramma polare."
+    },
+    "17008": {
+      "text": "Osservando il diagramma polare del proiettore: quale caratteristica visiva indica un fascio stretto?",
+      "options": [
+        "La curva riempie l'intera area del diagramma",
+        "La curva è un picco sottile concentrato vicino al nadir (0°) con pochissima dispersione",
+        "La curva è perfettamente circolare",
+        "Ci sono molti cerchi di griglia"
+      ],
+      "explanation": "Un proiettore a fascio stretto mostra un picco di intensità acuto concentrato intorno al nadir, che cala rapidamente ad angoli più ampi."
+    },
+    "17009": {
+      "text": "Se la curva del diagramma polare incrocia il 3° cerchio al nadir ma solo il 1° cerchio a 60°, quale frazione dell'intensità massima rimane a 60°?",
+      "options": [
+        "Circa 1/3 (33%)",
+        "Circa 1/2 (50%)",
+        "Circa 2/3 (67%)",
+        "Circa 3/4 (75%)"
+      ],
+      "explanation": "I cerchi hanno spaziatura uniforme in intensità. Se il picco raggiunge il 3° cerchio e a 60° raggiunge il 1°, il rapporto è 1/3."
+    },
+    "17010": {
+      "text": "Nel diagramma polare, cosa rappresenta '90°' sull'asse orizzontale?",
+      "options": [
+        "L'angolo del fascio dell'apparecchio",
+        "Il piano orizzontale — luce emessa lateralmente",
+        "La direzione di intensità massima",
+        "La temperatura colore"
+      ],
+      "explanation": "90° nel diagramma polare è la direzione orizzontale. La luce emessa a gamma=90° viaggia orizzontalmente dall'apparecchio."
+    },
+    "17011": {
+      "text": "Il diagramma polare di un apparecchio mostra la curva che tocca il cerchio più esterno solo vicino al nadir. Il valore massimo della griglia è 800 cd/klm. Qual è l'intensità di picco approssimativa?",
+      "options": [
+        "80 cd/klm",
+        "400 cd/klm",
+        "800 cd/klm",
+        "1600 cd/klm"
+      ],
+      "explanation": "Il cerchio più esterno rappresenta il valore massimo della scala. Se la curva lo tocca appena, l'intensità di picco è uguale a quel valore."
+    },
+    "17012": {
+      "text": "Due diagrammi polari affiancati: uno ha una curva ampia e piatta, l'altro un picco alto e stretto. Quale apparecchio ha l'angolo del fascio più ampio?",
+      "options": [
+        "Il picco stretto",
+        "La curva ampia e piatta",
+        "Entrambi hanno lo stesso angolo",
+        "L'angolo del fascio non può essere letto dai diagrammi polari"
+      ],
+      "explanation": "Una curva ampia e piatta significa che l'intensità è distribuita su un ampio intervallo di angoli — un fascio ampio."
+    },
+    "17013": {
+      "text": "Nella mappa di calore visualizzata, cosa rappresentano gli assi X e Y?",
+      "options": [
+        "X = distanza, Y = altezza",
+        "X = angolo piano C, Y = angolo gamma",
+        "X = lunghezza d'onda, Y = intensità",
+        "X = tempo, Y = consumo energetico"
+      ],
+      "explanation": "Una mappa di calore fotometrica traccia gli angoli del piano C sull'asse X e gli angoli gamma sull'asse Y. Il colore di ogni cella rappresenta l'intensità luminosa a quella combinazione di angoli."
+    },
+    "17014": {
+      "text": "Nella mappa di calore, cosa indica una cella rossa/calda?",
+      "options": [
+        "Bassa intensità",
+        "Alta intensità",
+        "Alta temperatura di colore",
+        "Un errore di misurazione"
+      ],
+      "explanation": "La mappa di calore usa una scala cromatica blu→ciano→verde→giallo→rosso. I colori rossi/caldi rappresentano i valori di intensità più alti, mentre i colori blu/freddi rappresentano i più bassi."
+    },
+    "17015": {
+      "text": "Nella mappa di calore, la banda più luminosa (rossa) si estende orizzontalmente vicino a gamma=0°. Cosa indica questo del luminaire?",
+      "options": [
+        "È guasto",
+        "Dirige la maggior parte della luce verso il basso (nadir)",
+        "Emette luce solo verso l'alto",
+        "Non ha preferenza direzionale"
+      ],
+      "explanation": "Una banda orizzontale luminosa a gamma=0° significa che il luminaire emette la massima intensità al nadir (verso il basso) su tutti i piani C. Tipico di un downlight da incasso."
+    },
+    "17016": {
+      "text": "Nella mappa di calore di un luminaire simmetrico, il pattern di colore si ripete identico in tutte le colonne dei piani C. Che tipo di simmetria è?",
+      "options": [
+        "Nessuna simmetria (Isym=0)",
+        "Simmetria rotazionale (Isym=1)",
+        "Simmetria piano C90-C270 (Isym=3)",
+        "Simmetria a quarti (Isym=4)"
+      ],
+      "explanation": "Quando ogni colonna del piano C nella mappa di calore mostra lo stesso pattern di colore, la distribuzione dell'intensità è identica in tutte le direzioni attorno all'asse verticale — simmetria rotazionale (Isym=1)."
+    },
+    "17017": {
+      "text": "Una mappa di calore mostra una transizione brusca dal rosso al blu in poche righe di angolo gamma. Cosa indica?",
+      "options": [
+        "Un errore di misurazione",
+        "Un fascio stretto con rapida diminuzione dell'intensità",
+        "Un luminaire a fascio largo",
+        "Un guasto della lampada durante il test"
+      ],
+      "explanation": "Una transizione cromatica brusca dal rosso (alta intensità) al blu (bassa intensità) su un piccolo intervallo di angolo gamma indica che il luminaire ha un fascio stretto — tipico di uno spot o proiettore."
+    },
+    "17018": {
+      "text": "Se la legenda della mappa di calore mostra un massimo di 136 cd/klm e una cella è verde (circa a metà scala), qual è l'intensità approssimativa?",
+      "options": [
+        "Circa 136 cd/klm",
+        "Circa 68 cd/klm",
+        "Circa 34 cd/klm",
+        "Circa 0 cd/klm"
+      ],
+      "explanation": "Il verde è circa a metà della scala cromatica blu→rosso. Con un massimo di 136 cd/klm, una cella verde a metà scala rappresenta circa il 50% del picco — circa 68 cd/klm."
+    },
+    "17019": {
+      "text": "Quale vantaggio ha una mappa di calore rispetto a un diagramma polare per comprendere la distribuzione luminosa di un luminaire?",
+      "options": [
+        "È più colorata",
+        "Mostra TUTTI i piani C simultaneamente, rivelando asimmetrie invisibili in un diagramma polare a 2 piani",
+        "Mostra la temperatura di colore",
+        "È sempre più precisa"
+      ],
+      "explanation": "Un diagramma polare mostra tipicamente solo 2 piani C (C0-C180 e C90-C270). Una mappa di calore mostra l'intensità per ogni piano C e angolo gamma misurato, rivelando asimmetrie o pattern tra i piani."
+    },
+    "17020": {
+      "text": "Nella legenda dei colori della mappa di calore, quale estremità rappresenta l'intensità zero?",
+      "options": [
+        "L'estremità rossa",
+        "L'estremità blu/scura",
+        "Il centro verde",
+        "Non c'è zero in una mappa di calore"
+      ],
+      "explanation": "La scala cromatica della mappa di calore va dal blu scuro (zero/intensità minima) al rosso (intensità massima) passando per ciano, verde e giallo. L'estremità blu/scura rappresenta i valori più bassi."
+    }
+  }
+}

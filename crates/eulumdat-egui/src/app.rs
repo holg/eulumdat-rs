@@ -2,21 +2,71 @@
 
 use atla::LuminaireOpticalData;
 use eframe::egui::{self, Color32, DragValue, Margin, RichText, Rounding, TextureHandle, Vec2};
-use eulumdat::{Eulumdat, IesExporter};
+use eulumdat::compare::{PhotometricComparison, Significance};
+use eulumdat::diagram::{CartesianDiagram, ConeDiagram, PolarDiagram};
+use eulumdat::{Eulumdat, IesExporter, PhotometricCalculations};
 use eulumdat_i18n::{Language, Locale};
 use std::path::PathBuf;
 
 use crate::diagram::Butterfly3DRenderer;
 use crate::templates::{self, Template};
 use crate::ui::{
-    diagram_panel::generate_svg_with_height,
+    diagram_panel::{generate_svg_with_height, DiagramParams},
     render_info_panel, render_main_tab_bar, render_sub_tab_bar,
     tabs::{
         render_dimensions_tab, render_general_tab, render_intensity_tab, render_lamps_tab,
         render_optical_tab, render_validation_tab, IntensityTabState,
     },
-    MainTab, SubTab,
+    DiagramType, MainTab, SubTab,
 };
+
+/// Compare display mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CompareMode {
+    #[default]
+    PolarOverlay,
+    CartesianOverlay,
+    PolarSideBySide,
+    CartesianSideBySide,
+    HeatmapSideBySide,
+    ConeSideBySide,
+    IsoluxSideBySide,
+    IsocandlelaSideBySide,
+    FloodlightSideBySide,
+    MetricsOnly,
+}
+
+impl CompareMode {
+    pub fn label(&self) -> &'static str {
+        match self {
+            CompareMode::PolarOverlay => "Polar Overlay",
+            CompareMode::CartesianOverlay => "Cartesian Overlay",
+            CompareMode::PolarSideBySide => "Polar Side-by-Side",
+            CompareMode::CartesianSideBySide => "Cartesian Side-by-Side",
+            CompareMode::HeatmapSideBySide => "Heatmap Side-by-Side",
+            CompareMode::ConeSideBySide => "Cone Side-by-Side",
+            CompareMode::IsoluxSideBySide => "Isolux Side-by-Side",
+            CompareMode::IsocandlelaSideBySide => "Isocandela Side-by-Side",
+            CompareMode::FloodlightSideBySide => "Floodlight Side-by-Side",
+            CompareMode::MetricsOnly => "Metrics Only",
+        }
+    }
+
+    pub fn all() -> &'static [CompareMode] {
+        &[
+            CompareMode::PolarOverlay,
+            CompareMode::CartesianOverlay,
+            CompareMode::PolarSideBySide,
+            CompareMode::CartesianSideBySide,
+            CompareMode::HeatmapSideBySide,
+            CompareMode::ConeSideBySide,
+            CompareMode::IsoluxSideBySide,
+            CompareMode::IsocandlelaSideBySide,
+            CompareMode::FloodlightSideBySide,
+            CompareMode::MetricsOnly,
+        ]
+    }
+}
 
 /// Application state
 pub struct EulumdatApp {
@@ -48,6 +98,30 @@ pub struct EulumdatApp {
     pub mounting_height: f64,
     /// Max height for greenhouse diagram (meters)
     pub greenhouse_height: f64,
+    /// Tilt angle for isolux diagram (degrees)
+    pub tilt_angle: f64,
+    /// Area size for isolux diagram (meters, half-width)
+    pub area_size: f64,
+    /// Log scale for floodlight diagram
+    pub log_scale: bool,
+    /// Selected C-plane for per-plane diagrams (None = all)
+    pub selected_c_plane: Option<f64>,
+    /// Compare file B
+    pub compare_ldt: Option<Eulumdat>,
+    /// Compare file B name
+    pub compare_file_name: String,
+    /// Compare mode
+    pub compare_mode: CompareMode,
+    /// Compare C-plane A
+    pub compare_c_plane_a: f64,
+    /// Compare C-plane B
+    pub compare_c_plane_b: f64,
+    /// Link compare sliders
+    pub compare_link_sliders: bool,
+    /// Compare texture
+    pub compare_texture: Option<TextureHandle>,
+    /// Compare texture dirty flag
+    pub compare_texture_dirty: bool,
     /// Current language
     pub language: Language,
     /// Current locale for translations (derived from language)
@@ -74,6 +148,18 @@ impl EulumdatApp {
             intensity_show_colors: true,
             mounting_height: 3.0,
             greenhouse_height: 2.0,
+            tilt_angle: 0.0,
+            area_size: 20.0,
+            log_scale: false,
+            selected_c_plane: None,
+            compare_ldt: None,
+            compare_file_name: String::new(),
+            compare_mode: CompareMode::default(),
+            compare_c_plane_a: 0.0,
+            compare_c_plane_b: 0.0,
+            compare_link_sliders: true,
+            compare_texture: None,
+            compare_texture_dirty: true,
             language: Language::default(),
             locale: Locale::default(), // English by default
         }
@@ -505,6 +591,13 @@ impl EulumdatApp {
         let size = available_size.min_elem() * 0.95;
 
         if self.texture_dirty || self.texture.is_none() {
+            let params = DiagramParams {
+                mounting_height: self.mounting_height,
+                tilt_angle: self.tilt_angle,
+                area_size: self.area_size,
+                log_scale: self.log_scale,
+                c_plane: self.selected_c_plane,
+            };
             if let Some(svg) = generate_svg_with_height(
                 ldt,
                 self.sub_tab_to_diagram_type(),
@@ -513,6 +606,7 @@ impl EulumdatApp {
                 self.dark_theme,
                 self.mounting_height,
                 &self.locale,
+                &params,
             ) {
                 match crate::render::render_svg_to_rgba(&svg, size as u32, size as u32) {
                     Ok((pixels, w, h)) => {
@@ -552,25 +646,555 @@ impl EulumdatApp {
             let scale = (available_size.x / texture_size.x).min(available_size.y / texture_size.y);
             let display_size = texture_size * scale;
 
-            ui.centered_and_justified(|ui| {
-                ui.image((tex.id(), display_size));
-            });
+            // Center the image but only occupy the diagram's actual size (not the whole panel)
+            ui.allocate_new_ui(
+                egui::UiBuilder::new().max_rect(egui::Rect::from_center_size(
+                    ui.available_rect_before_wrap().center(),
+                    display_size,
+                )),
+                |ui| {
+                    ui.image((tex.id(), display_size));
+                },
+            );
         }
     }
 
-    fn sub_tab_to_diagram_type(&self) -> crate::ui::DiagramType {
+    fn sub_tab_to_diagram_type(&self) -> DiagramType {
         match self.sub_tab {
-            SubTab::Polar => crate::ui::DiagramType::Polar,
-            SubTab::Cartesian => crate::ui::DiagramType::Cartesian,
-            SubTab::BeamAngle => crate::ui::DiagramType::BeamAngle,
-            SubTab::Butterfly3D => crate::ui::DiagramType::Butterfly3D,
-            SubTab::Heatmap => crate::ui::DiagramType::Heatmap,
-            SubTab::Cone => crate::ui::DiagramType::Cone,
-            SubTab::BugRating => crate::ui::DiagramType::Bug,
-            SubTab::Lcs => crate::ui::DiagramType::Lcs,
-            SubTab::Spectral => crate::ui::DiagramType::Spectral,
-            SubTab::Greenhouse => crate::ui::DiagramType::Greenhouse,
-            _ => crate::ui::DiagramType::Polar,
+            SubTab::Polar => DiagramType::Polar,
+            SubTab::Cartesian => DiagramType::Cartesian,
+            SubTab::BeamAngle => DiagramType::BeamAngle,
+            SubTab::Butterfly3D => DiagramType::Butterfly3D,
+            SubTab::Heatmap => DiagramType::Heatmap,
+            SubTab::Cone => DiagramType::Cone,
+            SubTab::BugRating => DiagramType::Bug,
+            SubTab::Lcs => DiagramType::Lcs,
+            SubTab::Spectral => DiagramType::Spectral,
+            SubTab::Greenhouse => DiagramType::Greenhouse,
+            SubTab::Isolux => DiagramType::Isolux,
+            SubTab::Isocandela => DiagramType::Isocandela,
+            SubTab::Floodlight => DiagramType::Floodlight,
+            _ => DiagramType::Polar,
+        }
+    }
+
+    /// Render the BIM parameters panel
+    fn render_bim_panel(&mut self, ui: &mut egui::Ui) {
+        let atla_doc = match &self.atla_doc {
+            Some(doc) => doc,
+            None => {
+                ui.centered_and_justified(|ui| {
+                    ui.label("No data loaded");
+                });
+                return;
+            }
+        };
+
+        let bim = atla::bim::BimParameters::from_atla(atla_doc);
+
+        if bim.populated_count() < 3 {
+            ui.vertical_centered(|ui| {
+                ui.add_space(60.0);
+                ui.label(RichText::new("BIM Parameters").size(20.0).strong());
+                ui.add_space(10.0);
+                ui.label(
+                    RichText::new("No BIM parameters available for this luminaire")
+                        .color(Color32::GRAY),
+                );
+                ui.add_space(5.0);
+                ui.label(
+                    RichText::new("BIM data is extracted from ATLA XML files")
+                        .small()
+                        .color(Color32::GRAY),
+                );
+            });
+            return;
+        }
+
+        // Header
+        ui.horizontal(|ui| {
+            ui.heading("BIM Parameters");
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Copy CSV").clicked() {
+                    ui.output_mut(|o| o.copied_text = bim.to_csv());
+                }
+            });
+        });
+        ui.separator();
+        ui.label(
+            RichText::new(format!("{} parameters populated", bim.populated_count()))
+                .small()
+                .color(Color32::GRAY),
+        );
+        ui.add_space(5.0);
+
+        // Table of parameters
+        let rows = bim.to_table_rows();
+        let mut current_group = "";
+
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::Grid::new("bim_grid")
+                .num_columns(3)
+                .spacing([20.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    for (group, name, value, unit) in &rows {
+                        if *group != current_group {
+                            current_group = group;
+                            ui.label(
+                                RichText::new(*group)
+                                    .strong()
+                                    .color(Color32::from_rgb(59, 130, 246)),
+                            );
+                            ui.label("");
+                            ui.label("");
+                            ui.end_row();
+                        }
+                        ui.label(RichText::new(*name).small());
+                        ui.label(RichText::new(value).small());
+                        ui.label(RichText::new(*unit).small().color(Color32::GRAY));
+                        ui.end_row();
+                    }
+                });
+        });
+    }
+
+    /// Render the compare panel
+    fn render_compare_panel(&mut self, ui: &mut egui::Ui) {
+        let ldt_a = match &self.eulumdat {
+            Some(ldt) => ldt.clone(),
+            None => {
+                ui.centered_and_justified(|ui| {
+                    ui.label("No data loaded");
+                });
+                return;
+            }
+        };
+
+        // If no compare file loaded, show empty state
+        if self.compare_ldt.is_none() {
+            ui.vertical_centered(|ui| {
+                ui.add_space(60.0);
+                ui.label(RichText::new("Compare Luminaires").size(20.0).strong());
+                ui.add_space(10.0);
+                ui.label(
+                    RichText::new("Load a second file to compare photometric data")
+                        .color(Color32::GRAY),
+                );
+                ui.add_space(20.0);
+
+                if ui
+                    .add(
+                        egui::Button::new(RichText::new("  Load File B...").size(14.0))
+                            .min_size(Vec2::new(180.0, 36.0))
+                            .rounding(Rounding::same(8.0)),
+                    )
+                    .clicked()
+                {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter(
+                            "All Photometric",
+                            &["ldt", "ies", "xml", "json", "LDT", "IES"],
+                        )
+                        .pick_file()
+                    {
+                        self.load_compare_file(path);
+                    }
+                }
+
+                // Templates shortcut
+                ui.add_space(15.0);
+                ui.label(
+                    RichText::new("Or use a template:")
+                        .small()
+                        .color(Color32::GRAY),
+                );
+                ui.add_space(5.0);
+                let templates = templates::all_templates();
+                let mut template_to_load: Option<&Template> = None;
+                ui.horizontal_wrapped(|ui| {
+                    for template in templates {
+                        if ui.small_button(template.name).clicked() {
+                            template_to_load = Some(template);
+                        }
+                    }
+                });
+                if let Some(template) = template_to_load {
+                    if let Ok(ldt) = template.parse() {
+                        self.compare_file_name = template.name.to_string();
+                        self.compare_ldt = Some(ldt);
+                        self.compare_texture_dirty = true;
+                    }
+                }
+            });
+            return;
+        }
+
+        let ldt_b = self.compare_ldt.as_ref().unwrap().clone();
+        let label_a = self
+            .current_file
+            .as_ref()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or("File A")
+            .to_string();
+        let label_b = self.compare_file_name.clone();
+
+        // Header: file B info + clear + mode selector
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(format!("B: {}", label_b)).strong());
+            if ui.small_button("x").clicked() {
+                self.compare_ldt = None;
+                self.compare_file_name.clear();
+                self.compare_texture = None;
+                return;
+            }
+            ui.separator();
+            if ui.button("Load different...").clicked() {
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter(
+                        "All Photometric",
+                        &["ldt", "ies", "xml", "json", "LDT", "IES"],
+                    )
+                    .pick_file()
+                {
+                    self.load_compare_file(path);
+                }
+            }
+        });
+        ui.separator();
+
+        // Mode selector
+        ui.horizontal_wrapped(|ui| {
+            for mode in CompareMode::all() {
+                if ui
+                    .selectable_label(self.compare_mode == *mode, mode.label())
+                    .clicked()
+                {
+                    self.compare_mode = *mode;
+                    self.compare_texture_dirty = true;
+                }
+            }
+        });
+        ui.separator();
+
+        // C-plane controls for overlay modes
+        if matches!(
+            self.compare_mode,
+            CompareMode::PolarOverlay | CompareMode::CartesianOverlay
+        ) {
+            ui.horizontal(|ui| {
+                ui.label("C-Plane A:");
+                if ui
+                    .add(
+                        DragValue::new(&mut self.compare_c_plane_a)
+                            .speed(15.0)
+                            .range(0.0..=345.0)
+                            .suffix("°"),
+                    )
+                    .changed()
+                {
+                    if self.compare_link_sliders {
+                        self.compare_c_plane_b = self.compare_c_plane_a;
+                    }
+                    self.compare_texture_dirty = true;
+                }
+                ui.label("C-Plane B:");
+                if ui
+                    .add(
+                        DragValue::new(&mut self.compare_c_plane_b)
+                            .speed(15.0)
+                            .range(0.0..=345.0)
+                            .suffix("°"),
+                    )
+                    .changed()
+                {
+                    self.compare_texture_dirty = true;
+                }
+                if ui
+                    .checkbox(&mut self.compare_link_sliders, "Link")
+                    .changed()
+                    && self.compare_link_sliders
+                {
+                    self.compare_c_plane_b = self.compare_c_plane_a;
+                    self.compare_texture_dirty = true;
+                }
+            });
+            ui.separator();
+        }
+
+        // Render diagram area
+        let available_size = ui.available_size();
+
+        match self.compare_mode {
+            CompareMode::PolarOverlay => {
+                let size = available_size.min_elem() * 0.8;
+                if self.compare_texture_dirty || self.compare_texture.is_none() {
+                    let polar_a =
+                        PolarDiagram::from_eulumdat_for_plane(&ldt_a, self.compare_c_plane_a);
+                    let polar_b =
+                        PolarDiagram::from_eulumdat_for_plane(&ldt_b, self.compare_c_plane_b);
+                    let theme = self.svg_theme();
+                    let svg = PolarDiagram::to_overlay_svg(
+                        &polar_a,
+                        &polar_b,
+                        size as f64,
+                        size as f64,
+                        &theme,
+                        &label_a,
+                        &label_b,
+                    );
+                    self.load_compare_texture(ui, &svg, size as u32, size as u32);
+                }
+                self.show_compare_texture(ui, available_size);
+            }
+            CompareMode::CartesianOverlay => {
+                let w = available_size.x * 0.9;
+                let h = available_size.y * 0.5;
+                if self.compare_texture_dirty || self.compare_texture.is_none() {
+                    let cart_a = CartesianDiagram::from_eulumdat_for_plane(
+                        &ldt_a,
+                        self.compare_c_plane_a,
+                        w as f64,
+                        h as f64,
+                    );
+                    let cart_b = CartesianDiagram::from_eulumdat_for_plane(
+                        &ldt_b,
+                        self.compare_c_plane_b,
+                        w as f64,
+                        h as f64,
+                    );
+                    let theme = self.svg_theme();
+                    let svg = CartesianDiagram::to_overlay_svg(
+                        &cart_a, &cart_b, w as f64, h as f64, &theme, &label_a, &label_b,
+                    );
+                    self.load_compare_texture(ui, &svg, w as u32, h as u32);
+                }
+                self.show_compare_texture(ui, available_size);
+            }
+            CompareMode::MetricsOnly => {
+                // Just show metrics table below
+            }
+            _ => {
+                // Side-by-side: render two diagrams
+                let half_w = (available_size.x * 0.48) as f64;
+                let half_h = (available_size.y * 0.5) as f64;
+                let diagram_type = match self.compare_mode {
+                    CompareMode::PolarSideBySide => DiagramType::Polar,
+                    CompareMode::CartesianSideBySide => DiagramType::Cartesian,
+                    CompareMode::HeatmapSideBySide => DiagramType::Heatmap,
+                    CompareMode::ConeSideBySide => DiagramType::Cone,
+                    CompareMode::IsoluxSideBySide => DiagramType::Isolux,
+                    CompareMode::IsocandlelaSideBySide => DiagramType::Isocandela,
+                    CompareMode::FloodlightSideBySide => DiagramType::Floodlight,
+                    _ => DiagramType::Polar,
+                };
+                let params = DiagramParams {
+                    mounting_height: self.mounting_height,
+                    tilt_angle: self.tilt_angle,
+                    area_size: self.area_size,
+                    log_scale: self.log_scale,
+                    c_plane: None,
+                };
+
+                ui.columns(2, |cols| {
+                    // File A
+                    cols[0].label(RichText::new(&label_a).small().strong());
+                    if let Some(svg_a) = generate_svg_with_height(
+                        &ldt_a,
+                        diagram_type,
+                        half_w,
+                        half_h,
+                        self.dark_theme,
+                        self.mounting_height,
+                        &self.locale,
+                        &params,
+                    ) {
+                        if let Ok((pixels, w, h)) =
+                            crate::render::render_svg_to_rgba(&svg_a, half_w as u32, half_h as u32)
+                        {
+                            let image = crate::render::rgba_to_color_image(pixels, w, h);
+                            let tex = cols[0].ctx().load_texture(
+                                "compare_a",
+                                image,
+                                egui::TextureOptions::LINEAR,
+                            );
+                            cols[0].image((tex.id(), tex.size_vec2()));
+                        }
+                    }
+
+                    // File B
+                    cols[1].label(RichText::new(&label_b).small().strong());
+                    if let Some(svg_b) = generate_svg_with_height(
+                        &ldt_b,
+                        diagram_type,
+                        half_w,
+                        half_h,
+                        self.dark_theme,
+                        self.mounting_height,
+                        &self.locale,
+                        &params,
+                    ) {
+                        if let Ok((pixels, w, h)) =
+                            crate::render::render_svg_to_rgba(&svg_b, half_w as u32, half_h as u32)
+                        {
+                            let image = crate::render::rgba_to_color_image(pixels, w, h);
+                            let tex = cols[1].ctx().load_texture(
+                                "compare_b",
+                                image,
+                                egui::TextureOptions::LINEAR,
+                            );
+                            cols[1].image((tex.id(), tex.size_vec2()));
+                        }
+                    }
+                });
+            }
+        }
+
+        // Metrics table
+        ui.separator();
+        let comparison = PhotometricComparison::from_eulumdat_with_locale(
+            &ldt_a,
+            &ldt_b,
+            &label_a,
+            &label_b,
+            &self.locale,
+        );
+
+        ui.horizontal(|ui| {
+            ui.label(
+                RichText::new(format!(
+                    "Similarity: {:.0}%",
+                    comparison.similarity_score * 100.0
+                ))
+                .strong(),
+            );
+            ui.separator();
+            if ui.button("Copy CSV").clicked() {
+                ui.output_mut(|o| o.copied_text = comparison.to_csv());
+            }
+        });
+        ui.separator();
+
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            egui::Grid::new("compare_metrics")
+                .num_columns(6)
+                .spacing([12.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    // Header
+                    ui.label(RichText::new("Metric").small().strong());
+                    ui.label(RichText::new(&label_a).small().strong());
+                    ui.label(RichText::new(&label_b).small().strong());
+                    ui.label(RichText::new("Delta").small().strong());
+                    ui.label(RichText::new("%").small().strong());
+                    ui.label(RichText::new("Sig.").small().strong());
+                    ui.end_row();
+
+                    for metric in &comparison.metrics {
+                        let sig_color = match metric.significance {
+                            Significance::Negligible => Color32::GRAY,
+                            Significance::Minor => Color32::from_rgb(59, 130, 246),
+                            Significance::Moderate => Color32::from_rgb(245, 158, 11),
+                            Significance::Major => Color32::from_rgb(239, 68, 68),
+                        };
+
+                        ui.label(
+                            RichText::new(format!("{} ({})", metric.name, metric.unit)).small(),
+                        );
+                        ui.label(RichText::new(format!("{:.2}", metric.value_a)).small());
+                        ui.label(RichText::new(format!("{:.2}", metric.value_b)).small());
+                        ui.label(RichText::new(format!("{:.2}", metric.delta)).small());
+                        ui.label(
+                            RichText::new(format!("{:.1}%", metric.delta_percent))
+                                .small()
+                                .color(sig_color),
+                        );
+                        ui.label(
+                            RichText::new(format!("{:?}", metric.significance))
+                                .small()
+                                .color(sig_color),
+                        );
+                        ui.end_row();
+                    }
+                });
+        });
+    }
+
+    /// Load compare texture from SVG
+    fn load_compare_texture(&mut self, ui: &mut egui::Ui, svg: &str, w: u32, h: u32) {
+        match crate::render::render_svg_to_rgba(svg, w, h) {
+            Ok((pixels, pw, ph)) => {
+                let image = crate::render::rgba_to_color_image(pixels, pw, ph);
+                self.compare_texture = Some(ui.ctx().load_texture(
+                    "compare_diagram",
+                    image,
+                    egui::TextureOptions::LINEAR,
+                ));
+                self.compare_texture_dirty = false;
+            }
+            Err(e) => {
+                ui.colored_label(Color32::RED, format!("Render error: {}", e));
+            }
+        }
+    }
+
+    /// Show compare texture
+    fn show_compare_texture(&self, ui: &mut egui::Ui, available_size: Vec2) {
+        if let Some(tex) = &self.compare_texture {
+            let texture_size = tex.size_vec2();
+            let scale = (available_size.x / texture_size.x).min(available_size.y / texture_size.y);
+            let display_size = texture_size * scale;
+            // Center the image but only occupy the diagram's actual size (not the whole panel)
+            ui.allocate_new_ui(
+                egui::UiBuilder::new().max_rect(egui::Rect::from_center_size(
+                    ui.available_rect_before_wrap().center(),
+                    display_size,
+                )),
+                |ui| {
+                    ui.image((tex.id(), display_size));
+                },
+            );
+        }
+    }
+
+    /// Load a compare file
+    fn load_compare_file(&mut self, path: PathBuf) {
+        let content = match std::fs::read(&path) {
+            Ok(bytes) => {
+                let (decoded, _, _) = encoding_rs::WINDOWS_1252.decode(&bytes);
+                decoded.into_owned()
+            }
+            Err(_) => return,
+        };
+
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+
+        let result: Result<Eulumdat, String> = match ext.as_str() {
+            "xml" => atla::xml::parse(&content)
+                .map(|doc| doc.to_eulumdat())
+                .map_err(|e| e.to_string()),
+            "json" => atla::json::parse(&content)
+                .map(|doc| doc.to_eulumdat())
+                .map_err(|e| e.to_string()),
+            "ies" => eulumdat::IesParser::parse(&content).map_err(|e| e.to_string()),
+            _ => Eulumdat::parse(&content)
+                .or_else(|_| eulumdat::IesParser::parse(&content))
+                .map_err(|e| e.to_string()),
+        };
+
+        if let Ok(ldt) = result {
+            self.compare_file_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("File B")
+                .to_string();
+            self.compare_ldt = Some(ldt);
+            self.compare_texture_dirty = true;
         }
     }
 
@@ -886,6 +1510,96 @@ impl eframe::App for EulumdatApp {
                             {
                                 self.texture_dirty = true;
                             }
+                        } else if self.sub_tab == SubTab::Isolux {
+                            ui.separator();
+                            ui.label("Height:");
+                            if ui
+                                .add(
+                                    DragValue::new(&mut self.mounting_height)
+                                        .speed(0.1)
+                                        .range(3.0..=30.0)
+                                        .suffix(" m"),
+                                )
+                                .changed()
+                            {
+                                self.texture_dirty = true;
+                            }
+                            ui.label("Tilt:");
+                            if ui
+                                .add(
+                                    DragValue::new(&mut self.tilt_angle)
+                                        .speed(0.5)
+                                        .range(0.0..=80.0)
+                                        .suffix("°"),
+                                )
+                                .changed()
+                            {
+                                self.texture_dirty = true;
+                            }
+                            ui.label("Area:");
+                            if ui
+                                .add(
+                                    DragValue::new(&mut self.area_size)
+                                        .speed(0.5)
+                                        .range(5.0..=100.0)
+                                        .suffix(" m"),
+                                )
+                                .changed()
+                            {
+                                self.texture_dirty = true;
+                            }
+                        } else if self.sub_tab == SubTab::Floodlight {
+                            ui.separator();
+                            if ui.checkbox(&mut self.log_scale, "Log scale").changed() {
+                                self.texture_dirty = true;
+                            }
+                            if let Some(ldt) = &self.eulumdat {
+                                let nema = PhotometricCalculations::nema_classification(ldt);
+                                ui.separator();
+                                ui.label(
+                                    RichText::new(&nema.designation)
+                                        .small()
+                                        .color(Color32::GRAY),
+                                );
+                            }
+                        }
+
+                        // C-plane selector for Polar/Cartesian/Cone
+                        if matches!(
+                            self.sub_tab,
+                            SubTab::Polar | SubTab::Cartesian | SubTab::Cone
+                        ) {
+                            if let Some(ldt) = &self.eulumdat {
+                                if ConeDiagram::has_c_plane_variation(ldt) {
+                                    ui.separator();
+                                    if let Some(cp) = &mut self.selected_c_plane {
+                                        ui.label(RichText::new(format!("C {:.0}°", cp)).small());
+                                        let step = if ldt.c_angles.len() > 1 {
+                                            ldt.c_angles[1] - ldt.c_angles[0]
+                                        } else {
+                                            15.0
+                                        };
+                                        if ui
+                                            .add(
+                                                DragValue::new(cp)
+                                                    .speed(step)
+                                                    .range(0.0..=345.0)
+                                                    .suffix("°"),
+                                            )
+                                            .changed()
+                                        {
+                                            self.texture_dirty = true;
+                                        }
+                                        if ui.small_button("x").clicked() {
+                                            self.selected_c_plane = None;
+                                            self.texture_dirty = true;
+                                        }
+                                    } else if ui.small_button("C-Plane").clicked() {
+                                        self.selected_c_plane = Some(0.0);
+                                        self.texture_dirty = true;
+                                    }
+                                }
+                            }
                         }
                     });
                 });
@@ -998,11 +1712,24 @@ impl eframe::App for EulumdatApp {
                     | SubTab::Butterfly3D
                     | SubTab::Heatmap
                     | SubTab::Cone
+                    | SubTab::Isolux
+                    | SubTab::Isocandela
+                    | SubTab::Floodlight
                     | SubTab::Spectral
                     | SubTab::Greenhouse
                     | SubTab::BugRating
                     | SubTab::Lcs => {
                         self.render_diagram(ui);
+                    }
+
+                    // BIM Parameters
+                    SubTab::Bim => {
+                        self.render_bim_panel(ui);
+                    }
+
+                    // Compare
+                    SubTab::ComparePanel => {
+                        self.render_compare_panel(ui);
                     }
 
                     // Validation

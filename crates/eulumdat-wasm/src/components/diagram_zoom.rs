@@ -4,6 +4,7 @@
 use crate::i18n::use_locale;
 use leptos::ev;
 use leptos::prelude::*;
+use wasm_bindgen::JsCast;
 use web_sys::Element;
 
 #[component]
@@ -19,6 +20,15 @@ pub fn DiagramZoom(children: Children) -> impl IntoView {
     let container_ref = NodeRef::<leptos::html::Div>::new();
 
     let on_wheel = move |e: ev::WheelEvent| {
+        // Don't zoom when scrolling on controls
+        if let Some(target) = e.target() {
+            if let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() {
+                let tag = el.tag_name().to_uppercase();
+                if matches!(tag.as_str(), "INPUT" | "SELECT") {
+                    return;
+                }
+            }
+        }
         e.prevent_default();
         let delta = e.delta_y();
         let zoom_factor = if delta > 0.0 { 0.9 } else { 1.1 };
@@ -44,6 +54,15 @@ pub fn DiagramZoom(children: Children) -> impl IntoView {
 
     let on_mousedown = move |e: ev::MouseEvent| {
         if e.button() == 0 {
+            // Don't start drag on interactive controls (sliders, buttons, inputs)
+            if let Some(target) = e.target() {
+                if let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() {
+                    let tag = el.tag_name().to_uppercase();
+                    if matches!(tag.as_str(), "INPUT" | "BUTTON" | "SELECT" | "LABEL") {
+                        return;
+                    }
+                }
+            }
             set_dragging.set(true);
             set_last_mouse_x.set(e.client_x() as f64);
             set_last_mouse_y.set(e.client_y() as f64);
@@ -77,6 +96,30 @@ pub fn DiagramZoom(children: Children) -> impl IntoView {
         set_translate_y.set(0.0);
     };
 
+    let on_dblclick = move |_: ev::MouseEvent| {
+        // Find SVG inside the container and open in a new browser tab via Blob URL
+        if let Some(container) = container_ref.get() {
+            let element: &Element = container.as_ref();
+            if let Some(svg_el) = element.query_selector("svg").ok().flatten() {
+                let svg_html = svg_el.outer_html();
+                if let Some(window) = web_sys::window() {
+                    // Create a Blob from the SVG content
+                    let parts = js_sys::Array::new();
+                    parts.push(&wasm_bindgen::JsValue::from_str(&svg_html));
+                    let opts = web_sys::BlobPropertyBag::new();
+                    opts.set_type("image/svg+xml");
+                    if let Ok(blob) =
+                        web_sys::Blob::new_with_str_sequence_and_options(&parts, &opts)
+                    {
+                        if let Ok(url) = web_sys::Url::create_object_url_with_blob(&blob) {
+                            let _ = window.open_with_url_and_target(&url, "_blank");
+                        }
+                    }
+                }
+            }
+        }
+    };
+
     view! {
         <div
             class="diagram-zoom-container"
@@ -86,6 +129,7 @@ pub fn DiagramZoom(children: Children) -> impl IntoView {
             on:mousemove=on_mousemove
             on:mouseup=on_mouseup
             on:mouseleave=on_mouseleave
+            on:dblclick=on_dblclick
         >
             <div
                 class="diagram-zoom-content"

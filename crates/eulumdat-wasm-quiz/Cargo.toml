@@ -1,0 +1,44 @@
+[package]
+name = "eulumdat-wasm-quiz"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WebAssembly Photometric Knowledge Quiz - Browser-based lighting science quiz"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "eulumdat-wasm-quiz"
+path = "src/main.rs"
+
+[features]
+default = ["csr"]
+csr = ["leptos/csr"]
+
+[dependencies]
+console_error_panic_hook.workspace = true
+eulumdat = { workspace = true }
+eulumdat-i18n = { path = "../eulumdat-i18n" }
+eulumdat-quiz = { path = "../eulumdat-quiz" }
+js-sys.workspace = true
+leptos.workspace = true
+wasm-bindgen.workspace = true
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "Storage",
+    "HtmlSelectElement",
+    "Navigator",
+    "console",
+]
+
+[dev-dependencies]
+wasm-bindgen-test.workspace = true

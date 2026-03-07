@@ -2,7 +2,8 @@
 
 use eframe::egui::{self, Color32, Sense, TextureHandle, Ui};
 use eulumdat::diagram::{
-    ButterflyDiagram, CartesianDiagram, ConeDiagram, HeatmapDiagram, PolarDiagram, SvgTheme,
+    ButterflyDiagram, CartesianDiagram, ConeDiagram, FloodlightCartesianDiagram, HeatmapDiagram,
+    IsocandelaDiagram, IsoluxDiagram, IsoluxParams, PolarDiagram, SvgTheme, YScale,
 };
 use eulumdat::{BugDiagram, Eulumdat, PhotometricCalculations, PhotometricSummary};
 use eulumdat_i18n::Locale;
@@ -22,6 +23,9 @@ pub enum DiagramType {
     Lcs,
     Cone,
     BeamAngle,
+    Isolux,
+    Isocandela,
+    Floodlight,
     // ATLA-specific types (handled separately)
     Spectral,
     Greenhouse,
@@ -39,6 +43,9 @@ impl DiagramType {
             DiagramType::Lcs => "LCS",
             DiagramType::Cone => "Cone",
             DiagramType::BeamAngle => "Beam",
+            DiagramType::Isolux => "Isolux",
+            DiagramType::Isocandela => "Isocandela",
+            DiagramType::Floodlight => "Floodlight",
             DiagramType::Spectral => "Spectral",
             DiagramType::Greenhouse => "Greenhouse",
         }
@@ -55,7 +62,31 @@ impl DiagramType {
             DiagramType::Lcs,
             DiagramType::Cone,
             DiagramType::BeamAngle,
+            DiagramType::Isolux,
+            DiagramType::Isocandela,
+            DiagramType::Floodlight,
         ]
+    }
+}
+
+/// Diagram generation parameters
+pub struct DiagramParams {
+    pub mounting_height: f64,
+    pub tilt_angle: f64,
+    pub area_size: f64,
+    pub log_scale: bool,
+    pub c_plane: Option<f64>,
+}
+
+impl Default for DiagramParams {
+    fn default() -> Self {
+        Self {
+            mounting_height: 3.0,
+            tilt_angle: 0.0,
+            area_size: 20.0,
+            log_scale: false,
+            c_plane: None,
+        }
     }
 }
 
@@ -68,7 +99,16 @@ pub fn generate_svg(
     dark_theme: bool,
     locale: &Locale,
 ) -> Option<String> {
-    generate_svg_with_height(ldt, diagram_type, width, height, dark_theme, 3.0, locale)
+    generate_svg_with_height(
+        ldt,
+        diagram_type,
+        width,
+        height,
+        dark_theme,
+        3.0,
+        locale,
+        &DiagramParams::default(),
+    )
 }
 
 /// Generate SVG for a diagram type with configurable mounting height
@@ -80,6 +120,7 @@ pub fn generate_svg_with_height(
     dark_theme: bool,
     mounting_height: f64,
     locale: &Locale,
+    params: &DiagramParams,
 ) -> Option<String> {
     let theme = if dark_theme {
         SvgTheme::dark_with_locale(locale)
@@ -91,12 +132,23 @@ pub fn generate_svg_with_height(
 
     Some(match diagram_type {
         DiagramType::Polar => {
-            let polar = PolarDiagram::from_eulumdat(ldt);
-            polar.to_svg_with_summary(width, height, &theme, &summary)
+            if let Some(cp) = params.c_plane {
+                let polar = PolarDiagram::from_eulumdat_for_plane(ldt, cp);
+                polar.to_svg_with_summary(width, height, &theme, &summary)
+            } else {
+                let polar = PolarDiagram::from_eulumdat(ldt);
+                polar.to_svg_with_summary(width, height, &theme, &summary)
+            }
         }
         DiagramType::Cartesian => {
-            let cartesian = CartesianDiagram::from_eulumdat(ldt, width, height * 0.75, 8);
-            cartesian.to_svg_with_summary(width, height * 0.75, &theme, &summary)
+            if let Some(cp) = params.c_plane {
+                let cartesian =
+                    CartesianDiagram::from_eulumdat_for_plane(ldt, cp, width, height * 0.75);
+                cartesian.to_svg_with_summary(width, height * 0.75, &theme, &summary)
+            } else {
+                let cartesian = CartesianDiagram::from_eulumdat(ldt, width, height * 0.75, 8);
+                cartesian.to_svg_with_summary(width, height * 0.75, &theme, &summary)
+            }
         }
         DiagramType::Butterfly | DiagramType::Butterfly3D => {
             let butterfly = ButterflyDiagram::from_eulumdat(ldt, width, height * 0.8, 60.0);
@@ -115,14 +167,44 @@ pub fn generate_svg_with_height(
             bug.to_lcs_svg(width, height * 0.75, &theme)
         }
         DiagramType::Cone => {
-            let cone = ConeDiagram::from_eulumdat(ldt, mounting_height);
-            cone.to_svg(width, height * 0.85, &theme)
+            if let Some(cp) = params.c_plane {
+                let cone = ConeDiagram::from_eulumdat_for_plane(ldt, mounting_height, cp);
+                cone.to_svg(width, height * 0.85, &theme)
+            } else {
+                let cone = ConeDiagram::from_eulumdat(ldt, mounting_height);
+                cone.to_svg(width, height * 0.85, &theme)
+            }
         }
         DiagramType::BeamAngle => {
             let polar = PolarDiagram::from_eulumdat(ldt);
             let analysis = PhotometricCalculations::beam_field_analysis(ldt);
             let show_both = analysis.is_batwing;
             polar.to_svg_with_beam_field_angles(width, height, &theme, &analysis, show_both)
+        }
+        DiagramType::Isolux => {
+            let isolux_params = IsoluxParams {
+                mounting_height: params.mounting_height,
+                tilt_angle: params.tilt_angle,
+                area_half_width: params.area_size,
+                area_half_depth: params.area_size,
+                grid_resolution: 60,
+            };
+            let diagram = IsoluxDiagram::from_eulumdat(ldt, width, height, isolux_params);
+            diagram.to_svg(width, height, &theme)
+        }
+        DiagramType::Isocandela => {
+            let diagram = IsocandelaDiagram::from_eulumdat(ldt, width, height * 0.85);
+            diagram.to_svg(width, height * 0.85, &theme)
+        }
+        DiagramType::Floodlight => {
+            let y_scale = if params.log_scale {
+                YScale::Logarithmic
+            } else {
+                YScale::Linear
+            };
+            let diagram =
+                FloodlightCartesianDiagram::from_eulumdat(ldt, width, height * 0.75, y_scale);
+            diagram.to_svg(width, height * 0.75, &theme)
         }
         // ATLA-specific types are handled separately via generate_current_svg
         DiagramType::Spectral | DiagramType::Greenhouse => return None,
@@ -197,9 +279,16 @@ pub fn render_diagram_panel(
         let scale = (available_size.x / texture_size.x).min(available_size.y / texture_size.y);
         let display_size = texture_size * scale;
 
-        ui.centered_and_justified(|ui| {
-            ui.image((tex.id(), display_size));
-        });
+        // Center the image but only occupy the diagram's actual size (not the whole panel)
+        ui.allocate_new_ui(
+            egui::UiBuilder::new().max_rect(egui::Rect::from_center_size(
+                ui.available_rect_before_wrap().center(),
+                display_size,
+            )),
+            |ui| {
+                ui.image((tex.id(), display_size));
+            },
+        );
     }
 }
 

@@ -1,0 +1,22 @@
+[build]
+target = "quiz.html"
+dist = "dist"
+
+[tools]
+wasm_bindgen = "0.2.114"
+
+[watch]
+watch = ["src", "quiz.html"]
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 8045
+open = false
+
+[[hooks]]
+stage = "post_build"
+command = "sh"
+command_arguments = [
+  "-c",
+  "cp -r src/static/* dist/ 2>/dev/null || true; cp ../eulumdat-wasm/src/static/styles.css dist/ 2>/dev/null || true",
+]

@@ -12,6 +12,12 @@ use web_sys::HtmlInputElement;
 extern "C" {
     #[wasm_bindgen(js_name = compileTypstToPdf, catch)]
     async fn compile_typst_to_pdf_js(source: &str) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(js_name = getTemplateContent, catch)]
+    async fn get_template_content_js(id: &str) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(js_name = isTemplatesLoaded)]
+    fn is_templates_loaded() -> bool;
 }
 
 /// Compile Typst source to PDF using the WASM typst compiler.
@@ -357,17 +363,20 @@ fn save_unit_system(units: UnitSystem) {
 
 use super::templates::Template;
 
-/// Load a template file
+/// Load a template file (content is lazily fetched from templates WASM module)
 fn load_template(
     template: &Template,
     set_atla_doc: WriteSignal<LuminaireOpticalData>,
     set_current_file: WriteSignal<Option<String>>,
     set_selected_lamp_set: WriteSignal<usize>,
+    set_templates_loading: WriteSignal<bool>,
+    rotate_c_planes: ReadSignal<bool>,
 ) {
     use super::templates::TemplateFormat;
 
     let ext = match template.format {
         TemplateFormat::Ldt => "ldt",
+        TemplateFormat::IesLm63 => "ies",
         TemplateFormat::AtlaXml => "xml",
         TemplateFormat::AtlaJson => "json",
     };
@@ -382,30 +391,69 @@ fn load_template(
         ext
     );
 
-    match template.format {
-        TemplateFormat::Ldt => {
-            if let Ok(ldt) = Eulumdat::parse(template.content) {
-                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                set_atla_doc.set(doc);
-                set_current_file.set(Some(filename));
-                set_selected_lamp_set.set(0);
+    let id = template.id.to_string();
+    let format = template.format;
+
+    set_templates_loading.set(true);
+
+    wasm_bindgen_futures::spawn_local(async move {
+        match get_template_content_js(&id).await {
+            Ok(js_val) => {
+                if let Some(content) = js_val.as_string() {
+                    match format {
+                        TemplateFormat::Ldt => {
+                            if let Ok(ldt) = Eulumdat::parse(&content) {
+                                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                                set_atla_doc.set(doc);
+                                set_current_file.set(Some(filename));
+                                set_selected_lamp_set.set(0);
+                            }
+                        }
+                        TemplateFormat::IesLm63 => {
+                            let opts = eulumdat::IesImportOptions {
+                                rotate_c_planes: if rotate_c_planes.get_untracked() {
+                                    90.0
+                                } else {
+                                    0.0
+                                },
+                            };
+                            if let Ok(ldt) = IesParser::parse_with_options(&content, &opts) {
+                                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                                set_atla_doc.set(doc);
+                                set_current_file.set(Some(filename));
+                                set_selected_lamp_set.set(0);
+                            }
+                        }
+                        TemplateFormat::AtlaXml => {
+                            if let Ok(doc) = atla::xml::parse(&content) {
+                                set_atla_doc.set(doc);
+                                set_current_file.set(Some(filename));
+                                set_selected_lamp_set.set(0);
+                            }
+                        }
+                        TemplateFormat::AtlaJson => {
+                            if let Ok(doc) = atla::json::parse(&content) {
+                                set_atla_doc.set(doc);
+                                set_current_file.set(Some(filename));
+                                set_selected_lamp_set.set(0);
+                            }
+                        }
+                    }
+                } else {
+                    web_sys::console::error_1(
+                        &format!("Template '{}' returned non-string value", id).into(),
+                    );
+                }
+            }
+            Err(e) => {
+                let msg = e.as_string().unwrap_or_else(|| "Unknown error".to_string());
+                web_sys::console::error_1(
+                    &format!("Failed to load template '{}': {}", id, msg).into(),
+                );
             }
         }
-        TemplateFormat::AtlaXml => {
-            if let Ok(doc) = atla::xml::parse(template.content) {
-                set_atla_doc.set(doc);
-                set_current_file.set(Some(filename));
-                set_selected_lamp_set.set(0);
-            }
-        }
-        TemplateFormat::AtlaJson => {
-            if let Ok(doc) = atla::json::parse(template.content) {
-                set_atla_doc.set(doc);
-                set_current_file.set(Some(filename));
-                set_selected_lamp_set.set(0);
-            }
-        }
-    }
+        set_templates_loading.set(false);
+    });
 }
 
 /// Get localized template name
@@ -493,6 +541,7 @@ pub fn App() -> impl IntoView {
     let (current_file, set_current_file) = signal::<Option<String>>(None);
     let (active_tab, set_active_tab) = signal(Tab::default());
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
+    let (templates_loading, set_templates_loading) = signal(false);
 
     // Compare panel: File B state lives here so it persists across tab switches
     let (compare_ldt_b, set_compare_ldt_b) = signal::<Option<Eulumdat>>(None);
@@ -516,6 +565,9 @@ pub fn App() -> impl IntoView {
     });
     provide_context((unit_system, set_unit_system));
     let (show_about, set_show_about) = signal(false);
+
+    // C-plane rotation for IES↔LDT axis correction (EU C0‖length vs US C0⊥length)
+    let (rotate_c_planes, set_rotate_c_planes) = signal(false);
 
     // Check if PDF/Typst export is enabled (via secret URL)
     let export_enabled = is_export_enabled();
@@ -563,8 +615,15 @@ pub fn App() -> impl IntoView {
                 }
             }
         } else if is_ies {
-            // IES → Eulumdat → ATLA
-            match IesParser::parse(&content) {
+            // IES → Eulumdat → ATLA (with optional C-plane rotation)
+            let opts = eulumdat::IesImportOptions {
+                rotate_c_planes: if rotate_c_planes.get_untracked() {
+                    90.0
+                } else {
+                    0.0
+                },
+            };
+            match IesParser::parse_with_options(&content, &opts) {
                 Ok(ldt) => {
                     let doc = LuminaireOpticalData::from_eulumdat(&ldt);
                     log_color_data_from_ldt(&name, &ldt, &doc);
@@ -640,7 +699,12 @@ pub fn App() -> impl IntoView {
 
     let on_export_ies = move |_| {
         // Export from ATLA → Eulumdat → IES
-        let content = eulumdat::IesExporter::export(&atla_doc.get().to_eulumdat());
+        let opts = eulumdat::IesExportOptions {
+            rotate_c_planes: if rotate_c_planes.get() { -90.0 } else { 0.0 },
+            ..Default::default()
+        };
+        let content =
+            eulumdat::IesExporter::export_with_options(&atla_doc.get().to_eulumdat(), &opts);
         let filename = current_file
             .get()
             .map(|f| replace_extension(&f, "ies"))
@@ -986,6 +1050,18 @@ pub fn App() -> impl IntoView {
                                     />
                                 </label>
                                 <div class="menu-divider"></div>
+                                <label class="menu-item checkbox-item" title="Rotate C-planes ±90° when importing/exporting IES (fixes EU↔US axis orientation)">
+                                    <input
+                                        type="checkbox"
+                                        prop:checked=move || rotate_c_planes.get()
+                                        on:change=move |ev| {
+                                            let checked = ev.target().unwrap().unchecked_into::<HtmlInputElement>().checked();
+                                            set_rotate_c_planes.set(checked);
+                                        }
+                                    />
+                                    " Rotate C0 ±90° (IES)"
+                                </label>
+                                <div class="menu-divider"></div>
                                 <button class="menu-item" on:click=on_save_ldt>
                                     {move || locale.get().ui.header.save_ldt.clone()}
                                 </button>
@@ -1081,7 +1157,7 @@ pub fn App() -> impl IntoView {
                                                 title=t.description
                                                 on:click=move |_| {
                                                     if let Some(template) = ALL_TEMPLATES.get(idx) {
-                                                        load_template(template, set_atla_doc, set_current_file, set_selected_lamp_set);
+                                                        load_template(template, set_atla_doc, set_current_file, set_selected_lamp_set, set_templates_loading, rotate_c_planes);
                                                     }
                                                 }
                                             >
@@ -1092,6 +1168,10 @@ pub fn App() -> impl IntoView {
                                 }}
                             </div>
                         </div>
+                        // Templates loading indicator
+                        {move || templates_loading.get().then(|| view! {
+                            <span class="templates-loading">"Loading..."</span>
+                        })}
                         // Settings
                         <button
                             class="btn btn-secondary theme-toggle"
@@ -1186,7 +1266,7 @@ pub fn App() -> impl IntoView {
                                 class=move || format!("tab{}", if active_main_tab.get() == MainTab::Compare { " active" } else { "" })
                                 on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Compare))
                             >
-                                "Compare"
+                                {move || locale.get().ui.tabs.compare.clone()}
                             </button>
                             // BIM tab - only shown when file has BIM data
                             {move || {
@@ -1247,7 +1327,7 @@ pub fn App() -> impl IntoView {
                                                 Tab::FloodlightIsolux => locale.get().ui.tabs.floodlight_isolux.clone(),
                                                 Tab::FloodlightIsocandela => locale.get().ui.tabs.floodlight_isocandela.clone(),
                                                 Tab::ValidationTab => locale.get().ui.tabs.validation.clone(),
-                                                Tab::CompareTab => "Compare".to_string(),
+                                                Tab::CompareTab => locale.get().ui.tabs.compare.clone(),
                                                 Tab::BimTab => "BIM".to_string(),
                                                 Tab::Scene3DTab => locale.get().ui.tabs.scene_3d.clone(),
                                                 Tab::MapsDesignerTab => "Maps Designer".to_string(),

@@ -1,0 +1,45 @@
+[package]
+name = "eulumdat-wasm-templates"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Lazy-loaded template files for the Eulumdat WASM editor"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "eulumdat-templates"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "eulumdat-templates-gui"
+path = "src/egui_main.rs"
+required-features = ["egui-app"]
+
+[features]
+default = []
+manager = ["dep:serde", "dep:toml", "dep:anyhow", "dep:eulumdat", "dep:atla"]
+cli = ["manager", "dep:clap"]
+egui-app = ["manager", "dep:eframe", "dep:egui", "dep:rfd"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }
+
+# Manager core (behind "manager" feature)
+anyhow = { workspace = true, optional = true }
+atla = { workspace = true, optional = true, features = ["xml", "json"] }
+eulumdat = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+
+# CLI-only (behind "cli" feature)
+clap = { workspace = true, optional = true }
+
+# egui-only (behind "egui-app" feature)
+eframe = { workspace = true, optional = true }
+egui = { workspace = true, optional = true }
+rfd = { workspace = true, optional = true }

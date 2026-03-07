@@ -194,6 +194,14 @@ struct EulumdatApp: App {
         .defaultSize(width: 1200, height: 900)
         .windowResizability(.contentSize)
 
+        // Compare Viewer window (for enlarged compare diagrams)
+        Window("Compare Viewer", id: "compare-viewer") {
+            CompareWindowView()
+        }
+        .windowStyle(.titleBar)
+        .defaultSize(width: 1400, height: 900)
+        .windowResizability(.contentSize)
+
         Settings {
             SettingsView()
         }
@@ -271,6 +279,20 @@ class DiagramWindowModel: ObservableObject {
     @Published var ldt: Eulumdat?
     @Published var selectedDiagram: ContentView.DiagramType = .polar
     @Published var isDarkTheme: Bool = false
+
+    private init() {}
+}
+
+class CompareWindowModel: ObservableObject {
+    static let shared = CompareWindowModel()
+    @Published var ldtA: Eulumdat?
+    @Published var ldtB: Eulumdat?
+    @Published var selectedMode: CompareView.CompareMode = .polarOverlay
+    @Published var isDarkTheme: Bool = false
+    @Published var fileBName: String = ""
+    @Published var cPlaneA: Double = 0
+    @Published var cPlaneB: Double = 0
+    @Published var linkSliders: Bool = true
 
     private init() {}
 }

@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		213409AE2F58B842001BA5AA /* BimPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213409AD2F58B842001BA5AA /* BimPanelView.swift */; };
+		213409B02F58B852001BA5AA /* SchemaValidationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213409AF2F58B852001BA5AA /* SchemaValidationView.swift */; };
+		213409B22F58B858001BA5AA /* CompareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213409B12F58B858001BA5AA /* CompareView.swift */; };
 		213C0A882EE44458008B665C /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 213C0A872EE44458008B665C /* QuickLook.framework */; };
 		213C0A942EE44458008B665C /* LdtPreview.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 213C0A852EE44458008B665C /* LdtPreview.appex */; platformFilters = (macos, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		21618C1B2EE31CAE0023823F /* ValidationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21618C192EE31CAE0023823F /* ValidationView.swift */; };
@@ -31,6 +34,26 @@
 		21C00001C0DEFACE00000008 /* _atla_incandescent.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000008 /* _atla_incandescent.xml */; };
 		21C00001C0DEFACE00000009 /* _atla_heat_lamp.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */; };
 		21C00001C0DEFACE0000000A /* _atla_uv_blacklight.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */; };
+		21C00001C0DEFACE0000000B /* tm-33-23_minimal.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000B /* tm-33-23_minimal.xml */; };
+		21C00001C0DEFACE0000000C /* tm-33-23_with_custom_data.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000C /* tm-33-23_with_custom_data.xml */; };
+		21C00001C0DEFACE0000000D /* tm-33-23_horticultural_led.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000D /* tm-33-23_horticultural_led.xml */; };
+		21C00001C0DEFACE0000000E /* tm-33-23_far_red_supplemental.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000E /* tm-33-23_far_red_supplemental.xml */; };
+		21C00001C0DEFACE0000000F /* tm-33-23_uv_supplemental.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000F /* tm-33-23_uv_supplemental.xml */; };
+		21C00001C0DEFACE00000010 /* tm-33-23_seedling_propagation.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000010 /* tm-33-23_seedling_propagation.xml */; };
+		21C00001C0DEFACE00000011 /* tm-32-24_office_downlight_bim.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000011 /* tm-32-24_office_downlight_bim.xml */; };
+		21C00001C0DEFACE00000012 /* tm-32-24_road_luminaire_bim.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000012 /* tm-32-24_road_luminaire_bim.xml */; };
+		21C00001C0DEFACE00000013 /* 4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000013 /* 4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt */; };
+		21C00001C0DEFACE00000014 /* 4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000014 /* 4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt */; };
+		21C00001C0DEFACE00000015 /* 4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000015 /* 4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt */; };
+		21C00001C0DEFACE00000016 /* 4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000016 /* 4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt */; };
+		21C00001C0DEFACE00000017 /* 4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000017 /* 4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt */; };
+		21C00001C0DEFACE00000018 /* 4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000018 /* 4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt */; };
+		21C00001C0DEFACE00000019 /* 4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000019 /* 4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt */; };
+		21C00001C0DEFACE0000001A /* 4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000001A /* 4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt */; };
+		21C00001C0DEFACE0000001B /* 4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000001B /* 4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt */; };
+		21C00001C0DEFACE0000001C /* ITALO 1 5P5 S05 3.140-3M.IES in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000001C /* ITALO 1 5P5 S05 3.140-3M.IES */; };
+		21C00001C0DEFACE0000001D /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000001D /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES */; };
+		21C00001C0DEFACE0000001E /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000001E /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies */; };
 		21D00001D0DEFACE00000001 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D00002D0DEFACE00000001 /* Localization.swift */; };
 		21D00001D0DEFACE00000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 21D00002D0DEFACE00000002 /* Localizable.xcstrings */; };
 		21D00001D0DEFACE00000003 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 21D00002D0DEFACE00000003 /* InfoPlist.xcstrings */; };
@@ -75,6 +98,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		213409AD2F58B842001BA5AA /* BimPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BimPanelView.swift; sourceTree = "<group>"; };
+		213409AF2F58B852001BA5AA /* SchemaValidationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaValidationView.swift; sourceTree = "<group>"; };
+		213409B12F58B858001BA5AA /* CompareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareView.swift; sourceTree = "<group>"; };
 		213C0A852EE44458008B665C /* LdtPreview.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LdtPreview.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		213C0A872EE44458008B665C /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
 		21618C192EE31CAE0023823F /* ValidationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationView.swift; sourceTree = "<group>"; };
@@ -99,6 +125,26 @@
 		21C00002C0DEFACE00000008 /* _atla_incandescent.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_incandescent.xml; sourceTree = "<group>"; };
 		21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_heat_lamp.xml; sourceTree = "<group>"; };
 		21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_uv_blacklight.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000000B /* tm-33-23_minimal.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_minimal.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000000C /* tm-33-23_with_custom_data.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_with_custom_data.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000000D /* tm-33-23_horticultural_led.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_horticultural_led.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000000E /* tm-33-23_far_red_supplemental.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_far_red_supplemental.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000000F /* tm-33-23_uv_supplemental.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_uv_supplemental.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000010 /* tm-33-23_seedling_propagation.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_seedling_propagation.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000011 /* tm-32-24_office_downlight_bim.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-32-24_office_downlight_bim.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000012 /* tm-32-24_road_luminaire_bim.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-32-24_road_luminaire_bim.xml"; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000013 /* 4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000014 /* 4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000015 /* 4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000016 /* 4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000017 /* 4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000018 /* 4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000019 /* 4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000001A /* 4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000001B /* 4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000001C /* ITALO 1 5P5 S05 3.140-3M.IES */ = {isa = PBXFileReference; lastKnownFileType = text; path = "ITALO 1 5P5 S05 3.140-3M.IES"; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000001D /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES */ = {isa = PBXFileReference; lastKnownFileType = text; path = "S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES"; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000001E /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies */ = {isa = PBXFileReference; lastKnownFileType = text; path = "S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies"; sourceTree = "<group>"; };
 		21D00002D0DEFACE00000001 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		21D00002D0DEFACE00000002 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		21D00002D0DEFACE00000003 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
@@ -182,6 +228,26 @@
 				21C00002C0DEFACE00000008 /* _atla_incandescent.xml */,
 				21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */,
 				21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */,
+				21C00002C0DEFACE0000000B /* tm-33-23_minimal.xml */,
+				21C00002C0DEFACE0000000C /* tm-33-23_with_custom_data.xml */,
+				21C00002C0DEFACE0000000D /* tm-33-23_horticultural_led.xml */,
+				21C00002C0DEFACE0000000E /* tm-33-23_far_red_supplemental.xml */,
+				21C00002C0DEFACE0000000F /* tm-33-23_uv_supplemental.xml */,
+				21C00002C0DEFACE00000010 /* tm-33-23_seedling_propagation.xml */,
+				21C00002C0DEFACE00000011 /* tm-32-24_office_downlight_bim.xml */,
+				21C00002C0DEFACE00000012 /* tm-32-24_road_luminaire_bim.xml */,
+				21C00002C0DEFACE00000013 /* 4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt */,
+				21C00002C0DEFACE00000014 /* 4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt */,
+				21C00002C0DEFACE00000015 /* 4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt */,
+				21C00002C0DEFACE00000016 /* 4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt */,
+				21C00002C0DEFACE00000017 /* 4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt */,
+				21C00002C0DEFACE00000018 /* 4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt */,
+				21C00002C0DEFACE00000019 /* 4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt */,
+				21C00002C0DEFACE0000001A /* 4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt */,
+				21C00002C0DEFACE0000001B /* 4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt */,
+				21C00002C0DEFACE0000001C /* ITALO 1 5P5 S05 3.140-3M.IES */,
+				21C00002C0DEFACE0000001D /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES */,
+				21C00002C0DEFACE0000001E /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies */,
 			);
 			path = Templates;
 			sourceTree = "<group>";
@@ -208,6 +274,9 @@
 		A5000002 /* EulumdatApp */ = {
 			isa = PBXGroup;
 			children = (
+				213409B12F58B858001BA5AA /* CompareView.swift */,
+				213409AF2F58B852001BA5AA /* SchemaValidationView.swift */,
+				213409AD2F58B842001BA5AA /* BimPanelView.swift */,
 				218980FE2EE8CE1700BC4390 /* Packages.swift */,
 				A2000001 /* EulumdatApp.swift */,
 				A2000002 /* ContentView.swift */,
@@ -387,6 +456,26 @@
 				21C00001C0DEFACE00000008 /* _atla_incandescent.xml in Resources */,
 				21C00001C0DEFACE00000009 /* _atla_heat_lamp.xml in Resources */,
 				21C00001C0DEFACE0000000A /* _atla_uv_blacklight.xml in Resources */,
+				21C00001C0DEFACE0000000B /* tm-33-23_minimal.xml in Resources */,
+				21C00001C0DEFACE0000000C /* tm-33-23_with_custom_data.xml in Resources */,
+				21C00001C0DEFACE0000000D /* tm-33-23_horticultural_led.xml in Resources */,
+				21C00001C0DEFACE0000000E /* tm-33-23_far_red_supplemental.xml in Resources */,
+				21C00001C0DEFACE0000000F /* tm-33-23_uv_supplemental.xml in Resources */,
+				21C00001C0DEFACE00000010 /* tm-33-23_seedling_propagation.xml in Resources */,
+				21C00001C0DEFACE00000011 /* tm-32-24_office_downlight_bim.xml in Resources */,
+				21C00001C0DEFACE00000012 /* tm-32-24_road_luminaire_bim.xml in Resources */,
+				21C00001C0DEFACE00000013 /* 4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt in Resources */,
+				21C00001C0DEFACE00000014 /* 4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt in Resources */,
+				21C00001C0DEFACE00000015 /* 4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt in Resources */,
+				21C00001C0DEFACE00000016 /* 4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt in Resources */,
+				21C00001C0DEFACE00000017 /* 4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt in Resources */,
+				21C00001C0DEFACE00000018 /* 4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt in Resources */,
+				21C00001C0DEFACE00000019 /* 4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt in Resources */,
+				21C00001C0DEFACE0000001A /* 4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt in Resources */,
+				21C00001C0DEFACE0000001B /* 4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt in Resources */,
+				21C00001C0DEFACE0000001C /* ITALO 1 5P5 S05 3.140-3M.IES in Resources */,
+				21C00001C0DEFACE0000001D /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES in Resources */,
+				21C00001C0DEFACE0000001E /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies in Resources */,
 				21D00001D0DEFACE00000002 /* Localizable.xcstrings in Resources */,
 				21D00001D0DEFACE00000003 /* InfoPlist.xcstrings in Resources */,
 			);
@@ -419,9 +508,12 @@
 				21618C1B2EE31CAE0023823F /* ValidationView.swift in Sources */,
 				21B842A62EE219F600502C5E /* Butterfly3DView.swift in Sources */,
 				21B842B02EE219F700502C5E /* Room3DView.swift in Sources */,
+				213409B22F58B858001BA5AA /* CompareView.swift in Sources */,
 				21B842AA2EE21A0400502C5E /* Templates.swift in Sources */,
 				21B842DC2EE2230300502C5E /* BatchConvertView.swift in Sources */,
+				213409B02F58B852001BA5AA /* SchemaValidationView.swift in Sources */,
 				218980FF2EE8CE1E00BC4390 /* Packages.swift in Sources */,
+				213409AE2F58B842001BA5AA /* BimPanelView.swift in Sources */,
 				21D00001D0DEFACE00000001 /* Localization.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -676,7 +768,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;
@@ -717,7 +809,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;

@@ -1186,6 +1186,184 @@ public func FfiConverterTypeBatchOutputFile_lower(_ value: BatchOutputFile) -> R
 
 
 /**
+ * BIM data extracted from a luminaire
+ */
+public struct BimData {
+    public var populatedCount: UInt32
+    public var summary: String
+    public var rows: [BimParameterRow]
+    public var csv: String
+    public var textReport: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(populatedCount: UInt32, summary: String, rows: [BimParameterRow], csv: String, textReport: String) {
+        self.populatedCount = populatedCount
+        self.summary = summary
+        self.rows = rows
+        self.csv = csv
+        self.textReport = textReport
+    }
+}
+
+
+
+extension BimData: Equatable, Hashable {
+    public static func ==(lhs: BimData, rhs: BimData) -> Bool {
+        if lhs.populatedCount != rhs.populatedCount {
+            return false
+        }
+        if lhs.summary != rhs.summary {
+            return false
+        }
+        if lhs.rows != rhs.rows {
+            return false
+        }
+        if lhs.csv != rhs.csv {
+            return false
+        }
+        if lhs.textReport != rhs.textReport {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(populatedCount)
+        hasher.combine(summary)
+        hasher.combine(rows)
+        hasher.combine(csv)
+        hasher.combine(textReport)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBimData: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BimData {
+        return
+            try BimData(
+                populatedCount: FfiConverterUInt32.read(from: &buf), 
+                summary: FfiConverterString.read(from: &buf), 
+                rows: FfiConverterSequenceTypeBimParameterRow.read(from: &buf), 
+                csv: FfiConverterString.read(from: &buf), 
+                textReport: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: BimData, into buf: inout [UInt8]) {
+        FfiConverterUInt32.write(value.populatedCount, into: &buf)
+        FfiConverterString.write(value.summary, into: &buf)
+        FfiConverterSequenceTypeBimParameterRow.write(value.rows, into: &buf)
+        FfiConverterString.write(value.csv, into: &buf)
+        FfiConverterString.write(value.textReport, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBimData_lift(_ buf: RustBuffer) throws -> BimData {
+    return try FfiConverterTypeBimData.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBimData_lower(_ value: BimData) -> RustBuffer {
+    return FfiConverterTypeBimData.lower(value)
+}
+
+
+/**
+ * A single BIM parameter row
+ */
+public struct BimParameterRow {
+    public var group: String
+    public var key: String
+    public var value: String
+    public var unit: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(group: String, key: String, value: String, unit: String) {
+        self.group = group
+        self.key = key
+        self.value = value
+        self.unit = unit
+    }
+}
+
+
+
+extension BimParameterRow: Equatable, Hashable {
+    public static func ==(lhs: BimParameterRow, rhs: BimParameterRow) -> Bool {
+        if lhs.group != rhs.group {
+            return false
+        }
+        if lhs.key != rhs.key {
+            return false
+        }
+        if lhs.value != rhs.value {
+            return false
+        }
+        if lhs.unit != rhs.unit {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(group)
+        hasher.combine(key)
+        hasher.combine(value)
+        hasher.combine(unit)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBimParameterRow: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BimParameterRow {
+        return
+            try BimParameterRow(
+                group: FfiConverterString.read(from: &buf), 
+                key: FfiConverterString.read(from: &buf), 
+                value: FfiConverterString.read(from: &buf), 
+                unit: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: BimParameterRow, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.group, into: &buf)
+        FfiConverterString.write(value.key, into: &buf)
+        FfiConverterString.write(value.value, into: &buf)
+        FfiConverterString.write(value.unit, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBimParameterRow_lift(_ buf: RustBuffer) throws -> BimParameterRow {
+    return try FfiConverterTypeBimParameterRow.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBimParameterRow_lower(_ value: BimParameterRow) -> RustBuffer {
+    return FfiConverterTypeBimParameterRow.lower(value)
+}
+
+
+/**
  * Complete BUG diagram data
  */
 public struct BugDiagramData {
@@ -2075,6 +2253,123 @@ public func FfiConverterTypeColorRendering_lift(_ buf: RustBuffer) throws -> Col
 #endif
 public func FfiConverterTypeColorRendering_lower(_ value: ColorRendering) -> RustBuffer {
     return FfiConverterTypeColorRendering.lower(value)
+}
+
+
+/**
+ * A single comparison metric between two luminaires
+ */
+public struct ComparisonMetricFfi {
+    public var name: String
+    public var key: String
+    public var unit: String
+    public var valueA: Double
+    public var valueB: Double
+    public var delta: Double
+    public var deltaPercent: Double
+    public var significance: SignificanceLevel
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(name: String, key: String, unit: String, valueA: Double, valueB: Double, delta: Double, deltaPercent: Double, significance: SignificanceLevel) {
+        self.name = name
+        self.key = key
+        self.unit = unit
+        self.valueA = valueA
+        self.valueB = valueB
+        self.delta = delta
+        self.deltaPercent = deltaPercent
+        self.significance = significance
+    }
+}
+
+
+
+extension ComparisonMetricFfi: Equatable, Hashable {
+    public static func ==(lhs: ComparisonMetricFfi, rhs: ComparisonMetricFfi) -> Bool {
+        if lhs.name != rhs.name {
+            return false
+        }
+        if lhs.key != rhs.key {
+            return false
+        }
+        if lhs.unit != rhs.unit {
+            return false
+        }
+        if lhs.valueA != rhs.valueA {
+            return false
+        }
+        if lhs.valueB != rhs.valueB {
+            return false
+        }
+        if lhs.delta != rhs.delta {
+            return false
+        }
+        if lhs.deltaPercent != rhs.deltaPercent {
+            return false
+        }
+        if lhs.significance != rhs.significance {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
+        hasher.combine(key)
+        hasher.combine(unit)
+        hasher.combine(valueA)
+        hasher.combine(valueB)
+        hasher.combine(delta)
+        hasher.combine(deltaPercent)
+        hasher.combine(significance)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeComparisonMetricFfi: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ComparisonMetricFfi {
+        return
+            try ComparisonMetricFfi(
+                name: FfiConverterString.read(from: &buf), 
+                key: FfiConverterString.read(from: &buf), 
+                unit: FfiConverterString.read(from: &buf), 
+                valueA: FfiConverterDouble.read(from: &buf), 
+                valueB: FfiConverterDouble.read(from: &buf), 
+                delta: FfiConverterDouble.read(from: &buf), 
+                deltaPercent: FfiConverterDouble.read(from: &buf), 
+                significance: FfiConverterTypeSignificanceLevel.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ComparisonMetricFfi, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.name, into: &buf)
+        FfiConverterString.write(value.key, into: &buf)
+        FfiConverterString.write(value.unit, into: &buf)
+        FfiConverterDouble.write(value.valueA, into: &buf)
+        FfiConverterDouble.write(value.valueB, into: &buf)
+        FfiConverterDouble.write(value.delta, into: &buf)
+        FfiConverterDouble.write(value.deltaPercent, into: &buf)
+        FfiConverterTypeSignificanceLevel.write(value.significance, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeComparisonMetricFfi_lift(_ buf: RustBuffer) throws -> ComparisonMetricFfi {
+    return try FfiConverterTypeComparisonMetricFfi.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeComparisonMetricFfi_lower(_ value: ComparisonMetricFfi) -> RustBuffer {
+    return FfiConverterTypeComparisonMetricFfi.lower(value)
 }
 
 
@@ -3164,6 +3459,107 @@ public func FfiConverterTypeLegendEntry_lower(_ value: LegendEntry) -> RustBuffe
 }
 
 
+/**
+ * Result of comparing two luminaires photometrically
+ */
+public struct PhotometricComparisonResult {
+    public var labelA: String
+    public var labelB: String
+    public var metrics: [ComparisonMetricFfi]
+    public var similarityScore: Double
+    public var csv: String
+    public var textReport: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(labelA: String, labelB: String, metrics: [ComparisonMetricFfi], similarityScore: Double, csv: String, textReport: String) {
+        self.labelA = labelA
+        self.labelB = labelB
+        self.metrics = metrics
+        self.similarityScore = similarityScore
+        self.csv = csv
+        self.textReport = textReport
+    }
+}
+
+
+
+extension PhotometricComparisonResult: Equatable, Hashable {
+    public static func ==(lhs: PhotometricComparisonResult, rhs: PhotometricComparisonResult) -> Bool {
+        if lhs.labelA != rhs.labelA {
+            return false
+        }
+        if lhs.labelB != rhs.labelB {
+            return false
+        }
+        if lhs.metrics != rhs.metrics {
+            return false
+        }
+        if lhs.similarityScore != rhs.similarityScore {
+            return false
+        }
+        if lhs.csv != rhs.csv {
+            return false
+        }
+        if lhs.textReport != rhs.textReport {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(labelA)
+        hasher.combine(labelB)
+        hasher.combine(metrics)
+        hasher.combine(similarityScore)
+        hasher.combine(csv)
+        hasher.combine(textReport)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypePhotometricComparisonResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PhotometricComparisonResult {
+        return
+            try PhotometricComparisonResult(
+                labelA: FfiConverterString.read(from: &buf), 
+                labelB: FfiConverterString.read(from: &buf), 
+                metrics: FfiConverterSequenceTypeComparisonMetricFfi.read(from: &buf), 
+                similarityScore: FfiConverterDouble.read(from: &buf), 
+                csv: FfiConverterString.read(from: &buf), 
+                textReport: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: PhotometricComparisonResult, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.labelA, into: &buf)
+        FfiConverterString.write(value.labelB, into: &buf)
+        FfiConverterSequenceTypeComparisonMetricFfi.write(value.metrics, into: &buf)
+        FfiConverterDouble.write(value.similarityScore, into: &buf)
+        FfiConverterString.write(value.csv, into: &buf)
+        FfiConverterString.write(value.textReport, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePhotometricComparisonResult_lift(_ buf: RustBuffer) throws -> PhotometricComparisonResult {
+    return try FfiConverterTypePhotometricComparisonResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypePhotometricComparisonResult_lower(_ value: PhotometricComparisonResult) -> RustBuffer {
+    return FfiConverterTypePhotometricComparisonResult.lower(value)
+}
+
+
 public struct Point2D {
     public var x: Double
     public var y: Double
@@ -3473,6 +3869,152 @@ public func FfiConverterTypePolarPoint_lift(_ buf: RustBuffer) throws -> PolarPo
 #endif
 public func FfiConverterTypePolarPoint_lower(_ value: PolarPoint) -> RustBuffer {
     return FfiConverterTypePolarPoint.lower(value)
+}
+
+
+/**
+ * A validation message from schema validation
+ */
+public struct SchemaValidationMessage {
+    public var code: String
+    public var message: String
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+
+
+extension SchemaValidationMessage: Equatable, Hashable {
+    public static func ==(lhs: SchemaValidationMessage, rhs: SchemaValidationMessage) -> Bool {
+        if lhs.code != rhs.code {
+            return false
+        }
+        if lhs.message != rhs.message {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(code)
+        hasher.combine(message)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSchemaValidationMessage: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SchemaValidationMessage {
+        return
+            try SchemaValidationMessage(
+                code: FfiConverterString.read(from: &buf), 
+                message: FfiConverterString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SchemaValidationMessage, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.code, into: &buf)
+        FfiConverterString.write(value.message, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSchemaValidationMessage_lift(_ buf: RustBuffer) throws -> SchemaValidationMessage {
+    return try FfiConverterTypeSchemaValidationMessage.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSchemaValidationMessage_lower(_ value: SchemaValidationMessage) -> RustBuffer {
+    return FfiConverterTypeSchemaValidationMessage.lower(value)
+}
+
+
+/**
+ * Result of schema validation
+ */
+public struct SchemaValidationResult {
+    public var isValid: Bool
+    public var errors: [SchemaValidationMessage]
+    public var warnings: [SchemaValidationMessage]
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(isValid: Bool, errors: [SchemaValidationMessage], warnings: [SchemaValidationMessage]) {
+        self.isValid = isValid
+        self.errors = errors
+        self.warnings = warnings
+    }
+}
+
+
+
+extension SchemaValidationResult: Equatable, Hashable {
+    public static func ==(lhs: SchemaValidationResult, rhs: SchemaValidationResult) -> Bool {
+        if lhs.isValid != rhs.isValid {
+            return false
+        }
+        if lhs.errors != rhs.errors {
+            return false
+        }
+        if lhs.warnings != rhs.warnings {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(isValid)
+        hasher.combine(errors)
+        hasher.combine(warnings)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSchemaValidationResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SchemaValidationResult {
+        return
+            try SchemaValidationResult(
+                isValid: FfiConverterBool.read(from: &buf), 
+                errors: FfiConverterSequenceTypeSchemaValidationMessage.read(from: &buf), 
+                warnings: FfiConverterSequenceTypeSchemaValidationMessage.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SchemaValidationResult, into buf: inout [UInt8]) {
+        FfiConverterBool.write(value.isValid, into: &buf)
+        FfiConverterSequenceTypeSchemaValidationMessage.write(value.errors, into: &buf)
+        FfiConverterSequenceTypeSchemaValidationMessage.write(value.warnings, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSchemaValidationResult_lift(_ buf: RustBuffer) throws -> SchemaValidationResult {
+    return try FfiConverterTypeSchemaValidationResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSchemaValidationResult_lower(_ value: SchemaValidationResult) -> RustBuffer {
+    return FfiConverterTypeSchemaValidationResult.lower(value)
 }
 
 
@@ -4391,6 +4933,87 @@ extension Language: Equatable, Hashable {}
 
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+/**
+ * Significance level of a comparison metric difference
+ */
+
+public enum SignificanceLevel {
+    
+    case negligible
+    case minor
+    case moderate
+    case major
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSignificanceLevel: FfiConverterRustBuffer {
+    typealias SwiftType = SignificanceLevel
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SignificanceLevel {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .negligible
+        
+        case 2: return .minor
+        
+        case 3: return .moderate
+        
+        case 4: return .major
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: SignificanceLevel, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .negligible:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .minor:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .moderate:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .major:
+            writeInt(&buf, Int32(4))
+        
+        }
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSignificanceLevel_lift(_ buf: RustBuffer) throws -> SignificanceLevel {
+    return try FfiConverterTypeSignificanceLevel.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSignificanceLevel_lower(_ value: SignificanceLevel) -> RustBuffer {
+    return FfiConverterTypeSignificanceLevel.lower(value)
+}
+
+
+
+extension SignificanceLevel: Equatable, Hashable {}
+
+
+
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 
 public enum SvgThemeType {
     
@@ -4941,6 +5564,31 @@ fileprivate struct FfiConverterSequenceTypeBatchOutputFile: FfiConverterRustBuff
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeBimParameterRow: FfiConverterRustBuffer {
+    typealias SwiftType = [BimParameterRow]
+
+    public static func write(_ value: [BimParameterRow], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeBimParameterRow.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [BimParameterRow] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [BimParameterRow]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeBimParameterRow.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeButterflyWing: FfiConverterRustBuffer {
     typealias SwiftType = [ButterflyWing]
 
@@ -5033,6 +5681,31 @@ fileprivate struct FfiConverterSequenceTypeCartesianPoint: FfiConverterRustBuffe
         seq.reserveCapacity(Int(len))
         for _ in 0 ..< len {
             seq.append(try FfiConverterTypeCartesianPoint.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceTypeComparisonMetricFfi: FfiConverterRustBuffer {
+    typealias SwiftType = [ComparisonMetricFfi]
+
+    public static func write(_ value: [ComparisonMetricFfi], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeComparisonMetricFfi.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [ComparisonMetricFfi] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [ComparisonMetricFfi]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeComparisonMetricFfi.read(from: &buf))
         }
         return seq
     }
@@ -5216,6 +5889,31 @@ fileprivate struct FfiConverterSequenceTypePolarPoint: FfiConverterRustBuffer {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterSequenceTypeSchemaValidationMessage: FfiConverterRustBuffer {
+    typealias SwiftType = [SchemaValidationMessage]
+
+    public static func write(_ value: [SchemaValidationMessage], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterTypeSchemaValidationMessage.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [SchemaValidationMessage] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [SchemaValidationMessage]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterTypeSchemaValidationMessage.read(from: &buf))
+        }
+        return seq
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterSequenceTypeValidationError: FfiConverterRustBuffer {
     typealias SwiftType = [ValidationError]
 
@@ -5343,6 +6041,33 @@ public func calculateBugRating(ldt: Eulumdat) -> BugRatingData {
     return try!  FfiConverterTypeBugRatingData.lift(try! rustCall() {
     uniffi_eulumdat_ffi_fn_func_calculate_bug_rating(
         FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Compare two luminaires and return photometric metrics
+ */
+public func comparePhotometric(ldtA: Eulumdat, ldtB: Eulumdat, labelA: String, labelB: String) -> PhotometricComparisonResult {
+    return try!  FfiConverterTypePhotometricComparisonResult.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_compare_photometric(
+        FfiConverterTypeEulumdat.lower(ldtA),
+        FfiConverterTypeEulumdat.lower(ldtB),
+        FfiConverterString.lower(labelA),
+        FfiConverterString.lower(labelB),$0
+    )
+})
+}
+/**
+ * Compare two luminaires with localized metric names
+ */
+public func comparePhotometricLocalized(ldtA: Eulumdat, ldtB: Eulumdat, labelA: String, labelB: String, language: Language) -> PhotometricComparisonResult {
+    return try!  FfiConverterTypePhotometricComparisonResult.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_compare_photometric_localized(
+        FfiConverterTypeEulumdat.lower(ldtA),
+        FfiConverterTypeEulumdat.lower(ldtB),
+        FfiConverterString.lower(labelA),
+        FfiConverterString.lower(labelB),
+        FfiConverterTypeLanguage.lower(language),$0
     )
 })
 }
@@ -5632,6 +6357,24 @@ public func generateCartesianDiagram(ldt: Eulumdat, width: Double, height: Doubl
 })
 }
 /**
+ * Generate cartesian overlay SVG comparing two luminaires
+ */
+public func generateCartesianOverlaySvg(ldtA: Eulumdat, ldtB: Eulumdat, width: Double, height: Double, theme: SvgThemeType, labelA: String, labelB: String, cPlaneA: Double?, cPlaneB: Double?) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cartesian_overlay_svg(
+        FfiConverterTypeEulumdat.lower(ldtA),
+        FfiConverterTypeEulumdat.lower(ldtB),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterString.lower(labelA),
+        FfiConverterString.lower(labelB),
+        FfiConverterOptionDouble.lower(cPlaneA),
+        FfiConverterOptionDouble.lower(cPlaneB),$0
+    )
+})
+}
+/**
  * Generate cartesian diagram as SVG string
  */
 public func generateCartesianSvg(ldt: Eulumdat, width: Double, height: Double, maxCurves: UInt32, theme: SvgThemeType) -> String {
@@ -5640,6 +6383,21 @@ public func generateCartesianSvg(ldt: Eulumdat, width: Double, height: Double, m
         FfiConverterTypeEulumdat.lower(ldt),
         FfiConverterDouble.lower(width),
         FfiConverterDouble.lower(height),
+        FfiConverterUInt32.lower(maxCurves),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate cartesian diagram SVG for a specific C-plane
+ */
+public func generateCartesianSvgForPlane(ldt: Eulumdat, width: Double, height: Double, cPlane: Double, maxCurves: UInt32, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_for_plane(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(cPlane),
         FfiConverterUInt32.lower(maxCurves),
         FfiConverterTypeSvgThemeType.lower(theme),$0
     )
@@ -5693,6 +6451,21 @@ public func generateConeSvg(ldt: Eulumdat, width: Double, height: Double, mounti
 })
 }
 /**
+ * Generate cone diagram SVG for a specific C-plane
+ */
+public func generateConeSvgForPlane(ldt: Eulumdat, width: Double, height: Double, mountingHeight: Double, cPlane: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cone_svg_for_plane(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(mountingHeight),
+        FfiConverterDouble.lower(cPlane),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
  * Generate cone diagram as SVG string with localized labels
  *
  * # Arguments
@@ -5710,6 +6483,35 @@ public func generateConeSvgLocalized(ldt: Eulumdat, width: Double, height: Doubl
         FfiConverterDouble.lower(width),
         FfiConverterDouble.lower(height),
         FfiConverterDouble.lower(mountingHeight),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
+ * Generate floodlight V-H cartesian diagram as SVG
+ */
+public func generateFloodlightCartesianSvg(ldt: Eulumdat, width: Double, height: Double, logScale: Bool, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_floodlight_cartesian_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterBool.lower(logScale),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate floodlight V-H cartesian diagram as SVG with localized labels
+ */
+public func generateFloodlightCartesianSvgLocalized(ldt: Eulumdat, width: Double, height: Double, logScale: Bool, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_floodlight_cartesian_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterBool.lower(logScale),
         FfiConverterTypeSvgThemeType.lower(theme),
         FfiConverterTypeLanguage.lower(language),$0
     )
@@ -5788,6 +6590,66 @@ public func generateHeatmapSvgLocalized(ldt: Eulumdat, width: Double, height: Do
 })
 }
 /**
+ * Generate isocandela contour diagram as SVG
+ */
+public func generateIsocandelaSvg(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_isocandela_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate isocandela contour diagram as SVG with localized labels
+ */
+public func generateIsocandelaSvgLocalized(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_isocandela_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
+ * Generate isolux footprint diagram as SVG
+ */
+public func generateIsoluxSvg(ldt: Eulumdat, width: Double, height: Double, mountingHeight: Double, tiltAngle: Double, areaSize: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_isolux_svg(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(mountingHeight),
+        FfiConverterDouble.lower(tiltAngle),
+        FfiConverterDouble.lower(areaSize),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate isolux footprint diagram as SVG with localized labels
+ */
+public func generateIsoluxSvgLocalized(ldt: Eulumdat, width: Double, height: Double, mountingHeight: Double, tiltAngle: Double, areaSize: Double, theme: SvgThemeType, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_isolux_svg_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(mountingHeight),
+        FfiConverterDouble.lower(tiltAngle),
+        FfiConverterDouble.lower(areaSize),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
  * Generate LCS diagram as SVG (TM-15-07 view)
  */
 public func generateLcsSvg(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType) -> String {
@@ -5844,6 +6706,24 @@ public func generatePolarDiagram(ldt: Eulumdat) -> PolarDiagramData {
 })
 }
 /**
+ * Generate polar overlay SVG comparing two luminaires
+ */
+public func generatePolarOverlaySvg(ldtA: Eulumdat, ldtB: Eulumdat, width: Double, height: Double, theme: SvgThemeType, labelA: String, labelB: String, cPlaneA: Double?, cPlaneB: Double?) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_polar_overlay_svg(
+        FfiConverterTypeEulumdat.lower(ldtA),
+        FfiConverterTypeEulumdat.lower(ldtB),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterString.lower(labelA),
+        FfiConverterString.lower(labelB),
+        FfiConverterOptionDouble.lower(cPlaneA),
+        FfiConverterOptionDouble.lower(cPlaneB),$0
+    )
+})
+}
+/**
  * Generate polar diagram as SVG string
  */
 public func generatePolarSvg(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType) -> String {
@@ -5852,6 +6732,20 @@ public func generatePolarSvg(ldt: Eulumdat, width: Double, height: Double, theme
         FfiConverterTypeEulumdat.lower(ldt),
         FfiConverterDouble.lower(width),
         FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeType.lower(theme),$0
+    )
+})
+}
+/**
+ * Generate polar diagram SVG for a specific C-plane
+ */
+public func generatePolarSvgForPlane(ldt: Eulumdat, width: Double, height: Double, cPlane: Double, theme: SvgThemeType) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_polar_svg_for_plane(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(cPlane),
         FfiConverterTypeSvgThemeType.lower(theme),$0
     )
 })
@@ -5934,11 +6828,62 @@ public func generateWatchFaceSvgCustom(ldt: Eulumdat, size: UInt32, style: Watch
 })
 }
 /**
+ * Extract BIM parameters from a luminaire
+ */
+public func getBimParameters(ldt: Eulumdat) -> BimData {
+    return try!  FfiConverterTypeBimData.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_get_bim_parameters(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Get the expanded list of C-plane angles (accounting for symmetry)
+ */
+public func getExpandedCAngles(ldt: Eulumdat) -> [Double] {
+    return try!  FfiConverterSequenceDouble.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_get_expanded_c_angles(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
  * Get detailed validation errors (for UI display)
  */
 public func getValidationErrors(ldt: Eulumdat) -> [ValidationError] {
     return try!  FfiConverterSequenceTypeValidationError.lift(try! rustCall() {
     uniffi_eulumdat_ffi_fn_func_get_validation_errors(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Get detailed validation errors with localized messages
+ */
+public func getValidationErrorsLocalized(ldt: Eulumdat, language: Language) -> [ValidationError] {
+    return try!  FfiConverterSequenceTypeValidationError.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_get_validation_errors_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
+ * Check if luminaire has any BIM data
+ */
+public func hasBimData(ldt: Eulumdat) -> Bool {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_has_bim_data(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Check if luminaire has significant C-plane variation (asymmetric)
+ */
+public func hasCPlaneVariation(ldt: Eulumdat) -> Bool {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_has_c_plane_variation(
         FfiConverterTypeEulumdat.lower(ldt),$0
     )
 })
@@ -6012,6 +6957,17 @@ public func validateLdt(ldt: Eulumdat) -> [ValidationWarning] {
 })
 }
 /**
+ * Validate Eulumdat data and return warnings with localized messages
+ */
+public func validateLdtLocalized(ldt: Eulumdat, language: Language) -> [ValidationWarning] {
+    return try!  FfiConverterSequenceTypeValidationWarning.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_validate_ldt_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
  * Validate Eulumdat data strictly, returning errors if invalid
  */
 public func validateLdtStrict(ldt: Eulumdat)throws  {try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
@@ -6019,6 +6975,36 @@ public func validateLdtStrict(ldt: Eulumdat)throws  {try rustCallWithError(FfiCo
         FfiConverterTypeEulumdat.lower(ldt),$0
     )
 }
+}
+/**
+ * Validate against ATLA S001 schema
+ */
+public func validateSchemaS001(ldt: Eulumdat) -> SchemaValidationResult {
+    return try!  FfiConverterTypeSchemaValidationResult.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_validate_schema_s001(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Validate against TM-32-24 schema
+ */
+public func validateSchemaTm32(ldt: Eulumdat) -> SchemaValidationResult {
+    return try!  FfiConverterTypeSchemaValidationResult.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_validate_schema_tm32(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
+ * Validate against TM-33-23 schema
+ */
+public func validateSchemaTm33(ldt: Eulumdat) -> SchemaValidationResult {
+    return try!  FfiConverterTypeSchemaValidationResult.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_validate_schema_tm33(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
 }
 
 private enum InitializationResult {
@@ -6043,6 +7029,12 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_calculate_bug_rating() != 58767) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_compare_photometric() != 46235) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_compare_photometric_localized() != 6808) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_convert_ldt_to_ies() != 51119) {
@@ -6108,7 +7100,13 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_diagram() != 14573) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_overlay_svg() != 28227) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg() != 18468) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_for_plane() != 65008) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_localized() != 63910) {
@@ -6120,7 +7118,16 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_cone_svg() != 49144) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cone_svg_for_plane() != 33166) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_cone_svg_localized() != 12182) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_floodlight_cartesian_svg() != 22303) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_floodlight_cartesian_svg_localized() != 20852) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_greenhouse_svg() != 59229) {
@@ -6138,6 +7145,18 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg_localized() != 6199) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_isocandela_svg() != 64910) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_isocandela_svg_localized() != 34708) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_isolux_svg() != 34830) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_isolux_svg_localized() != 27488) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_lcs_svg() != 35133) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -6150,7 +7169,13 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_polar_diagram() != 46629) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_polar_overlay_svg() != 52574) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg() != 39828) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_for_plane() != 43125) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_localized() != 49970) {
@@ -6168,7 +7193,22 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_watch_face_svg_custom() != 197) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_get_bim_parameters() != 10336) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_get_expanded_c_angles() != 49571) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_get_validation_errors() != 28281) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_get_validation_errors_localized() != 41869) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_has_bim_data() != 46251) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_has_c_plane_variation() != 10268) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_parse_ies() != 60498) {
@@ -6186,7 +7226,19 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_validate_ldt() != 34444) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_validate_ldt_localized() != 56527) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_validate_ldt_strict() != 21146) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_validate_schema_s001() != 31480) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_validate_schema_tm32() != 12713) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_validate_schema_tm33() != 45243) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_method_atladocument_catalog_number() != 22693) {

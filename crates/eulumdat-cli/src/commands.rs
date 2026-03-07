@@ -157,7 +157,7 @@ pub fn validate(file: &PathBuf, strict: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
+pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool, rotate: f64) -> Result<()> {
     let in_ext = input
         .extension()
         .and_then(|e| e.to_str())
@@ -169,6 +169,24 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
+
+    // Helper: load file with optional C-plane rotation on IES import
+    let load_with_rotation = |path: &PathBuf, rotation: f64| -> Result<Eulumdat> {
+        let ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .unwrap_or("")
+            .to_lowercase();
+        match ext.as_str() {
+            "ies" if rotation.abs() > 0.001 => {
+                let opts = eulumdat::IesImportOptions {
+                    rotate_c_planes: rotation,
+                };
+                IesParser::parse_file_with_options(path, &opts).context("Failed to parse IES file")
+            }
+            _ => load_file(path),
+        }
+    };
 
     // Load the source data
     let content = match (in_ext.as_str(), out_ext.as_str()) {
@@ -191,7 +209,7 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
         }
         // LDT/IES input -> ATLA output
         ("ldt" | "ies", "xml") => {
-            let ldt = load_file(input)?;
+            let ldt = load_with_rotation(input, rotate)?;
             let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&ldt);
             if compact {
                 atla::xml::write_compact(&atla_doc).context("Failed to write ATLA XML")?
@@ -200,7 +218,7 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
             }
         }
         ("ldt" | "ies", "json") => {
-            let ldt = load_file(input)?;
+            let ldt = load_with_rotation(input, rotate)?;
             let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&ldt);
             if compact {
                 atla::json::write_compact(&atla_doc).context("Failed to write ATLA JSON")?
@@ -208,14 +226,19 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
                 atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
             }
         }
-        // Any input -> LDT/IES output (via Eulumdat)
+        // Any input -> LDT output (via Eulumdat)
         (_, "ldt") => {
-            let ldt = load_file(input)?;
+            let ldt = load_with_rotation(input, rotate)?;
             ldt.to_ldt()
         }
+        // Any input -> IES output (rotation applied on export for LDT sources)
         (_, "ies") => {
             let ldt = load_file(input)?;
-            IesExporter::export(&ldt)
+            let opts = eulumdat::IesExportOptions {
+                rotate_c_planes: rotate,
+                ..Default::default()
+            };
+            IesExporter::export_with_options(&ldt, &opts)
         }
         _ => anyhow::bail!(
             "Unknown output extension: .{out_ext} (expected .ldt, .ies, .xml, or .json)"
@@ -226,10 +249,17 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool) -> Result<()> {
 
     let in_ext_upper = in_ext.to_uppercase();
     let out_ext_upper = out_ext.to_uppercase();
-    let format_note = if compact && (out_ext == "xml" || out_ext == "json") {
-        " [compact]"
+    let mut notes = Vec::new();
+    if compact && (out_ext == "xml" || out_ext == "json") {
+        notes.push("compact");
+    }
+    if rotate.abs() > 0.001 {
+        notes.push("C-planes rotated");
+    }
+    let format_note = if notes.is_empty() {
+        String::new()
     } else {
-        ""
+        format!(" [{}]", notes.join(", "))
     };
 
     println!(

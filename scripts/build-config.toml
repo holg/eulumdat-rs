@@ -17,6 +17,7 @@ bevy_crate = "crates/eulumdat-bevy"
 bevy_output = "target/wasm32-unknown-unknown/web-release"
 typst_source = "crates/eulumdat-wasm/src/static/typst"
 dist_output = "crates/eulumdat-wasm/dist"
+templates_crate = "crates/eulumdat-wasm-templates"
 assets = "assets"
 
 [bevy]
@@ -31,6 +32,7 @@ leptos = true
 bevy = true
 typst = true
 gmaps = true
+templates = true
 
 [bundles.leptos]
 description = "Leptos editor"
@@ -45,6 +47,10 @@ size_estimate = "~4MB compressed"
 description = "Typst PDF compiler"
 load_strategy = "on_demand"
 size_estimate = "~10MB compressed"
+
+[bundles.templates]
+description = "Template files"
+load_strategy = "on_demand"
 
 [deploy]
 # rsync target for deployment (user@host:/path/)

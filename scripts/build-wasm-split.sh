@@ -127,6 +127,7 @@ BEVY_CRATE=$(toml_get "paths.bevy_crate" "crates/bevy")
 BEVY_OUTPUT_REL=$(toml_get "paths.bevy_output" "target/wasm32-unknown-unknown/web-release")
 TYPST_SOURCE_REL=$(toml_get "paths.typst_source" "")
 DIST_OUTPUT_REL=$(toml_get "paths.dist_output" "$WASM_CRATE/dist")
+TEMPLATES_CRATE=$(toml_get "paths.templates_crate" "")
 ASSETS_REL=$(toml_get "paths.assets" "assets")
 
 # Absolute paths
@@ -136,6 +137,7 @@ BEVY_OUTPUT="$ROOT_DIR/$BEVY_OUTPUT_REL"
 TYPST_SOURCE="$ROOT_DIR/$TYPST_SOURCE_REL"
 DIST_DIR="$ROOT_DIR/$DIST_OUTPUT_REL"
 ASSETS_DIR="$ROOT_DIR/$ASSETS_REL"
+TEMPLATES_DIR="$ROOT_DIR/$TEMPLATES_CRATE"
 
 # Bevy settings
 BEVY_BINARY=$(toml_get "bevy.binary_name" "${PROJECT_NAME}-3d")
@@ -146,6 +148,7 @@ BUILD_LEPTOS=$(toml_get "bundles.leptos" "true")
 BUILD_BEVY=$(toml_get "bundles.bevy" "true")
 BUILD_TYPST=$(toml_get "bundles.typst" "false")
 BUILD_GMAPS=$(toml_get "bundles.gmaps" "false")
+BUILD_TEMPLATES=$(toml_get "bundles.templates" "false")
 
 # Deploy settings
 DEPLOY_TARGET=$(toml_get "deploy.target" "")
@@ -292,6 +295,9 @@ fi
 if [[ "$BUILD_TYPST" == "true" ]]; then
     echo "  Bundle 3: Typst PDF compiler (loads on demand)"
 fi
+if [[ "$BUILD_TEMPLATES" == "true" ]]; then
+    echo "  Bundle 4: Templates (loads on demand)"
+fi
 if [[ "$HAVE_BROTLI" == "true" ]]; then
     echo ""
     echo "  Brotli pre-compression: enabled"
@@ -299,7 +305,7 @@ fi
 echo ""
 
 STEP=1
-TOTAL_STEPS=8
+TOTAL_STEPS=9
 
 # Track what was built (for later steps)
 BEVY_BUILT=false
@@ -504,6 +510,77 @@ fi
 echo ""
 
 # -----------------------------------------------------------------------------
+# Step 4.5: Build and hash Templates WASM module
+# -----------------------------------------------------------------------------
+TEMPLATES_JS_HASH=""
+TEMPLATES_WASM_HASH=""
+if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -d "$TEMPLATES_DIR" ]]; then
+    TEMPLATES_NEEDS_BUILD=false
+    if needs_rebuild "templates" "$TEMPLATES_DIR"; then
+        TEMPLATES_NEEDS_BUILD=true
+    elif [[ ! -d "$DIST_DIR/templates" ]] || [[ -z "$(ls -A "$DIST_DIR/templates/"*.wasm 2>/dev/null)" ]]; then
+        TEMPLATES_NEEDS_BUILD=true
+    fi
+
+    TEMPLATES_WASM_PACK_OUT="$TEMPLATES_DIR/pkg"
+
+    if [[ "$TEMPLATES_NEEDS_BUILD" == "true" ]]; then
+        echo "[${STEP}/$TOTAL_STEPS] Building Templates WASM module..."
+        cd "$TEMPLATES_DIR"
+
+        wasm-pack build --target web --release --out-dir pkg
+
+        if command -v wasm-opt &> /dev/null && [[ -f "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm" ]]; then
+            echo "  Running wasm-opt..."
+            ORIG_SIZE=$(ls -lh "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg_opt.wasm" "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm"
+            mv "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg_opt.wasm" "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm"
+            OPT_SIZE=$(ls -lh "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm" | awk '{print $5}')
+            echo "  Size: $ORIG_SIZE -> $OPT_SIZE"
+        fi
+
+        save_hash "templates" "$(calculate_source_hash "$TEMPLATES_DIR")"
+    else
+        echo "[${STEP}/$TOTAL_STEPS] Templates WASM: unchanged, skipping build"
+    fi
+
+    # Hash and copy templates files to dist/templates/
+    if command -v md5sum &> /dev/null; then
+        TEMPLATES_JS_HASH=$(md5sum "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates.js" | cut -c1-16)
+        TEMPLATES_WASM_HASH=$(md5sum "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm" | cut -c1-16)
+    else
+        TEMPLATES_JS_HASH=$(md5 -q "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates.js" | cut -c1-16)
+        TEMPLATES_WASM_HASH=$(md5 -q "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm" | cut -c1-16)
+    fi
+
+    TEMPLATES_JS_TARGET="$DIST_DIR/templates/eulumdat_wasm_templates-${TEMPLATES_JS_HASH}.js"
+    TEMPLATES_WASM_TARGET="$DIST_DIR/templates/eulumdat_wasm_templates-${TEMPLATES_WASM_HASH}_bg.wasm"
+
+    if [[ -f "$TEMPLATES_JS_TARGET" ]] && [[ -f "$TEMPLATES_WASM_TARGET" ]]; then
+        echo "  Templates files: unchanged (hash match), skipping copy"
+    else
+        mkdir -p "$DIST_DIR/templates"
+        rm -f "$DIST_DIR/templates/"*.js "$DIST_DIR/templates/"*.wasm "$DIST_DIR/templates/"*.br
+
+        cp "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates.js" "$TEMPLATES_JS_TARGET"
+        cp "$TEMPLATES_WASM_PACK_OUT/eulumdat_wasm_templates_bg.wasm" "$TEMPLATES_WASM_TARGET"
+
+        # Update JS to reference hashed WASM
+        if [[ "$(uname)" == "Darwin" ]]; then
+            sed -i '' "s/eulumdat_wasm_templates_bg.wasm/eulumdat_wasm_templates-${TEMPLATES_WASM_HASH}_bg.wasm/g" "$TEMPLATES_JS_TARGET"
+        else
+            sed -i "s/eulumdat_wasm_templates_bg.wasm/eulumdat_wasm_templates-${TEMPLATES_WASM_HASH}_bg.wasm/g" "$TEMPLATES_JS_TARGET"
+        fi
+        echo "  eulumdat_wasm_templates-${TEMPLATES_JS_HASH}.js"
+        echo "  eulumdat_wasm_templates-${TEMPLATES_WASM_HASH}_bg.wasm"
+    fi
+else
+    echo "[${STEP}/$TOTAL_STEPS] Skipping Templates (not configured)..."
+fi
+((STEP++))
+echo ""
+
+# -----------------------------------------------------------------------------
 # Step 5: Generate bevy-loader.js
 # -----------------------------------------------------------------------------
 if [[ "$BUILD_BEVY" == "true" ]]; then
@@ -702,6 +779,75 @@ if [[ "$BUILD_GMAPS" == "true" ]] && [[ -f "$WASM_DIR/src/static/gmaps-loader.js
 fi
 
 # -----------------------------------------------------------------------------
+# Step 6.7: Generate templates-loader.js (if configured)
+# -----------------------------------------------------------------------------
+TEMPLATES_LOADER_HASH=""
+if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_JS_HASH" ]]; then
+    EXISTING_TEMPLATES_LOADER=$(ls "$DIST_DIR/templates-loader-"*.js 2>/dev/null | head -1)
+    if [[ -n "$EXISTING_TEMPLATES_LOADER" ]] && grep -q "eulumdat_wasm_templates-${TEMPLATES_JS_HASH}.js" "$EXISTING_TEMPLATES_LOADER" 2>/dev/null; then
+        echo "[6.7/$TOTAL_STEPS] templates-loader.js: unchanged, skipping"
+        TEMPLATES_LOADER_HASH=$(echo "$EXISTING_TEMPLATES_LOADER" | sed 's/.*templates-loader-\([^.]*\)\.js/\1/')
+    else
+        echo "[6.7/$TOTAL_STEPS] Generating templates-loader.js..."
+        rm -f "$DIST_DIR/templates-loader-"*.js "$DIST_DIR/templates-loader-"*.js.br
+
+        cat > "$DIST_DIR/templates-loader-temp.js" << EOF
+// Templates WASM loader for lazy-loaded template content
+// Auto-generated with content hashes for cache busting
+
+let templatesModule = null;
+let templatesInitPromise = null;
+
+async function initTemplates() {
+    if (templatesModule) return templatesModule;
+    if (templatesInitPromise) return templatesInitPromise;
+
+    templatesInitPromise = (async () => {
+        try {
+            console.log('[Templates] Loading templates module...');
+            const module = await import('./templates/eulumdat_wasm_templates-${TEMPLATES_JS_HASH}.js');
+            await module.default();
+            templatesModule = module;
+            console.log('[Templates] Module loaded successfully');
+            return module;
+        } catch (e) {
+            console.error('[Templates] Failed to load:', e);
+            templatesInitPromise = null;
+            throw e;
+        }
+    })();
+
+    return templatesInitPromise;
+}
+
+window.getTemplateContent = async function(id) {
+    const module = await initTemplates();
+    return module.get_template_content(id);
+};
+
+window.isTemplatesLoaded = function() {
+    return templatesModule !== null;
+};
+
+window.preloadTemplates = async function() {
+    await initTemplates();
+};
+
+console.log("[Templates] Loader ready (JS: ${TEMPLATES_JS_HASH}, WASM: ${TEMPLATES_WASM_HASH})");
+EOF
+
+        if command -v md5sum &> /dev/null; then
+            TEMPLATES_LOADER_HASH=$(md5sum "$DIST_DIR/templates-loader-temp.js" | cut -c1-16)
+        else
+            TEMPLATES_LOADER_HASH=$(md5 -q "$DIST_DIR/templates-loader-temp.js" | cut -c1-16)
+        fi
+        mv "$DIST_DIR/templates-loader-temp.js" "$DIST_DIR/templates-loader-${TEMPLATES_LOADER_HASH}.js"
+        echo "  templates-loader-${TEMPLATES_LOADER_HASH}.js"
+    fi
+    echo ""
+fi
+
+# -----------------------------------------------------------------------------
 # Step 6.6: Update index.html with hashed loader filenames
 # -----------------------------------------------------------------------------
 # Only update if needed (check if already has correct hashes)
@@ -719,6 +865,11 @@ if [[ "$BUILD_TYPST" == "true" ]] && [[ -n "$TYPST_LOADER_HASH" ]]; then
 fi
 if [[ "$BUILD_GMAPS" == "true" ]] && [[ -n "$GMAPS_LOADER_HASH" ]]; then
     if ! grep -q "gmaps-loader-${GMAPS_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
+        INDEX_NEEDS_UPDATE=true
+    fi
+fi
+if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_LOADER_HASH" ]]; then
+    if ! grep -q "templates-loader-${TEMPLATES_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
         INDEX_NEEDS_UPDATE=true
     fi
 fi
@@ -747,6 +898,12 @@ if [[ "$INDEX_NEEDS_UPDATE" == "true" ]]; then
         sed "${SED_INPLACE[@]}" "s|gmaps-loader-[a-f0-9]*.js\"|gmaps-loader-${GMAPS_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
     fi
 
+    if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_LOADER_HASH" ]]; then
+        sed "${SED_INPLACE[@]}" "s|templates-loader.js\"|templates-loader-${TEMPLATES_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|templates-loader.js?v=[0-9]*\"|templates-loader-${TEMPLATES_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|templates-loader-[a-f0-9]*.js\"|templates-loader-${TEMPLATES_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+    fi
+
     echo "  Updated loader references"
 else
     echo "[6.6/$TOTAL_STEPS] index.html: unchanged, skipping"
@@ -757,47 +914,51 @@ echo ""
 # Step 7: Pre-compress with Brotli (only files missing .br)
 # -----------------------------------------------------------------------------
 if [[ "$SKIP_BROTLI" == "true" ]]; then
-    echo "[$((STEP++))]/$TOTAL_STEPS] Skipping Brotli (servesimple mode)"
+    echo "[$((STEP++))/$TOTAL_STEPS] Skipping Brotli (servesimple mode)"
 elif [[ "$HAVE_BROTLI" == "true" ]]; then
-    if command -v nproc &> /dev/null; then
-        NCPU=$(nproc)
-    elif command -v sysctl &> /dev/null; then
-        NCPU=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
-    else
-        NCPU=4
-    fi
-
     FILES_TO_COMPRESS=()
 
     # Only add files that don't have an up-to-date .br version
-    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm \
-             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js \
+    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm \
+             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js \
              "$DIST_DIR/"*.css; do
         if [[ -f "$f" ]]; then
             # Skip non-hashed loader files (we use hashed versions)
             basename_f=$(basename "$f")
             if [[ "$basename_f" == "bevy-loader.js" ]] || \
                [[ "$basename_f" == "typst-loader.js" ]] || \
-               [[ "$basename_f" == "gmaps-loader.js" ]]; then
+               [[ "$basename_f" == "gmaps-loader.js" ]] || \
+               [[ "$basename_f" == "templates-loader.js" ]]; then
                 continue
             fi
-            # Skip if .br exists and is newer than source file
-            if [[ -f "${f}.br" ]] && [[ "${f}.br" -nt "$f" ]]; then
-                continue
+            # Skip if .br exists and is at least as new as source
+            if [[ -f "${f}.br" ]]; then
+                src_time=$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null)
+                br_time=$(stat -f '%m' "${f}.br" 2>/dev/null || stat -c '%Y' "${f}.br" 2>/dev/null)
+                if [[ "$br_time" -ge "$src_time" ]]; then
+                    continue
+                fi
             fi
             FILES_TO_COMPRESS+=("$f")
         fi
     done
 
     if [[ ${#FILES_TO_COMPRESS[@]} -eq 0 ]]; then
-        echo "  All files already compressed, skipping"
+        echo "[$((STEP++))/$TOTAL_STEPS] Brotli: all files up-to-date, skipping"
     else
-        echo "  Compressing ${#FILES_TO_COMPRESS[@]} files using $NCPU parallel jobs..."
+        echo "[$((STEP++))/$TOTAL_STEPS] Compressing ${#FILES_TO_COMPRESS[@]} files with Brotli..."
+        if command -v nproc &> /dev/null; then
+            NCPU=$(nproc)
+        elif command -v sysctl &> /dev/null; then
+            NCPU=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
+        else
+            NCPU=4
+        fi
         printf '%s\n' "${FILES_TO_COMPRESS[@]}" | xargs -P "$NCPU" -I {} brotli -f -q 11 {}
         echo "  Done!"
     fi
 else
-    echo "  brotli not found, skipping pre-compression."
+    echo "[$((STEP++))/$TOTAL_STEPS] Brotli not found, skipping pre-compression."
     echo "  Install with: brew install brotli"
 fi
 echo ""
@@ -870,6 +1031,52 @@ HTMLEOF
 fi
 echo ""
 
+# -----------------------------------------------------------------------------
+# Step 9: Build Quiz app and copy into dist
+# -----------------------------------------------------------------------------
+QUIZ_DIR="$ROOT_DIR/crates/eulumdat-wasm-quiz"
+if [[ -d "$QUIZ_DIR" ]]; then
+    echo "[9/$TOTAL_STEPS] Building Quiz app..."
+    cd "$QUIZ_DIR"
+    trunk build --release 2>&1 | tail -5
+
+    # Trunk always outputs index.html regardless of target setting.
+    # Rename it to quiz.html before copying to avoid overwriting the main app.
+    if [[ -d "$QUIZ_DIR/dist" ]]; then
+        # Ensure quiz.html exists (Trunk's post_build hook should rename, but be safe)
+        if [[ -f "$QUIZ_DIR/dist/index.html" ]]; then
+            mv "$QUIZ_DIR/dist/index.html" "$QUIZ_DIR/dist/quiz.html"
+        fi
+        # Copy everything except index.html (should not exist after mv, but be safe)
+        for f in "$QUIZ_DIR/dist/"*; do
+            [[ "$(basename "$f")" == "index.html" ]] && continue
+            cp "$f" "$DIST_DIR/" 2>/dev/null || true
+        done
+        QUIZ_WASM=$(ls "$QUIZ_DIR/dist/"*_bg.wasm 2>/dev/null | head -1)
+        QUIZ_SIZE=$(ls -lh "$QUIZ_WASM" 2>/dev/null | awk '{print $5}')
+        echo "  Quiz app copied to dist/ ($QUIZ_SIZE)"
+
+        # Brotli-compress quiz files if available
+        if [[ "$HAVE_BROTLI" == "true" ]]; then
+            for f in "$DIST_DIR"/eulumdat-wasm-quiz*; do
+                if [[ -f "$f" ]] && [[ ! "$f" =~ \.br$ ]] && [[ ! -f "$f.br" ]]; then
+                    brotli -f -q 11 "$f"
+                fi
+            done
+            if [[ -f "$DIST_DIR/quiz.html" ]] && [[ ! -f "$DIST_DIR/quiz.html.br" ]]; then
+                brotli -f -q 11 "$DIST_DIR/quiz.html"
+            fi
+            echo "  Quiz files Brotli-compressed"
+        fi
+    else
+        echo "  WARNING: Quiz dist/ not found after build"
+    fi
+    cd "$ROOT_DIR"
+else
+    echo "[9/$TOTAL_STEPS] Quiz app: skipped (crate not found)"
+fi
+echo ""
+
 # =============================================================================
 # Summary
 # =============================================================================
@@ -891,36 +1098,51 @@ elif [[ "$BUILD_LEPTOS" == "true" ]]; then
 fi
 echo ""
 
-LEPTOS_WASM=$(ls "$DIST_DIR/"*_bg.wasm 2>/dev/null | head -1)
+LEPTOS_WASM=$(ls "$DIST_DIR/"eulumdat-wasm-*_bg.wasm 2>/dev/null | head -1)
 BEVY_WASM_FILE=$(ls "$DIST_DIR/bevy/"*_bg.wasm 2>/dev/null | head -1)
 TYPST_WASM_FILE=$(ls "$DIST_DIR/typst/"*_bg.wasm 2>/dev/null | head -1)
+TEMPLATES_WASM_FILE=$(ls "$DIST_DIR/templates/"*_bg.wasm 2>/dev/null | head -1)
+QUIZ_WASM_FILE=$(ls "$DIST_DIR/"eulumdat-wasm-quiz-*_bg.wasm 2>/dev/null | head -1)
 
 LEPTOS_SIZE=$(ls -lh "$LEPTOS_WASM" 2>/dev/null | awk '{print $5}')
 BEVY_SIZE=$(ls -lh "$BEVY_WASM_FILE" 2>/dev/null | awk '{print $5}')
 TYPST_SIZE=$(ls -lh "$TYPST_WASM_FILE" 2>/dev/null | awk '{print $5}')
+TEMPLATES_SIZE=$(ls -lh "$TEMPLATES_WASM_FILE" 2>/dev/null | awk '{print $5}')
+QUIZ_SIZE=$(ls -lh "$QUIZ_WASM_FILE" 2>/dev/null | awk '{print $5}')
 
 echo "Bundle sizes (raw / compressed):"
 if [[ "$HAVE_BROTLI" == "true" ]]; then
     LEPTOS_BR=$(ls -lh "${LEPTOS_WASM}.br" 2>/dev/null | awk '{print $5}')
     BEVY_BR=$(ls -lh "${BEVY_WASM_FILE}.br" 2>/dev/null | awk '{print $5}')
     TYPST_BR=$(ls -lh "${TYPST_WASM_FILE}.br" 2>/dev/null | awk '{print $5}')
+    TEMPLATES_BR=$(ls -lh "${TEMPLATES_WASM_FILE}.br" 2>/dev/null | awk '{print $5}')
 
     [[ -n "$LEPTOS_SIZE" ]] && echo "  Leptos editor:      $LEPTOS_SIZE -> $LEPTOS_BR (loads immediately)"
     [[ -n "$BEVY_SIZE" ]] && echo "  Bevy 3D viewer:     $BEVY_SIZE -> $BEVY_BR (loads on demand)"
     [[ -n "$TYPST_SIZE" ]] && echo "  Typst PDF compiler: $TYPST_SIZE -> $TYPST_BR (loads on demand)"
+    [[ -n "$TEMPLATES_SIZE" ]] && echo "  Templates:          $TEMPLATES_SIZE -> $TEMPLATES_BR (loads on demand)"
+    if [[ -n "$QUIZ_SIZE" ]]; then
+        QUIZ_BR=$(ls -lh "${QUIZ_WASM_FILE}.br" 2>/dev/null | awk '{print $5}')
+        echo "  Quiz app:           $QUIZ_SIZE -> $QUIZ_BR (quiz.html)"
+    fi
 else
     [[ -n "$LEPTOS_SIZE" ]] && echo "  Leptos editor:      $LEPTOS_SIZE (loads immediately)"
     [[ -n "$BEVY_SIZE" ]] && echo "  Bevy 3D viewer:     $BEVY_SIZE (loads on demand)"
     [[ -n "$TYPST_SIZE" ]] && echo "  Typst PDF compiler: $TYPST_SIZE (loads on demand)"
+    [[ -n "$TEMPLATES_SIZE" ]] && echo "  Templates:          $TEMPLATES_SIZE (loads on demand)"
+    [[ -n "$QUIZ_SIZE" ]] && echo "  Quiz app:           $QUIZ_SIZE (quiz.html)"
 fi
 echo ""
 
 if [[ "$BUILD_BEVY" == "true" ]]; then
     echo "Hashed filenames:"
-    echo "  Bevy:  ${BEVY_BINARY}-${JS_HASH}.js / ${BEVY_BINARY}-${WASM_HASH}_bg.wasm"
+    echo "  Bevy:      ${BEVY_BINARY}-${JS_HASH}.js / ${BEVY_BINARY}-${WASM_HASH}_bg.wasm"
 fi
 if [[ "$BUILD_TYPST" == "true" ]] && [[ -n "$TYPST_JS_HASH" ]]; then
-    echo "  Typst: typst_wasm-${TYPST_JS_HASH}.js / typst_wasm-${TYPST_WASM_HASH}_bg.wasm"
+    echo "  Typst:     typst_wasm-${TYPST_JS_HASH}.js / typst_wasm-${TYPST_WASM_HASH}_bg.wasm"
+fi
+if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_JS_HASH" ]]; then
+    echo "  Templates: eulumdat_wasm_templates-${TEMPLATES_JS_HASH}.js / eulumdat_wasm_templates-${TEMPLATES_WASM_HASH}_bg.wasm"
 fi
 echo ""
 echo "Output: $DIST_DIR"

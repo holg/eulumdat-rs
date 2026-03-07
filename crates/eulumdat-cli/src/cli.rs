@@ -48,6 +48,12 @@ pub enum Commands {
         /// Output compact format (no indentation) for XML/JSON
         #[arg(short, long)]
         compact: bool,
+
+        /// Rotate C-planes by N degrees during conversion.
+        /// Use 90 when converting IES→LDT to fix EU/US axis orientation.
+        /// Use -90 when converting LDT→IES.
+        #[arg(short, long, default_value = "0.0")]
+        rotate: f64,
     },
 
     /// Generate SVG diagram
