@@ -840,7 +840,7 @@ dependencies = [
 
 [[package]]
 name = "atla"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
@@ -3778,7 +3778,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
@@ -3788,7 +3788,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-bevy"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "bevy",
  "bevy_egui",
@@ -3803,7 +3803,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-cli"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "atla",
@@ -3815,7 +3815,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-dev-server"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -3825,7 +3825,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-egui"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "atla",
@@ -3843,7 +3843,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ffi"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "atla",
  "eulumdat",
@@ -3854,7 +3854,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-harmonyos-ffi"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "eulumdat",
  "eulumdat-photweb",
@@ -3862,7 +3862,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-i18n"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -3870,7 +3870,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-photweb"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -3878,7 +3878,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-plugin"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -3891,7 +3891,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-py"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "atla",
  "eulumdat",
@@ -3900,15 +3900,23 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-quiz"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "serde",
  "serde_json",
 ]
 
 [[package]]
+name = "eulumdat-quiz-py"
+version = "0.6.0"
+dependencies = [
+ "eulumdat-quiz",
+ "pyo3",
+]
+
+[[package]]
 name = "eulumdat-server"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -3924,7 +3932,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-tui"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -3935,7 +3943,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-tui-quiz"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "clap",
  "crossterm",
@@ -3947,7 +3955,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-typst"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "atla",
@@ -3963,7 +3971,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ui"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "approx 0.5.1",
  "egui 0.29.1",
@@ -3974,7 +3982,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "atla",
  "base64 0.22.1",
@@ -3997,7 +4005,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-quiz"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4012,7 +4020,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-templates"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "atla",
@@ -4028,7 +4036,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-windows-preview"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "embed-resource",

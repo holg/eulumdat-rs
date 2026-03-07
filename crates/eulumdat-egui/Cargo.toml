@@ -1,6 +1,6 @@
 [package]
 name = "eulumdat-egui"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 authors = ["Holger Trahe <trahe@mac.com>"]
 description = "Cross-platform GUI application for viewing EULUMDAT/LDT and IES photometric files"

@@ -21,8 +21,8 @@ else
     exit 1
 fi
 
-# Note: eulumdat-py is excluded because it's a Python extension that must be built with maturin
-EXCLUDE_PY="--exclude eulumdat-py"
+# Note: PyO3 crates are excluded because they must be built with maturin
+EXCLUDE_PY="--exclude eulumdat-py --exclude eulumdat-quiz-py"
 
 # Run clippy
 echo -e "${YELLOW}Step 2: Running clippy...${NC}"

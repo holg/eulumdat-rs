@@ -21,8 +21,8 @@ csr = ["leptos/csr"]
 [dependencies]
 console_error_panic_hook.workspace = true
 eulumdat = { workspace = true }
-eulumdat-i18n = { path = "../eulumdat-i18n" }
-eulumdat-quiz = { path = "../eulumdat-quiz" }
+eulumdat-i18n = { path = "../eulumdat-i18n", version = "0.6.0" }
+eulumdat-quiz = { path = "../eulumdat-quiz", version = "0.6.0" }
 js-sys.workspace = true
 leptos.workspace = true
 wasm-bindgen.workspace = true

@@ -3,18 +3,17 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "eulumdat"
+name = "eulumdat-quiz"
 version = "0.6.0"
-description = "Python bindings for eulumdat photometric file parsing library"
+description = "Photometric knowledge quiz engine for lighting professionals"
 readme = "README.md"
-license = { text = "MIT OR Apache-2.0" }
+license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.8"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
+  "Intended Audience :: Education",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
-  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Rust",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.8",
@@ -22,14 +21,20 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering",
+  "Topic :: Education",
 ]
-keywords = ["eulumdat", "photometry", "lighting", "ies", "ldt"]
+keywords = ["eulumdat", "photometry", "lighting", "quiz", "education"]
 
 [project.urls]
 Homepage = "https://github.com/holg/eulumdat-rs"
 Repository = "https://github.com/holg/eulumdat-rs"
 
+[project.scripts]
+eulumdat-quiz = "eulumdat_quiz.__main__:main"
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
-module-name = "eulumdat"
+module-name = "eulumdat_quiz.eulumdat_quiz"
+python-source = "python"

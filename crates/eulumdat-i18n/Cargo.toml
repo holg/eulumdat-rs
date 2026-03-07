@@ -1,6 +1,6 @@
 [package]
 name = "eulumdat-i18n"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 description = "Internationalization for Eulumdat/ATLA photometric libraries"
 license = "AGPL-3.0-or-later"

@@ -1,16 +1,15 @@
 [package]
-name = "eulumdat-py"
+name = "eulumdat-quiz-py"
 version = "0.6.0"  # Must be explicit for maturin (workspace inheritance not supported)
 edition = "2021"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/holg/eulumdat-rs"
-description = "Python bindings for eulumdat photometric file parsing library"
+description = "Python bindings for the eulumdat photometric knowledge quiz engine"
 
 [lib]
-name = "eulumdat"
+name = "eulumdat_quiz_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-atla = { workspace = true, features = ["eulumdat", "xml", "json"] }
-eulumdat.workspace = true
+eulumdat-quiz = { path = "../eulumdat-quiz", version = "0.6.0" }
 pyo3 = { version = "0.27", features = ["extension-module"] }

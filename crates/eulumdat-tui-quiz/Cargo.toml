@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 clap = { workspace = true }
 crossterm = "0.28"
-eulumdat = { path = "../eulumdat" }
-eulumdat-i18n = { path = "../eulumdat-i18n" }
-eulumdat-quiz = { path = "../eulumdat-quiz" }
+eulumdat = { path = "../eulumdat", version = "0.6.0" }
+eulumdat-i18n = { path = "../eulumdat-i18n", version = "0.6.0" }
+eulumdat-quiz = { path = "../eulumdat-quiz", version = "0.6.0" }
 ratatui = "0.29"
