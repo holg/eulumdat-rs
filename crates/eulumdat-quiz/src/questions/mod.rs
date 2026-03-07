@@ -3,11 +3,13 @@ mod bug_rating;
 mod calculations;
 mod color_science;
 mod coordinates;
+mod diagram_reading;
 mod diagrams;
 mod eulumdat_format;
 mod horticultural;
 mod ies_format;
 mod modern_formats;
+mod pitfalls;
 mod standards;
 mod symmetry;
 mod ugr_glare;
@@ -33,6 +35,8 @@ pub fn all_questions() -> Vec<Question> {
     qs.extend(validation::questions());
     qs.extend(units::questions());
     qs.extend(diagrams::questions());
+    qs.extend(diagram_reading::questions());
     qs.extend(standards::questions());
+    qs.extend(pitfalls::questions());
     qs
 }

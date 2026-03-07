@@ -1,5 +1,6 @@
 //! Validation types and functions for FFI
 
+use crate::diagram::Language;
 use crate::error::EulumdatError;
 use crate::types::{to_core_eulumdat, Eulumdat};
 
@@ -67,6 +68,31 @@ pub fn validate_ldt_strict(ldt: &Eulumdat) -> Result<(), EulumdatError> {
 pub fn get_validation_errors(ldt: &Eulumdat) -> Vec<ValidationError> {
     let core_ldt = to_core_eulumdat(ldt);
     match eulumdat::validate_strict(&core_ldt) {
+        Ok(()) => vec![],
+        Err(errors) => errors
+            .iter()
+            .map(|e: &eulumdat::ValidationError| e.into())
+            .collect(),
+    }
+}
+
+/// Validate Eulumdat data and return warnings with localized messages
+#[uniffi::export]
+pub fn validate_ldt_localized(ldt: &Eulumdat, language: Language) -> Vec<ValidationWarning> {
+    let core_ldt = to_core_eulumdat(ldt);
+    let locale = language.to_locale();
+    eulumdat::validate_with_locale(&core_ldt, &locale)
+        .iter()
+        .map(|w: &eulumdat::ValidationWarning| w.into())
+        .collect()
+}
+
+/// Get detailed validation errors with localized messages
+#[uniffi::export]
+pub fn get_validation_errors_localized(ldt: &Eulumdat, language: Language) -> Vec<ValidationError> {
+    let core_ldt = to_core_eulumdat(ldt);
+    let locale = language.to_locale();
+    match eulumdat::validate_strict_with_locale(&core_ldt, &locale) {
         Ok(()) => vec![],
         Err(errors) => errors
             .iter()

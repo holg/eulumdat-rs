@@ -11,6 +11,7 @@ pub enum MainTab {
     Data,
     Diagrams,
     Analysis,
+    Compare,
     Validation,
 }
 
@@ -21,6 +22,7 @@ impl MainTab {
             MainTab::Data => "Data",
             MainTab::Diagrams => "Diagrams",
             MainTab::Analysis => "Analysis",
+            MainTab::Compare => "Compare",
             MainTab::Validation => "Validation",
         }
     }
@@ -31,6 +33,7 @@ impl MainTab {
             MainTab::Data,
             MainTab::Diagrams,
             MainTab::Analysis,
+            MainTab::Compare,
             MainTab::Validation,
         ]
     }
@@ -54,11 +57,17 @@ pub enum SubTab {
     Butterfly3D,
     Heatmap,
     Cone,
+    Isolux,
+    Isocandela,
+    Floodlight,
     // Analysis group
     Spectral,
     Greenhouse,
     BugRating,
     Lcs,
+    Bim,
+    // Compare group (single)
+    ComparePanel,
     // Validation group (single)
     ValidationPanel,
 }
@@ -77,10 +86,15 @@ impl SubTab {
             SubTab::Butterfly3D => "3D Butterfly",
             SubTab::Heatmap => "Heatmap",
             SubTab::Cone => "Cone",
+            SubTab::Isolux => "Isolux",
+            SubTab::Isocandela => "Isocandela",
+            SubTab::Floodlight => "Floodlight",
             SubTab::Spectral => "Spectral",
             SubTab::Greenhouse => "Greenhouse",
             SubTab::BugRating => "BUG Rating",
             SubTab::Lcs => "LCS",
+            SubTab::Bim => "BIM",
+            SubTab::ComparePanel => "Compare",
             SubTab::ValidationPanel => "Validation",
         }
     }
@@ -97,10 +111,16 @@ impl SubTab {
             | SubTab::BeamAngle
             | SubTab::Butterfly3D
             | SubTab::Heatmap
-            | SubTab::Cone => MainTab::Diagrams,
-            SubTab::Spectral | SubTab::Greenhouse | SubTab::BugRating | SubTab::Lcs => {
-                MainTab::Analysis
-            }
+            | SubTab::Cone
+            | SubTab::Isolux
+            | SubTab::Isocandela
+            | SubTab::Floodlight => MainTab::Diagrams,
+            SubTab::Spectral
+            | SubTab::Greenhouse
+            | SubTab::BugRating
+            | SubTab::Lcs
+            | SubTab::Bim => MainTab::Analysis,
+            SubTab::ComparePanel => MainTab::Compare,
             SubTab::ValidationPanel => MainTab::Validation,
         }
     }
@@ -112,6 +132,7 @@ impl SubTab {
             MainTab::Data => SubTab::Intensity,
             MainTab::Diagrams => SubTab::Polar,
             MainTab::Analysis => SubTab::Spectral,
+            MainTab::Compare => SubTab::ComparePanel,
             MainTab::Validation => SubTab::ValidationPanel,
         }
     }
@@ -133,13 +154,18 @@ impl SubTab {
                 SubTab::Butterfly3D,
                 SubTab::Heatmap,
                 SubTab::Cone,
+                SubTab::Isolux,
+                SubTab::Isocandela,
+                SubTab::Floodlight,
             ],
             MainTab::Analysis => &[
                 SubTab::Spectral,
                 SubTab::Greenhouse,
                 SubTab::BugRating,
                 SubTab::Lcs,
+                SubTab::Bim,
             ],
+            MainTab::Compare => &[SubTab::ComparePanel],
             MainTab::Validation => &[SubTab::ValidationPanel],
         }
     }
@@ -154,6 +180,9 @@ impl SubTab {
                 | SubTab::Butterfly3D
                 | SubTab::Heatmap
                 | SubTab::Cone
+                | SubTab::Isolux
+                | SubTab::Isocandela
+                | SubTab::Floodlight
                 | SubTab::Spectral
                 | SubTab::Greenhouse
                 | SubTab::BugRating

@@ -584,10 +584,29 @@ impl IesParser {
         Self::parse(&content)
     }
 
+    /// Parse an IES file with import options (e.g. C-plane rotation).
+    pub fn parse_file_with_options<P: AsRef<Path>>(
+        path: P,
+        options: &IesImportOptions,
+    ) -> Result<Eulumdat> {
+        let content = read_with_encoding_fallback(path)?;
+        Self::parse_with_options(&content, options)
+    }
+
     /// Parse IES content from a string.
     pub fn parse(content: &str) -> Result<Eulumdat> {
         let ies_data = Self::parse_ies_data(content)?;
         Self::convert_to_eulumdat(ies_data)
+    }
+
+    /// Parse IES content with import options (e.g. C-plane rotation).
+    pub fn parse_with_options(content: &str, options: &IesImportOptions) -> Result<Eulumdat> {
+        let ies_data = Self::parse_ies_data(content)?;
+        let mut ldt = Self::convert_to_eulumdat(ies_data)?;
+        if options.rotate_c_planes.abs() > 0.001 {
+            ldt.rotate_c_planes(options.rotate_c_planes);
+        }
+        Ok(ldt)
     }
 
     /// Parse IES content and return raw IES data structure.
@@ -1062,6 +1081,26 @@ impl IesParser {
 /// Exports Eulumdat data to IES LM-63 format (2002 or 2019).
 pub struct IesExporter;
 
+/// Import options for IES files.
+///
+/// Use `rotate_c_planes` to correct the C-plane orientation difference between
+/// EULUMDAT (C0 along luminaire length) and IES (C0 perpendicular to length).
+/// Set to `90.0` when importing IES files that need EU-axis alignment.
+#[derive(Debug, Clone)]
+pub struct IesImportOptions {
+    /// Rotate C-planes by this many degrees after import (default: 0.0).
+    /// Set to 90.0 to convert IES C0 orientation → EULUMDAT C0 orientation.
+    pub rotate_c_planes: f64,
+}
+
+impl Default for IesImportOptions {
+    fn default() -> Self {
+        Self {
+            rotate_c_planes: 0.0,
+        }
+    }
+}
+
 /// Export options for IES files.
 #[derive(Debug, Clone)]
 pub struct IesExportOptions {
@@ -1075,6 +1114,9 @@ pub struct IesExportOptions {
     pub file_gen_info: Option<String>,
     /// Test lab name
     pub test_lab: Option<String>,
+    /// Rotate C-planes by this many degrees before export (default: 0.0).
+    /// Set to -90.0 to convert EULUMDAT C0 orientation → IES C0 orientation.
+    pub rotate_c_planes: f64,
 }
 
 impl Default for IesExportOptions {
@@ -1085,6 +1127,7 @@ impl Default for IesExportOptions {
             issue_date: None,
             file_gen_info: None,
             test_lab: None,
+            rotate_c_planes: 0.0,
         }
     }
 }
@@ -1108,6 +1151,19 @@ impl IesExporter {
 
     /// Export with custom options.
     pub fn export_with_options(ldt: &Eulumdat, options: &IesExportOptions) -> String {
+        // Apply C-plane rotation if requested
+        let rotated;
+        let ldt = if options.rotate_c_planes.abs() > 0.001 {
+            rotated = {
+                let mut copy = ldt.clone();
+                copy.rotate_c_planes(options.rotate_c_planes);
+                copy
+            };
+            &rotated
+        } else {
+            ldt
+        };
+
         let mut output = String::new();
 
         // Header based on version

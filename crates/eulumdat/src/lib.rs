@@ -191,14 +191,17 @@ pub use calculations::{
     UGR_ROOM_SIZES,
 };
 pub use compare::{ComparisonMetric, PhotometricComparison, Significance};
+// i18n re-exports for comparison are available via PhotometricComparison methods
 pub use error::{Error, Result};
 pub use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
 pub use ies::{
     validate_ies, validate_ies_strict, FileGenerationType, IesData, IesExportOptions, IesExporter,
-    IesParser, IesValidationSeverity, IesValidationWarning, IesVersion, LampPosition,
-    LuminousShape, PhotometricType, TiltData, UnitType,
+    IesImportOptions, IesParser, IesValidationSeverity, IesValidationWarning, IesVersion,
+    LampPosition, LuminousShape, PhotometricType, TiltData, UnitType,
 };
 pub use symmetry::SymmetryHandler;
 pub use type_b_conversion::TypeBConversion;
 pub use units::UnitSystem;
 pub use validation::{validate, validate_strict, ValidationError, ValidationWarning};
+#[cfg(feature = "i18n")]
+pub use validation::{validate_strict_with_locale, validate_with_locale};

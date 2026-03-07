@@ -4,8 +4,7 @@ use crate::{
 };
 
 /// A quiz session that tracks progress and scoring.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct QuizSession {
     pub questions: Vec<Question>,
     pub answers: Vec<Option<u8>>,
@@ -118,15 +117,15 @@ impl QuizSession {
             if i >= self.current_index {
                 break;
             }
-            *cat_total.entry(q.category.clone()).or_default() += 1;
-            *diff_total.entry(q.difficulty.clone()).or_default() += 1;
+            *cat_total.entry(q.category).or_default() += 1;
+            *diff_total.entry(q.difficulty).or_default() += 1;
 
             match self.answers[i] {
                 Some(choice) => {
                     if choice == q.correct_index {
                         correct += 1;
-                        *cat_correct.entry(q.category.clone()).or_default() += 1;
-                        *diff_correct.entry(q.difficulty.clone()).or_default() += 1;
+                        *cat_correct.entry(q.category).or_default() += 1;
+                        *diff_correct.entry(q.difficulty).or_default() += 1;
                     } else {
                         wrong += 1;
                     }

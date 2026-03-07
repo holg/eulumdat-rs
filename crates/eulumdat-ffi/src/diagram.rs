@@ -1,10 +1,10 @@
 //! Diagram types and functions for FFI
 
 use eulumdat::diagram::{
-    ButterflyDiagram, CartesianDiagram, ConeDiagram, HeatmapDiagram, PolarDiagram, SvgTheme,
-    WatchFaceStyle,
+    ButterflyDiagram, CartesianDiagram, ConeDiagram, FloodlightCartesianDiagram, HeatmapDiagram,
+    IsocandelaDiagram, IsoluxDiagram, IsoluxParams, PolarDiagram, SvgTheme, WatchFaceStyle, YScale,
 };
-use eulumdat::{PhotometricCalculations, PhotometricSummary};
+use eulumdat::{PhotometricCalculations, PhotometricSummary, SymmetryHandler};
 use eulumdat_i18n::{Language as CoreLanguage, Locale};
 
 use crate::types::{to_core_eulumdat, Eulumdat, Symmetry};
@@ -642,6 +642,261 @@ pub fn generate_butterfly_svg_localized(
 }
 
 // BUG and LCS diagram functions are in bug_rating.rs
+
+// === Isolux diagram ===
+
+/// Generate isolux footprint diagram as SVG
+#[uniffi::export]
+pub fn generate_isolux_svg(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    mounting_height: f64,
+    tilt_angle: f64,
+    area_size: f64,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let params = IsoluxParams {
+        mounting_height,
+        tilt_angle,
+        area_half_width: area_size / 2.0,
+        area_half_depth: area_size / 2.0,
+        grid_resolution: 80,
+    };
+    let diagram = IsoluxDiagram::from_eulumdat(&core_ldt, width, height, params);
+    diagram.to_svg(width, height, &theme.to_core())
+}
+
+/// Generate isolux footprint diagram as SVG with localized labels
+#[allow(clippy::too_many_arguments)]
+#[uniffi::export]
+pub fn generate_isolux_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    mounting_height: f64,
+    tilt_angle: f64,
+    area_size: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let locale = language.to_locale();
+    let params = IsoluxParams {
+        mounting_height,
+        tilt_angle,
+        area_half_width: area_size / 2.0,
+        area_half_depth: area_size / 2.0,
+        grid_resolution: 80,
+    };
+    let diagram = IsoluxDiagram::from_eulumdat(&core_ldt, width, height, params);
+    diagram.to_svg(width, height, &theme.to_core_with_locale(&locale))
+}
+
+// === Isocandela diagram ===
+
+/// Generate isocandela contour diagram as SVG
+#[uniffi::export]
+pub fn generate_isocandela_svg(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let diagram = IsocandelaDiagram::from_eulumdat(&core_ldt, width, height);
+    diagram.to_svg(width, height, &theme.to_core())
+}
+
+/// Generate isocandela contour diagram as SVG with localized labels
+#[uniffi::export]
+pub fn generate_isocandela_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let locale = language.to_locale();
+    let diagram = IsocandelaDiagram::from_eulumdat(&core_ldt, width, height);
+    diagram.to_svg(width, height, &theme.to_core_with_locale(&locale))
+}
+
+// === Floodlight cartesian diagram ===
+
+/// Generate floodlight V-H cartesian diagram as SVG
+#[uniffi::export]
+pub fn generate_floodlight_cartesian_svg(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    log_scale: bool,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let y_scale = if log_scale {
+        YScale::Logarithmic
+    } else {
+        YScale::Linear
+    };
+    let diagram = FloodlightCartesianDiagram::from_eulumdat(&core_ldt, width, height, y_scale);
+    diagram.to_svg(width, height, &theme.to_core())
+}
+
+/// Generate floodlight V-H cartesian diagram as SVG with localized labels
+#[uniffi::export]
+pub fn generate_floodlight_cartesian_svg_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    log_scale: bool,
+    theme: SvgThemeType,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let locale = language.to_locale();
+    let y_scale = if log_scale {
+        YScale::Logarithmic
+    } else {
+        YScale::Linear
+    };
+    let diagram = FloodlightCartesianDiagram::from_eulumdat(&core_ldt, width, height, y_scale);
+    diagram.to_svg(width, height, &theme.to_core_with_locale(&locale))
+}
+
+// === Per-C-plane diagram variants ===
+
+/// Generate polar diagram SVG for a specific C-plane
+#[uniffi::export]
+pub fn generate_polar_svg_for_plane(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    c_plane: f64,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let polar = PolarDiagram::from_eulumdat_for_plane(&core_ldt, c_plane);
+    polar.to_svg(width, height, &theme.to_core())
+}
+
+/// Generate cartesian diagram SVG for a specific C-plane
+#[uniffi::export]
+pub fn generate_cartesian_svg_for_plane(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    c_plane: f64,
+    _max_curves: u32,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let cartesian = CartesianDiagram::from_eulumdat_for_plane(&core_ldt, c_plane, width, height);
+    cartesian.to_svg(width, height, &theme.to_core())
+}
+
+/// Generate cone diagram SVG for a specific C-plane
+#[uniffi::export]
+pub fn generate_cone_svg_for_plane(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    mounting_height: f64,
+    c_plane: f64,
+    theme: SvgThemeType,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let cone = ConeDiagram::from_eulumdat_for_plane(&core_ldt, mounting_height, c_plane);
+    cone.to_svg(width, height, &theme.to_core())
+}
+
+/// Check if luminaire has significant C-plane variation (asymmetric)
+#[uniffi::export]
+pub fn has_c_plane_variation(ldt: &Eulumdat) -> bool {
+    let core_ldt = to_core_eulumdat(ldt);
+    ConeDiagram::has_c_plane_variation(&core_ldt)
+}
+
+/// Get the expanded list of C-plane angles (accounting for symmetry)
+#[uniffi::export]
+pub fn get_expanded_c_angles(ldt: &Eulumdat) -> Vec<f64> {
+    let core_ldt = to_core_eulumdat(ldt);
+    SymmetryHandler::expand_c_angles(&core_ldt)
+}
+
+// === Overlay diagrams for comparison ===
+
+/// Generate polar overlay SVG comparing two luminaires
+#[allow(clippy::too_many_arguments)]
+#[uniffi::export]
+pub fn generate_polar_overlay_svg(
+    ldt_a: &Eulumdat,
+    ldt_b: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    label_a: String,
+    label_b: String,
+    c_plane_a: Option<f64>,
+    c_plane_b: Option<f64>,
+) -> String {
+    let core_a = to_core_eulumdat(ldt_a);
+    let core_b = to_core_eulumdat(ldt_b);
+    let polar_a = match c_plane_a {
+        Some(c) => PolarDiagram::from_eulumdat_for_plane(&core_a, c),
+        None => PolarDiagram::from_eulumdat(&core_a),
+    };
+    let polar_b = match c_plane_b {
+        Some(c) => PolarDiagram::from_eulumdat_for_plane(&core_b, c),
+        None => PolarDiagram::from_eulumdat(&core_b),
+    };
+    PolarDiagram::to_overlay_svg(
+        &polar_a,
+        &polar_b,
+        width,
+        height,
+        &theme.to_core(),
+        &label_a,
+        &label_b,
+    )
+}
+
+/// Generate cartesian overlay SVG comparing two luminaires
+#[allow(clippy::too_many_arguments)]
+#[uniffi::export]
+pub fn generate_cartesian_overlay_svg(
+    ldt_a: &Eulumdat,
+    ldt_b: &Eulumdat,
+    width: f64,
+    height: f64,
+    theme: SvgThemeType,
+    label_a: String,
+    label_b: String,
+    c_plane_a: Option<f64>,
+    c_plane_b: Option<f64>,
+) -> String {
+    let core_a = to_core_eulumdat(ldt_a);
+    let core_b = to_core_eulumdat(ldt_b);
+    let cartesian_a = match c_plane_a {
+        Some(c) => CartesianDiagram::from_eulumdat_for_plane(&core_a, c, width, height),
+        None => CartesianDiagram::from_eulumdat(&core_a, width, height, 8),
+    };
+    let cartesian_b = match c_plane_b {
+        Some(c) => CartesianDiagram::from_eulumdat_for_plane(&core_b, c, width, height),
+        None => CartesianDiagram::from_eulumdat(&core_b, width, height, 8),
+    };
+    CartesianDiagram::to_overlay_svg(
+        &cartesian_a,
+        &cartesian_b,
+        width,
+        height,
+        &theme.to_core(),
+        &label_a,
+        &label_b,
+    )
+}
 
 // Watch face types and functions
 

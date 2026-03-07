@@ -3,14 +3,14 @@
 //! Pure Rust library with no UI dependencies. Designed to be FFI-safe
 //! (uniffi/PyO3) for use across TUI, Web, Desktop, iOS, Android, and Python.
 
+pub mod i18n;
 mod questions;
 mod session;
 
 pub use session::QuizSession;
 
 /// Knowledge domain categories.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Category {
     /// LDT file structure, line numbers, field meanings
     EulumdatFormat,
@@ -40,11 +40,35 @@ pub enum Category {
     Units,
     /// Polar, cartesian, heatmap, cone, butterfly, isolux
     DiagramTypes,
+    /// Reading and interpreting polar light distribution diagrams
+    DiagramReading,
     /// CIE, IES, NEMA, EN 13201, IDA, LEED, Title 24
     Standards,
 }
 
 impl Category {
+    /// Stable string key for i18n lookup (matches JSON locale keys).
+    pub fn key(&self) -> &'static str {
+        match self {
+            Self::EulumdatFormat => "eulumdat_format",
+            Self::IesFormat => "ies_format",
+            Self::Symmetry => "symmetry",
+            Self::CoordinateSystems => "coordinate_systems",
+            Self::PhotometricCalc => "photometric_calc",
+            Self::BugRating => "bug_rating",
+            Self::UgrGlare => "ugr_glare",
+            Self::ColorScience => "color_science",
+            Self::Horticultural => "horticultural",
+            Self::BimIntegration => "bim_integration",
+            Self::ModernFormats => "modern_formats",
+            Self::Validation => "validation",
+            Self::Units => "units",
+            Self::DiagramTypes => "diagram_types",
+            Self::DiagramReading => "diagram_reading",
+            Self::Standards => "standards",
+        }
+    }
+
     /// Human-readable label for display.
     pub fn label(&self) -> &'static str {
         match self {
@@ -62,6 +86,7 @@ impl Category {
             Self::Validation => "Validation",
             Self::Units => "Units & Conversions",
             Self::DiagramTypes => "Diagram Types",
+            Self::DiagramReading => "Diagram Reading",
             Self::Standards => "Standards & Compliance",
         }
     }
@@ -83,14 +108,16 @@ impl Category {
             Self::Validation,
             Self::Units,
             Self::DiagramTypes,
+            Self::DiagramReading,
             Self::Standards,
         ]
     }
 }
 
 /// Difficulty level for questions.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub enum Difficulty {
     /// Format basics, unit definitions, simple facts
     Beginner,
@@ -101,6 +128,15 @@ pub enum Difficulty {
 }
 
 impl Difficulty {
+    /// Stable string key for i18n lookup.
+    pub fn key(&self) -> &'static str {
+        match self {
+            Self::Beginner => "beginner",
+            Self::Intermediate => "intermediate",
+            Self::Expert => "expert",
+        }
+    }
+
     pub fn label(&self) -> &'static str {
         match self {
             Self::Beginner => "Beginner",
@@ -111,8 +147,7 @@ impl Difficulty {
 }
 
 /// A single quiz question with 4 multiple-choice options.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Question {
     pub id: u32,
     pub category: Category,
@@ -129,8 +164,7 @@ pub struct Question {
 }
 
 /// Configuration for creating a quiz session.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct QuizConfig {
     /// Filter by categories (empty = all)
     pub categories: Vec<Category>,
@@ -157,8 +191,7 @@ impl Default for QuizConfig {
 }
 
 /// Score for a specific category.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct CategoryScore {
     pub category: Category,
     pub correct: u32,
@@ -166,8 +199,7 @@ pub struct CategoryScore {
 }
 
 /// Score for a specific difficulty level.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct DifficultyScore {
     pub difficulty: Difficulty,
     pub correct: u32,
@@ -175,8 +207,7 @@ pub struct DifficultyScore {
 }
 
 /// Overall quiz score with breakdowns.
-#[derive(Clone, Debug, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct QuizScore {
     pub correct: u32,
     pub wrong: u32,
@@ -198,8 +229,7 @@ impl QuizScore {
 }
 
 /// Result of answering a question.
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct AnswerResult {
     pub is_correct: bool,
     pub correct_index: u8,

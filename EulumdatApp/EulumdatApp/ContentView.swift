@@ -24,6 +24,26 @@ extension SwiftUI.Color {
     #endif
 }
 
+// MARK: - Unit Helpers
+
+/// Format a distance in meters to the given unit system
+private func formatDistance(_ meters: Double, imperial: Bool) -> String {
+    if imperial {
+        let ft = meters / 0.3048
+        return String(format: "%.1f ft", ft)
+    }
+    return String(format: "%.1f m", meters)
+}
+
+/// Format a dimension in millimeters to the given unit system
+private func formatDimension(_ mm: Double, imperial: Bool) -> String {
+    if imperial {
+        let inches = mm / 25.4
+        return String(format: "%.1f in", inches)
+    }
+    return String(format: "%.0f mm", mm)
+}
+
 struct ContentView: View {
     @State private var ldt: Eulumdat?
     @State private var atlaDoc: AtlaDocument?  // For spectral data access
@@ -33,6 +53,7 @@ struct ContentView: View {
     @State private var selectedTab: AppTab = .diagram
     @State private var selectedDiagram: DiagramType = .polar
     @AppStorage("isDarkTheme") private var isDarkTheme = false
+    @AppStorage("useImperial") private var useImperial = false
 
     /// Get app language from system locale
     private var appLanguage: String { L10n.currentLanguage }
@@ -55,6 +76,8 @@ struct ContentView: View {
     @State private var currentFileName: String = ""
     @AppStorage("svgExportSize") private var svgExportSize = 600.0
     @AppStorage("mountingHeight") private var mountingHeight = 3.0
+    @AppStorage("tiltAngle") private var tiltAngle = 0.0
+    @AppStorage("areaSize") private var areaSize = 20.0
     @Environment(\.openWindow) private var openWindow
 
     #if os(macOS)
@@ -80,6 +103,8 @@ struct ContentView: View {
         case optical = "Optical"
         case intensity = "Intensity"
         case diagram = "Diagram"
+        case compare = "Compare"
+        case bim = "BIM"
         case validation = "Validation"
 
         var id: String { rawValue }
@@ -92,6 +117,8 @@ struct ContentView: View {
             case .optical: return "sun.max"
             case .intensity: return "chart.bar"
             case .diagram: return "circle.grid.cross"
+            case .compare: return "arrow.left.arrow.right"
+            case .bim: return "building.2"
             case .validation: return "checkmark.shield"
             }
         }
@@ -104,6 +131,8 @@ struct ContentView: View {
             case .optical: return "tab.optical"
             case .intensity: return "tab.intensity"
             case .diagram: return "tab.diagram"
+            case .compare: return "tab.compare"
+            case .bim: return "tab.bim"
             case .validation: return "validation.title"
             }
         }
@@ -122,6 +151,9 @@ struct ContentView: View {
         case heatmap = "Heatmap"
         case cone = "Cone"
         case beamAngle = "Beam"
+        case isolux = "Isolux"
+        case isocandela = "Isocandela"
+        case floodlight = "Floodlight"
         case spectral = "Spectral"
         case greenhouse = "PPFD"
         case bug = "BUG"
@@ -139,6 +171,9 @@ struct ContentView: View {
             case .heatmap: return "diagram.heatmap"
             case .cone: return "diagram.cone"
             case .beamAngle: return "diagram.beam"
+            case .isolux: return "diagram.isolux"
+            case .isocandela: return "diagram.isocandela"
+            case .floodlight: return "diagram.floodlight"
             case .spectral: return "diagram.spectral"
             case .greenhouse: return "diagram.ppfd"
             case .bug: return "diagram.bug"
@@ -344,7 +379,7 @@ struct ContentView: View {
         case .general:
             GeneralTabView(ldt: ldt)
         case .dimensions:
-            DimensionsTabView(ldt: ldt)
+            DimensionsTabView(ldt: ldt, useImperial: useImperial)
         case .lamps:
             LampSetsTabView(ldt: ldt)
         case .optical:
@@ -353,8 +388,12 @@ struct ContentView: View {
             IntensityTabView(ldt: ldt)
         case .diagram:
             DiagramTabView(ldt: ldt.wrappedValue, selectedDiagram: $selectedDiagram, isDarkTheme: $isDarkTheme)
+        case .compare:
+            CompareView(ldt: ldt.wrappedValue, isDarkTheme: $isDarkTheme)
+        case .bim:
+            BimPanelView(ldt: ldt.wrappedValue)
         case .validation:
-            ValidationView(ldt: ldt.wrappedValue)
+            SchemaValidationView(ldt: ldt.wrappedValue)
         }
     }
 
@@ -450,6 +489,16 @@ struct ContentView: View {
                 Toggle(isOn: $isDarkTheme) {
                     Label(L10n.string("toolbar.dark", language: appLanguage), systemImage: isDarkTheme ? "moon.fill" : "sun.max.fill")
                 }
+
+                Button {
+                    useImperial.toggle()
+                } label: {
+                    Label(
+                        useImperial ? "Imperial" : "Metric",
+                        systemImage: useImperial ? "ruler" : "ruler.fill"
+                    )
+                }
+                .help(useImperial ? "Switch to Metric (m, lx, mm)" : "Switch to Imperial (ft, fc, in)")
             }
         }
     }
@@ -640,6 +689,12 @@ struct ContentView: View {
             return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
         case .beamAngle:
             return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .isolux:
+            return generateIsoluxSvgLocalized(ldt: ldt, width: size, height: size, mountingHeight: mountingHeight, tiltAngle: tiltAngle, areaSize: areaSize, theme: theme, language: lang)
+        case .isocandela:
+            return generateIsocandelaSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
+        case .floodlight:
+            return generateFloodlightCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, logScale: false, theme: theme, language: lang)
         case .spectral:
             // Spectral diagram requires AtlaDocument - use stored one if available
             if let doc = atlaDoc {
@@ -789,11 +844,22 @@ struct GeneralTabView: View {
 
 struct DimensionsTabView: View {
     @Binding var ldt: Eulumdat
+    var useImperial: Bool
     private var appLanguage: String { L10n.currentLanguage }
+
+    private var dimUnit: String { useImperial ? "in" : "mm" }
+
+    /// Format mm value for display in the current unit system
+    private func fmtMm(_ mm: Double) -> String {
+        if useImperial {
+            return String(format: "%.1f", mm / 25.4)
+        }
+        return String(format: "%.0f", mm)
+    }
 
     var body: some View {
         Form {
-            Section(L10n.string("dimensions.luminaire", language: appLanguage) + " (mm)") {
+            Section(L10n.string("dimensions.luminaire", language: appLanguage) + " (\(dimUnit))") {
                 LabeledContent(L10n.string("dimensions.length", language: appLanguage)) {
                     TextField("", value: $ldt.length, format: .number)
                         .textFieldStyle(.roundedBorder)
@@ -811,7 +877,7 @@ struct DimensionsTabView: View {
                 }
             }
 
-            Section(L10n.string("dimensions.luminousArea", language: appLanguage) + " (mm)") {
+            Section(L10n.string("dimensions.luminousArea", language: appLanguage) + " (\(dimUnit))") {
                 LabeledContent(L10n.string("dimensions.length", language: appLanguage)) {
                     TextField("", value: $ldt.luminousAreaLength, format: .number)
                         .textFieldStyle(.roundedBorder)
@@ -824,7 +890,7 @@ struct DimensionsTabView: View {
                 }
             }
 
-            Section("Height to Luminous Area (mm)") {
+            Section("Height to Luminous Area (\(dimUnit))") {
                 LabeledContent(L10n.string("dimensions.luminousOpeningC0", language: appLanguage)) {
                     TextField("", value: $ldt.heightC0, format: .number)
                         .textFieldStyle(.roundedBorder)
@@ -1461,8 +1527,12 @@ struct DiagramTabView: View {
     @State private var zoomScale: CGFloat = 1.0
     @State private var lastZoomScale: CGFloat = 1.0
     @State private var scrollOffset: CGSize = .zero
+    @State private var selectedCPlane: Double? = nil
     @Environment(\.openWindow) private var openWindow
     @AppStorage("mountingHeight") private var mountingHeight = 3.0
+    @AppStorage("tiltAngle") private var tiltAngle = 0.0
+    @AppStorage("areaSize") private var areaSize = 20.0
+    @AppStorage("useImperial") private var useImperial = false
 
     private var appLanguage: String { L10n.currentLanguage }
 
@@ -1534,19 +1604,105 @@ struct DiagramTabView: View {
             }
             .background(Color.controlBackground)
 
-            // Mounting height control for Cone and PPFD diagrams
-            if selectedDiagram == .cone || selectedDiagram == .greenhouse {
+            // C-plane slider for polar, cartesian, and cone diagrams
+            if (selectedDiagram == .polar || selectedDiagram == .cartesian || selectedDiagram == .cone) && hasCPlaneVariation(ldt: ldt) {
                 HStack(spacing: 12) {
-                    Image(systemName: "arrow.up.and.down")
+                    Image(systemName: "circle.dotted")
                         .foregroundStyle(.secondary)
-                    Text(L10n.string("settings.mountingHeight", language: appLanguage))
+                    Text(L10n.string("diagram.cPlane", language: appLanguage))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Slider(value: $mountingHeight, in: 1...10, step: 0.5)
+
+                    let angles = getExpandedCAngles(ldt: ldt).filter { $0 <= 360 }
+                    let maxAngle = angles.last ?? 360
+
+                    if selectedCPlane != nil {
+                        Slider(
+                            value: Binding(
+                                get: { selectedCPlane ?? 0 },
+                                set: { selectedCPlane = $0 }
+                            ),
+                            in: 0...maxAngle,
+                            step: angles.count > 1 ? (angles[1] - angles[0]) : 5
+                        )
                         .frame(maxWidth: 200)
-                    Text("\(mountingHeight, specifier: "%.1f")m")
-                        .font(.caption.monospacedDigit())
-                        .frame(width: 45, alignment: .trailing)
+
+                        Text(String(format: "C %.0f°", selectedCPlane ?? 0))
+                            .font(.caption.monospacedDigit())
+                            .frame(width: 60, alignment: .trailing)
+
+                        Button {
+                            selectedCPlane = nil
+                        } label: {
+                            Image(systemName: "xmark.circle")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .help(L10n.string("diagram.cPlaneAll", language: appLanguage))
+                    } else {
+                        Text(L10n.string("diagram.cPlaneAll", language: appLanguage))
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+
+                        Button {
+                            selectedCPlane = 0
+                        } label: {
+                            Label(L10n.string("diagram.cPlaneSelect", language: appLanguage), systemImage: "slider.horizontal.3")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+                .background(Color.controlBackground)
+            }
+
+            // Mounting height control for Cone, PPFD, and Isolux diagrams
+            if selectedDiagram == .cone || selectedDiagram == .greenhouse || selectedDiagram == .isolux {
+                VStack(spacing: 4) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "arrow.up.and.down")
+                            .foregroundStyle(.secondary)
+                        Text(L10n.string("settings.mountingHeight", language: appLanguage))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Slider(value: $mountingHeight, in: selectedDiagram == .isolux ? 3...30 : 1...10, step: 0.5)
+                            .frame(maxWidth: 200)
+                        Text(formatDistance(mountingHeight, imperial: useImperial))
+                            .font(.caption.monospacedDigit())
+                            .frame(width: 60, alignment: .trailing)
+                    }
+
+                    if selectedDiagram == .isolux {
+                        HStack(spacing: 12) {
+                            Image(systemName: "angle")
+                                .foregroundStyle(.secondary)
+                            Text(L10n.string("isolux.tiltAngle", language: appLanguage))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Slider(value: $tiltAngle, in: 0...80, step: 1)
+                                .frame(maxWidth: 200)
+                            Text(String(format: "%.0f°", tiltAngle))
+                                .font(.caption.monospacedDigit())
+                                .frame(width: 60, alignment: .trailing)
+                        }
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "square.dashed")
+                                .foregroundStyle(.secondary)
+                            Text(L10n.string("isolux.areaSize", language: appLanguage))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Slider(value: $areaSize, in: 10...100, step: 5)
+                                .frame(maxWidth: 200)
+                            Text(formatDistance(areaSize, imperial: useImperial))
+                                .font(.caption.monospacedDigit())
+                                .frame(width: 60, alignment: .trailing)
+                        }
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 6)
@@ -1754,17 +1910,32 @@ struct DiagramTabView: View {
         let lang = currentLanguage
         switch type {
         case .polar:
+            if let cp = selectedCPlane {
+                return generatePolarSvgForPlane(ldt: ldt, width: size, height: size, cPlane: cp, theme: theme)
+            }
             return generatePolarSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
         case .cartesian:
+            if let cp = selectedCPlane {
+                return generateCartesianSvgForPlane(ldt: ldt, width: size, height: size * 0.75, cPlane: cp, maxCurves: 8, theme: theme)
+            }
             return generateCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, theme: theme, language: lang)
         case .butterfly, .butterfly3D, .room3D:
             return generateButterflySvgLocalized(ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, theme: theme, language: lang)
         case .heatmap:
             return generateHeatmapSvgLocalized(ldt: ldt, width: size, height: size * 0.7, theme: theme, language: lang)
         case .cone:
+            if let cp = selectedCPlane {
+                return generateConeSvgForPlane(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, cPlane: cp, theme: theme)
+            }
             return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
         case .beamAngle:
             return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .isolux:
+            return generateIsoluxSvgLocalized(ldt: ldt, width: size, height: size, mountingHeight: mountingHeight, tiltAngle: tiltAngle, areaSize: areaSize, theme: theme, language: lang)
+        case .isocandela:
+            return generateIsocandelaSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
+        case .floodlight:
+            return generateFloodlightCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, logScale: false, theme: theme, language: lang)
         case .spectral:
             if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
                 return (try? generateSpectralSvgLocalized(doc: atlaDoc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
@@ -1784,10 +1955,10 @@ struct DiagramTabView: View {
 
     private func aspectRatio(for diagram: ContentView.DiagramType) -> Double {
         switch diagram {
-        case .polar, .lcs, .beamAngle: return 1.0
-        case .bug: return 0.85
+        case .polar, .lcs, .beamAngle, .isolux: return 1.0
+        case .bug, .isocandela: return 0.85
         case .butterfly, .butterfly3D, .room3D, .cone: return 0.8
-        case .cartesian, .greenhouse: return 0.75
+        case .cartesian, .greenhouse, .floodlight: return 0.75
         case .heatmap: return 0.7
         case .spectral: return 0.6
         }
@@ -2048,6 +2219,9 @@ struct DiagramWindowView: View {
     @State private var zoomScale: CGFloat = 1.0
     @Environment(\.dismiss) private var dismiss
     @AppStorage("mountingHeight") private var mountingHeight = 3.0
+    @AppStorage("tiltAngle") private var tiltAngle = 0.0
+    @AppStorage("areaSize") private var areaSize = 20.0
+    @AppStorage("useImperial") private var useImperial = false
 
     private var appLanguage: String { L10n.currentLanguage }
 
@@ -2221,6 +2395,12 @@ struct DiagramWindowView: View {
             return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
         case .beamAngle:
             return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .isolux:
+            return generateIsoluxSvgLocalized(ldt: ldt, width: size, height: size, mountingHeight: mountingHeight, tiltAngle: tiltAngle, areaSize: areaSize, theme: theme, language: lang)
+        case .isocandela:
+            return generateIsocandelaSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
+        case .floodlight:
+            return generateFloodlightCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, logScale: false, theme: theme, language: lang)
         case .spectral:
             if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
                 return (try? generateSpectralSvgLocalized(doc: atlaDoc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
@@ -2240,10 +2420,10 @@ struct DiagramWindowView: View {
 
     private func aspectRatio(for diagram: ContentView.DiagramType) -> Double {
         switch diagram {
-        case .polar, .lcs, .beamAngle: return 1.0
-        case .bug: return 0.85
+        case .polar, .lcs, .beamAngle, .isolux: return 1.0
+        case .bug, .isocandela: return 0.85
         case .butterfly, .butterfly3D, .room3D, .cone: return 0.8
-        case .cartesian, .greenhouse: return 0.75
+        case .cartesian, .greenhouse, .floodlight: return 0.75
         case .heatmap: return 0.7
         case .spectral: return 0.6
         }
@@ -2261,6 +2441,9 @@ struct DiagramFullscreenView: View {
     @Binding var isPresented: Bool
     @State private var zoomScale: CGFloat = 1.0
     @AppStorage("mountingHeight") private var mountingHeight = 3.0
+    @AppStorage("tiltAngle") private var tiltAngle = 0.0
+    @AppStorage("areaSize") private var areaSize = 20.0
+    @AppStorage("useImperial") private var useImperial = false
 
     private var appLanguage: String { L10n.currentLanguage }
 
@@ -2330,16 +2513,28 @@ struct DiagramFullscreenView: View {
                             isPresented = false
                         }
                     }
-                    // Mounting height control for Cone and PPFD
-                    if selectedDiagram == .cone || selectedDiagram == .greenhouse {
+                    // Mounting height control for Cone, PPFD, and Isolux
+                    if selectedDiagram == .cone || selectedDiagram == .greenhouse || selectedDiagram == .isolux {
                         ToolbarItem(placement: .principal) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "arrow.up.and.down")
-                                    .font(.caption)
-                                Slider(value: $mountingHeight, in: 1...10, step: 0.5)
-                                    .frame(width: 100)
-                                Text("\(mountingHeight, specifier: "%.1f")m")
-                                    .font(.caption.monospacedDigit())
+                            VStack(spacing: 2) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.up.and.down")
+                                        .font(.caption)
+                                    Slider(value: $mountingHeight, in: selectedDiagram == .isolux ? 3...30 : 1...10, step: 0.5)
+                                        .frame(width: 100)
+                                    Text(formatDistance(mountingHeight, imperial: useImperial))
+                                        .font(.caption.monospacedDigit())
+                                }
+                                if selectedDiagram == .isolux {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "angle")
+                                            .font(.caption)
+                                        Slider(value: $tiltAngle, in: 0...80, step: 1)
+                                            .frame(width: 100)
+                                        Text(String(format: "%.0f°", tiltAngle))
+                                            .font(.caption.monospacedDigit())
+                                    }
+                                }
                             }
                         }
                     }
@@ -2383,6 +2578,12 @@ struct DiagramFullscreenView: View {
             return generateConeSvgLocalized(ldt: ldt, width: size, height: size * 0.8, mountingHeight: mountingHeight, theme: theme, language: lang)
         case .beamAngle:
             return generateBeamAngleSvgLocalized(ldt: ldt, width: size, height: size, theme: theme, language: lang)
+        case .isolux:
+            return generateIsoluxSvgLocalized(ldt: ldt, width: size, height: size, mountingHeight: mountingHeight, tiltAngle: tiltAngle, areaSize: areaSize, theme: theme, language: lang)
+        case .isocandela:
+            return generateIsocandelaSvgLocalized(ldt: ldt, width: size, height: size * 0.85, theme: theme, language: lang)
+        case .floodlight:
+            return generateFloodlightCartesianSvgLocalized(ldt: ldt, width: size, height: size * 0.75, logScale: false, theme: theme, language: lang)
         case .spectral:
             if let atlaDoc = try? AtlaDocument.fromLdt(content: exportLdt(ldt: ldt)) {
                 return (try? generateSpectralSvgLocalized(doc: atlaDoc, width: size, height: size * 0.6, dark: theme == .dark, language: currentLanguage)) ?? ""
@@ -2402,10 +2603,10 @@ struct DiagramFullscreenView: View {
 
     private func aspectRatio(for diagram: ContentView.DiagramType) -> Double {
         switch diagram {
-        case .polar, .lcs, .beamAngle: return 1.0
-        case .bug: return 0.85
+        case .polar, .lcs, .beamAngle, .isolux: return 1.0
+        case .bug, .isocandela: return 0.85
         case .butterfly, .butterfly3D, .room3D, .cone: return 0.8
-        case .cartesian, .greenhouse: return 0.75
+        case .cartesian, .greenhouse, .floodlight: return 0.75
         case .heatmap: return 0.7
         case .spectral: return 0.6
         }

@@ -1,0 +1,2003 @@
+{
+  "ui": {
+    "title": "Photometrisches Wissensquiz",
+    "configure": "Quiz konfigurieren",
+    "categories": "Kategorien",
+    "select_all": "Alle auswählen",
+    "select_none": "Keine auswählen",
+    "difficulty": "Schwierigkeitsgrad",
+    "all_levels": "Alle Stufen",
+    "beginner": "Anfänger",
+    "intermediate": "Fortgeschritten",
+    "expert": "Experte",
+    "num_questions": "Anzahl der Fragen",
+    "questions_available": "{0} Fragen verfügbar",
+    "questions_selected": "{0} von {1} Fragen ausgewählt",
+    "start_quiz": "Quiz starten →",
+    "question_of": "Frage {0} von {1}",
+    "correct_count": "{0} richtig / {1} falsch",
+    "correct": "✓ Richtig!",
+    "wrong": "✗ Falsch",
+    "reference": "Referenz: ",
+    "next_question": "Nächste Frage →",
+    "see_results": "Ergebnisse anzeigen →",
+    "skip": "Überspringen →",
+    "excellent": "Ausgezeichnet!",
+    "good_job": "Gut gemacht!",
+    "keep_learning": "Weiter lernen!",
+    "try_again": "Nochmal versuchen!",
+    "score_detail": "{0} richtig, {1} falsch, {2} übersprungen von {3}",
+    "by_category": "Nach Kategorie",
+    "by_difficulty": "Nach Schwierigkeitsgrad",
+    "try_again_btn": "Nochmal versuchen",
+    "back_to_editor": "← Zurück zum Eulumdat-Editor",
+    "powered_by": "Unterstützt von eulumdat-quiz",
+    "questions_across": "{0} Fragen in {1} Kategorien",
+    "polar_diagram": "Polardiagramm",
+    "cartesian_diagram": "Kartesisches Diagramm",
+    "symmetric": "Symmetrisch (Isym=4)",
+    "asymmetric": "Asymmetrisch",
+    "projector_narrow": "Projektor / Engstrahlend",
+    "heatmap": "Heatmap"
+  },
+  "categories": {
+    "eulumdat_format": "EULUMDAT-Format",
+    "ies_format": "IES-Format",
+    "symmetry": "Symmetrie",
+    "coordinate_systems": "Koordinatensysteme",
+    "photometric_calc": "Photometrische Berechnungen",
+    "bug_rating": "BUG-Bewertung",
+    "ugr_glare": "UGR & Blendung",
+    "color_science": "Farbwissenschaft",
+    "horticultural": "Gartenbaubeleuchtung",
+    "bim_integration": "BIM-Integration",
+    "modern_formats": "Moderne Formate",
+    "validation": "Validierung",
+    "units": "Einheiten & Umrechnungen",
+    "diagram_types": "Diagrammtypen",
+    "standards": "Normen & Konformität",
+    "diagram_reading": "Diagramme lesen"
+  },
+  "questions": {
+    "1001": {
+      "text": "Welche Dateierweiterung verwendet das EULUMDAT-Format?",
+      "options": [
+        ".ies",
+        ".ldt",
+        ".pho",
+        ".lum"
+      ],
+      "explanation": "EULUMDAT-Dateien verwenden die Erweiterung .ldt (Leuchten-Daten-Transfer)."
+    },
+    "1002": {
+      "text": "In welcher Einheit werden Lichtstärkewerte in einer EULUMDAT-Datei gespeichert?",
+      "options": [
+        "Candela (cd)",
+        "Lumen (lm)",
+        "cd/klm (Candela pro Kilolumen)",
+        "Lux (lx)"
+      ],
+      "explanation": "EULUMDAT speichert Lichtstärken in cd/klm (Candela pro Kilolumen), was die Werte auf eine 1000-Lumen-Lampe normiert."
+    },
+    "1003": {
+      "text": "In welcher Einheit werden Leuchtenabmessungen in einer EULUMDAT-Datei gespeichert?",
+      "options": [
+        "Zentimeter (cm)",
+        "Millimeter (mm)",
+        "Meter (m)",
+        "Zoll (in)"
+      ],
+      "explanation": "EULUMDAT speichert Leuchtenabmessungen (Länge, Breite, Höhe) in Millimetern."
+    },
+    "1004": {
+      "text": "Wer hat das EULUMDAT-Format vorgeschlagen?",
+      "options": [
+        "CIE-Fachausschuss",
+        "Axel Stockmar",
+        "IESNA-Normenausschuss",
+        "Philips Lighting"
+      ],
+      "explanation": "Das EULUMDAT-Format wurde 1990 von Axel Stockmar vorgeschlagen."
+    },
+    "1005": {
+      "text": "Was gibt Zeile 3 einer EULUMDAT-Datei an?",
+      "options": [
+        "Leuchtenname",
+        "Anzahl der C-Ebenen",
+        "Symmetrieindikator (Isym, 0-4)",
+        "Leuchtenbetriebswirkungsgrad"
+      ],
+      "explanation": "Zeile 3 enthält den Symmetrieindikator Isym (0=keine, 1=Vertikalachse, 2=C0-C180, 3=C90-C270, 4=beide Ebenen)."
+    },
+    "1006": {
+      "text": "Wie viele Lampensätze sind maximal in einer EULUMDAT-Datei erlaubt?",
+      "options": [
+        "5",
+        "10",
+        "20",
+        "Unbegrenzt"
+      ],
+      "explanation": "Eine EULUMDAT-Datei kann bis zu 20 Lampensätze enthalten, obwohl die meisten Dateien nur einen verwenden."
+    },
+    "1007": {
+      "text": "Was stellt der Typindikator in Zeile 2 dar?",
+      "options": [
+        "Dateiversionsnummer",
+        "Leuchtentyp (Punktquelle, linear, flächig)",
+        "Herstellercode",
+        "Messlabor-ID"
+      ],
+      "explanation": "Zeile 2 enthält Itype: 1=Punktquelle mit C0-C180-Symmetrie, 2=lineare Quelle, 3=Punktquelle mit beliebiger Symmetrie."
+    },
+    "1008": {
+      "text": "Wie hoch ist die maximale Anzahl der C-Ebenen (Mc) in einer EULUMDAT-Datei?",
+      "options": [
+        "36",
+        "360",
+        "721",
+        "1000"
+      ],
+      "explanation": "Mc kann bis zu 721 betragen, entsprechend 0,5°-Schritten über 360° (721 Werte von 0 bis 360)."
+    },
+    "1009": {
+      "text": "Welcher Wertebereich gilt für den Leuchtenbetriebswirkungsgrad (LOR) in einer EULUMDAT-Datei?",
+      "options": [
+        "0 bis 1",
+        "0 bis 100",
+        "0 bis 255",
+        "0 bis 1000"
+      ],
+      "explanation": "Der LOR in EULUMDAT wird als Prozentsatz von 0 bis 100 gespeichert."
+    },
+    "1010": {
+      "text": "Wie werden europäische Dezimalkommas beim Parsen von EULUMDAT behandelt?",
+      "options": [
+        "Sie werden ignoriert",
+        "Sie verursachen einen Parse-Fehler",
+        "Kommas werden vor dem Parsen in Punkte umgewandelt",
+        "Sowohl Komma als auch Punkt sind nativ gültige Dezimaltrennzeichen"
+      ],
+      "explanation": "Da EULUMDAT in Europa entstanden ist, verwenden viele Dateien Kommas als Dezimaltrennzeichen. Parser wandeln Kommas vor der numerischen Auswertung in Punkte um."
+    },
+    "1011": {
+      "text": "Welche Kodierungs-Rückfalloption wird für ältere EULUMDAT-Dateien verwendet?",
+      "options": [
+        "ASCII",
+        "UTF-16",
+        "ISO-8859-1 (Latin-1)",
+        "Windows-1250"
+      ],
+      "explanation": "Ältere EULUMDAT-Dateien verwenden häufig die Kodierung ISO-8859-1 (Latin-1) für europäische Zeichen. Moderne Parser versuchen zuerst UTF-8 und greifen dann auf Latin-1 zurück."
+    },
+    "1012": {
+      "text": "Was bedeutet eine negative Lampenanzahl in einer EULUMDAT-Datei?",
+      "options": [
+        "Datei ist beschädigt",
+        "Absolutphotometrie-Modus",
+        "Lampenanzahl ist unbekannt",
+        "Mehrere Lampenkonfigurationen"
+      ],
+      "explanation": "Ein negativer Wert für die Lampenanzahl zeigt den Absolutphotometrie-Modus an, bei dem die Lichtstärkewerte in tatsächlichen cd statt in cd/klm angegeben sind."
+    },
+    "1013": {
+      "text": "In welchem Jahr wurde das EULUMDAT-Format erstmals vorgeschlagen?",
+      "options": [
+        "1985",
+        "1990",
+        "1995",
+        "2000"
+      ],
+      "explanation": "Das EULUMDAT-Format wurde 1990 von Axel Stockmar als Standard für den Austausch von Leuchten-Photometriedaten in Europa vorgeschlagen."
+    },
+    "1014": {
+      "text": "Welche Zeile in einer EULUMDAT-Datei enthält den Leuchtennamen?",
+      "options": [
+        "Zeile 1",
+        "Zeile 4",
+        "Zeile 5",
+        "Zeile 6"
+      ],
+      "explanation": "Zeile 1 einer EULUMDAT-Datei enthält die Hersteller-/Firmenidentifikation, und Zeile 4 enthält den Leuchtennamen."
+    },
+    "1015": {
+      "text": "Wie ist die Beziehung zwischen Mc (Anzahl gespeicherter C-Ebenen) und Isym (Symmetrie)?",
+      "options": [
+        "Mc ist immer die volle Anzahl der Ebenen unabhängig von der Symmetrie",
+        "Für Isym=1 ist Mc=1; für Isym=4 ist Mc=Nc/4+1",
+        "Symmetrie hat keinen Einfluss auf Mc",
+        "Mc wird für jede Symmetriestufe verdoppelt"
+      ],
+      "explanation": "Die Symmetrie bestimmt, wie viele C-Ebenen gespeichert werden: Isym=0 speichert alle, Isym=1 speichert nur 1, Isym=2 speichert die Hälfte+1, Isym=4 speichert ein Viertel+1."
+    },
+    "2001": {
+      "text": "Welche Organisation veröffentlicht das IES-Photometriedateiformat?",
+      "options": [
+        "CIE",
+        "IESNA (Illuminating Engineering Society)",
+        "NEMA",
+        "ISO"
+      ],
+      "explanation": "Das IES-Dateiformat wird von der Illuminating Engineering Society of North America (IESNA) veröffentlicht."
+    },
+    "2002": {
+      "text": "Welche Norm definiert das IES-Dateiformat?",
+      "options": [
+        "CIE 102",
+        "ANSI/IESNA LM-63",
+        "EN 13032",
+        "ISO 10527"
+      ],
+      "explanation": "Das IES-Dateiformat wird durch ANSI/IESNA LM-63 definiert (Standarddateiformat für die elektronische Übertragung photometrischer Daten)."
+    },
+    "2003": {
+      "text": "Mit welchem Schlüsselwort beginnt eine IES-Datei?",
+      "options": [
+        "IESNA",
+        "BEGIN",
+        "HEADER",
+        "VERSION"
+      ],
+      "explanation": "IES-Dateien beginnen mit dem Schlüsselwort IESNA (z. B. 'IESNA:LM-63-2002' oder einfach 'IESNA91')."
+    },
+    "2004": {
+      "text": "Welche drei photometrischen Typen gibt es im IES-Format?",
+      "options": [
+        "Typ 1 (Innen), Typ 2 (Außen), Typ 3 (Industrie)",
+        "Typ A (Automobil), Typ B (Flutlicht), Typ C (Architektur)",
+        "Typ I (symmetrisch), Typ II (asymmetrisch), Typ III (Mehrstrahl)",
+        "Typ X (horizontal), Typ Y (vertikal), Typ Z (sphärisch)"
+      ],
+      "explanation": "IES definiert Typ A (Automobil, um horizontale Achse), Typ B (Flutlicht, um vertikale/horizontale Achse) und Typ C (Architektur, C-Ebenen vom Nadir)."
+    },
+    "2005": {
+      "text": "Welcher IES-Photometrietyp wird am häufigsten verwendet?",
+      "options": [
+        "Typ A",
+        "Typ B",
+        "Typ C",
+        "Alle gleich häufig"
+      ],
+      "explanation": "Typ C ist bei weitem der häufigste und wird für praktisch alle Architektur- und Allgemeinbeleuchtungen verwendet. Typ A und B sind selten."
+    },
+    "2006": {
+      "text": "Wie wird Absolutphotometrie in einer IES-Datei angegeben?",
+      "options": [],
+      "explanation": "Wenn lumens_per_lamp auf -1 gesetzt ist, verwendet die IES-Datei den Absolutphotometrie-Modus, bei dem die Lichtstärken in tatsächlichen Candela angegeben werden."
+    },
+    "2007": {
+      "text": "In welcher Einheit werden IES-Lichtstärkewerte standardmäßig gespeichert?",
+      "options": [
+        "cd/klm",
+        "Candela (cd)",
+        "Lumen (lm)",
+        "cd/m²"
+      ],
+      "explanation": "IES-Dateien speichern Lichtstärkewerte in Candela (cd). Dies unterscheidet sich von EULUMDAT, das cd/klm verwendet."
+    },
+    "2008": {
+      "text": "Wie viele Versionen des IES-Dateiformats gibt es?",
+      "options": [
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "explanation": "Es gibt 4 Versionen: LM-63-1991, LM-63-1995, LM-63-2002 und LM-63-2019."
+    },
+    "2009": {
+      "text": "Was gibt das TILT-Schlüsselwort in einer IES-Datei an?",
+      "options": [
+        "Den Montagewinkel der Leuchte",
+        "Multiplikationsfaktoren für geneigte Leuchtenpositionen",
+        "Die Neigung des photometrischen Zentrums",
+        "Den Winkel der Lampe innerhalb der Leuchte"
+      ],
+      "explanation": "TILT gibt Multiplikationsfaktoren zur Anpassung der Candela-Werte an, wenn die Leuchte aus ihrer Standardposition geneigt wird. TILT=NONE bedeutet, dass keine Anpassung erforderlich ist."
+    },
+    "2010": {
+      "text": "Welche Dateierweiterung verwenden IES-Dateien?",
+      "options": [
+        ".ldt",
+        ".ies",
+        ".pho",
+        ".dat"
+      ],
+      "explanation": "IES-Dateien verwenden die Erweiterung .ies."
+    },
+    "2011": {
+      "text": "Was bedeutet der Dateierzeugungstypcode '1' in einer IES-Datei?",
+      "options": [
+        "Computerberechnete Photometrie",
+        "In einem unabhängigen Labor getestete Photometrie",
+        "Vor-Ort-gemessene Photometrie",
+        "Vom Hersteller geschätzte Werte"
+      ],
+      "explanation": "Dateierzeugungstyp 1 bedeutet, dass die Photometrie in einem unabhängigen Prüflabor getestet wurde — die höchste Qualitätsstufe."
+    },
+    "2012": {
+      "text": "Welches Schlüsselwort in einer IES-Datei identifiziert den Leuchtenhersteller?",
+      "options": [],
+      "explanation": "Das Schlüsselwort [MANUFAC] identifiziert den Leuchtenhersteller in IES-Dateien."
+    },
+    "3001": {
+      "text": "Wie viele Symmetrietypen sind im EULUMDAT-Format definiert?",
+      "options": [
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "explanation": "EULUMDAT definiert 5 Symmetrietypen: Isym 0 (keine), 1 (Vertikalachse), 2 (C0-C180-Ebene), 3 (C90-C270-Ebene), 4 (beide Ebenen)."
+    },
+    "3002": {
+      "text": "Welcher Leuchtentyp hat typischerweise Rotationssymmetrie (Isym=1)?",
+      "options": [
+        "Lineare Leuchtstofflampe",
+        "Runder Downlight",
+        "Straßenleuchte",
+        "Wandfluter"
+      ],
+      "explanation": "Runde Downlights und Punktquellen mit kreisförmiger Öffnung haben typischerweise Rotationssymmetrie — ihre Lichtverteilung ist in allen C-Ebenen gleich."
+    },
+    "3003": {
+      "text": "Wie viele C-Ebenen werden für die Vertikalachsensymmetrie (Isym=1) gespeichert?",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "4"
+      ],
+      "explanation": "Isym=1 (rotationssymmetrisch) speichert nur 1 C-Ebene, da die Verteilung in alle Richtungen identisch ist."
+    },
+    "3004": {
+      "text": "Was speichert die Symmetrie beider Ebenen (Isym=4)?",
+      "options": [
+        "Volle 360°-Daten",
+        "Halbe Daten (0-180°)",
+        "Vierteldaten (0-90°)",
+        "Nur die 0°- und 90°-Ebenen"
+      ],
+      "explanation": "Isym=4 speichert Vierteldaten (C-Ebenen von 0° bis 90°). Die restlichen Daten werden durch Spiegelung an den Ebenen C0-C180 und C90-C270 erzeugt."
+    },
+    "3005": {
+      "text": "Welcher Bereich von C-Ebenen wird für die PlaneC0C180-Symmetrie (Isym=2) gespeichert?",
+      "options": [
+        "0° bis 90°",
+        "0° bis 180°",
+        "0° bis 270°",
+        "0° bis 360°"
+      ],
+      "explanation": "Isym=2 speichert C-Ebenen von 0° bis 180°. Die Daten für 180°-360° werden aus der gespeicherten Hälfte gespiegelt."
+    },
+    "3006": {
+      "text": "Kann man die Lichtstärke bei C=270° mit der Symmetrie beider Ebenen (Isym=4) abfragen?",
+      "options": [
+        "Nein, nur 0-90° ist verfügbar",
+        "Ja, durch automatische Spiegelung, die auf volle 360° erweitert",
+        "Nur wenn Interpolation aktiviert ist",
+        "Nur für Gamma-Winkel unter 90°"
+      ],
+      "explanation": "Der Symmetrie-Erweiterungsalgorithmus spiegelt die Vierteldaten automatisch, um die volle 360°-Verteilung zu erzeugen. C=270° wird über den C90-C270-Spiegel auf C=90° abgebildet."
+    },
+    "3007": {
+      "text": "Wie hoch ist das ungefähre Datenkomprimierungsverhältnis für Vertikalachse (Isym=1) im Vergleich zu vollen 360°-Daten bei 1°-Auflösung?",
+      "options": [
+        "2:1",
+        "90:1",
+        "180:1",
+        "360:1"
+      ],
+      "explanation": "Bei 1°-Auflösung haben die vollen Daten 361 C-Ebenen, während Isym=1 nur 1 speichert. Dies entspricht ungefähr einem Komprimierungsverhältnis von 360:1."
+    },
+    "3008": {
+      "text": "Was bedeutet Isym=0 (keine Symmetrie)?",
+      "options": [
+        "Die Leuchte ist perfekt symmetrisch",
+        "Volle 360°-Photometriedaten werden gespeichert",
+        "Keine Photometriedaten sind verfügbar",
+        "Es wird nur eine C-Ebene gemessen"
+      ],
+      "explanation": "Isym=0 bedeutet, dass keine Symmetrieannahme getroffen wird, sodass die Datei die vollständige 360°-Verteilung mit allen gemessenen C-Ebenen speichert."
+    },
+    "3009": {
+      "text": "Welcher Symmetrietyp ist für lineare Leuchtstoffleuchten am häufigsten?",
+      "options": [
+        "Isym=0 (keine)",
+        "Isym=1 (Vertikalachse)",
+        "Isym=2 (C0-C180-Ebene)",
+        "Isym=4 (beide Ebenen)"
+      ],
+      "explanation": "Lineare Leuchtstoffleuchten haben typischerweise Symmetrie um beide Ebenen — die Längsachse (C0-C180) und die Querachse (C90-C270) — daher ist Isym=4 am häufigsten."
+    },
+    "3010": {
+      "text": "Wie wird die IES-Lateralsymmetrie bei der Konvertierung von IES zu EULUMDAT zugeordnet?",
+      "options": [
+        "Sie wird direkt auf Isym=2 abgebildet",
+        "Es gibt keine äquivalente Zuordnung",
+        "IES-Symmetrietypen werden basierend auf C-Ebenen-Bereichen auf Isym-Werte abgebildet",
+        "IES-Dateien unterstützen keine Symmetrie"
+      ],
+      "explanation": "IES-Lateralsymmetrie (C-Ebenen 0-180°) wird auf Isym=2 abgebildet. IES-Quadrilateralsymmetrie (0-90°) wird auf Isym=4 abgebildet. Vollständige Verteilung wird auf Isym=0 abgebildet."
+    },
+    "4001": {
+      "text": "Was stellt Gamma = 0° in photometrischen Koordinatensystemen dar?",
+      "options": [
+        "Zenit (senkrecht nach oben)",
+        "Nadir (senkrecht nach unten)",
+        "Horizontal",
+        "Vorderseite der Leuchte"
+      ],
+      "explanation": "Gamma = 0° ist der Nadir, also senkrecht nach unten von der Leuchte. Dies ist die Referenzrichtung für Typ-C-Photometrie."
+    },
+    "4002": {
+      "text": "Was stellt Gamma = 90° dar?",
+      "options": [
+        "Nadir",
+        "Zenit",
+        "Horizontal",
+        "45° unter der Horizontalen"
+      ],
+      "explanation": "Gamma = 90° ist die horizontale Ebene, senkrecht zur vertikalen Achse der Leuchte."
+    },
+    "4003": {
+      "text": "Was stellt C = 0° dar?",
+      "options": [
+        "Linke Seite der Leuchte",
+        "Rechte Seite der Leuchte",
+        "Vorderseite der Leuchte",
+        "Oberseite der Leuchte"
+      ],
+      "explanation": "C = 0° ist als Vorderseite der Leuchte definiert. C-Ebenen drehen sich um die vertikale Achse: C90° ist rechts, C180° ist hinten, C270° ist links."
+    },
+    "4004": {
+      "text": "Welcher Gamma-Winkel entspricht dem Zenit (senkrecht nach oben)?",
+      "options": [
+        "0°",
+        "90°",
+        "180°",
+        "270°"
+      ],
+      "explanation": "Gamma = 180° ist der Zenit (senkrecht nach oben). Der Gamma-Winkel wird vom Nadir (0°) über die Horizontale (90°) zum Zenit (180°) gemessen."
+    },
+    "4005": {
+      "text": "In welche Richtung zeigt C = 180° bei Typ-C-Photometrie?",
+      "options": [
+        "Vorne",
+        "Rechte Seite",
+        "Hinten",
+        "Linke Seite"
+      ],
+      "explanation": "C = 180° zeigt zur Rückseite der Leuchte. Das C-Ebenen-System verläuft: 0° vorne, 90° rechts, 180° hinten, 270° links."
+    },
+    "4006": {
+      "text": "Welcher Photometrietyp verwendet horizontale und vertikale Winkel anstelle von C-Ebenen und Gamma?",
+      "options": [
+        "Typ A",
+        "Typ B",
+        "Typ C",
+        "Sowohl A als auch B"
+      ],
+      "explanation": "Typ-B-Photometrie verwendet horizontale (H) und vertikale (V) Winkel, üblicherweise für Flutlichtstrahler. Typ C verwendet C-Ebenen- und Gamma-Winkel."
+    },
+    "4007": {
+      "text": "Welche Transformation wandelt Typ-B-(H,V)-Winkel in Typ-C-(C,γ)-Winkel um?",
+      "options": [
+        "C = H, γ = V (direkte Zuordnung)",
+        "γ = arccos(cos(V)·cos(H)), C = atan2(sin(H), sin(V)·cos(H))",
+        "C = V + 90°, γ = H",
+        "Es existiert keine mathematische Umrechnung"
+      ],
+      "explanation": "Die Umrechnung verwendet sphärische Trigonometrie: γ = arccos(cos(V)·cos(H)) und C = atan2(sin(H), sin(V)·cos(H))."
+    },
+    "4008": {
+      "text": "Was ist das 'photometrische Zentrum' einer Leuchte?",
+      "options": [
+        "Der geometrische Mittelpunkt des Gehäuses",
+        "Der Punkt, von dem aus photometrische Winkel gemessen werden",
+        "Der hellste Punkt auf der Leuchtenoberfläche",
+        "Der Mittelpunkt der Lichtquelle (Lampe)"
+      ],
+      "explanation": "Das photometrische Zentrum ist der Ursprungspunkt, von dem aus alle Winkelmessungen (C-Ebene und Gamma) referenziert werden. Es kann vom geometrischen Zentrum abweichen."
+    },
+    "4009": {
+      "text": "Wie viele Grad umfasst eine vollständige Drehung um die C-Ebenen?",
+      "options": [
+        "90°",
+        "180°",
+        "270°",
+        "360°"
+      ],
+      "explanation": "C-Ebenen bilden eine vollständige 360°-Drehung um die vertikale Achse der Leuchte."
+    },
+    "4010": {
+      "text": "Was ist der typische Gamma-Winkelbereich für einen Downlight?",
+      "options": [
+        "0° bis 90°",
+        "0° bis 180°",
+        "90° bis 180°",
+        "0° bis 360°"
+      ],
+      "explanation": "Downlights strahlen Licht hauptsächlich in die untere Hemisphäre (0° bis 90° vom Nadir), sodass ihre signifikanten Lichtstärkedaten in diesem Gamma-Bereich liegen."
+    },
+    "5001": {
+      "text": "Wofür steht LOR?",
+      "options": [
+        "Light Output Ratio (Leuchtenbetriebswirkungsgrad)",
+        "Luminous Optical Rating",
+        "Light Operating Range",
+        "Lamp Output Rating"
+      ],
+      "explanation": "LOR (Light Output Ratio / Leuchtenbetriebswirkungsgrad) ist das Verhältnis des gesamten von der Leuchte abgegebenen Lichtstroms zum gesamten von den Lampen abgegebenen Lichtstrom."
+    },
+    "5002": {
+      "text": "In welcher Einheit wird die Lichtausbeute gemessen?",
+      "options": [
+        "cd/m²",
+        "lm/W (Lumen pro Watt)",
+        "W/m²",
+        "cd/klm"
+      ],
+      "explanation": "Die Lichtausbeute misst, wie effizient eine Lichtquelle elektrische Leistung in sichtbares Licht umwandelt, in Lumen pro Watt (lm/W)."
+    },
+    "5003": {
+      "text": "Wofür steht DFF?",
+      "options": [
+        "Direct Flux Fraction",
+        "Downward Flux Fraction (Direkter Lichtstromanteil nach unten)",
+        "Diffuse Field Factor",
+        "Directional Flux Factor"
+      ],
+      "explanation": "DFF (Downward Flux Fraction / Direkter Lichtstromanteil nach unten) ist der Prozentsatz des gesamten Leuchtenlichstroms, der unterhalb der horizontalen Ebene abgestrahlt wird."
+    },
+    "5004": {
+      "text": "Was ist die IES-Definition des Halbwertswinkels (Beam Angle)?",
+      "options": [
+        "Winkel, bei dem die Lichtstärke auf 10% des Maximums abfällt",
+        "Vollwinkel, bei dem die Lichtstärke ≥ 50% des Maximums beträgt",
+        "Halbwinkel, bei dem die Lichtstärke dem Zentrumsstrahlwert entspricht",
+        "Winkel, der 90% des gesamten Lichtstroms enthält"
+      ],
+      "explanation": "Der IES-Halbwertswinkel ist der Vollwinkel zwischen den beiden Richtungen, in denen die Lichtstärke auf 50% der maximalen Lichtstärke abfällt."
+    },
+    "5005": {
+      "text": "Wie unterscheidet sich die CIE-Definition des Halbwertswinkels von der IES-Definition?",
+      "options": [
+        "CIE verwendet 10% Schwelle statt 50%",
+        "CIE bezieht sich auf die Zentrumsstrahllichtstärke statt auf das Maximum",
+        "CIE verwendet den Halbwinkel statt des Vollwinkels",
+        "Es gibt keinen Unterschied"
+      ],
+      "explanation": "Der CIE-Halbwertswinkel verwendet 50% der Zentrumsstrahllichtstärke (Nadir/C0/γ0), während IES 50% der maximalen Lichtstärke verwendet. Sie unterscheiden sich bei Breitstrahlverteilungen, bei denen Maximum ≠ Zentrumsstrahl."
+    },
+    "5006": {
+      "text": "Welcher Lichtstärkeschwellenwert definiert den Feldwinkel?",
+      "options": [
+        "50% des Maximums",
+        "25% des Maximums",
+        "10% des Maximums",
+        "5% des Maximums"
+      ],
+      "explanation": "Der Feldwinkel ist der Vollwinkel, bei dem die Lichtstärke auf 10% der maximalen (IES) oder der Zentrumsstrahl- (CIE) Lichtstärke abfällt."
+    },
+    "5007": {
+      "text": "Sind Halbwerts- und Feldwinkel Halbwinkel oder Vollwinkel?",
+      "options": [
+        "Halbwinkel",
+        "Vollwinkel",
+        "Es hängt von der Norm ab",
+        "Viertelwinkel"
+      ],
+      "explanation": "Gemäß CIE S 017:2020 sind sowohl Halbwerts- als auch Feldwinkel Vollwinkel (der gesamte Kegelwinkel, nicht die Hälfte). Ein '30° Halbwertswinkel' bedeutet ±15° vom Zentrum."
+    },
+    "5008": {
+      "text": "Wofür steht DLOR?",
+      "options": [
+        "Direct Light Output Ratio",
+        "Downward Light Output Ratio (Unterer Leuchtenbetriebswirkungsgrad)",
+        "Distributed Luminous Output Rating",
+        "Differential Light Output Ratio"
+      ],
+      "explanation": "DLOR (Downward Light Output Ratio / Unterer Leuchtenbetriebswirkungsgrad) ist das Verhältnis des nach unten abgegebenen Lichtstroms der Leuchte zum gesamten Lampenstrom. DLOR = LOR × DFF."
+    },
+    "5009": {
+      "text": "Was sind die CIE-Lichtstromkennzahlen N1 bis N5?",
+      "options": [
+        "N1=Lichtausbeute, N2=CRI, N3=CCT, N4=Halbwertswinkel, N5=Feldwinkel",
+        "N1=DLOR, N2=0-60° Lichtstrom, N3=0-40° Lichtstrom, N4=ULOR, N5=90-120° Lichtstrom",
+        "N1=Gesamtlichtstrom, N2=Spitzen-cd, N3=Mittel-cd, N4=Min-cd, N5=Gleichmäßigkeit",
+        "N1=Rot, N2=Grün, N3=Blau, N4=Weiß, N5=Bernstein-Prozentsätze"
+      ],
+      "explanation": "CIE-Lichtstromkennzahlen: N1=DLOR (0-90°), N2=Lichtstrom in der 0-60°-Zone, N3=Lichtstrom in der 0-40°-Zone, N4=ULOR (90-180°), N5=Lichtstrom in der 90-120°-Zone."
+    },
+    "5010": {
+      "text": "Welche 10 Standard-Raumindizes werden für CU-Tabellen (Beleuchtungswirkungsgrad) verwendet?",
+      "options": [
+        "1, 2, 3, 4, 5, 6, 7, 8, 9, 10",
+        "0,60, 0,80, 1,00, 1,25, 1,50, 2,00, 2,50, 3,00, 4,00, 5,00",
+        "0,5, 1,0, 1,5, 2,0, 2,5, 3,0, 3,5, 4,0, 4,5, 5,0",
+        "0,1, 0,2, 0,3, 0,4, 0,5, 0,6, 0,7, 0,8, 0,9, 1,0"
+      ],
+      "explanation": "Die Standard-Raumindexwerte (k) sind: 0,60, 0,80, 1,00, 1,25, 1,50, 2,00, 2,50, 3,00, 4,00, 5,00."
+    },
+    "5011": {
+      "text": "In welcher Einheit wird der Lichtstrom gemessen?",
+      "options": [
+        "Candela (cd)",
+        "Lumen (lm)",
+        "Lux (lx)",
+        "Watt (W)"
+      ],
+      "explanation": "Der Lichtstrom wird in Lumen (lm) gemessen und stellt die Gesamtmenge des von einer Quelle abgegebenen sichtbaren Lichts dar."
+    },
+    "5012": {
+      "text": "Wie hängen Lichtstärke und Lichtstrom zusammen?",
+      "options": [
+        "Lichtstärke = Lichtstrom × Fläche",
+        "Lichtstärke = Lichtstrom / Raumwinkel (cd = lm/sr)",
+        "Lichtstärke = Lichtstrom × Entfernung²",
+        "Sie sind unabhängige Größen"
+      ],
+      "explanation": "Lichtstärke (cd) = Lichtstrom (lm) pro Raumwinkeleinheit (sr). Eine Candela entspricht einem Lumen pro Steradiant."
+    },
+    "5013": {
+      "text": "Wofür wird das Abstandskriterium (S/H-Verhältnis) verwendet?",
+      "options": [
+        "Berechnung der Strahlausbreitung",
+        "Bestimmung des maximalen Leuchtenabstands für gleichmäßige Beleuchtung",
+        "Messung der Lampensockelabmessungen",
+        "Definition von Wartungsintervallen"
+      ],
+      "explanation": "Das Abstandskriterium (S/H = Abstand / Montagehöhe) bestimmt den maximalen Abstand zwischen Leuchten, um eine akzeptable Beleuchtungsstärkegleichmäßigkeit zu erreichen."
+    },
+    "5014": {
+      "text": "Wann unterscheiden sich IES- und CIE-Halbwertswinkel erheblich?",
+      "options": [
+        "Bei engstrahlenden Spotlights",
+        "Bei Breitstrahlverteilungen, bei denen die Zentrumsstrahllichtstärke < maximale Lichtstärke ist",
+        "Bei Uplights",
+        "Sie unterscheiden sich nie erheblich"
+      ],
+      "explanation": "Bei Breitstrahlverteilungen liegt die maximale Lichtstärke außerhalb der Achse (nicht im Zentrum/Nadir), sodass 50% des Maximums ≠ 50% des Zentrumsstrahls, was unterschiedliche Halbwertswinkel ergibt."
+    },
+    "5015": {
+      "text": "Was ist das Abstandsgesetz in der Photometrie?",
+      "options": [
+        "Beleuchtungsstärke = Lichtstärke / Entfernung²",
+        "Lichtstärke = Lichtstrom × Entfernung²",
+        "Lichtstrom = Beleuchtungsstärke × Entfernung",
+        "Beleuchtungsstärke = Lichtstrom / Fläche²"
+      ],
+      "explanation": "Das Abstandsgesetz besagt, dass die Beleuchtungsstärke (E) = Lichtstärke (I) / Entfernung² (d²). Eine Verdopplung der Entfernung reduziert die Beleuchtungsstärke um das 4-fache."
+    },
+    "6001": {
+      "text": "Wofür steht BUG in der Beleuchtung?",
+      "options": [
+        "Brightness Under Glass",
+        "Backlight, Uplight, Glare (Rücklicht, Oberlicht, Blendung)",
+        "Beam Uniformity Grade",
+        "Brightness Utilization Guide"
+      ],
+      "explanation": "BUG steht für Backlight, Uplight, Glare (Rücklicht, Oberlicht, Blendung) — drei Kategorien unerwünschter Lichtabstrahlung von Außenleuchten."
+    },
+    "6002": {
+      "text": "Welche Norm definiert BUG-Bewertungen?",
+      "options": [
+        "CIE 150:2017",
+        "EN 13201",
+        "IESNA TM-15-11",
+        "IDA 530"
+      ],
+      "explanation": "BUG-Bewertungen werden durch IESNA TM-15-11 definiert (Leuchtenklassifizierungssystem für Außenleuchten)."
+    },
+    "6003": {
+      "text": "Ist eine niedrigere oder höhere BUG-Bewertung besser zur Reduzierung der Lichtverschmutzung?",
+      "options": [
+        "Höher ist besser",
+        "Niedriger ist besser (B0-U0-G0 ist am besten)",
+        "Es hängt von der Anwendung ab",
+        "BUG-Bewertungen stehen nicht im Zusammenhang mit Lichtverschmutzung"
+      ],
+      "explanation": "Niedrigere BUG-Bewertungen zeigen weniger verschwendetes/unerwünschtes Licht an. B0-U0-G0 ist die ideale Bewertung mit minimaler Rückstrahlung, Oberlicht und Blendung."
+    },
+    "6004": {
+      "text": "Welcher Winkelbereich (vom Nadir) definiert die Uplight-Zone?",
+      "options": [
+        "0-30°",
+        "60-80°",
+        "80-90°",
+        "90-180° (über der Horizontalen)"
+      ],
+      "explanation": "Uplight ist alles Licht, das über die horizontale Ebene abgestrahlt wird (Gamma 90-180°), unterteilt in UL (90-100°) und UH (100-180°)."
+    },
+    "6005": {
+      "text": "Welchen Bereich verwendet die BUG-Skala für jede Komponente?",
+      "options": [
+        "0 bis 3",
+        "0 bis 5",
+        "0 bis 10",
+        "1 bis 5"
+      ],
+      "explanation": "Jede BUG-Komponente (B, U, G) wird auf einer Skala von 0 bis 5 bewertet, wobei 0 am besten (geringste Verschmutzung) und 5 am schlechtesten ist."
+    },
+    "6006": {
+      "text": "Welche Konformitätsprogramme verwenden BUG-Bewertungen?",
+      "options": [
+        "Nur IDA Dark Sky",
+        "IDA/IES MLO, LEED v4, California Title 24",
+        "Nur LEED-Zertifizierung",
+        "Nur europäische EN-Normen"
+      ],
+      "explanation": "BUG-Bewertungen werden von der IDA/IES Model Lighting Ordinance (MLO), dem LEED v4 Light Pollution Reduction Credit und dem kalifornischen Energiekodex Title 24 verwendet."
+    },
+    "6007": {
+      "text": "Was ist der Lumenschwellenwert für U0 (Null-Uplight-Bewertung)?",
+      "options": [
+        "< 10 Lumen",
+        "< 1 Lumen",
+        "0 Lumen in UL- und UH-Zonen",
+        "< 50 Lumen Gesamt-Uplight"
+      ],
+      "explanation": "U0 erfordert genau 0 Lumen in den Zonen UL (90-100°) und UH (100-180°) — keinerlei Uplight."
+    },
+    "6008": {
+      "text": "Welcher Gamma-Winkelbereich definiert 'Backlight Very High' (BVH)?",
+      "options": [
+        "60-70° vom Nadir",
+        "70-80° vom Nadir",
+        "80-90° vom Nadir",
+        "90-100° vom Nadir"
+      ],
+      "explanation": "BVH (Backlight Very High) ist die 80-90°-Zone vom Nadir und stellt die nahezu horizontale Lichtabstrahlung hinter der Leuchte dar."
+    },
+    "6009": {
+      "text": "Wie viele Winkelzonen werden im BUG-Klassifizierungssystem verwendet?",
+      "options": [
+        "3",
+        "5",
+        "8",
+        "12"
+      ],
+      "explanation": "Das BUG-System teilt die Hemisphäre in 8 Zonen: FH, FVH, FL, FM (vorwärts), BH, BVH, BL, BM (rückwärts), plus UL und UH (Uplight)."
+    },
+    "6010": {
+      "text": "Was ist die maximale Uplight-Anforderung für das IDA-Leuchten-Gütesiegel?",
+      "options": [
+        "U0 (kein Uplight)",
+        "U1 (minimales Uplight)",
+        "U2 oder weniger",
+        "Keine Uplight-Anforderung"
+      ],
+      "explanation": "Das Leuchten-Gütesiegel der International Dark-Sky Association (IDA) erfordert U0 — absolut keine Uplight-Abstrahlung."
+    },
+    "6011": {
+      "text": "Warum sind BUG-Bewertungen für die Außenbeleuchtung wichtig?",
+      "options": [
+        "Sie messen die Energieeffizienz",
+        "Sie quantifizieren die Auswirkungen auf die Lichtverschmutzung und helfen, Himmelsaufhellung zu reduzieren",
+        "Sie bewerten die Witterungsbeständigkeit der Leuchte",
+        "Sie messen die Farbqualität des Lichts"
+      ],
+      "explanation": "BUG-Bewertungen quantifizieren, wie viel Licht verschwendet wird (Rückstrahlung, Oberlicht, Blendung) und stehen in direktem Zusammenhang mit Lichtverschmutzung, Himmelsaufhellung und Lichtimmission."
+    },
+    "6012": {
+      "text": "Was misst die Blendungskomponente (G) im BUG-System?",
+      "options": [
+        "Gesamtlichtstrom der Leuchte",
+        "Lichtstärke in hohen Winkeln, die Blendung verursacht",
+        "Vom Boden reflektiertes Licht",
+        "Die Farbtemperatur der Lichtquelle"
+      ],
+      "explanation": "Die G-Bewertung misst die Lichtstärke in den vorderen Hochwinkelzonen (FH: 60-80° und FVH: 80-90°), die Blendung für Fahrer und Fußgänger verursachen kann."
+    },
+    "7001": {
+      "text": "Wofür steht UGR?",
+      "options": [
+        "Universal Glare Rating",
+        "Unified Glare Rating (Vereinheitlichte Blendungsbewertung)",
+        "Uniform Glare Ratio",
+        "Unit Glare Reference"
+      ],
+      "explanation": "UGR steht für Unified Glare Rating (Vereinheitlichte Blendungsbewertung), ein Maß für die psychologische Blendung durch Leuchten in Innenräumen."
+    },
+    "7002": {
+      "text": "Ist ein höherer oder niedrigerer UGR-Wert wünschenswert?",
+      "options": [
+        "Höher ist besser",
+        "Niedriger ist besser (weniger Blendung)",
+        "UGR = 19 ist immer optimal",
+        "Es hängt von der Raumgröße ab"
+      ],
+      "explanation": "Niedrigere UGR-Werte bedeuten weniger psychologische Blendung. Typische Grenzwerte: Büros ≤19, Flure ≤25, Detailarbeit ≤16."
+    },
+    "7003": {
+      "text": "Was ist der typische UGR-Grenzwert für Büroumgebungen?",
+      "options": [
+        "≤ 13",
+        "≤ 16",
+        "≤ 19",
+        "≤ 25"
+      ],
+      "explanation": "EN 12464-1 gibt UGR ≤ 19 für allgemeine Büros vor. Anspruchsvollere Aufgaben wie technisches Zeichnen erfordern ≤ 16."
+    },
+    "7004": {
+      "text": "Welche Faktoren berücksichtigt die UGR-Formel?",
+      "options": [
+        "Nur Leuchtenhelligkeit und Raumreflexionsgrade",
+        "Leuchtdichte der Leuchte, Raumwinkel, Positionsindex und Hintergrundleuchtdichte",
+        "Nur Halbwertswinkel und Montagehöhe",
+        "Nur Gesamtlichtstrom und Raumabmessungen"
+      ],
+      "explanation": "UGR = 8 × log₁₀((0,25/Lₕ) × Σ(L²×ω/p²)) — unter Berücksichtigung der Leuchtenleuchtdichte (L), des Raumwinkels (ω), des Positionsindex (p) und der Hintergrundleuchtdichte (Lₕ)."
+    },
+    "7005": {
+      "text": "Wie lautet die UGR-Formel?",
+      "options": [
+        "UGR = L × ω / p",
+        "UGR = 8 × log₁₀((0,25/Lₕ) × Σ(L²×ω/p²))",
+        "UGR = 10 × log₁₀(L/Lₕ)",
+        "UGR = (L × A) / (d² × p)"
+      ],
+      "explanation": "Die UGR-Formel lautet UGR = 8 × log₁₀((0,25/Lₕ) × Σ(L²×ω/p²)), wobei Lₕ die Hintergrundleuchtdichte, L die Quellenleuchtdichte, ω der Raumwinkel und p der Positionsindex ist."
+    },
+    "7006": {
+      "text": "Welche Standard-Raumabmessungen werden für UGR-Tabellenberechnungen verwendet?",
+      "options": [
+        "Immer 3m × 3m × 3m",
+        "Standardisierte X/Y-Verhältnisse mit Montagehöhe, gemäß CIE 190:2010",
+        "Beliebige vom Planer festgelegte Raumabmessungen",
+        "Nur 10m × 10m × 3m"
+      ],
+      "explanation": "CIE 190:2010 definiert Standard-Raumabmessungen als Verhältnisse von X/H und Y/H (Raumabmessungen zur Montagehöhe) für die UGR-Tabellenerstellung."
+    },
+    "7007": {
+      "text": "Was stellt der 'Positionsindex' (p) in der UGR-Formel dar?",
+      "options": [
+        "Die Position der Leuchte im Deckenraster",
+        "Die Verschiebung der Leuchte aus der Blickrichtung des Beobachters",
+        "Die Höhe der Leuchte über dem Boden",
+        "Der Abstand zwischen benachbarten Leuchten"
+      ],
+      "explanation": "Der Positionsindex berücksichtigt, wie weit die Blendquelle von der direkten Blickrichtung des Beobachters entfernt ist. Quellen direkt voraus haben niedrigere p-Werte (mehr Blendung)."
+    },
+    "7008": {
+      "text": "Welche Norm definiert UGR?",
+      "options": [
+        "CIE 117:1995",
+        "IESNA TM-15-11",
+        "EN 13201",
+        "ISO 8995"
+      ],
+      "explanation": "UGR wurde durch den CIE-Fachbericht 117:1995 'Discomfort Glare in Interior Lighting' (Psychologische Blendung in der Innenbeleuchtung) definiert."
+    },
+    "7009": {
+      "text": "Welche UGR-Schrittweite wird in Standardspezifikationen verwendet?",
+      "options": [
+        "1 Einheit",
+        "2 Einheiten",
+        "3 Einheiten",
+        "5 Einheiten"
+      ],
+      "explanation": "UGR-Werte werden in Schritten von 3 angegeben: 10, 13, 16, 19, 22, 25, 28. Eine Änderung um 3 Einheiten gilt als minimal wahrnehmbarer Unterschied."
+    },
+    "7010": {
+      "text": "Welcher UGR-Grenzwert ist typisch für Flure und Verkehrswege?",
+      "options": [
+        "≤ 16",
+        "≤ 19",
+        "≤ 22",
+        "≤ 25"
+      ],
+      "explanation": "Flure und Verkehrsflächen haben einen gelockerten UGR-Grenzwert von ≤25, da sich Personen dort bewegen und keine dauerhafte Sehaufgabe ausführen."
+    },
+    "8001": {
+      "text": "In welcher Einheit wird die Farbtemperatur gemessen?",
+      "options": [
+        "Celsius (°C)",
+        "Kelvin (K)",
+        "Fahrenheit (°F)",
+        "Nanometer (nm)"
+      ],
+      "explanation": "Die ähnlichste Farbtemperatur (CCT) wird in Kelvin (K) gemessen."
+    },
+    "8002": {
+      "text": "Gilt 2700K als warmes oder kaltes Licht?",
+      "options": [
+        "Kalt (bläulich)",
+        "Warm (gelblich/glühlampenähnlich)",
+        "Neutral",
+        "Tageslicht"
+      ],
+      "explanation": "2700K ist warmweißes Licht, ähnlich herkömmlichen Glühlampen. Niedrigere Kelvinwerte = wärmere Farbe. 5000K+ = kalt/tageslicht."
+    },
+    "8003": {
+      "text": "Wofür steht CRI?",
+      "options": [
+        "Color Rendering Index (Farbwiedergabeindex)",
+        "Chromatic Reference Indicator",
+        "Color Reproduction Intensity",
+        "Calibrated Rendering Instrument"
+      ],
+      "explanation": "CRI (Color Rendering Index / Farbwiedergabeindex) misst, wie genau eine Lichtquelle Farben im Vergleich zu einer Referenzlichtart wiedergibt."
+    },
+    "8004": {
+      "text": "Welche CRI-Gruppe in EULUMDAT hat Ra ≥ 90?",
+      "options": [
+        "Gruppe 1A",
+        "Gruppe 1B",
+        "Gruppe 2A",
+        "Gruppe 3"
+      ],
+      "explanation": "CRI-Gruppe 1A steht für Ra ≥ 90, die höchste Farbwiedergabequalität. 1B = 80-89, 2A = 70-79, 2B = 60-69."
+    },
+    "8005": {
+      "text": "Was misst TM-30 Rf?",
+      "options": [
+        "Farbtemperaturgenauigkeit",
+        "Fidelität (Farbgenauigkeit, 0-100)",
+        "Gamut (Farbsättigung)",
+        "Flickerfrequenz"
+      ],
+      "explanation": "TM-30 Rf (Fidelity Index / Farbwiedergabeindex) misst die Farbgenauigkeit auf einer Skala von 0-100, ähnlich wie CRI Ra, aber mit 99 Farbbewertungsmustern statt 8."
+    },
+    "8006": {
+      "text": "Was misst TM-30 Rg?",
+      "options": [
+        "Farbwiedergabetreue",
+        "Gamut (Farbsättigung, 60-140, 100=Referenz)",
+        "Blendungsbewertung",
+        "Grünlichtausstoß"
+      ],
+      "explanation": "TM-30 Rg (Gamut Index) misst die Farbsättigung: 100 = wie die Referenz, >100 = erhöhte Sättigung, <100 = entsättigt."
+    },
+    "8007": {
+      "text": "Was bedeutet ein positiver Duv-Wert?",
+      "options": [
+        "Rosafarbener Farbstich (unterhalb des Planckschen Kurvenzugs)",
+        "Grünlicher Farbstich (oberhalb des Planckschen Kurvenzugs)",
+        "Perfektes weißes Licht",
+        "Hoher CRI-Wert"
+      ],
+      "explanation": "Ein positiver Duv-Wert zeigt an, dass die Farbkoordinaten oberhalb des Planckschen Kurvenzugs (Schwarzkörperkurve) liegen, was einen grünlichen Farbstich ergibt. Negativer Duv = rosafarbener Farbstich."
+    },
+    "8008": {
+      "text": "Warum wird R9 (tiefe Rotwiedergabe) getrennt vom CRI Ra angegeben?",
+      "options": [
+        "R9 ist nicht Teil des CRI-Standards",
+        "Tiefe Rotwiedergabe ist kritisch, wird aber in der Ra-Berechnung herausgemittelt",
+        "R9 misst eine andere physikalische Eigenschaft",
+        "R9 ist nur für Gartenbaubeleuchtung relevant"
+      ],
+      "explanation": "CRI Ra mittelt 8 Pastelltestfarben (R1-R8). Tiefes Rot (R9) ist für Hauttöne, Lebensmittel und Kunst entscheidend, wird aber herausgemittelt. Viele LEDs haben trotz hohem Ra eine schlechte R9-Wiedergabe."
+    },
+    "8009": {
+      "text": "Welcher CCT-Bereich gilt als 'neutralweiß'?",
+      "options": [
+        "2200-2700K",
+        "3000-3500K",
+        "3500-4500K",
+        "5000-6500K"
+      ],
+      "explanation": "Neutralweiß liegt bei etwa 3500-4500K. Unter 3500K ist warmweiß, über 4500-5000K ist kaltweiß/tageslicht."
+    },
+    "8010": {
+      "text": "Was ist der maximal erreichbare CRI-Wert (Ra)?",
+      "options": [
+        "95",
+        "99",
+        "100",
+        "Es gibt kein Maximum"
+      ],
+      "explanation": "CRI Ra reicht von 0 bis 100, wobei 100 eine perfekte Farbwiedergabe bedeutet, die identisch mit der Referenzlichtart ist."
+    },
+    "8011": {
+      "text": "Welche ungefähre CCT hat typisches Tageslicht?",
+      "options": [
+        "2700K",
+        "3500K",
+        "5600K",
+        "8000K"
+      ],
+      "explanation": "Standard-Tageslicht (CIE-Normlichtart D55/D65) hat eine CCT von ungefähr 5500-6500K."
+    },
+    "8012": {
+      "text": "Wofür steht SPD in der Farbwissenschaft?",
+      "options": [
+        "Standard Power Distribution",
+        "Spectral Power Distribution (Spektrale Leistungsverteilung)",
+        "Source Power Density",
+        "Spectral Photometric Data"
+      ],
+      "explanation": "SPD (Spectral Power Distribution / Spektrale Leistungsverteilung) beschreibt die von einer Lichtquelle bei jeder Wellenlänge über das sichtbare Spektrum abgegebene Leistung."
+    },
+    "9001": {
+      "text": "Welcher Wellenlängenbereich definiert PAR (Photosynthetisch Aktive Strahlung)?",
+      "options": [
+        "200-400nm",
+        "400-700nm",
+        "300-800nm",
+        "500-600nm"
+      ],
+      "explanation": "PAR ist als Strahlung im Wellenlängenbereich von 400-700nm definiert, die Pflanzen für die Photosynthese nutzen."
+    },
+    "9002": {
+      "text": "In welcher Einheit wird PPFD gemessen?",
+      "options": [
+        "lm/m²",
+        "W/m²",
+        "µmol/(m²·s)",
+        "cd/m²"
+      ],
+      "explanation": "PPFD (Photosynthetische Photonenflussdichte) wird in Mikromol pro Quadratmeter pro Sekunde (µmol/m²/s) gemessen."
+    },
+    "9003": {
+      "text": "Wofür steht PPF?",
+      "options": [
+        "Photometric Power Factor",
+        "Photosynthetic Photon Flux (Photosynthetischer Photonenfluss)",
+        "Peak Power Frequency",
+        "Plant Protection Factor"
+      ],
+      "explanation": "PPF (Photosynthetic Photon Flux / Photosynthetischer Photonenfluss) misst die Gesamtzahl der Photonen im Bereich 400-700nm, die pro Sekunde emittiert werden, in µmol/s."
+    },
+    "9004": {
+      "text": "Welche Spektralzone (Wellenlängenbereich) fördert hauptsächlich die Blüte bei Pflanzen?",
+      "options": [
+        "Blau (400-500nm)",
+        "Grün (500-600nm)",
+        "Rot (600-700nm)",
+        "Fernrot (700-800nm)"
+      ],
+      "explanation": "Rotes Licht (600-700nm) ist der Haupttreiber der Photosynthese und Blütenbildung. Chlorophyll a hat ein Absorptionsmaximum bei etwa 660nm."
+    },
+    "9005": {
+      "text": "Was steuert das R:FR-Verhältnis (Rot zu Fernrot) bei Pflanzen?",
+      "options": [
+        "Blattfarbe (grün vs. rot)",
+        "Morphologie — hohes R:FR = kompakt, niedriges R:FR = gestreckt",
+        "Wurzelwachstumsgeschwindigkeit",
+        "Fruchtzuckergehalt"
+      ],
+      "explanation": "Das R:FR-Verhältnis steuert die Phytochrom-Reaktion: hohes R:FR fördert kompaktes Wachstum, niedriges R:FR löst Schattenvermeidung aus (Streckung, reduzierte Verzweigung)."
+    },
+    "9006": {
+      "text": "Was ist DLI und welche typischen Werte gelten für Setzlinge?",
+      "options": [
+        "Tägliche Lichtintegrale, 0,5-1 mol/m²/Tag",
+        "Tägliche Lichtintegrale, 3-6 mol/m²/Tag",
+        "Direkte Lichtintensität, 100-200 Lux",
+        "Tageslichtindex, 50-100 cd/m²"
+      ],
+      "explanation": "DLI (Daily Light Integral / Tägliche Lichtintegrale) ist das gesamte photosynthetische Licht, das pro Tag empfangen wird, in mol/m²/Tag. Setzlinge brauchen 3-6, blühende Pflanzen 14-25."
+    },
+    "9007": {
+      "text": "Was fördert blaues Licht (400-500nm) hauptsächlich bei Pflanzen?",
+      "options": [
+        "Blüte und Fruchtbildung",
+        "Wurzelentwicklung",
+        "Vegetatives Wachstum, Blattexpansion und Stomataöffnung",
+        "Samenkeimung"
+      ],
+      "explanation": "Blaues Licht fördert vegetatives Wachstum, Blattexpansion, Stomataöffnung und Phototropismus (gerichtetes Wachstum zum Licht hin)."
+    },
+    "9008": {
+      "text": "Welche Einheit der Photonenausbeute wird zur Bewertung von Gartenbaubeleuchtungen verwendet?",
+      "options": [
+        "lm/W",
+        "µmol/J (µmol/s pro Watt)",
+        "W/nm",
+        "cd/W"
+      ],
+      "explanation": "Die Gartenbaubeleuchtungsausbeute wird in µmol/J (Mikromol pro Joule) bzw. gleichwertig µmol/s pro Watt gemessen. Spitzen-LEDs erreichen 3,0+ µmol/J."
+    },
+    "9009": {
+      "text": "Warum können Standard-Lumen (lm) nicht zur Messung von Gartenbaulicht verwendet werden?",
+      "options": [
+        "Lumen sind zu ungenau",
+        "Lumen gewichten die menschliche Sehempfindlichkeit, nicht die photosynthetische Reaktion",
+        "Lumen messen kein sichtbares Licht",
+        "Pflanzen nutzen nur Infrarotlicht"
+      ],
+      "explanation": "Lumen verwenden die V(λ)-Kurve der menschlichen Augenempfindlichkeit, die bei 555nm (Grün) ihr Maximum hat. Pflanzen nutzen alle PAR-Wellenlängen (400-700nm) annähernd gleichmäßig, daher sind Photonenzählungen (µmol) relevanter."
+    },
+    "9010": {
+      "text": "Welche Rolle spielt UV-A (315-400nm) in der Gartenbaubeleuchtung?",
+      "options": [
+        "Keine Wirkung auf Pflanzen",
+        "Fördert die Photosynthese-Effizienz",
+        "Stimuliert sekundäre Metabolite (Flavonoide, Anthocyane) für Schädlings-/UV-Schutz",
+        "Wird hauptsächlich zur Sterilisation verwendet"
+      ],
+      "explanation": "UV-A stimuliert die Produktion sekundärer Metabolite wie Flavonoide und Anthocyane, die als UV-Schutz und Schädlingsabwehr dienen und Geschmack/Farbe verbessern können."
+    },
+    "10001": {
+      "text": "Wofür steht BIM?",
+      "options": [
+        "Building Information Modeling (Bauwerksdatenmodellierung)",
+        "Built-In Measurement",
+        "Brightness Integration Method",
+        "Beam Intensity Mapping"
+      ],
+      "explanation": "BIM steht für Building Information Modeling (Bauwerksdatenmodellierung), ein Verfahren zur Erstellung und Verwaltung digitaler Gebäudedarstellungen."
+    },
+    "10002": {
+      "text": "Welche Norm definiert BIM-Parameter für Beleuchtungsprodukte?",
+      "options": [
+        "ISO 19650",
+        "ANSI/IES TM-32-24",
+        "CIE 117:1995",
+        "EN 12464-1"
+      ],
+      "explanation": "ANSI/IES TM-32-24 definiert Standardparameter für die Darstellung von Beleuchtungsprodukten in BIM-Umgebungen."
+    },
+    "10003": {
+      "text": "Welche zwei Gehäuseformen definiert TM-32-24 für die Leuchtengeometrie?",
+      "options": [
+        "Kugel und Kegel",
+        "Quader und Zylinder",
+        "Rechteck und Kreis",
+        "Kasten und Rohr"
+      ],
+      "explanation": "TM-32-24 definiert zwei vereinfachte Gehäuseformen: Quader (rechteckiger Kasten) und Zylinder für die BIM-Darstellung."
+    },
+    "10004": {
+      "text": "Welches Identifikationssystem verwendet TM-32-24 für die Leuchtenklassifizierung?",
+      "options": [
+        "UPC-Barcodes",
+        "NEMA GUIDs (Globally Unique Identifiers)",
+        "ISO-Produktcodes",
+        "EAN-Nummern"
+      ],
+      "explanation": "TM-32-24 verwendet NEMA GUIDs für die eindeutige Produktidentifikation in BIM-Systemen."
+    },
+    "10005": {
+      "text": "Wofür wird der melanopische Faktor in TM-32-24 verwendet?",
+      "options": [
+        "Messung der Lampenlebensdauer",
+        "Bewertung der Auswirkung auf den zirkadianen Rhythmus (Melatoninunterdrückung)",
+        "Bestimmung der Farbwiedergabequalität",
+        "Berechnung der Energieeffizienz"
+      ],
+      "explanation": "Der melanopische Faktor quantifiziert die Auswirkung einer Lichtquelle auf den zirkadianen Rhythmus, indem er das Potenzial zur Melatoninunterdrückung über intrinsisch photosensitive retinale Ganglienzellen (ipRGCs) misst."
+    },
+    "10006": {
+      "text": "Welches Dateiformat verwendet TM-32-24 für den BIM-Datenaustausch?",
+      "options": [
+        "JSON",
+        "XML",
+        "CSV",
+        "IFC"
+      ],
+      "explanation": "TM-32-24 verwendet XML für den strukturierten Datenaustausch von Leuchtenparametern in BIM-Umgebungen."
+    },
+    "10007": {
+      "text": "Warum ist die BIM-Integration für die Lichtplanung wichtig?",
+      "options": [
+        "Sie macht Leuchten heller",
+        "Sie ermöglicht koordinierte Planung mit Architektur- und TGA-Systemen",
+        "Sie reduziert den Stromverbrauch",
+        "Sie ist in allen Ländern gesetzlich vorgeschrieben"
+      ],
+      "explanation": "Die BIM-Integration ermöglicht Lichtplanern die Koordination mit Architektur, Tragwerk und TGA (Technische Gebäudeausrüstung) in einem gemeinsamen digitalen Modell."
+    },
+    "10008": {
+      "text": "Welche Montagearten definiert TM-32-24?",
+      "options": [
+        "Nur Wand und Decke",
+        "Einbau, Aufbau, Pendel, Boden, Wand, Schiene und freistehend",
+        "Innen und Außen",
+        "Fest und verstellbar"
+      ],
+      "explanation": "TM-32-24 definiert mehrere Montagearten, darunter Einbau, Aufbau, Pendel, Boden, Wand, Schiene und freistehend, um alle Installationsszenarien abzudecken."
+    },
+    "11001": {
+      "text": "Welche Einschränkung teilen die traditionellen LDT- und IES-Formate?",
+      "options": [
+        "Sie können keine Lichtstärkedaten speichern",
+        "Sie können keine spektrale Leistungsverteilung (SPD) speichern",
+        "Sie sind nicht maschinenlesbar",
+        "Sie können nur eine C-Ebene speichern"
+      ],
+      "explanation": "Weder LDT noch IES können vollständige spektrale Leistungsverteilungsdaten speichern — sie enthalten nur photometrische (Lichtstärke-) und grundlegende Farbinformationen (CCT, CRI-Gruppe)."
+    },
+    "11002": {
+      "text": "Welche Formatstandards sind äquivalent zu IES TM-33?",
+      "options": [
+        "EULUMDAT und CIE 102",
+        "ATLA S001 und UNI 11733",
+        "GLDF und ROLF",
+        "EN 13032 und ISO 10527"
+      ],
+      "explanation": "IES TM-33-23, ATLA S001 und UNI 11733 sind äquivalente Standards, die dasselbe XML-basierte photometrische Datenformat definieren."
+    },
+    "11003": {
+      "text": "Welchen wichtigen Datentyp unterstützt TM-33, den LDT/IES nicht können?",
+      "options": [
+        "Mehrere Leuchtenkonfigurationen",
+        "Vollständige spektrale Leistungsverteilung (SPD)",
+        "3D-Leuchtengeometrie",
+        "Installationsanweisungen"
+      ],
+      "explanation": "Der Hauptvorteil von TM-33 ist die native Unterstützung spektraler Leistungsverteilungsdaten, die farbwissenschaftliche Berechnungen direkt aus der Datei ermöglicht."
+    },
+    "11004": {
+      "text": "Wie viel kleiner sind TM-33-JSON-Dateien im Vergleich zum äquivalenten XML?",
+      "options": [
+        "~10% kleiner",
+        "~50% kleiner",
+        "~90% kleiner",
+        "Gleiche Größe"
+      ],
+      "explanation": "Die TM-33-JSON-Kodierung ist etwa 90% kleiner als XML, hauptsächlich weil sie ausführliche XML-Tags eliminiert und kompakte Array-Notation für Lichtstärkedaten verwendet."
+    },
+    "11005": {
+      "text": "Welche Serialisierungsformate unterstützt TM-33?",
+      "options": [
+        "Nur XML",
+        "XML und JSON",
+        "XML, JSON und YAML",
+        "Nur JSON"
+      ],
+      "explanation": "TM-33 definiert sowohl XML- als auch JSON-Serialisierungen, wobei XML das kanonische Format und JSON eine kompakte Alternative ist."
+    },
+    "11006": {
+      "text": "Was ist GLDF (Global Lighting Data Format)?",
+      "options": [
+        "Ein neues photometrisches Dateiformat als Ersatz für IES",
+        "Ein Containerformat für Leuchtenproduktdaten einschließlich Photometrie, Geometrie und Metadaten",
+        "Ein Farbmanagement-Standard",
+        "Ein BIM-Dateiformat"
+      ],
+      "explanation": "GLDF ist ein umfassendes Containerformat, das photometrische Daten (LDT/IES/TM-33), 3D-Geometrie, Produktmetadaten und Variantenkonfigurationen bündelt."
+    },
+    "11007": {
+      "text": "Welches davon ist KEIN photometrisches Dateiformat?",
+      "options": [
+        ".ldt (EULUMDAT)",
+        ".ies (IESNA)",
+        ".dwg (AutoCAD)",
+        "TM-33 XML"
+      ],
+      "explanation": ".dwg ist ein AutoCAD-Zeichnungsdateiformat, kein photometrisches Datenformat. LDT, IES und TM-33 XML speichern alle photometrische Lichtstärkeverteilungen."
+    },
+    "11008": {
+      "text": "Welche Gartenbaudaten kann TM-33 speichern, die LDT/IES nicht können?",
+      "options": [
+        "Pflanzenwachstumsraten",
+        "Wellenlängenbezogene Spektraldaten zur Berechnung von PAR/PPF/PPFD",
+        "Bodenfeuchtigkeitsanforderungen",
+        "Düngeempfehlungen"
+      ],
+      "explanation": "Die Spektraldatenunterstützung von TM-33 ermöglicht die Berechnung von Gartenbaukennzahlen (PAR, PPF, PPFD, DLI, R:FR-Verhältnis) direkt aus den Dateidaten."
+    },
+    "12001": {
+      "text": "Was ist der Zweck der Validierung photometrischer Dateien?",
+      "options": [
+        "Die Datei zu verkleinern",
+        "Fehler, Inkonsistenzen und Datenqualitätsprobleme zu erkennen",
+        "Zwischen Dateiformaten zu konvertieren",
+        "Die Daten zu verschlüsseln"
+      ],
+      "explanation": "Die Validierung prüft photometrische Dateien auf Fehler (beschädigte Daten, fehlende Felder), Inkonsistenzen (nicht übereinstimmende Werte) und Qualitätswarnungen (ungewöhnliche Muster)."
+    },
+    "12002": {
+      "text": "Was zeigt eine Validierungswarnung über 'Leuchte mit Nullabmessungen' an?",
+      "options": [
+        "Die Datei ist beschädigt",
+        "Die Leuchte hat keine physischen Abmessungen angegeben (Länge/Breite/Höhe alle null)",
+        "Die Lichtstärkewerte sind alle null",
+        "Die Datei hat keine C-Ebenen"
+      ],
+      "explanation": "Eine Nullabmessungs-Warnung bedeutet, dass die physische Größe der Leuchte nicht angegeben ist (0×0×0mm), was bei Punktquellen beabsichtigt sein kann, aber oft eine Auslassung ist."
+    },
+    "12003": {
+      "text": "Was könnte einen Validierungsfehler 'LOR überschreitet 100%' verursachen?",
+      "options": [
+        "Eine sehr effiziente Leuchte",
+        "Dateneingabefehler oder Messartefakt",
+        "Die Leuchte verstärkt Licht",
+        "Die Datei verwendet Absolutphotometrie"
+      ],
+      "explanation": "Ein LOR > 100% ist physikalisch unmöglich (eine Leuchte kann nicht mehr Licht abgeben als ihre Lampen erzeugen). Dies weist auf einen Dateneingabefehler oder ein Messartefakt hin."
+    },
+    "12004": {
+      "text": "Was zeigt eine Warnung 'ungleichmäßige Gamma-Abstufung' an?",
+      "options": [
+        "Die Datei hat zu viele Gamma-Winkel",
+        "Gamma-Winkel sind nicht gleichmäßig verteilt, was auf Messprobleme hindeuten kann",
+        "Der Gamma-Bereich ist zu eng",
+        "Die Datei verwendet die falsche Winkelkonvention"
+      ],
+      "explanation": "Obwohl ungleichmäßige Abstufung technisch gültig ist, kann sie auf Messartefakte, manuell bearbeitete Daten oder Konvertierungsprobleme aus einem anderen Format hinweisen."
+    },
+    "12005": {
+      "text": "Was ist der Unterschied zwischen einer Validierungswarnung und einem Validierungsfehler?",
+      "options": [
+        "Es gibt keinen Unterschied",
+        "Warnungen sind informativ; Fehler zeigen an, dass die Datei möglicherweise unbrauchbar ist",
+        "Fehler sind informativ; Warnungen zeigen Probleme an",
+        "Warnungen gelten für IES-Dateien; Fehler gelten für LDT-Dateien"
+      ],
+      "explanation": "Warnungen weisen auf potenzielle Probleme hin, die die Verwendung nicht verhindern (z. B. fehlende Metadaten). Fehler zeigen strukturelle Probleme an, die die Daten unzuverlässig machen können."
+    },
+    "12006": {
+      "text": "Was bedeutet 'Lichtstärkediskontinuität' bei der photometrischen Validierung?",
+      "options": [
+        "Ein plötzlicher Sprung der Lichtstärke zwischen benachbarten Winkeln ohne physikalische Erklärung",
+        "Die Lichtstärkewerte sind alle gleich",
+        "Die Datei hat fehlende Lichtstärkewerte",
+        "Die Lichtstärke überschreitet den maximalen Skalenbereich"
+      ],
+      "explanation": "Eine Lichtstärkediskontinuität ist eine plötzliche, unangemessen große Änderung zwischen benachbarten Messwinkeln, die auf einen Datenfehler oder ein Messartefakt hinweisen kann."
+    },
+    "12007": {
+      "text": "Was sollte man prüfen, wenn eine Datei 0 Lumen Gesamtlichtstrom meldet?",
+      "options": [
+        "Nichts — 0 Lumen ist normal",
+        "Ob der Absolutphotometrie-Modus verwendet wird",
+        "Ob die Datei metrische Einheiten verwendet",
+        "Ob die Datei verschlüsselt ist"
+      ],
+      "explanation": "0 Gesamtlichtstrom kann im Absolutphotometrie-Modus (negative Lampenanzahl) gültig sein. Andernfalls weist es auf fehlende Lampendaten oder einen Berechnungsfehler hin."
+    },
+    "12008": {
+      "text": "Welche Validierungsprüfung erkennt asymmetrische Daten in einer als symmetrisch deklarierten Datei?",
+      "options": [
+        "Formatversionsprüfung",
+        "Vergleich der Lichtstärkewerte über gespiegelte C-Ebenen",
+        "Prüfung der Gesamtlichtstromberechnung",
+        "Überprüfung des Datei-Headers"
+      ],
+      "explanation": "Wenn eine Datei Symmetrie deklariert (z. B. Isym=4), aber die gespeicherten Daten signifikante Unterschiede über die erwarteten Spiegelebenen zeigen, deutet dies auf eine fehlerhafte Symmetrieklassifizierung hin."
+    },
+    "13001": {
+      "text": "Was misst Lux (lx)?",
+      "options": [
+        "Lichtstrom",
+        "Lichtstärke",
+        "Beleuchtungsstärke (auf eine Fläche fallendes Licht)",
+        "Leuchtdichte (von einer Fläche abgehendes Licht)"
+      ],
+      "explanation": "Lux misst die Beleuchtungsstärke — die Menge des Lichtstroms pro Flächeneinheit, die auf eine Oberfläche fällt. 1 Lux = 1 Lumen pro Quadratmeter."
+    },
+    "13002": {
+      "text": "Was ist die angloamerikanische Entsprechung von Lux?",
+      "options": [
+        "Candlepower",
+        "Foot-candle (fc)",
+        "Foot-lambert",
+        "Lumen pro Quadratfuß"
+      ],
+      "explanation": "Das Foot-candle (fc) ist die angloamerikanische Einheit der Beleuchtungsstärke. 1 Foot-candle = 10,764 Lux."
+    },
+    "13003": {
+      "text": "Wie viele Lux entsprechen einem Foot-candle?",
+      "options": [
+        "1,0",
+        "3,281",
+        "10,764",
+        "100"
+      ],
+      "explanation": "1 Foot-candle = 10,764 Lux (da 1 Quadratmeter = 10,764 Quadratfuß)."
+    },
+    "13004": {
+      "text": "Was ist ein Steradiant (sr)?",
+      "options": [
+        "Eine Winkeleinheit",
+        "Eine Raumwinkeleinheit (3D-Kegel)",
+        "Eine Leuchtdichteeinheit",
+        "Eine Wellenlängeneinheit"
+      ],
+      "explanation": "Ein Steradiant ist die SI-Einheit des Raumwinkels — das dreidimensionale Äquivalent eines Radiants. Eine Vollkugel umfasst 4π Steradiant."
+    },
+    "13005": {
+      "text": "Was misst cd/m²?",
+      "options": [
+        "Beleuchtungsstärke",
+        "Lichtstärke",
+        "Leuchtdichte (Helligkeit einer Oberfläche)",
+        "Lichtstrom"
+      ],
+      "explanation": "cd/m² (Candela pro Quadratmeter, auch 'Nit' genannt) misst die Leuchtdichte — die Lichtstärke pro Flächeneinheit, die von einer Oberfläche in eine bestimmte Richtung ausgeht."
+    },
+    "13006": {
+      "text": "Wofür steht cd/klm?",
+      "options": [
+        "Candela pro Kilolux",
+        "Candela pro Kilolumen",
+        "Candela pro Kilometer",
+        "Zentidegrees pro Kilolumen"
+      ],
+      "explanation": "cd/klm bedeutet Candela pro Kilolumen — auf einen 1000-Lumen-Lampenlichtstrom normierte Lichtstärke. Dies ist die in EULUMDAT-Dateien verwendete Einheit."
+    },
+    "13007": {
+      "text": "Wie rechnet man cd/klm in absolute Candela um?",
+      "options": [
+        "cd = cd/klm × 1000",
+        "cd = cd/klm × (Gesamtlichtstrom / 1000)",
+        "cd = cd/klm / Gesamtlichtstrom",
+        "Keine Umrechnung möglich"
+      ],
+      "explanation": "Absolute cd = (cd/klm) × (Gesamtlichtstrom / 1000). Da cd/klm auf 1000 Lumen normiert ist, multipliziert man mit dem tatsächlichen Lichtstromverhältnis."
+    },
+    "13008": {
+      "text": "Was bezeichnet die 'Lichtausbeute' einer Lichtquelle?",
+      "options": [
+        "Wie lange die Lampe hält",
+        "Wie viel Licht (Lumen) pro Watt Leistung erzeugt wird",
+        "Den Halbwertswinkel der Leuchte",
+        "Die Farbtemperaturgenauigkeit"
+      ],
+      "explanation": "Die Lichtausbeute (lm/W) misst, wie effizient eine Lichtquelle elektrische Leistung in sichtbares Licht umwandelt. Höher = effizienter."
+    },
+    "13009": {
+      "text": "Was ist die theoretisch maximale Lichtausbeute von weißem Licht?",
+      "options": [
+        "100 lm/W",
+        "250 lm/W",
+        "~350 lm/W",
+        "683 lm/W"
+      ],
+      "explanation": "Das theoretische Maximum für weißes Licht beträgt etwa 350 lm/W. Das absolute Maximum (683 lm/W) ist nur bei monochromatischem Grün bei 555nm erreichbar."
+    },
+    "13010": {
+      "text": "Wie ist die Beziehung zwischen Lux und Lumen?",
+      "options": [
+        "1 Lux = 1 Lumen pro Quadratmeter",
+        "1 Lux = 1 Lumen",
+        "1 Lux = 1 Lumen pro Steradiant",
+        "Sie messen verschiedene Dinge und sind unabhängig voneinander"
+      ],
+      "explanation": "1 Lux = 1 Lumen pro Quadratmeter (lm/m²). Lux ist die Dichte des Lichtstroms auf einer Oberfläche."
+    },
+    "14001": {
+      "text": "Was zeigt ein Polardiagramm?",
+      "options": [
+        "Farbtemperaturverteilung",
+        "Lichtstärkeverteilung in einer einzelnen Ebene",
+        "Energieverbrauch über die Zeit",
+        "Lampenlebensdauerkurve"
+      ],
+      "explanation": "Ein Polardiagramm zeigt die Lichtstärkeverteilung einer Leuchte in einer bestimmten C-Ebene, dargestellt in polaren (Winkel-) Koordinaten."
+    },
+    "14002": {
+      "text": "Wo befindet sich 0° (Nadir) in einem Standard-Polardiagramm?",
+      "options": [
+        "Oben",
+        "Unten",
+        "Rechts",
+        "Links"
+      ],
+      "explanation": "In der Standardkonvention befindet sich 0° (Nadir/senkrecht nach unten) am unteren Rand des Polardiagramms und 180° (Zenit) am oberen Rand."
+    },
+    "14003": {
+      "text": "Was stellt ein kartesisches (rechteckiges) photometrisches Diagramm dar?",
+      "options": [
+        "Lichtstärke über Gamma-Winkel in kartesischen Koordinaten",
+        "C-Ebene über Gamma-Winkel",
+        "Beleuchtungsstärke über Entfernung",
+        "Leistungsaufnahme über Zeit"
+      ],
+      "explanation": "Ein kartesisches Diagramm stellt die Lichtstärke (Y-Achse) über dem Gamma-Winkel (X-Achse) in rechtwinkligen Koordinaten dar, mit einer Kurve pro C-Ebene."
+    },
+    "14004": {
+      "text": "Was visualisiert ein photometrisches Heatmap-Diagramm?",
+      "options": [
+        "Temperaturverteilung der Leuchte",
+        "Lichtstärkewerte über alle C-Ebenen und Gamma-Winkel als Farbraster",
+        "Leistungsaufnahmemuster",
+        "Tageslichtdurchdringung in einen Raum"
+      ],
+      "explanation": "Ein photometrisches Heatmap-Diagramm zeigt Lichtstärkewerte als Farben auf einem 2D-Raster mit C-Ebenen auf einer Achse und Gamma-Winkeln auf der anderen und gibt einen vollständigen Überblick über die Lichtverteilung."
+    },
+    "14005": {
+      "text": "Was veranschaulicht ein Kegeldiagramm?",
+      "options": [
+        "Die physische Form der Leuchte",
+        "Halbwerts- und Feldwinkel als projizierte Kegel, die die beleuchtete Fläche auf einer Oberfläche zeigen",
+        "Den Sehkegel des menschlichen Auges",
+        "Die Reflektorgeometrie innerhalb der Leuchte"
+      ],
+      "explanation": "Ein Kegeldiagramm zeigt die Halbwerts- und Feldwinkelkegel, die von der Leuchte auf eine Zielfläche projiziert werden, und veranschaulicht den Durchmesser der beleuchteten Fläche bei einer bestimmten Montagehöhe."
+    },
+    "14006": {
+      "text": "Was zeigt ein Schmetterlingsdiagramm (3D-Diagramm)?",
+      "options": [
+        "Die Leuchte von oben betrachtet",
+        "Lichtstärkeverteilung in mehreren C-Ebenen gleichzeitig, wodurch eine 3D-Form entsteht",
+        "Die Spektralverteilung des Lichts",
+        "Die mechanische Zeichnung der Leuchte"
+      ],
+      "explanation": "Ein Schmetterlingsdiagramm überlagert Lichtstärkeverteilungen aus mehreren C-Ebenen in einer 3D-Perspektive und zeigt die vollständige räumliche Lichtverteilung. Benannt nach dem schmetterlingsflügelartigen Erscheinungsbild bei vielen Leuchten."
+    },
+    "14007": {
+      "text": "Was ist ein Isolux-Diagramm?",
+      "options": [
+        "Ein Diagramm, das Linien gleicher Lichtstärke auf der Leuchtenoberfläche zeigt",
+        "Eine Konturkarte, die Linien gleicher Beleuchtungsstärke auf einer Zielfläche zeigt",
+        "Ein Diagramm isolierter Beleuchtungszonen",
+        "Ein Diagramm zum Vergleich von Leuchtenmodellen"
+      ],
+      "explanation": "Ein Isolux-Diagramm ist eine Konturkarte, die Linien gleicher Beleuchtungsstärke (Lux) auf einer horizontalen oder vertikalen Fläche zeigt und zur Bewertung der Beleuchtungsgleichmäßigkeit nützlich ist."
+    },
+    "14008": {
+      "text": "Warum werden in einem Polardiagramm typischerweise zwei C-Ebenen dargestellt?",
+      "options": [
+        "Eine für Innen, eine für Außen",
+        "C0-C180 (längs) und C90-C270 (quer), um beide Achsen der Verteilung zu zeigen",
+        "Eine für den Halbwertswinkel, eine für den Feldwinkel",
+        "Eine für Lumen, eine für Candela"
+      ],
+      "explanation": "Die C0-C180-Ebene zeigt die Längsverteilung (vorne-hinten) und C90-C270 zeigt die Querverteilung (Seite-zu-Seite) und liefert ein vollständiges Bild für asymmetrische Leuchten."
+    },
+    "14009": {
+      "text": "Was stellt der radiale Abstand vom Zentrum in einem Polardiagramm dar?",
+      "options": [
+        "Winkel",
+        "Lichtstärke",
+        "Entfernung von der Leuchte",
+        "Beleuchtungsstärke"
+      ],
+      "explanation": "In einem Polardiagramm stellt der radiale Abstand vom Zentrum die Lichtstärke (cd oder cd/klm) dar. Die Winkelposition gibt den Gamma-Winkel an."
+    },
+    "14010": {
+      "text": "Welche Art von Verteilung erzeugt ein 'Fledermausflügel'-Muster in einem kartesischen Diagramm?",
+      "options": [
+        "Ein engstrahlender Spot",
+        "Eine Verteilung mit minimaler Lichtstärke im Nadir und Spitzen bei außeraxialen Winkeln",
+        "Eine perfekt gleichmäßige omnidirektionale Quelle",
+        "Eine Uplight-Leuchte"
+      ],
+      "explanation": "Eine Fledermausflügelverteilung hat reduzierte Lichtstärke im Nadir (0°) mit Spitzen bei breiteren Winkeln (z. B. 30-45°), was in der kartesischen Ansicht eine W-Form erzeugt. Dies sorgt für bessere Gleichmäßigkeit auf Arbeitsflächen."
+    },
+    "15001": {
+      "text": "Wofür steht CIE?",
+      "options": [
+        "Committee for Illumination Engineering",
+        "Commission Internationale de l'Éclairage (Internationale Beleuchtungskommission)",
+        "Certified Illumination Expert",
+        "Center for Industrial Electrics"
+      ],
+      "explanation": "CIE steht für Commission Internationale de l'Éclairage, die Internationale Beleuchtungskommission — die weltweite Autorität für Licht- und Farbwissenschaft."
+    },
+    "15002": {
+      "text": "Welche europäische Norm behandelt die Beleuchtung von Arbeitsstätten in Innenräumen?",
+      "options": [
+        "EN 13201",
+        "EN 12464-1",
+        "EN 15193",
+        "EN 62722"
+      ],
+      "explanation": "EN 12464-1 legt die Beleuchtungsanforderungen für Arbeitsstätten in Innenräumen fest, einschließlich Beleuchtungsstärken, Gleichmäßigkeit, UGR-Grenzwerten und Farbwiedergabe."
+    },
+    "15003": {
+      "text": "Was behandelt EN 13201?",
+      "options": [
+        "Innenbeleuchtung",
+        "Straßen- und Wegebeleuchtung",
+        "Notbeleuchtung",
+        "Sportbeleuchtung"
+      ],
+      "explanation": "EN 13201 ist die europäische Norm für Straßenbeleuchtung, die Beleuchtungsklassen (M, C, P, S, A, ES, EV) und Leistungsanforderungen definiert."
+    },
+    "15004": {
+      "text": "Was ist IDA im Kontext der Beleuchtung?",
+      "options": [
+        "International Design Association",
+        "International Dark-Sky Association",
+        "Indoor Design Authority",
+        "Illumination Data Archive"
+      ],
+      "explanation": "IDA (International Dark-Sky Association) fördert verantwortungsvolle Außenbeleuchtung zur Minimierung von Lichtverschmutzung, Blendung und Auswirkungen auf die Tierwelt."
+    },
+    "15005": {
+      "text": "Welchen Beleuchtungskredit bietet LEED v4?",
+      "options": [
+        "Energy-Star-Zertifizierung",
+        "Light Pollution Reduction Credit (Kredit zur Lichtverschmutzungsreduzierung)",
+        "Daylight Optimization Credit",
+        "Smart Lighting Credit"
+      ],
+      "explanation": "LEED v4 umfasst einen 'Light Pollution Reduction'-Kredit (SS Credit), der BUG-Bewertungen zur Bewertung der Umweltauswirkungen der Außenbeleuchtung verwendet."
+    },
+    "15006": {
+      "text": "Was verlangt California Title 24 für die Außenbeleuchtung?",
+      "options": [
+        "Nur LED-Quellen",
+        "BUG-bewertete Leuchten, die die maximal zulässigen Werte je Beleuchtungszone einhalten",
+        "Bewegungsmelder an allen Leuchten",
+        "Nur solarbetriebene Beleuchtung"
+      ],
+      "explanation": "California Title 24 (Energiekodex) verlangt, dass Außenleuchten BUG-Bewertungen haben, die die maximal zulässigen Werte für die jeweilige Beleuchtungszone (LZ0-LZ4) nicht überschreiten."
+    },
+    "15007": {
+      "text": "Wofür steht NEMA?",
+      "options": [
+        "National Energy Management Authority",
+        "National Electrical Manufacturers Association",
+        "National Emergency Monitoring Agency",
+        "North European Measurement Association"
+      ],
+      "explanation": "NEMA steht für National Electrical Manufacturers Association, die Normen für elektrische Geräte einschließlich Beleuchtung veröffentlicht."
+    },
+    "15008": {
+      "text": "Welche Beleuchtungszonen sind in der IES/IDA MLO definiert?",
+      "options": [
+        "Zonen A bis F",
+        "LZ0 (kein Umgebungslicht), LZ1 (niedrig), LZ2 (mittel), LZ3 (mäßig hoch), LZ4 (hoch)",
+        "Nur Innen und Außen",
+        "Wohn-, Gewerbe-, Industriebereich"
+      ],
+      "explanation": "Die Model Lighting Ordinance definiert 5 Zonen: LZ0 (Wildnis/geschützt), LZ1 (ländlich/niedrig), LZ2 (vorstädtisch/mittel), LZ3 (städtisch/mäßig hoch), LZ4 (Gewerbegebiet mit hoher Aktivität)."
+    },
+    "15009": {
+      "text": "Was behandelt CIE 102?",
+      "options": [
+        "Farbwiedergabemessung",
+        "Empfohlene Praxis für den photometrischen Datentransfer",
+        "Blendungsbewertungsberechnung",
+        "Tageslichtsimulationsmethoden"
+      ],
+      "explanation": "CIE 102:1993 'Recommended File Format for the Electronic Transfer of Luminaire Photometric Data' definiert Konventionen für die Darstellung photometrischer Diagramme."
+    },
+    "15010": {
+      "text": "Wie ist die Beziehung zwischen ISO 8995 und EN 12464?",
+      "options": [
+        "Sie sind nicht verwandte Normen",
+        "ISO 8995 und EN 12464-1 sind harmonisierte internationale/europäische Normen für die Arbeitsplatzbeleuchtung",
+        "ISO 8995 ersetzt EN 12464",
+        "EN 12464 behandelt Außenbeleuchtung; ISO 8995 behandelt Innenbeleuchtung"
+      ],
+      "explanation": "ISO 8995 (CIE S 008) und EN 12464-1 sind harmonisierte Normen für die Beleuchtung von Arbeitsstätten in Innenräumen, wobei EN 12464-1 die europäische Umsetzung ist."
+    },
+    "16001": {
+      "text": "Die C0-Ebene einer Straßenleuchte zeigt in der LDT-Datei entlang der Straßenachse, aber die Lichtplanungssoftware nimmt an, dass C0 senkrecht zur Straße zeigt. Was wird benötigt?",
+      "options": [
+        "Die Datei von LDT nach IES konvertieren",
+        "Die C-Ebenen-Daten um 90° drehen (C0↔C90-Referenz tauschen)",
+        "Die Gamma-Winkel spiegeln",
+        "Den Symmetrietyp auf Isym=0 ändern"
+      ],
+      "explanation": "Die EULUMDAT-Spezifikation definiert C0 als 'Vorne', schreibt aber nicht vor, was 'Vorne' physisch bedeutet. Verschiedene Hersteller und Software verwenden unterschiedliche Konventionen — einige richten C0 entlang der Straße aus, andere senkrecht dazu. Eine 90°-C-Ebenen-Rotation behebt diese Diskrepanz ohne Änderung der photometrischen Daten."
+    },
+    "16002": {
+      "text": "Warum können zwei LDT-Dateien für dieselbe physische Leuchte unterschiedliche Polardiagramme zeigen, obwohl beide korrekt sind?",
+      "options": [
+        "Eine Datei hat eine höhere Gamma-Winkel-Auflösung",
+        "Die C0-Referenzrichtung wurde von jedem Labor unterschiedlich gewählt",
+        "Eine verwendet cd/klm und die andere cd",
+        "Die Symmetrietypen unterscheiden sich"
+      ],
+      "explanation": "Das EULUMDAT-Format erzwingt keine universelle C0-Referenzrichtung. Ein Labor kann C0 als Längsachse der Leuchte definieren, ein anderes als Querachse. Beide sind gültig, erzeugen aber um 90° gedrehte Polardiagramme. Dies ist eine häufige Verwechslungsquelle beim Vergleich von Dateien aus verschiedenen Quellen."
+    },
+    "16003": {
+      "text": "Welche Zuordnung ist bei einer 90°-C-Ebenen-Rotation asymmetrischer photometrischer Daten korrekt?",
+      "options": [
+        "90° zu allen Gamma-Winkeln addieren",
+        "Lichtstärkedaten verschieben: I(C,γ) → I(C+90°,γ), mit Umbruch bei 360°",
+        "Nur die C0-C180- und C90-C270-Kurven tauschen",
+        "Alle C-Ebenen-Winkel mit cos(90°) multiplizieren"
+      ],
+      "explanation": "Eine C-Ebenen-Rotation verschiebt die azimutale Referenz. Jeder Lichtstärkewert am Winkel (C,γ) wandert nach (C+90°,γ). Für asymmetrische Daten (Isym=0) muss der gesamte Datensatz mit um 90° versetzten C-Winkeln neu indiziert werden, mit Umbruch bei 360°. Bei symmetrischen Daten muss möglicherweise die Symmetrie geändert werden."
+    },
+    "16004": {
+      "text": "Woher stammen die Lichtstärkewerte in einer photometrischen Datei?",
+      "options": [
+        "Sie werden aus der Leuchtengeometrie berechnet",
+        "Sie werden mit einem Goniophotometer oder einer Ulbrichtkugel gemessen",
+        "Sie werden von der Designsoftware des Herstellers geschätzt",
+        "Sie werden aus dem Lampendatenblatt abgeleitet"
+      ],
+      "explanation": "Photometrische Datendateien enthalten im Labor gemessene Lichtstärkeverteilungen. Ein Goniophotometer dreht die Leuchte (oder den Detektor) durch viele Winkel und zeichnet die tatsächliche Lichtstärke auf. Eine Ulbrichtkugel misst den Gesamtlichtstrom. Die Daten repräsentieren reale physikalische Messungen, keine theoretischen Berechnungen."
+    },
+    "16005": {
+      "text": "Ein Benutzer möchte den Lumenwert in einer photometrischen Datei ändern, um eine andere LED-Treiber-Einstellung abzubilden. Ist das angemessen?",
+      "options": [
+        "Ja, Lumenwerte können frei angepasst werden",
+        "Nur wenn die Form der Lichtstärkeverteilung gleich bleibt",
+        "Nein — eine Lumenänderung erfordert Neumessung, da sich die Verteilung bei anderen Treiberströmen ändern kann",
+        "Ja, aber nur in IES-Dateien, nicht in EULUMDAT"
+      ],
+      "explanation": "Photometrische Daten repräsentieren einen bestimmten Betriebszustand. Eine Änderung des Treiberstroms beeinflusst nicht nur den Gesamtlichtstrom, sondern möglicherweise auch die Form der Lichtstärkeverteilung, die Farbtemperatur und das thermische Verhalten. Neue Betriebsbedingungen erfordern neue Messungen. Die lineare Skalierung der Lumen ist nur eine grobe Annäherung."
+    },
+    "16006": {
+      "text": "Unter welcher spezifischen Bedingung ist eine lineare Skalierung der Lichtstärkewerte in einer photometrischen Datei gültig?",
+      "options": [
+        "Wenn die Leuchte eine LED-Quelle verwendet",
+        "Wenn die Form der Lichtstärkeverteilung unabhängig vom Lichtstromniveau ist (relative Photometrie, gleiche Optik)",
+        "Immer wenn der Benutzer ein anderes Lumenpaket benötigt",
+        "Lineare Skalierung ist nie gültig"
+      ],
+      "explanation": "Lineare Skalierung ist nur gültig, wenn die Verteilungsform über verschiedene Lichtstromniveaus konstant bleibt — d. h. die Optik sich nicht ändert und thermische Effekte vernachlässigbar sind. In der relativen Photometrie (cd/klm) ist die Verteilung bereits normiert. Für die Absolutphotometrie wird angenommen, dass die Quelle ein perfekter Dimmer ist, was reale LEDs und Lampen nicht sind."
+    },
+    "16007": {
+      "text": "Was ist der wesentliche Unterschied zwischen einem Goniophotometer und einer Ulbrichtkugel?",
+      "options": [
+        "Goniophotometer sind genauer",
+        "Ein Goniophotometer misst die gerichtete Lichtstärkeverteilung; eine Ulbrichtkugel misst den Gesamtlichtstrom",
+        "Ulbrichtkugeln funktionieren nur mit LEDs",
+        "Goniophotometer werden nur für IES-Dateien verwendet"
+      ],
+      "explanation": "Ein Goniophotometer misst die Lichtstärke in vielen Winkeln (C-Ebene × Gamma), um die vollständige Verteilung für LDT/IES-Dateien aufzubauen. Eine Ulbrichtkugel erfasst alles abgestrahlte Licht, um den Gesamtlichtstrom zu messen. Beide können zusammen verwendet werden: Goniophotometer für die Verteilungsform, Ulbrichtkugel für die absolute Lichtstromkalibrierung."
+    },
+    "16008": {
+      "text": "Eine LDT-Datei zeigt LOR = 101,5%. Was ist die wahrscheinlichste Ursache?",
+      "options": [
+        "Die Leuchte verstärkt Licht",
+        "Messunsicherheit oder Rundungsfehler im Prüflabor",
+        "Die Datei verwendet Absolutphotometrie",
+        "Der Lampenlichtstrom wurde separat von der Leuchte gemessen"
+      ],
+      "explanation": "Ein LOR > 100% ist physikalisch unmöglich (eine Leuchte kann nicht mehr Licht abgeben als die blanken Lampen). Werte leicht über 100% resultieren typischerweise aus Messunsicherheiten, Rundungen im Dateiformat oder Unterschieden zwischen dem für die Normierung verwendeten Lampenlichtstrom und dem tatsächlichen Lampenlichtstrom während der Leuchtenmessung. Gute Validierungstools kennzeichnen dies als Warnung."
+    },
+    "16009": {
+      "text": "Eine LDT-Datei hat Lichtstärkewerte in C0, die aussehen, als gehörten sie zu C90 (die Längs- und Querverteilungen scheinen vertauscht). Was ist passiert?",
+      "options": [
+        "Die Datei ist beschädigt",
+        "Das Goniophotometer des Herstellers war um 90° anders orientiert als der Betrachter erwartet",
+        "Der Symmetrieflag ist falsch",
+        "Die Datei verwendet Typ-B-Photometrie"
+      ],
+      "explanation": "Dies ist das klassische C0/C90-Rotationsproblem. Es gibt keinen universellen Standard dafür, welcher physischen Richtung C0 zugeordnet wird — es hängt davon ab, wie die Leuchte auf dem Goniophotometer montiert wurde. Manche Labore richten C0 an der Längsachse der Leuchte aus, andere an der Querachse. Die Daten sind korrekt; die Referenzorientierung ist unterschiedlich."
+    },
+    "16010": {
+      "text": "Eine photometrische Datei zeigt 0 Gesamtlichtstrom, hat aber Lichtstärkewerte ungleich null. Was bedeutet das?",
+      "options": [
+        "Die Datei ist beschädigt",
+        "Die Leuchte emittiert nur UV-Licht",
+        "Die Datei verwendet Absolutphotometrie (negative Lampenanzahl)",
+        "Die Lichtstärkewerte sind in falschen Einheiten"
+      ],
+      "explanation": "In EULUMDAT signalisiert eine negative Lampenanzahl den Absolutphotometrie-Modus, in dem die Lichtstärkewerte in Candela (cd) statt in cd/klm angegeben sind. Das Lampenlichtstromfeld kann null sein, da der Lichtstrom implizit in den absoluten Lichtstärkewerten enthalten ist. Validierungstools sollten dies prüfen, bevor sie einen Null-Lichtstrom als Fehler melden."
+    },
+    "16011": {
+      "text": "Was ist die Hauptherausforderung bei der Konvertierung einer IES-Datei mit Typ-A-Photometrie nach EULUMDAT?",
+      "options": [
+        "IES-Dateien können nicht genügend Dezimalstellen speichern",
+        "Typ A verwendet ein völlig anderes Winkelkoordinatensystem, das eine trigonometrische Transformation erfordert",
+        "EULUMDAT kann nicht die gleiche Anzahl von Messpunkten darstellen",
+        "Die Konvertierung ist unkompliziert und ohne Herausforderungen"
+      ],
+      "explanation": "Die IES-Typ-A-Photometrie verwendet ein Koordinatensystem, bei dem die erste Rotationsachse horizontal ist (wie Kippen), was mit dem Typ-C-System von EULUMDAT inkompatibel ist. Die Konvertierung erfordert sphärische trigonometrische Transformationen, ähnlich der Typ-B→C-Konvertierung, und kann Interpolationsartefakte an den Polen erzeugen."
+    },
+    "16012": {
+      "text": "Eine LDT-Datei, die von einer deutschen Herstellerwebsite heruntergeladen wurde, verwendet Kommas als Dezimaltrennzeichen (z. B. '123,45' statt '123.45'). Was sollte ein Parser tun?",
+      "options": [
+        "Die Datei als ungültig ablehnen",
+        "Kommas vor dem Parsen der numerischen Werte durch Punkte ersetzen",
+        "Nur ganzzahlige Werte parsen und Dezimalstellen ignorieren",
+        "Die Systemsprache verwenden, um das Trennzeichen zu bestimmen"
+      ],
+      "explanation": "Viele europäische LDT-Dateien verwenden Kommas als Dezimaltrennzeichen, was lokale Zahlenformatierungskonventionen widerspiegelt. Robuste Parser sollten Kommas vor dem Parsen in Punkte umwandeln. Die Verwendung der Systemsprache wäre unzuverlässig, da die Dateispracheinstellung von der des Parsers abweichen kann."
+    },
+    "16013": {
+      "text": "Ein Polardiagramm zeigt eine schmale Spitze bei Gamma=0° und nahezu null Lichtstärke sonst. Welcher Leuchtentyp ist das?",
+      "options": [
+        "Ein Wandfluter mit breiter Verteilung",
+        "Ein engstrahlender Strahler oder Projektor",
+        "Eine Leuchtstoff-Rasterleuchte",
+        "Ein indirekter Uplight"
+      ],
+      "explanation": "Eine schmale Spitze im Nadir (γ=0°) mit minimaler Lichtstärke in anderen Winkeln deutet auf einen eng fokussierten Strahl hin — typisch für Strahler, Projektoren oder engstrahlende Downlights mit Reflektoroptik. Der Halbwertswinkel wäre sehr klein (< 15°)."
+    },
+    "16014": {
+      "text": "Zwei Polardiagramme sehen identisch aus, aber eines zeigt die Lichtstärke in cd/klm und das andere in cd. Kann man sie direkt vergleichen?",
+      "options": [
+        "Ja, cd und cd/klm sind die gleiche Einheit",
+        "Nein — cd/klm (relativ) muss mit Gesamtlichtstrom/1000 multipliziert werden, um in cd (absolut) umzurechnen",
+        "Nur wenn beide Leuchten denselben LOR haben",
+        "Nein, sie verwenden inkompatible Koordinatensysteme"
+      ],
+      "explanation": "cd/klm (Candela pro Kilolumen) ist eine relative Einheit, normiert auf 1000 Lumen Gesamtlichtstrom. Umrechnung in absolute Candela: I(cd) = I(cd/klm) × Φ/1000, wobei Φ der Gesamtlichtstrom in Lumen ist. Der direkte Vergleich von cd/klm-Werten vergleicht nur Verteilungsformen, nicht tatsächliche Lichtniveaus."
+    },
+    "16015": {
+      "text": "Ein Hersteller deklariert Isym=4 (Symmetrie beider Ebenen) für ein LED-Panel, aber die gemessenen C0- und C90-Kurven weichen um 15% ab. Was ist die korrekte Interpretation?",
+      "options": [
+        "Die Datei ist gültig — 15% Abweichung liegt innerhalb der normalen Toleranz",
+        "Der Symmetrieflag ist falsch; die Datei sollte Isym=2 oder Isym=0 verwenden, um die tatsächliche Verteilung korrekt darzustellen",
+        "Die Messgeräte waren falsch kalibriert",
+        "LED-Panels haben immer Isym=4, unabhängig von der tatsächlichen Verteilung"
+      ],
+      "explanation": "Isym=4 speichert nur Vierteldaten (0-90°) und spiegelt sie, um 360° zu füllen, was bedeutet, dass C0- und C90-Lichtstärken identisch sein müssen. Eine reale Abweichung von 15% zeigt an, dass die Leuchte nicht wirklich symmetrisch um beide Ebenen ist. Die Verwendung von Isym=0 oder Isym=2 würde die tatsächliche asymmetrische Verteilung bewahren. Isym=4 zu erzwingen, verwirft stillschweigend reale photometrische Unterschiede."
+    },
+    "17001": {
+      "text": "Betrachten Sie das Polardiagramm: Welche Kurve wird in Blau dargestellt?",
+      "options": [
+        "Die C90-C270-Ebene (quer)",
+        "Die C0-C180-Ebene (längs)",
+        "Die horizontale Beleuchtungsstärke",
+        "Die Spektralverteilung"
+      ],
+      "explanation": "Konventionell stellt die blaue Kurve die C0-C180-Ebene (Längsverteilung) dar. Die rote Kurve zeigt C90-C270 (Querverteilung)."
+    },
+    "17002": {
+      "text": "Wo befindet sich im angezeigten Polardiagramm die höchste Lichtstärke?",
+      "options": [
+        "Oben (180°, Zenit)",
+        "Unten (0°, Nadir — senkrecht nach unten)",
+        "Horizontal (90°)",
+        "Gleichmäßig überall verteilt"
+      ],
+      "explanation": "Das Diagramm zeigt die höchste Lichtstärke nahe dem Nadir (0°, senkrecht nach unten), wo die Kurve am weitesten vom Zentrum entfernt ist."
+    },
+    "17003": {
+      "text": "Was stellen die konzentrischen Kreise (Gitter) im Polardiagramm dar?",
+      "options": [
+        "Entfernung von der Leuchte in Metern",
+        "Feste Lichtstärkewerte (cd/klm) in regelmäßigen Abständen",
+        "Farbtemperaturzonen",
+        "Effizienzklassen"
+      ],
+      "explanation": "Die konzentrischen Gitterkreise stellen gleiche Lichtstärkeniveaus in cd/klm dar. Jeder Kreis ist ein fester Schritt."
+    },
+    "17004": {
+      "text": "Wenn sich blaue und rote Kurve im Polardiagramm fast überlagern, was sagt das über die Leuchte aus?",
+      "options": [
+        "Die Leuchte ist defekt",
+        "Die Verteilung ist in allen Richtungen um die vertikale Achse nahezu gleich",
+        "Die Leuchte gibt kein Licht ab",
+        "Die Messdaten sind fehlerhaft"
+      ],
+      "explanation": "Überlagernde C0-C180- (blau) und C90-C270-Kurven (rot) zeigen an, dass die Leuchte in allen C-Ebenen nahezu die gleiche Lichtverteilung hat — sie ist annähernd rotationssymmetrisch."
+    },
+    "17005": {
+      "text": "Wenn ein Polardiagramm keine rote Kurve zeigt, nur blaue, was bedeutet das?",
+      "options": [
+        "Die Leuchte ist defekt",
+        "Die Leuchte hat Vertikalachsensymmetrie (Isym=1) — alle C-Ebenen sind identisch",
+        "Die C90-C270-Daten wurden nicht gemessen",
+        "Die rote Kurve ist hinter der blauen verborgen"
+      ],
+      "explanation": "Bei Rotationssymmetrie (Isym=1, z.B. ein runder Downlight) ist C90-C270 identisch mit C0-C180, daher wird nur eine Kurve angezeigt."
+    },
+    "17006": {
+      "text": "Vergleichen Sie symmetrische und asymmetrische Polardiagramme: Wie erkennt man das asymmetrische visuell?",
+      "options": [
+        "Es hat mehr Gitterkreise",
+        "Die linke und rechte Hälfte der Kurve haben unterschiedliche Formen",
+        "Es verwendet dickere Linien",
+        "Es hat einen insgesamt größeren Radius"
+      ],
+      "explanation": "Eine asymmetrische Leuchte (wie eine Straßenleuchte) hat sichtbar unterschiedliche linke und rechte Hälften im Polardiagramm."
+    },
+    "17007": {
+      "text": "Das Polardiagramm einer Straßenleuchte zeigt die meiste Lichtstärke zu einer Seite. Welche Seite ist die 'Vorwärts'-Richtung (Straßenseite)?",
+      "options": [
+        "Die Oberseite des Diagramms (Zenit)",
+        "Die rechte Hälfte (C0-Seite)",
+        "Die linke Hälfte (C180-Seite)",
+        "Die Unterseite (Nadir)"
+      ],
+      "explanation": "Konventionell ist C0 die 'Vorderseite' der Leuchte, dargestellt auf der rechten Hälfte des Polardiagramms."
+    },
+    "17008": {
+      "text": "Was zeigt im Polardiagramm eines Projektors visuell einen engen Lichtkegel an?",
+      "options": [
+        "Die Kurve füllt die gesamte Diagrammfläche",
+        "Die Kurve ist eine dünne Spitze konzentriert um den Nadir (0°) mit sehr wenig Ausbreitung",
+        "Die Kurve ist perfekt kreisförmig",
+        "Es gibt viele Gitterkreise"
+      ],
+      "explanation": "Ein Schmalstrahl-Projektor zeigt eine scharfe Lichtstärkespitze konzentriert um den Nadir, die bei größeren Winkeln schnell abfällt."
+    },
+    "17009": {
+      "text": "Wenn die Kurve im Polardiagramm am Nadir den 3. Gitterkreis, bei 60° aber nur den 1. Gitterkreis kreuzt, welcher Anteil der Spitzenlichtstärke bleibt bei 60°?",
+      "options": [
+        "Etwa 1/3 (33%)",
+        "Etwa 1/2 (50%)",
+        "Etwa 2/3 (67%)",
+        "Etwa 3/4 (75%)"
+      ],
+      "explanation": "Die Gitterkreise haben gleichmäßigen Lichtstärkeabstand. Wenn die Spitze den 3. Kreis erreicht und bei 60° nur den 1., beträgt das Verhältnis 1/3."
+    },
+    "17010": {
+      "text": "Was bedeutet '90°' auf der horizontalen Achse im Polardiagramm?",
+      "options": [
+        "Der Abstrahlwinkel der Leuchte",
+        "Die horizontale Ebene — seitlich abgestrahltes Licht",
+        "Die Richtung maximaler Lichtstärke",
+        "Die Farbtemperatur"
+      ],
+      "explanation": "90° im Polardiagramm ist die horizontale Richtung. Bei Gamma=90° abgestrahltes Licht geht waagerecht von der Leuchte weg."
+    },
+    "17011": {
+      "text": "Das Polardiagramm einer Leuchte zeigt, dass die Kurve den äußersten Gitterkreis nur nahe dem Nadir berührt. Der maximale Gitterwert beträgt 800 cd/klm. Wie hoch ist die ungefähre Spitzenlichtstärke?",
+      "options": [
+        "80 cd/klm",
+        "400 cd/klm",
+        "800 cd/klm",
+        "1600 cd/klm"
+      ],
+      "explanation": "Der äußerste Gitterkreis stellt den maximalen Skalenwert dar. Berührt die Kurve ihn gerade, entspricht die Spitzenlichtstärke diesem Wert — ca. 800 cd/klm."
+    },
+    "17012": {
+      "text": "Zwei Polardiagramme nebeneinander: eines hat eine breite, flache Kurve, das andere eine hohe, schmale Spitze. Welche Leuchte hat den breiteren Abstrahlwinkel?",
+      "options": [
+        "Die schmale Spitze",
+        "Die breite, flache Kurve",
+        "Beide haben den gleichen Abstrahlwinkel",
+        "Der Abstrahlwinkel kann nicht aus Polardiagrammen abgelesen werden"
+      ],
+      "explanation": "Eine breite, flache Kurve bedeutet, dass die Lichtstärke über einen weiten Winkelbereich verteilt ist — ein breiter Lichtkegel."
+    },
+    "17013": {
+      "text": "Was stellen die X-Achse und die Y-Achse in der angezeigten Heatmap dar?",
+      "options": [
+        "X = Entfernung, Y = Höhe",
+        "X = C-Ebenen-Winkel, Y = Gamma-Winkel",
+        "X = Wellenlänge, Y = Lichtstärke",
+        "X = Zeit, Y = Leistungsaufnahme"
+      ],
+      "explanation": "Eine photometrische Heatmap stellt C-Ebenen-Winkel auf der X-Achse und Gamma-Winkel auf der Y-Achse dar. Die Farbe jeder Zelle repräsentiert die Lichtstärke bei dieser Winkelkombination."
+    },
+    "17014": {
+      "text": "Was bedeutet eine rote/warme Zelle in der Heatmap?",
+      "options": [
+        "Niedrige Lichtstärke",
+        "Hohe Lichtstärke",
+        "Hohe Farbtemperatur",
+        "Ein Messfehler"
+      ],
+      "explanation": "Die Heatmap verwendet eine Blau→Cyan→Grün→Gelb→Rot-Farbskala. Rote/warme Farben stehen für die höchsten Lichtstärkewerte, während blaue/kühle Farben die niedrigsten darstellen."
+    },
+    "17015": {
+      "text": "In der Heatmap verläuft das hellste (rote) Band horizontal nahe Gamma=0°. Was sagt das über die Leuchte?",
+      "options": [
+        "Sie ist defekt",
+        "Sie richtet den Großteil des Lichts nach unten (Nadir)",
+        "Sie strahlt nur nach oben",
+        "Sie hat keine Vorzugsrichtung"
+      ],
+      "explanation": "Ein helles horizontales Band bei Gamma=0° bedeutet, dass die Leuchte ihre höchste Lichtstärke im Nadir (senkrecht nach unten) über alle C-Ebenen ausstrahlt. Typisch für eine Deckeneinbauleuchte."
+    },
+    "17016": {
+      "text": "In der Heatmap einer symmetrischen Leuchte wiederholt sich das Farbmuster identisch über alle C-Ebenen-Spalten. Welcher Symmetrietyp ist das?",
+      "options": [
+        "Keine Symmetrie (Isym=0)",
+        "Rotationssymmetrie (Isym=1)",
+        "C90-C270-Ebenensymmetrie (Isym=3)",
+        "Viertelsymmetrie (Isym=4)"
+      ],
+      "explanation": "Wenn jede C-Ebenen-Spalte in der Heatmap dasselbe Farbmuster zeigt, ist die Lichtstärkeverteilung in alle Richtungen um die vertikale Achse identisch — Rotationssymmetrie (Isym=1)."
+    },
+    "17017": {
+      "text": "Eine Heatmap zeigt einen scharfen Übergang von Rot zu Blau innerhalb weniger Gamma-Winkel-Zeilen. Was bedeutet das?",
+      "options": [
+        "Ein Messfehler",
+        "Ein enger Strahl mit schnellem Lichtstärkeabfall",
+        "Eine Breitstrahler-Leuchte",
+        "Ein Lampenausfall während der Messung"
+      ],
+      "explanation": "Ein scharfer Farbübergang von Rot (hohe Lichtstärke) zu Blau (niedrige Lichtstärke) über einen kleinen Gamma-Winkelbereich zeigt, dass die Leuchte einen engen Strahl hat — typisch für einen Spot oder Projektor."
+    },
+    "17018": {
+      "text": "Wenn die Farbskala der Heatmap ein Maximum von 136 cd/klm zeigt und eine Zelle grün ist (etwa Mitte der Skala), welche Lichtstärke hat dieser Winkel ungefähr?",
+      "options": [
+        "Etwa 136 cd/klm",
+        "Etwa 68 cd/klm",
+        "Etwa 34 cd/klm",
+        "Etwa 0 cd/klm"
+      ],
+      "explanation": "Grün liegt ungefähr in der Mitte der Blau→Rot-Farbskala. Bei einem Maximum von 136 cd/klm entspricht eine grüne Zelle in der Skalenmitte etwa 50% des Spitzenwerts — ca. 68 cd/klm."
+    },
+    "17019": {
+      "text": "Welchen Vorteil hat eine Heatmap gegenüber einem Polardiagramm zum Verständnis der Lichtverteilung einer Leuchte?",
+      "options": [
+        "Sie ist farbenfroher",
+        "Sie zeigt ALLE C-Ebenen gleichzeitig und enthüllt Asymmetrien, die in einem 2-Ebenen-Polardiagramm unsichtbar sind",
+        "Sie zeigt die Farbtemperatur",
+        "Sie ist immer genauer"
+      ],
+      "explanation": "Ein Polardiagramm zeigt typischerweise nur 2 C-Ebenen (C0-C180 und C90-C270). Eine Heatmap zeigt die Lichtstärke für jede gemessene C-Ebene und jeden Gamma-Winkel und enthüllt Asymmetrien oder Muster zwischen den Ebenen."
+    },
+    "17020": {
+      "text": "Welches Ende der Farbskala in der Heatmap steht für null Lichtstärke?",
+      "options": [
+        "Das rote Ende",
+        "Das blaue/dunkle Ende",
+        "Die grüne Mitte",
+        "Es gibt keine Null in einer Heatmap"
+      ],
+      "explanation": "Die Heatmap-Farbskala verläuft von Dunkelblau (Null/minimale Lichtstärke) über Cyan, Grün und Gelb bis Rot (maximale Lichtstärke). Das blaue/dunkle Ende repräsentiert die niedrigsten Werte."
+    }
+  }
+}

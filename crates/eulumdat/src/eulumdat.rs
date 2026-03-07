@@ -386,6 +386,114 @@ impl Eulumdat {
         }
     }
 
+    /// Rotate the C-plane data by the given number of degrees.
+    ///
+    /// This is useful when different manufacturers mount luminaires differently
+    /// on goniophotometers, so C0 may point along the length or width axis.
+    ///
+    /// The method:
+    /// 1. Expands symmetric data to full 360°
+    /// 2. Resamples all intensities at shifted C-angles
+    /// 3. Sets symmetry to None (full data)
+    /// 4. For exact 90° multiples, rotates height_c0/c90/c180/c270 and swaps length/width
+    ///
+    /// # Arguments
+    /// * `degrees` - Rotation angle in degrees (positive = counter-clockwise when viewed from above)
+    pub fn rotate_c_planes(&mut self, degrees: f64) {
+        // Normalize to 0-360
+        let rotation = degrees.rem_euclid(360.0);
+        if rotation.abs() < 0.001 || (rotation - 360.0).abs() < 0.001 {
+            return;
+        }
+
+        // Expand to full 360° data
+        let full_intensities = crate::symmetry::SymmetryHandler::expand_to_full(self);
+        let full_c_angles = crate::symmetry::SymmetryHandler::expand_c_angles(self);
+
+        if full_intensities.is_empty() || full_c_angles.is_empty() {
+            return;
+        }
+
+        // Build a temporary Eulumdat with full (Isym=0) data for sampling
+        let temp = Eulumdat {
+            symmetry: Symmetry::None,
+            c_angles: full_c_angles.clone(),
+            g_angles: self.g_angles.clone(),
+            intensities: full_intensities,
+            num_c_planes: full_c_angles.len(),
+            ..self.clone()
+        };
+
+        // Resample: for each output C-angle, sample at (c - rotation) from temp
+        let num_g = self.g_angles.len();
+        let mut new_intensities = Vec::with_capacity(full_c_angles.len());
+        for &c in &full_c_angles {
+            let source_c = (c - rotation).rem_euclid(360.0);
+            let mut row = Vec::with_capacity(num_g);
+            for &g in &self.g_angles {
+                row.push(temp.sample(source_c, g));
+            }
+            new_intensities.push(row);
+        }
+
+        // Update self with full data
+        self.symmetry = Symmetry::None;
+        self.c_angles = full_c_angles;
+        self.intensities = new_intensities;
+        self.num_c_planes = self.c_angles.len();
+        self.c_plane_distance = if self.num_c_planes > 1 {
+            self.c_angles[1] - self.c_angles[0]
+        } else {
+            0.0
+        };
+
+        // For exact 90° multiples, rotate height values and swap dimensions
+        let steps = (rotation / 90.0).round() as i32;
+        if (rotation - steps as f64 * 90.0).abs() < 0.001 {
+            let steps_mod = steps.rem_euclid(4);
+            let [h0, h90, h180, h270] = [
+                self.height_c0,
+                self.height_c90,
+                self.height_c180,
+                self.height_c270,
+            ];
+            match steps_mod {
+                1 => {
+                    // 90° CCW: C0→C90, C90→C180, C180→C270, C270→C0
+                    self.height_c0 = h270;
+                    self.height_c90 = h0;
+                    self.height_c180 = h90;
+                    self.height_c270 = h180;
+                    std::mem::swap(&mut self.length, &mut self.width);
+                    std::mem::swap(
+                        &mut self.luminous_area_length,
+                        &mut self.luminous_area_width,
+                    );
+                }
+                2 => {
+                    // 180°: swap opposite pairs
+                    self.height_c0 = h180;
+                    self.height_c90 = h270;
+                    self.height_c180 = h0;
+                    self.height_c270 = h90;
+                }
+                3 => {
+                    // 270° CCW (= 90° CW)
+                    self.height_c0 = h90;
+                    self.height_c90 = h180;
+                    self.height_c180 = h270;
+                    self.height_c270 = h0;
+                    std::mem::swap(&mut self.length, &mut self.width);
+                    std::mem::swap(
+                        &mut self.luminous_area_length,
+                        &mut self.luminous_area_width,
+                    );
+                }
+                _ => {} // 0 or 360 — already handled by early return
+            }
+        }
+    }
+
     /// Sample intensity at any C and G angle using bilinear interpolation.
     ///
     /// This is the key method for generating beam meshes and smooth geometry.
@@ -421,5 +529,157 @@ impl Eulumdat {
     /// ```
     pub fn sample(&self, c_angle: f64, g_angle: f64) -> f64 {
         crate::symmetry::SymmetryHandler::get_intensity_at(self, c_angle, g_angle)
+    }
+}
+
+#[cfg(test)]
+mod rotation_tests {
+    use super::*;
+
+    fn create_asymmetric_ldt() -> Eulumdat {
+        // Isym=0, 4 C-planes at 90° intervals, 3 gamma angles
+        let mut ldt = Eulumdat::new();
+        ldt.symmetry = Symmetry::None;
+        ldt.num_c_planes = 4;
+        ldt.c_plane_distance = 90.0;
+        ldt.num_g_planes = 3;
+        ldt.g_plane_distance = 45.0;
+        ldt.c_angles = vec![0.0, 90.0, 180.0, 270.0];
+        ldt.g_angles = vec![0.0, 45.0, 90.0];
+        ldt.intensities = vec![
+            vec![100.0, 80.0, 50.0],   // C0
+            vec![200.0, 160.0, 100.0], // C90
+            vec![300.0, 240.0, 150.0], // C180
+            vec![400.0, 320.0, 200.0], // C270
+        ];
+        ldt.length = 1000.0;
+        ldt.width = 500.0;
+        ldt.height = 100.0;
+        ldt.height_c0 = 10.0;
+        ldt.height_c90 = 20.0;
+        ldt.height_c180 = 30.0;
+        ldt.height_c270 = 40.0;
+        ldt.luminous_area_length = 800.0;
+        ldt.luminous_area_width = 400.0;
+        ldt.lamp_sets.push(LampSet {
+            num_lamps: 1,
+            lamp_type: "LED".to_string(),
+            total_luminous_flux: 1000.0,
+            color_appearance: "3000K".to_string(),
+            color_rendering_group: "80".to_string(),
+            wattage_with_ballast: 10.0,
+        });
+        ldt
+    }
+
+    #[test]
+    fn test_rotate_90_shifts_intensity() {
+        let mut ldt = create_asymmetric_ldt();
+        // Before rotation: C0 nadir=100, C90 nadir=200
+        assert!((ldt.sample(0.0, 0.0) - 100.0).abs() < 0.01);
+        assert!((ldt.sample(90.0, 0.0) - 200.0).abs() < 0.01);
+
+        ldt.rotate_c_planes(90.0);
+
+        // After 90° rotation: what was at C270 should now be at C0
+        // (rotating CCW by 90° means each new C-angle samples from C-90°)
+        assert!((ldt.sample(0.0, 0.0) - 400.0).abs() < 0.01);
+        assert!((ldt.sample(90.0, 0.0) - 100.0).abs() < 0.01);
+        assert!((ldt.sample(180.0, 0.0) - 200.0).abs() < 0.01);
+        assert!((ldt.sample(270.0, 0.0) - 300.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rotate_180_double_roundtrip() {
+        let original = create_asymmetric_ldt();
+        let mut ldt = original.clone();
+
+        ldt.rotate_c_planes(180.0);
+        ldt.rotate_c_planes(180.0);
+
+        // After 360° total rotation, intensities should match original
+        for &g in &[0.0, 45.0, 90.0] {
+            for &c in &[0.0, 90.0, 180.0, 270.0] {
+                let orig_val = original.sample(c, g);
+                let rotated_val = ldt.sample(c, g);
+                assert!(
+                    (orig_val - rotated_val).abs() < 0.5,
+                    "Mismatch at C={} G={}: original={}, rotated={}",
+                    c,
+                    g,
+                    orig_val,
+                    rotated_val
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_rotate_expands_symmetric_data() {
+        // Start with Isym=4 data
+        let mut ldt = Eulumdat::new();
+        ldt.symmetry = Symmetry::BothPlanes;
+        ldt.num_c_planes = 36;
+        ldt.c_plane_distance = 10.0;
+        ldt.num_g_planes = 3;
+        ldt.g_plane_distance = 45.0;
+        ldt.c_angles = vec![0.0, 45.0, 90.0]; // Mc=36/4+1 simplified to 3 for test
+        ldt.g_angles = vec![0.0, 45.0, 90.0];
+        ldt.intensities = vec![
+            vec![100.0, 80.0, 50.0], // C0
+            vec![95.0, 75.0, 45.0],  // C45
+            vec![90.0, 80.0, 50.0],  // C90
+        ];
+        ldt.length = 600.0;
+        ldt.height = 80.0;
+        ldt.lamp_sets.push(LampSet {
+            num_lamps: 1,
+            lamp_type: "LED".to_string(),
+            total_luminous_flux: 1000.0,
+            color_appearance: "3000K".to_string(),
+            color_rendering_group: "80".to_string(),
+            wattage_with_ballast: 10.0,
+        });
+
+        ldt.rotate_c_planes(45.0);
+
+        // After rotation, symmetry should be None
+        assert_eq!(ldt.symmetry, Symmetry::None);
+        // Should have expanded C-plane data
+        assert!(ldt.c_angles.len() > 3);
+    }
+
+    #[test]
+    fn test_rotate_height_values() {
+        let mut ldt = create_asymmetric_ldt();
+        // Before: h_c0=10, h_c90=20, h_c180=30, h_c270=40
+        // length=1000, width=500
+
+        ldt.rotate_c_planes(90.0);
+
+        // After 90° CCW: C0←C270, C90←C0, C180←C90, C270←C180
+        assert!((ldt.height_c0 - 40.0).abs() < 0.01);
+        assert!((ldt.height_c90 - 10.0).abs() < 0.01);
+        assert!((ldt.height_c180 - 20.0).abs() < 0.01);
+        assert!((ldt.height_c270 - 30.0).abs() < 0.01);
+
+        // Length and width should be swapped
+        assert!((ldt.length - 500.0).abs() < 0.01);
+        assert!((ldt.width - 1000.0).abs() < 0.01);
+        assert!((ldt.luminous_area_length - 400.0).abs() < 0.01);
+        assert!((ldt.luminous_area_width - 800.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rotate_zero_is_noop() {
+        let original = create_asymmetric_ldt();
+        let mut ldt = original.clone();
+
+        ldt.rotate_c_planes(0.0);
+
+        // Should be unchanged
+        assert_eq!(ldt.symmetry, original.symmetry);
+        assert_eq!(ldt.c_angles, original.c_angles);
+        assert_eq!(ldt.intensities, original.intensities);
     }
 }

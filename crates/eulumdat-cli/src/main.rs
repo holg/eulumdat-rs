@@ -24,7 +24,8 @@ fn main() -> Result<()> {
             input,
             output,
             compact,
-        } => commands::convert(&input, &output, compact),
+            rotate,
+        } => commands::convert(&input, &output, compact, rotate),
         Commands::Diagram {
             input,
             output,

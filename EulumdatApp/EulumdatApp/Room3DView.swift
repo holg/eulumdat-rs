@@ -328,6 +328,23 @@ struct Room3DView: View {
 
 }
 
+// MARK: - Scene Change Detection
+
+/// Key that captures all scene-affecting parameters for change detection
+struct RoomSceneKey: Equatable {
+    let sceneType: SceneType
+    let roomWidth: Double
+    let roomLength: Double
+    let roomHeight: Double
+    let mountingHeight: Double
+    let lightIntensity: Double
+    let colorTemperature: Double
+    let showLuminaire: Bool
+    let showPhotometricSolid: Bool
+    let wallColorRaw: String
+    let isDarkTheme: Bool
+}
+
 // MARK: - SceneKit Room View
 
 #if os(macOS)
@@ -413,6 +430,16 @@ struct RoomSceneView: NSViewRepresentable {
     let wallColor: Room3DView.WallColor
     let isDarkTheme: Bool
 
+    private var sceneKey: RoomSceneKey {
+        RoomSceneKey(
+            sceneType: sceneType, roomWidth: roomWidth, roomLength: roomLength,
+            roomHeight: roomHeight, mountingHeight: mountingHeight,
+            lightIntensity: lightIntensity, colorTemperature: colorTemperature,
+            showLuminaire: showLuminaire, showPhotometricSolid: showPhotometricSolid,
+            wallColorRaw: wallColor.rawValue, isDarkTheme: isDarkTheme
+        )
+    }
+
     class Coordinator: NSObject {
         var parent: RoomSceneView
         weak var scnView: SCNView?
@@ -420,6 +447,7 @@ struct RoomSceneView: NSViewRepresentable {
         var pitch: Float = 0
         var pressedKeys: Set<UInt16> = []
         var moveTimer: Timer?
+        var lastSceneKey: RoomSceneKey?
 
         init(_ parent: RoomSceneView) {
             self.parent = parent
@@ -578,6 +606,14 @@ struct RoomSceneView: NSViewRepresentable {
     }
 
     func updateNSView(_ scnView: KeyboardSCNView, context: Context) {
+        let currentKey = sceneKey
+
+        // Only rebuild the scene when parameters actually change
+        guard context.coordinator.lastSceneKey != currentKey else {
+            return
+        }
+        context.coordinator.lastSceneKey = currentKey
+
         // Preserve camera position and orientation when scene updates
         let existingCamera = scnView.scene?.rootNode.childNode(withName: "camera", recursively: false)
         let savedPosition = existingCamera?.position
@@ -639,12 +675,23 @@ struct RoomSceneView: UIViewRepresentable {
     let wallColor: Room3DView.WallColor
     let isDarkTheme: Bool
 
+    private var sceneKey: RoomSceneKey {
+        RoomSceneKey(
+            sceneType: sceneType, roomWidth: roomWidth, roomLength: roomLength,
+            roomHeight: roomHeight, mountingHeight: mountingHeight,
+            lightIntensity: lightIntensity, colorTemperature: colorTemperature,
+            showLuminaire: showLuminaire, showPhotometricSolid: showPhotometricSolid,
+            wallColorRaw: wallColor.rawValue, isDarkTheme: isDarkTheme
+        )
+    }
+
     class Coordinator: NSObject {
         var parent: RoomSceneView
         weak var scnView: SCNView?
         var yaw: Float = 0
         var pitch: Float = 0
         var lastPanLocation: CGPoint = .zero
+        var lastSceneKey: RoomSceneKey?
 
         init(_ parent: RoomSceneView) {
             self.parent = parent
@@ -709,6 +756,14 @@ struct RoomSceneView: UIViewRepresentable {
     }
 
     func updateUIView(_ scnView: SCNView, context: Context) {
+        let currentKey = sceneKey
+
+        // Only rebuild the scene when parameters actually change
+        guard context.coordinator.lastSceneKey != currentKey else {
+            return
+        }
+        context.coordinator.lastSceneKey = currentKey
+
         let existingCamera = scnView.scene?.rootNode.childNode(withName: "camera", recursively: false)
         let savedPosition = existingCamera?.position
         let savedEulerAngles = existingCamera?.eulerAngles

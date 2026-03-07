@@ -188,6 +188,111 @@ impl PhotometricComparison {
         }
     }
 
+    /// Compare two Eulumdat files with localized metric names.
+    #[cfg(feature = "i18n")]
+    pub fn from_eulumdat_with_locale(
+        a: &Eulumdat,
+        b: &Eulumdat,
+        label_a: &str,
+        label_b: &str,
+        locale: &eulumdat_i18n::Locale,
+    ) -> Self {
+        Self::from_eulumdat_with_units_and_locale(
+            a,
+            b,
+            label_a,
+            label_b,
+            UnitSystem::default(),
+            locale,
+        )
+    }
+
+    /// Compare two Eulumdat files with unit system and localized metric names.
+    #[cfg(feature = "i18n")]
+    pub fn from_eulumdat_with_units_and_locale(
+        a: &Eulumdat,
+        b: &Eulumdat,
+        label_a: &str,
+        label_b: &str,
+        units: UnitSystem,
+        locale: &eulumdat_i18n::Locale,
+    ) -> Self {
+        let summary_a = PhotometricSummary::from_eulumdat(a);
+        let summary_b = PhotometricSummary::from_eulumdat(b);
+        let mut metrics = build_metrics_with_locale(&summary_a, &summary_b, locale);
+
+        // BUG ratings
+        let bug_a = BugDiagram::from_eulumdat(a);
+        let bug_b = BugDiagram::from_eulumdat(b);
+        metrics.push(metric_localized(
+            "BUG Backlight (B)",
+            "bug_b",
+            "",
+            bug_a.rating.b as f64,
+            bug_b.rating.b as f64,
+            0.5,
+            locale,
+        ));
+        metrics.push(metric_localized(
+            "BUG Uplight (U)",
+            "bug_u",
+            "",
+            bug_a.rating.u as f64,
+            bug_b.rating.u as f64,
+            0.5,
+            locale,
+        ));
+        metrics.push(metric_localized(
+            "BUG Glare (G)",
+            "bug_g",
+            "",
+            bug_a.rating.g as f64,
+            bug_b.rating.g as f64,
+            0.5,
+            locale,
+        ));
+
+        // Physical dimensions
+        let dim_unit = units.dimension_label();
+        metrics.push(metric_localized(
+            "Luminaire Length",
+            "length",
+            dim_unit,
+            units.convert_mm(a.length),
+            units.convert_mm(b.length),
+            0.3,
+            locale,
+        ));
+        metrics.push(metric_localized(
+            "Luminaire Width",
+            "width",
+            dim_unit,
+            units.convert_mm(a.width),
+            units.convert_mm(b.width),
+            0.3,
+            locale,
+        ));
+        metrics.push(metric_localized(
+            "Luminaire Height",
+            "height",
+            dim_unit,
+            units.convert_mm(a.height),
+            units.convert_mm(b.height),
+            0.3,
+            locale,
+        ));
+
+        let similarity_score = compute_similarity(&metrics);
+        Self {
+            label_a: label_a.to_string(),
+            label_b: label_b.to_string(),
+            summary_a,
+            summary_b,
+            metrics,
+            similarity_score,
+        }
+    }
+
     /// Compare two pre-computed summaries.
     pub fn from_summaries(
         summary_a: PhotometricSummary,
@@ -534,6 +639,297 @@ fn build_metrics(a: &PhotometricSummary, b: &PhotometricSummary) -> Vec<Comparis
             a.cie_flux_codes.n5,
             b.cie_flux_codes.n5,
             0.5,
+        ),
+    ]
+}
+
+#[cfg(feature = "i18n")]
+fn metric_localized(
+    fallback_name: &str,
+    key: &str,
+    unit: &str,
+    a: f64,
+    b: f64,
+    weight: f64,
+    locale: &eulumdat_i18n::Locale,
+) -> ComparisonMetric {
+    let name = locale
+        .comparison_metric_name(key)
+        .unwrap_or(fallback_name)
+        .to_string();
+    let delta = b - a;
+    let delta_percent = if a.abs() > 1e-9 {
+        (delta / a) * 100.0
+    } else if b.abs() > 1e-9 {
+        100.0
+    } else {
+        0.0
+    };
+    ComparisonMetric {
+        name,
+        key: key.to_string(),
+        unit: unit.to_string(),
+        value_a: a,
+        value_b: b,
+        delta,
+        delta_percent,
+        significance: Significance::from_delta_percent(delta_percent),
+        weight,
+    }
+}
+
+#[cfg(feature = "i18n")]
+fn build_metrics_with_locale(
+    a: &PhotometricSummary,
+    b: &PhotometricSummary,
+    locale: &eulumdat_i18n::Locale,
+) -> Vec<ComparisonMetric> {
+    vec![
+        metric_localized(
+            "Total Lamp Flux",
+            "total_lamp_flux",
+            "lm",
+            a.total_lamp_flux,
+            b.total_lamp_flux,
+            2.0,
+            locale,
+        ),
+        metric_localized(
+            "Calculated Flux",
+            "calculated_flux",
+            "lm",
+            a.calculated_flux,
+            b.calculated_flux,
+            2.0,
+            locale,
+        ),
+        metric_localized("Light Output Ratio", "lor", "%", a.lor, b.lor, 1.5, locale),
+        metric_localized("DLOR", "dlor", "%", a.dlor, b.dlor, 1.0, locale),
+        metric_localized("ULOR", "ulor", "%", a.ulor, b.ulor, 1.0, locale),
+        metric_localized(
+            "Lamp Efficacy",
+            "lamp_efficacy",
+            "lm/W",
+            a.lamp_efficacy,
+            b.lamp_efficacy,
+            2.0,
+            locale,
+        ),
+        metric_localized(
+            "Luminaire Efficacy",
+            "luminaire_efficacy",
+            "lm/W",
+            a.luminaire_efficacy,
+            b.luminaire_efficacy,
+            2.0,
+            locale,
+        ),
+        metric_localized(
+            "Total Wattage",
+            "total_wattage",
+            "W",
+            a.total_wattage,
+            b.total_wattage,
+            1.5,
+            locale,
+        ),
+        metric_localized(
+            "Beam Angle (IES)",
+            "beam_angle",
+            "deg",
+            a.beam_angle,
+            b.beam_angle,
+            2.0,
+            locale,
+        ),
+        metric_localized(
+            "Field Angle (IES)",
+            "field_angle",
+            "deg",
+            a.field_angle,
+            b.field_angle,
+            1.5,
+            locale,
+        ),
+        metric_localized(
+            "Beam Angle (CIE)",
+            "beam_angle_cie",
+            "deg",
+            a.beam_angle_cie,
+            b.beam_angle_cie,
+            1.5,
+            locale,
+        ),
+        metric_localized(
+            "Field Angle (CIE)",
+            "field_angle_cie",
+            "deg",
+            a.field_angle_cie,
+            b.field_angle_cie,
+            1.0,
+            locale,
+        ),
+        metric_localized(
+            "Upward Beam Angle",
+            "upward_beam_angle",
+            "deg",
+            a.upward_beam_angle,
+            b.upward_beam_angle,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "Upward Field Angle",
+            "upward_field_angle",
+            "deg",
+            a.upward_field_angle,
+            b.upward_field_angle,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "Max Intensity",
+            "max_intensity",
+            "cd/klm",
+            a.max_intensity,
+            b.max_intensity,
+            1.5,
+            locale,
+        ),
+        metric_localized(
+            "Min Intensity",
+            "min_intensity",
+            "cd/klm",
+            a.min_intensity,
+            b.min_intensity,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "Avg Intensity",
+            "avg_intensity",
+            "cd/klm",
+            a.avg_intensity,
+            b.avg_intensity,
+            1.0,
+            locale,
+        ),
+        metric_localized(
+            "Spacing C0",
+            "spacing_c0",
+            "",
+            a.spacing_c0,
+            b.spacing_c0,
+            1.0,
+            locale,
+        ),
+        metric_localized(
+            "Spacing C90",
+            "spacing_c90",
+            "",
+            a.spacing_c90,
+            b.spacing_c90,
+            1.0,
+            locale,
+        ),
+        metric_localized(
+            "Zonal 0-30°",
+            "zonal_0_30",
+            "%",
+            a.zonal_lumens.zone_0_30,
+            b.zonal_lumens.zone_0_30,
+            1.0,
+            locale,
+        ),
+        metric_localized(
+            "Zonal 30-60°",
+            "zonal_30_60",
+            "%",
+            a.zonal_lumens.zone_30_60,
+            b.zonal_lumens.zone_30_60,
+            1.0,
+            locale,
+        ),
+        metric_localized(
+            "Zonal 60-90°",
+            "zonal_60_90",
+            "%",
+            a.zonal_lumens.zone_60_90,
+            b.zonal_lumens.zone_60_90,
+            1.0,
+            locale,
+        ),
+        metric_localized(
+            "Zonal 90-120°",
+            "zonal_90_120",
+            "%",
+            a.zonal_lumens.zone_90_120,
+            b.zonal_lumens.zone_90_120,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "Zonal 120-150°",
+            "zonal_120_150",
+            "%",
+            a.zonal_lumens.zone_120_150,
+            b.zonal_lumens.zone_120_150,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "Zonal 150-180°",
+            "zonal_150_180",
+            "%",
+            a.zonal_lumens.zone_150_180,
+            b.zonal_lumens.zone_150_180,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "CIE N1",
+            "cie_n1",
+            "%",
+            a.cie_flux_codes.n1,
+            b.cie_flux_codes.n1,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "CIE N2",
+            "cie_n2",
+            "%",
+            a.cie_flux_codes.n2,
+            b.cie_flux_codes.n2,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "CIE N3",
+            "cie_n3",
+            "%",
+            a.cie_flux_codes.n3,
+            b.cie_flux_codes.n3,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "CIE N4",
+            "cie_n4",
+            "%",
+            a.cie_flux_codes.n4,
+            b.cie_flux_codes.n4,
+            0.5,
+            locale,
+        ),
+        metric_localized(
+            "CIE N5",
+            "cie_n5",
+            "%",
+            a.cie_flux_codes.n5,
+            b.cie_flux_codes.n5,
+            0.5,
+            locale,
         ),
     ]
 }

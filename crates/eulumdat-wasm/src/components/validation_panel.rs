@@ -11,8 +11,8 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     move || {
         let ldt = ldt.get();
         let l = locale.get();
-        let warnings = ldt.validate();
-        let strict_result = ldt.validate_strict();
+        let warnings = eulumdat::validate_with_locale(&ldt, &l);
+        let strict_result = eulumdat::validate_strict_with_locale(&ldt, &l);
 
         let has_errors = strict_result.is_err();
         let errors = strict_result.err().unwrap_or_default();

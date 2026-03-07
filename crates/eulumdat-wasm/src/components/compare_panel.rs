@@ -13,6 +13,13 @@ use super::app::use_unit_system;
 use super::templates::{TemplateFormat, ALL_TEMPLATES};
 use crate::i18n::use_locale;
 
+// JS binding for lazy-loaded template content
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_name = getTemplateContent, catch)]
+    async fn get_template_content_js(id: &str) -> Result<JsValue, JsValue>;
+}
+
 /// Compare diagram mode
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 enum CompareDiagramMode {
@@ -36,18 +43,18 @@ impl CompareDiagramMode {
         !matches!(self, Self::Polar | Self::Cartesian)
     }
 
-    fn label(self) -> &'static str {
+    fn label(self, locale: &eulumdat_i18n::Locale) -> String {
         match self {
-            Self::Polar => "Polar",
-            Self::Cartesian => "Cartesian",
-            Self::Heatmap => "Heatmap",
-            Self::Butterfly => "Butterfly",
-            Self::Cone => "Cone",
-            Self::Isocandela => "Isocandela",
-            Self::Isolux => "Isolux",
-            Self::Floodlight => "Floodlight",
-            Self::Bug => "BUG",
-            Self::Lcs => "LCS",
+            Self::Polar => locale.ui.tabs.polar.clone(),
+            Self::Cartesian => locale.ui.tabs.cartesian.clone(),
+            Self::Heatmap => locale.ui.tabs.heatmap.clone(),
+            Self::Butterfly => locale.ui.tabs.diagram_3d.clone(),
+            Self::Cone => locale.ui.tabs.cone.clone(),
+            Self::Isocandela => locale.ui.tabs.floodlight_isocandela.clone(),
+            Self::Isolux => locale.ui.tabs.floodlight_isolux.clone(),
+            Self::Floodlight => locale.ui.tabs.floodlight.clone(),
+            Self::Bug => locale.ui.tabs.bug_rating.clone(),
+            Self::Lcs => locale.ui.tabs.lcs.clone(),
         }
     }
 
@@ -270,7 +277,11 @@ pub fn ComparePanel(
     });
 
     // File A label derived from current_file
-    let label_a = Memo::new(move |_| current_file.get().unwrap_or_else(|| "File A".to_string()));
+    let label_a = Memo::new(move |_| {
+        current_file
+            .get()
+            .unwrap_or_else(|| locale.get().ui.compare.file_a.clone())
+    });
 
     // Shared helper: load a file into File B state
     let load_file_b = move |name: String, content: String| {
@@ -332,25 +343,44 @@ pub fn ComparePanel(
         set_label_b.set(None);
     };
 
-    // Handle template selection for File B
+    // Handle template selection for File B (async - loads from templates WASM module)
     let on_template_select = move |ev: ev::Event| {
         let select: web_sys::HtmlSelectElement = ev.target().unwrap().unchecked_into();
         let idx: usize = select.value().parse().unwrap_or(usize::MAX);
         if idx < ALL_TEMPLATES.len() {
             let tmpl = ALL_TEMPLATES[idx];
-            let parsed = match tmpl.format {
-                TemplateFormat::Ldt => Eulumdat::parse(tmpl.content).ok(),
-                TemplateFormat::AtlaXml => atla::xml::parse(tmpl.content)
-                    .ok()
-                    .map(|doc| doc.to_eulumdat()),
-                TemplateFormat::AtlaJson => atla::json::parse(tmpl.content)
-                    .ok()
-                    .map(|doc| doc.to_eulumdat()),
-            };
-            if let Some(ldt) = parsed {
-                set_ldt_b.set(Some(ldt));
-                set_label_b.set(Some(tmpl.name.to_string()));
-            }
+            let id = tmpl.id.to_string();
+            let format = tmpl.format;
+            let name = tmpl.name.to_string();
+
+            wasm_bindgen_futures::spawn_local(async move {
+                match get_template_content_js(&id).await {
+                    Ok(js_val) => {
+                        if let Some(content) = js_val.as_string() {
+                            let parsed = match format {
+                                TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
+                                TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
+                                TemplateFormat::AtlaXml => {
+                                    atla::xml::parse(&content).ok().map(|doc| doc.to_eulumdat())
+                                }
+                                TemplateFormat::AtlaJson => atla::json::parse(&content)
+                                    .ok()
+                                    .map(|doc| doc.to_eulumdat()),
+                            };
+                            if let Some(ldt) = parsed {
+                                set_ldt_b.set(Some(ldt));
+                                set_label_b.set(Some(name));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        let msg = e.as_string().unwrap_or_else(|| "Unknown error".to_string());
+                        web_sys::console::error_1(
+                            &format!("Failed to load template '{}': {}", id, msg).into(),
+                        );
+                    }
+                }
+            });
         }
     };
 
@@ -359,9 +389,14 @@ pub fn ComparePanel(
         let a = ldt.get();
         ldt_b.get().map(|b| {
             let la = label_a.get();
-            let lb = label_b.get().unwrap_or_else(|| "File B".to_string());
+            let lb = label_b
+                .get()
+                .unwrap_or_else(|| locale.get().ui.compare.file_b.clone());
             let units = unit_system.get();
-            PhotometricComparison::from_eulumdat_with_units(&a, &b, &la, &lb, units)
+            let loc = locale.get();
+            PhotometricComparison::from_eulumdat_with_units_and_locale(
+                &a, &b, &la, &lb, units, &loc,
+            )
         })
     });
 
@@ -370,7 +405,9 @@ pub fn ComparePanel(
         let a = ldt.get();
         ldt_b.get().map(|b| {
             let la = label_a.get();
-            let lb = label_b.get().unwrap_or_else(|| "File B".to_string());
+            let lb = label_b
+                .get()
+                .unwrap_or_else(|| locale.get().ui.compare.file_b.clone());
             let theme = SvgTheme::css_variables();
             let units = unit_system.get();
             let isolux_params = IsoluxParams {
@@ -402,7 +439,9 @@ pub fn ComparePanel(
         if let Some(b_ldt) = ldt_b.get() {
             let a_ldt = ldt.get();
             let la = label_a.get();
-            let lb = label_b.get().unwrap_or_else(|| "File B".to_string());
+            let lb = label_b
+                .get()
+                .unwrap_or_else(|| locale.get().ui.compare.file_b.clone());
             let typst_source = eulumdat_typst::generate_comparison_report(&a_ldt, &b_ldt, &la, &lb);
             super::file_handler::download_file(
                 "comparison_report.typ",
@@ -419,7 +458,9 @@ pub fn ComparePanel(
         if let Some(b_ldt) = ldt_b.get() {
             let a_ldt = ldt.get();
             let la = label_a.get();
-            let lb = label_b.get().unwrap_or_else(|| "File B".to_string());
+            let lb = label_b
+                .get()
+                .unwrap_or_else(|| locale.get().ui.compare.file_b.clone());
             let typst_source = eulumdat_typst::generate_comparison_report(&a_ldt, &b_ldt, &la, &lb);
 
             set_pdf_exporting.set(true);
@@ -464,7 +505,7 @@ pub fn ComparePanel(
         <div class="compare-panel">
             // File B selector
             <div class="compare-file-controls">
-                <h4>"Compare with:"</h4>
+                <h4>{move || locale.get().ui.compare.title.clone()}</h4>
 
                 // Drag-and-drop zone for File B
                 <div
@@ -473,10 +514,10 @@ pub fn ComparePanel(
                     on:dragleave=on_dragleave
                     on:drop=on_drop
                 >
-                    <p>"Drop a .ldt, .ies, or .xml file here"</p>
+                    <p>{move || locale.get().ui.compare.drop_hint.clone()}</p>
                     <div class="compare-inputs">
                         <label class="compare-file-btn">
-                            "Browse file"
+                            {move || locale.get().ui.compare.browse.clone()}
                             <input
                                 type="file"
                                 accept=".ldt,.ies,.xml,.json"
@@ -484,9 +525,9 @@ pub fn ComparePanel(
                                 on:change=on_file_b_input
                             />
                         </label>
-                        <span class="compare-or">"or"</span>
+                        <span class="compare-or">{move || locale.get().ui.compare.or.clone()}</span>
                         <select class="compare-template-select" on:change=on_template_select>
-                            <option value="" disabled selected>"Select template..."</option>
+                            <option value="" disabled selected>{move || locale.get().ui.compare.select_template.clone()}</option>
                             {ALL_TEMPLATES.iter().enumerate().map(|(i, t)| {
                                 view! {
                                     <option value={i.to_string()}>{t.name} " - " {t.description}</option>
@@ -498,8 +539,8 @@ pub fn ComparePanel(
 
                 {move || label_b.get().map(|name| view! {
                     <div class="compare-file-b-name">
-                        <strong>"File B: "</strong>{name.clone()}
-                        <button class="compare-clear-btn" on:click=on_clear_b title="Clear File B">"✕"</button>
+                        <strong>{move || locale.get().ui.compare.file_b_label.clone()}</strong>{name.clone()}
+                        <button class="compare-clear-btn" on:click=on_clear_b title=move || locale.get().ui.compare.clear.clone()>"✕"</button>
                     </div>
                 })}
             </div>
@@ -507,6 +548,7 @@ pub fn ComparePanel(
             // Comparison results (only shown when File B is loaded)
             {move || {
                 if let Some(cmp) = comparison.get() {
+                    let loc = locale.get();
                     let score = cmp.similarity_score;
                     let score_class = if score > 0.9 { "similarity-high" }
                         else if score > 0.7 { "similarity-medium" }
@@ -517,13 +559,13 @@ pub fn ComparePanel(
                     let mode = diagram_mode.get();
                     let sbs = mode.is_side_by_side();
                     let la_label = label_a.get();
-                    let lb_label = label_b.get().unwrap_or_else(|| "File B".to_string());
+                    let lb_label = label_b.get().unwrap_or_else(|| loc.ui.compare.file_b.clone());
 
                     view! {
                         <div class="compare-results">
                             // Similarity badge
                             <div class={format!("similarity-badge {}", score_class)}>
-                                <span class="similarity-label">"Similarity"</span>
+                                <span class="similarity-label">{loc.ui.compare.similarity.clone()}</span>
                                 <span class="similarity-value">{format!("{:.1}%", score * 100.0)}</span>
                             </div>
 
@@ -534,20 +576,20 @@ pub fn ComparePanel(
                                     on:click=on_export_compare_pdf
                                     disabled=move || pdf_exporting.get()
                                 >
-                                    {move || if pdf_exporting.get() { "Exporting..." } else { "Export Comparison (.pdf)" }}
+                                    {move || if pdf_exporting.get() { locale.get().ui.compare.exporting.clone() } else { locale.get().ui.compare.export_pdf.clone() }}
                                 </button>
                                 <button
                                     class="compare-export-btn secondary"
                                     on:click=on_export_compare_typ
                                 >
-                                    "Export Comparison (.typ)"
+                                    {loc.ui.compare.export_typ.clone()}
                                 </button>
                             </div>
 
                             // Diagram toggle
                             <div class="compare-diagram-toggle">
                                 {CompareDiagramMode::ALL.iter().map(|&m| {
-                                    let label = m.label();
+                                    let label = m.label(&loc);
                                     view! {
                                         <button
                                             class=move || if diagram_mode.get() == m { "active" } else { "" }
@@ -570,7 +612,7 @@ pub fn ComparePanel(
                                 }
                             >
                                 <div class="control-group">
-                                    <span>"File A C-plane"</span>
+                                    <span>{move || locale.get().ui.compare.file_a_c_plane.clone()}</span>
                                     <input
                                         type="range"
                                         min="0"
@@ -605,7 +647,7 @@ pub fn ComparePanel(
                                     <span class="control-value">{move || format!("C {:.0}°", polar_c_plane_a.get())}</span>
                                 </div>
                                 <div class="control-group">
-                                    <span>"File B C-plane"</span>
+                                    <span>{move || locale.get().ui.compare.file_b_c_plane.clone()}</span>
                                     <input
                                         type="range"
                                         min="0"
@@ -649,7 +691,7 @@ pub fn ComparePanel(
                                                 set_link_sliders.set(checked);
                                             }
                                         />
-                                        " Link sliders"
+                                        {move || format!(" {}", locale.get().ui.compare.link_sliders)}
                                     </label>
                                 </div>
                             </div>
@@ -788,11 +830,11 @@ pub fn ComparePanel(
                                 <table class="compare-table">
                                     <thead>
                                         <tr>
-                                            <th>"Metric"</th>
-                                            <th>"File A"</th>
-                                            <th>"File B"</th>
-                                            <th>"Delta"</th>
-                                            <th>"%"</th>
+                                            <th>{loc.ui.compare.metric.clone()}</th>
+                                            <th>{loc.ui.compare.file_a.clone()}</th>
+                                            <th>{loc.ui.compare.file_b.clone()}</th>
+                                            <th>{loc.ui.compare.delta.clone()}</th>
+                                            <th>{loc.ui.compare.percent.clone()}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -825,10 +867,11 @@ pub fn ComparePanel(
                         </div>
                     }.into_any()
                 } else {
+                    let loc = locale.get();
                     view! {
                         <div class="compare-empty">
-                            <p>"Load a second photometric file to compare side-by-side."</p>
-                            <p class="text-muted">"Compares flux, efficacy, beam angles, intensity distribution, and more."</p>
+                            <p>{loc.ui.compare.empty_title.clone()}</p>
+                            <p class="text-muted">{loc.ui.compare.empty_hint.clone()}</p>
                         </div>
                     }.into_any()
                 }

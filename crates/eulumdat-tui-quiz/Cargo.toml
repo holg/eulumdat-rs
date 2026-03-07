@@ -1,0 +1,20 @@
+[package]
+name = "eulumdat-tui-quiz"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Terminal-based photometric knowledge quiz using ratatui"
+
+[[bin]]
+name = "eulumdat-quiz"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+crossterm = "0.28"
+eulumdat = { path = "../eulumdat" }
+eulumdat-i18n = { path = "../eulumdat-i18n" }
+eulumdat-quiz = { path = "../eulumdat-quiz" }
+ratatui = "0.29"
