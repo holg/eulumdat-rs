@@ -7,10 +7,9 @@ use ratatui::symbols::Marker;
 use ratatui::widgets::canvas::{Canvas, Line as CanvasLine};
 use ratatui::widgets::*;
 
-const FLUORESCENT_LDT: &str =
-    include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
-const ROAD_LDT: &str = include_str!("../../eulumdat-wasm/templates/road_luminaire.ldt");
-const PROJECTOR_LDT: &str = include_str!("../../eulumdat-wasm/templates/projector.ldt");
+const FLUORESCENT_LDT: &str = include_str!("../templates/fluorescent_luminaire.ldt");
+const ROAD_LDT: &str = include_str!("../templates/road_luminaire.ldt");
+const PROJECTOR_LDT: &str = include_str!("../templates/projector.ldt");
 
 pub struct TemplateLuminaires {
     pub fluorescent: Eulumdat,
