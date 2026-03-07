@@ -48,6 +48,10 @@ leptos_router = "0.7"
 # CLI dependencies
 clap = { version = "4.4", features = ["derive"] }
 
+# TUI dependencies
+crossterm = "0.28"
+ratatui = "0.29"
+
 # Dev dependencies
 approx = "0.5"
 wasm-bindgen-test = "0.3"
