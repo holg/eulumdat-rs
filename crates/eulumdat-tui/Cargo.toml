@@ -1,0 +1,19 @@
+[package]
+name = "eulumdat-tui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Terminal-based photometric data viewer for EULUMDAT/LDT and IES files"
+
+[[bin]]
+name = "eulumdat-tui"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+crossterm.workspace = true
+eulumdat.workspace = true
+ratatui.workspace = true
