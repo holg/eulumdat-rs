@@ -14,6 +14,7 @@ use crate::cli::{
     AtlaSchemaType, CalcType, CompareDiagramType, CompareFormat, ConversionPolicyArg, DiagramType,
     OutputFormat, SummaryFormat,
 };
+use std::fs;
 
 pub fn load_file(path: &PathBuf) -> Result<Eulumdat> {
     let ext = path
@@ -1327,5 +1328,131 @@ pub fn compare(
         }
     }
 
+    Ok(())
+}
+
+/// Interpolate between photometric files at different LED operating points.
+pub fn interpolate(
+    inputs: &[String],
+    steps: Option<&[f64]>,
+    range: Option<&str>,
+    count: usize,
+    at: Option<f64>,
+    format: OutputFormat,
+    output_dir: &PathBuf,
+    param_name: &str,
+    overwrite: bool,
+) -> Result<()> {
+    // Parse "file.ies:350" pairs
+    let mut parsed_inputs: Vec<(Eulumdat, f64)> = Vec::new();
+    let mut base_name = String::new();
+
+    for (i, spec) in inputs.iter().enumerate() {
+        let (path_str, value) = spec
+            .rsplit_once(':')
+            .with_context(|| format!("invalid input '{}' — expected format: file.ies:350", spec))?;
+
+        let value: f64 = value
+            .parse()
+            .with_context(|| format!("cannot parse '{}' as a number in '{}'", value, spec))?;
+
+        let path = PathBuf::from(path_str);
+        let ldt = load_file(&path)
+            .with_context(|| format!("failed to load '{}'", path_str))?;
+
+        if i == 0 {
+            base_name = path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("luminaire")
+                .to_string();
+            // Strip trailing operating-point suffix if present (e.g., "_350mA")
+            if let Some(pos) = base_name.rfind('_') {
+                let suffix = &base_name[pos + 1..];
+                if suffix.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+                    base_name.truncate(pos);
+                }
+            }
+        }
+
+        println!(
+            "  Loaded {} ({:.0} lm, {:.0} W) @ {}{}",
+            path_str,
+            ldt.total_luminous_flux(),
+            ldt.total_wattage(),
+            eulumdat::interpolate::format_value(value),
+            param_name,
+        );
+
+        parsed_inputs.push((ldt, value));
+    }
+
+    // Determine target values
+    let targets: Vec<f64> = if let Some(val) = at {
+        vec![val]
+    } else if let Some(step_vals) = steps {
+        step_vals.to_vec()
+    } else if let Some(range_str) = range {
+        let (start_str, end_str) = range_str
+            .split_once(':')
+            .with_context(|| format!("invalid --range '{}' — expected format: 350:700", range_str))?;
+        let start: f64 = start_str.parse().context("invalid range start")?;
+        let end: f64 = end_str.parse().context("invalid range end")?;
+        eulumdat::interpolate::linspace(start, end, count)
+    } else {
+        // Default: infer range from inputs, generate `count` steps
+        let min = parsed_inputs.iter().map(|(_, v)| *v).fold(f64::INFINITY, f64::min);
+        let max = parsed_inputs.iter().map(|(_, v)| *v).fold(f64::NEG_INFINITY, f64::max);
+        eulumdat::interpolate::linspace(min, max, count)
+    };
+
+    if targets.is_empty() {
+        anyhow::bail!("no target values specified — use --at, --steps, or --range");
+    }
+
+    println!("\n  Generating {} file(s)...\n", targets.len());
+
+    // Generate interpolated series
+    let series = eulumdat::interpolate::generate_series(&parsed_inputs, &targets)
+        .context("interpolation failed")?;
+
+    // Ensure output directory exists
+    fs::create_dir_all(output_dir)
+        .with_context(|| format!("cannot create output directory '{}'", output_dir.display()))?;
+
+    let ext = match format {
+        OutputFormat::Ies => "ies",
+        OutputFormat::Ldt => "ldt",
+    };
+
+    let mut written = 0;
+    for (value, ldt) in &series {
+        let val_str = eulumdat::interpolate::format_value(*value);
+        let filename = format!("{}_{}{}.{}", base_name, val_str, param_name, ext);
+        let out_path = output_dir.join(&filename);
+
+        if out_path.exists() && !overwrite {
+            println!("  SKIP {} (exists, use --overwrite)", filename);
+            continue;
+        }
+
+        let content = match format {
+            OutputFormat::Ies => IesExporter::export(ldt),
+            OutputFormat::Ldt => ldt.to_ldt(),
+        };
+
+        fs::write(&out_path, &content)
+            .with_context(|| format!("failed to write '{}'", out_path.display()))?;
+
+        println!(
+            "  \u{2713} {} ({:.0} lm, {:.0} W)",
+            filename,
+            ldt.total_luminous_flux(),
+            ldt.total_wattage(),
+        );
+        written += 1;
+    }
+
+    println!("\n  Done: {} file(s) written to {}", written, output_dir.display());
     Ok(())
 }

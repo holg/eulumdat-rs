@@ -286,3 +286,49 @@ LED
     assert!((ldt.lamp_sets[0].total_luminous_flux - 1000.5).abs() < 0.001);
     assert!((ldt.intensities[0][0] - 100.5).abs() < 0.001);
 }
+
+#[test]
+fn test_italo_ies_isolux() {
+    // Test the real ITALO IES file that uses absolute photometry
+    let content = std::fs::read_to_string(
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../eulumdat-wasm/templates/ITALO 1 5P5 S05 3.140-3M.IES")
+    ).unwrap();
+    let ldt = eulumdat::IesParser::parse(&content).unwrap();
+    
+    eprintln!("=== ITALO IES parsed ===");
+    eprintln!("num_lamps: {}", ldt.lamp_sets[0].num_lamps);
+    eprintln!("total_luminous_flux: {:.1}", ldt.lamp_sets[0].total_luminous_flux);
+    eprintln!("c_angles: {} ({:.0}..{:.0})", ldt.c_angles.len(), 
+        ldt.c_angles.first().unwrap_or(&0.0), ldt.c_angles.last().unwrap_or(&0.0));
+    eprintln!("g_angles: {} ({:.0}..{:.0})", ldt.g_angles.len(),
+        ldt.g_angles.first().unwrap_or(&0.0), ldt.g_angles.last().unwrap_or(&0.0));
+    eprintln!("intensities: {}x{}", ldt.intensities.len(),
+        ldt.intensities.first().map(|v| v.len()).unwrap_or(0));
+    eprintln!("symmetry: {:?}", ldt.symmetry);
+    eprintln!("sample(0,0)={:.2} sample(0,45)={:.2} sample(0,90)={:.2}",
+        ldt.sample(0.0, 0.0), ldt.sample(0.0, 45.0), ldt.sample(0.0, 90.0));
+    eprintln!("max_intensity: {:.2}", ldt.max_intensity());
+    
+    let total_flux: f64 = ldt.lamp_sets.iter()
+        .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
+        .sum();
+    eprintln!("total_flux: {:.1}, flux_scale: {:.4}", total_flux, total_flux / 1000.0);
+    
+    use eulumdat::diagram::{IsoluxDiagram, IsoluxParams};
+    let params = IsoluxParams {
+        mounting_height: 10.0,
+        tilt_angle: 0.0,
+        area_half_width: 20.0,
+        area_half_depth: 20.0,
+        grid_resolution: 60,
+    };
+    let diagram = IsoluxDiagram::from_eulumdat(&ldt, 600.0, 500.0, params);
+    
+    eprintln!("max_lux: {:.4}", diagram.max_lux);
+    eprintln!("cells: {}", diagram.cells.len());
+    let nonzero = diagram.cells.iter().filter(|c| c.lux > 0.001).count();
+    eprintln!("cells with lux>0.001: {}", nonzero);
+    eprintln!("contours: {}", diagram.contours.len());
+    
+    assert!(diagram.max_lux > 0.0, "ITALO isolux must have positive illuminance");
+}

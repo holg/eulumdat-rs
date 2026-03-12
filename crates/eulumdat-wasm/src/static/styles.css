@@ -181,6 +181,384 @@ textarea::placeholder {
     color: var(--text-muted);
 }
 
+/* ============================================
+   DASHBOARD VIEW (AEC-style parameter grid)
+   ============================================ */
+
+/* Dashboard layout: sidebar + main content */
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    min-height: 60vh;
+    background: var(--background);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Left icon sidebar */
+.dashboard-sidebar {
+    width: 48px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0;
+    gap: 0.5rem;
+}
+
+.sidebar-icon-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-icon-btn:hover {
+    background: var(--background);
+    color: var(--primary-color);
+}
+
+.sidebar-icon-btn.active {
+    color: var(--primary-color);
+    background: var(--background);
+}
+
+.sidebar-icon-btn.disabled,
+.sidebar-icon-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Sidebar divider between icon groups */
+.sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 6px;
+}
+
+/* Zoom overlay (full-screen diagram popup) */
+.zoom-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.zoom-overlay-content {
+    position: relative;
+    width: 85vw;
+    max-width: 1000px;
+    max-height: 85vh;
+    background: var(--surface);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: 24px;
+    overflow: auto;
+    cursor: default;
+}
+
+.zoom-overlay-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.zoom-overlay-close:hover {
+    background: var(--background);
+    color: var(--text-primary);
+}
+
+.zoom-overlay-diagram {
+    min-height: 300px;
+}
+
+/* Main dashboard area */
+.dashboard-main {
+    min-width: 0; /* prevent grid blowout */
+    overflow-x: auto;
+}
+
+/* Template switcher toolbar */
+.dashboard-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.template-select {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+}
+
+.template-select:focus {
+    border-color: var(--primary-color);
+}
+
+/* Parameter columns header bar */
+.params-header {
+    display: grid;
+    grid-template-columns:
+        40px                        /* expand arrow */
+        minmax(150px, 2fr)          /* Name */
+        minmax(70px, 0.8fr)         /* CCT */
+        minmax(60px, 0.7fr)         /* Power */
+        minmax(80px, 1fr)           /* Lumens */
+        minmax(55px, 0.6fr)         /* LOR */
+        minmax(80px, 1fr)           /* BUG */
+        minmax(50px, 0.5fr)         /* CRI */
+        minmax(60px, 0.7fr)         /* Beam */
+        40px;                       /* Actions */
+    align-items: center;
+    min-width: 700px;
+    border-bottom: 2px solid var(--border);
+    background: var(--surface);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.params-header .params-col {
+    padding: 0.6rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Luminaire data row (collapsed) */
+.luminaire-row {
+    display: grid;
+    grid-template-columns:
+        40px
+        minmax(150px, 2fr)
+        minmax(70px, 0.8fr)
+        minmax(60px, 0.7fr)
+        minmax(80px, 1fr)
+        minmax(55px, 0.6fr)
+        minmax(80px, 1fr)
+        minmax(50px, 0.5fr)
+        minmax(60px, 0.7fr)
+        40px;
+    align-items: center;
+    min-width: 700px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.85rem;
+}
+
+.luminaire-row:hover {
+    background: var(--background);
+}
+
+.luminaire-row.expanded {
+    background: var(--background);
+    border-bottom-color: var(--primary-color);
+}
+
+.luminaire-row.selected {
+    background: color-mix(in srgb, var(--primary-color) 12%, var(--surface));
+    border-left: 3px solid var(--primary-color);
+}
+
+.luminaire-row.compare-target {
+    background: color-mix(in srgb, #22c55e 10%, var(--surface));
+    border-left: 3px solid #22c55e;
+}
+
+.luminaire-row.selected.compare-target {
+    border-left: 3px solid var(--primary-color);
+    border-right: 3px solid #22c55e;
+}
+
+.luminaire-row .params-col {
+    padding: 0.65rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.luminaire-row .luminaire-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Expand arrow */
+.params-col-expand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expand-arrow {
+    display: inline-block;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+}
+
+.expand-arrow.open {
+    transform: rotate(90deg);
+}
+
+/* Action icons in the row */
+.params-col-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-icon {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.action-icon:hover {
+    color: var(--primary-color);
+}
+
+/* Expanded detail panel: 4 diagrams side-by-side */
+.luminaire-detail {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+}
+
+.luminaire-detail .detail-diagram {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+}
+
+.luminaire-detail .detail-diagram h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* Scale SVG diagrams to fit their grid cell */
+.luminaire-detail .detail-diagram .polar-diagram,
+.luminaire-detail .detail-diagram .cartesian-diagram,
+.luminaire-detail .detail-diagram .isolux-diagram,
+.luminaire-detail .detail-diagram .bug-rating-diagram {
+    width: 100%;
+    max-width: 100%;
+}
+
+.luminaire-detail .detail-diagram svg,
+.luminaire-detail .detail-diagram div[inner_html] svg,
+.luminaire-detail .detail-diagram > div {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Responsive: stack diagrams on smaller screens */
+@media (max-width: 1200px) {
+    .luminaire-detail {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .luminaire-detail {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-sidebar {
+        display: none;
+    }
+}
+
+/* Dashboard loading and footer */
+.dashboard-loading {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.dashboard-footer {
+    padding: 0.5rem 1rem;
+    text-align: right;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.dashboard-hint {
+    opacity: 0.7;
+    font-size: 0.7rem;
+}
+
+.dashboard-hint kbd {
+    display: inline-block;
+    padding: 0 0.3em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.65rem;
+    background: var(--background);
+}
+
+/* Editor back-to-dashboard bar */
+.editor-back-bar {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+}
+
+.editor-back-bar .btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+}
+
 .app {
     min-height: 100vh;
     background: var(--background);

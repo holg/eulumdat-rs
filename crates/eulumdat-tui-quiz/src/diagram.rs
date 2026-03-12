@@ -27,38 +27,46 @@ impl TemplateLuminaires {
     }
 
     /// Returns the diagram spec for a given category (used for non-DiagramReading categories).
+    /// Only show diagrams when the questions actually reference or require them.
     pub fn diagram_for_category(&self, category: &Category) -> Option<DiagramSpec> {
         match category {
-            Category::DiagramTypes | Category::CoordinateSystems => {
-                Some(self.fluorescent_diagram())
-            }
+            Category::CoordinateSystems => Some(self.fluorescent_diagram()),
             Category::Symmetry => Some(self.symmetry_pair()),
-            Category::PhotometricCalc => Some(self.projector_diagram()),
             Category::DiagramReading => {
                 // DiagramReading uses per-question diagrams; this is the fallback
                 Some(self.fluorescent_diagram())
             }
+            // DiagramTypes, PhotometricCalc, etc. — questions are theoretical/formula-based,
+            // showing a specific diagram would be misleading
             _ => None,
         }
     }
 
     /// Returns the diagram spec matched to a specific DiagramReading question.
+    /// Only show diagrams that are directly relevant and consistent with the question text.
     pub fn diagram_for_question(&self, question_id: u32) -> Option<DiagramSpec> {
         match question_id {
-            // Symmetric vs asymmetric comparison questions
+            // Fluorescent polar: curve colors, nadir peak, grid circles, overlapping curves, 90° axis
+            17001 | 17002 | 17003 | 17004 | 17010 => Some(self.fluorescent_diagram()),
+            // No diagram — question asks about a hypothetical single-curve (Isym=1) luminaire
+            // Showing fluorescent (which has both curves) would contradict the question
+            17005 => None,
+            // Symmetric vs asymmetric side-by-side comparison
             17006 | 17012 => Some(self.symmetry_pair()),
-            // Road luminaire questions (asymmetric throw)
+            // Road luminaire (asymmetric throw)
             17007 => Some(self.road_diagram()),
-            // Projector questions (narrow beam)
+            // Projector (narrow beam spike)
             17008 | 17011 => Some(self.projector_diagram()),
-            // Heatmap questions (fluorescent luminaire)
+            // Grid reading — fluorescent polar (curve crosses grid circles)
+            17009 => Some(self.fluorescent_diagram()),
+            // Heatmap questions — fluorescent heatmap
             17013..=17020 => Some(self.fluorescent_heatmap()),
-            // Grid reading, curve colors, nadir, angles — fluorescent polar
-            17001 | 17002 | 17003 | 17004 | 17005 | 17009 | 17010 => {
-                Some(self.fluorescent_diagram())
-            }
-            // Unknown DiagramReading question — fluorescent fallback
-            _ => Some(self.fluorescent_diagram()),
+            // 17016: question describes a hypothetical symmetric heatmap pattern —
+            // the fluorescent heatmap is BothPlanes symmetric, which is close enough
+            // 17017: describes "sharp transition" (narrow beam) — not our fluorescent,
+            // but the question is theoretical about what a pattern means
+            // Unknown DiagramReading question — no diagram to avoid mismatches
+            _ => None,
         }
     }
 

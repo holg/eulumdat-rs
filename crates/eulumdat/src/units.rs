@@ -64,6 +64,14 @@ impl UnitSystem {
         }
     }
 
+    /// Convert a value from the selected unit back to meters.
+    pub fn to_meters(&self, val: f64) -> f64 {
+        match self {
+            Self::Metric => val,
+            Self::Imperial => val * M_PER_FT,
+        }
+    }
+
     // ── Dimensions (millimeters) ───────────────────────────────
 
     /// Unit abbreviation for small dimensions ("mm" or "in").

@@ -8,6 +8,7 @@ mod butterfly_diagram;
 mod cartesian_diagram;
 mod compare_panel;
 mod cone_diagram;
+mod dashboard;
 mod data_table;
 mod diagram_zoom;
 pub mod file_handler;

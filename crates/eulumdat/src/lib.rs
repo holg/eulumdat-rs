@@ -168,6 +168,7 @@
 
 pub mod batch;
 pub mod bug_rating;
+pub mod interpolate;
 mod calculations;
 pub mod compare;
 pub mod diagram;

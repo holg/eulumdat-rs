@@ -124,5 +124,26 @@ fn main() -> Result<()> {
             ugr_table,
             candela_table,
         ),
+        Commands::Interpolate {
+            inputs,
+            steps,
+            range,
+            count,
+            at,
+            format,
+            output_dir,
+            param_name,
+            overwrite,
+        } => commands::interpolate(
+            &inputs,
+            steps.as_deref(),
+            range.as_deref(),
+            count,
+            at,
+            format,
+            &output_dir,
+            &param_name,
+            overwrite,
+        ),
     }
 }

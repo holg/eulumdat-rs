@@ -103,6 +103,52 @@ Generate publication-ready photometric reports via `eulumdat-typst`:
 - Comparison report: overlay diagrams, metrics table, side-by-side analysis
 - CLI: `eulumdat report luminaire.ldt report.typ`
 
+### LED Operating Point Interpolation
+
+Generate photometric files at intermediate LED operating points from measured data. If you have a luminaire tested at 350 mA and 700 mA, produce files at any current in between — letting customers pick the exact lumen output they need.
+
+**Use cases:**
+- LED driver current sweep (e.g., 350 mA → 700 mA in 50 mA steps)
+- Color temperature blending (e.g., 3000 K and 5000 K, generate 3500 K / 4000 K / 4500 K)
+- Power-level variants for specification sheets
+
+**What gets interpolated:** intensity grid (every C×G cell), luminous flux, wattage, LOR, downward flux fraction, direct ratios. Angle grids, symmetry, dimensions, and lamp metadata stay constant.
+
+```bash
+# Single point
+eulumdat interpolate fixture_350mA.ies:350 fixture_700mA.ies:700 --at 500
+
+# Specific steps
+eulumdat interpolate lo.ies:350 hi.ies:700 --steps 400,450,500,550,600,650
+
+# Evenly spaced range (8 files from 350 to 700)
+eulumdat interpolate lo.ies:350 hi.ies:700 --range 350:700 --count 8
+
+# 3+ input files for piecewise linear interpolation
+eulumdat interpolate a.ies:350 b.ies:500 c.ies:700 --steps 400,600
+
+# Output as LDT, custom directory and parameter label
+eulumdat interpolate lo.ies:350 hi.ies:700 --range 350:700 -f ldt -o output/ --param-name mA
+```
+
+Output files are named `{base}_{value}{param}.{ext}` (e.g., `fixture_500mA.ies`). Supports 2+ input files with piecewise linear interpolation between bracketing pairs.
+
+```rust
+// Rust API
+use eulumdat::{Eulumdat, interpolate};
+
+let a = Eulumdat::from_file("fixture_350mA.ies")?;
+let b = Eulumdat::from_file("fixture_700mA.ies")?;
+
+// Interpolate at 50% between two measurements
+let mid = interpolate::interpolate_eulumdat(&a, &b, 0.5)?;
+
+// Generate a series at specific operating points
+let inputs = vec![(a, 350.0), (b, 700.0)];
+let targets = vec![400.0, 500.0, 600.0];
+let series = interpolate::generate_series(&inputs, &targets)?;
+```
+
 ## Features
 
 - **Parse LDT/IES/ATLA files** - EULUMDAT, IESNA LM-63-2019, TM-33-23 XML/JSON
@@ -114,6 +160,7 @@ Generate publication-ready photometric reports via `eulumdat-typst`:
 - **BUG Rating** - IESNA TM-15-11 Backlight-Uplight-Glare calculations
 - **TM-32-24 BIM** - 100+ building information modeling parameters
 - **12 diagram types** - Polar, Butterfly, Cartesian, Heatmap, BUG, LCS, Cone, Beam Angle, Spectral, Greenhouse, Isocandela, Isolux, Floodlight V-H
+- **LED interpolation** - Generate photometric files at intermediate operating points (current, CCT, power)
 - **File comparison** - 36-metric similarity scoring with overlay diagrams and PDF report export
 - **Google Maps designer** - Real-world illuminance simulation on satellite imagery
 - **3D scene viewer** - Interactive Bevy-based room/road/parking/outdoor scenes with photometric lighting
@@ -341,6 +388,11 @@ eulumdat atla-convert s001.xml tm33.xml --target tm3323 --verbose
 
 # GLDF-compatible export
 eulumdat gldf luminaire.ldt --pretty -o gldf_data.json
+
+# Interpolate between LED operating points
+eulumdat interpolate fixture_350mA.ies:350 fixture_700mA.ies:700 --at 500
+eulumdat interpolate lo.ies:350 hi.ies:700 --range 350:700 --count 8
+eulumdat interpolate a.ies:350 b.ies:500 c.ies:700 --steps 400,600
 ```
 
 ### macOS / iOS

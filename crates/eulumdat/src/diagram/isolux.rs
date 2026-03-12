@@ -129,10 +129,12 @@ impl IsoluxDiagram {
         let h = params.mounting_height;
         let tilt_rad = params.tilt_angle.to_radians();
 
+        // Use abs(num_lamps) because negative num_lamps signals absolute
+        // photometry (IES), where total_luminous_flux is already the real total.
         let total_flux: f64 = ldt
             .lamp_sets
             .iter()
-            .map(|ls| ls.total_luminous_flux * ls.num_lamps as f64)
+            .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
             .sum();
         let flux_scale = total_flux / 1000.0;
 
@@ -345,5 +347,34 @@ mod tests {
         // Should have at least some contour levels
         // (exact count depends on max_lux)
         assert!(diagram.max_lux > 0.0);
+    }
+
+    #[test]
+    fn test_isolux_absolute_photometry() {
+        // Simulate IES absolute photometry: num_lamps = -1
+        let ldt = Eulumdat {
+            c_angles: vec![0.0, 90.0, 180.0, 270.0],
+            g_angles: vec![0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0],
+            intensities: vec![
+                vec![300.0, 280.0, 220.0, 140.0, 60.0, 15.0, 3.0],
+                vec![300.0, 270.0, 200.0, 120.0, 50.0, 12.0, 2.0],
+                vec![300.0, 280.0, 220.0, 140.0, 60.0, 15.0, 3.0],
+                vec![300.0, 270.0, 200.0, 120.0, 50.0, 12.0, 2.0],
+            ],
+            lamp_sets: vec![LampSet {
+                num_lamps: -1, // absolute photometry flag
+                total_luminous_flux: 10000.0,
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+
+        let params = IsoluxParams::default();
+        let diagram = IsoluxDiagram::from_eulumdat(&ldt, 600.0, 500.0, params);
+
+        assert!(
+            diagram.max_lux > 0.0,
+            "Absolute photometry (num_lamps=-1) must still produce positive illuminance"
+        );
     }
 }

@@ -43,8 +43,19 @@ pub fn save_language(lang: Language) {
     }
 }
 
-/// Initialize language - checks localStorage first, then browser, falls back to English
+/// Read a URL search parameter (e.g. `?lang=de` → `Some("de")`)
+pub fn get_url_param(key: &str) -> Option<String> {
+    let window = web_sys::window()?;
+    let search = window.location().search().ok()?;
+    let params = web_sys::UrlSearchParams::new_with_str(&search).ok()?;
+    params.get(key)
+}
+
+/// Initialize language - checks URL param first, then localStorage, then browser, falls back to English
 pub fn init_language() -> Language {
+    if let Some(code) = get_url_param("lang") {
+        return Language::from_code(&code);
+    }
     get_saved_language().unwrap_or_else(detect_browser_language)
 }
 

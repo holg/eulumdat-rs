@@ -705,11 +705,13 @@ pub fn ComparePanel(
                                     <span>{move || locale.get().diagram.cone.mounting_height.clone()}</span>
                                     <input
                                         type="range"
-                                        min="1" max="15" step="0.5"
-                                        prop:value=move || cmp_cone_height.get().to_string()
+                                        prop:min=move || match unit_system.get() { UnitSystem::Metric => "1", _ => "3" }
+                                        prop:max=move || match unit_system.get() { UnitSystem::Metric => "15", _ => "50" }
+                                        prop:step=move || match unit_system.get() { UnitSystem::Metric => "0.5", _ => "1" }
+                                        prop:value=move || unit_system.get().convert_meters(cmp_cone_height.get()).to_string()
                                         on:input=move |ev| {
                                             if let Ok(v) = event_target_value(&ev).parse::<f64>() {
-                                                set_cmp_cone_height.set(v);
+                                                set_cmp_cone_height.set(unit_system.get().to_meters(v));
                                             }
                                         }
                                     />
@@ -760,11 +762,13 @@ pub fn ComparePanel(
                                     <span>{move || locale.get().ui.floodlight.mounting_height.clone()}</span>
                                     <input
                                         type="range"
-                                        min="3" max="30" step="0.5"
-                                        prop:value=move || cmp_isolux_height.get().to_string()
+                                        prop:min=move || match unit_system.get() { UnitSystem::Metric => "3", _ => "10" }
+                                        prop:max=move || match unit_system.get() { UnitSystem::Metric => "30", _ => "100" }
+                                        prop:step=move || match unit_system.get() { UnitSystem::Metric => "0.5", _ => "1" }
+                                        prop:value=move || unit_system.get().convert_meters(cmp_isolux_height.get()).to_string()
                                         on:input=move |ev| {
                                             if let Ok(v) = event_target_value(&ev).parse::<f64>() {
-                                                set_cmp_isolux_height.set(v);
+                                                set_cmp_isolux_height.set(unit_system.get().to_meters(v));
                                             }
                                         }
                                     />
@@ -788,11 +792,13 @@ pub fn ComparePanel(
                                     <span>{move || locale.get().ui.floodlight.area_size.clone()}</span>
                                     <input
                                         type="range"
-                                        min="10" max="100" step="5"
-                                        prop:value=move || cmp_area_size.get().to_string()
+                                        prop:min=move || match unit_system.get() { UnitSystem::Metric => "10", _ => "30" }
+                                        prop:max=move || match unit_system.get() { UnitSystem::Metric => "100", _ => "300" }
+                                        prop:step=move || match unit_system.get() { UnitSystem::Metric => "5", _ => "10" }
+                                        prop:value=move || unit_system.get().convert_meters(cmp_area_size.get()).to_string()
                                         on:input=move |ev| {
                                             if let Ok(v) = event_target_value(&ev).parse::<f64>() {
-                                                set_cmp_area_size.set(v);
+                                                set_cmp_area_size.set(unit_system.get().to_meters(v));
                                             }
                                         }
                                     />

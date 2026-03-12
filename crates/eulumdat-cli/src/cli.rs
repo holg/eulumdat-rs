@@ -276,6 +276,55 @@ pub enum Commands {
         #[arg(long)]
         candela_table: bool,
     },
+
+    /// Interpolate between photometric files at different LED operating points
+    ///
+    /// Takes 2+ photometric files measured at known operating values (e.g.,
+    /// driver currents) and generates new files at intermediate points.
+    ///
+    /// Input format: file.ies:350  (filepath:operating_value)
+    ///
+    /// Examples:
+    ///   eulumdat interpolate fixture_350mA.ies:350 fixture_700mA.ies:700 --at 500
+    ///   eulumdat interpolate lo.ldt:350 hi.ldt:700 --range 350:700 --count 8
+    ///   eulumdat interpolate a.ies:350 b.ies:500 c.ies:700 --steps 400,450,550,650
+    Interpolate {
+        /// Input files with operating point values (format: file.ies:350)
+        #[arg(required = true, num_args = 2..)]
+        inputs: Vec<String>,
+
+        /// Specific operating point values to generate (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        steps: Option<Vec<f64>>,
+
+        /// Generate evenly spaced points in range (format: start:end)
+        #[arg(long)]
+        range: Option<String>,
+
+        /// Number of evenly spaced points (used with --range)
+        #[arg(long, default_value = "8")]
+        count: usize,
+
+        /// Generate a single interpolated file at this value
+        #[arg(long)]
+        at: Option<f64>,
+
+        /// Output format
+        #[arg(short = 'f', long, value_enum, default_value = "ies")]
+        format: OutputFormat,
+
+        /// Output directory
+        #[arg(short, long, default_value = ".")]
+        output_dir: PathBuf,
+
+        /// Parameter name for output filenames (e.g., "mA", "K", "W", "pct")
+        #[arg(long, default_value = "mA")]
+        param_name: String,
+
+        /// Allow overwriting existing files
+        #[arg(long)]
+        overwrite: bool,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]

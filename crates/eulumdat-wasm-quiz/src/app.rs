@@ -45,7 +45,7 @@ impl TemplateLuminaires {
         };
 
         match category {
-            Category::DiagramTypes | Category::CoordinateSystems => {
+            Category::CoordinateSystems => {
                 let polar = PolarDiagram::from_eulumdat(&self.fluorescent);
                 let polar_svg = polar.to_svg(280.0, 280.0, &theme);
                 let cart = CartesianDiagram::from_eulumdat(&self.fluorescent, 280.0, 200.0, 4);
@@ -67,16 +67,10 @@ impl TemplateLuminaires {
                     r#"<div class="diagram-pair"><div class="diagram-item"><div class="diagram-label">{sym_label}</div>{svg_sym}</div><div class="diagram-item"><div class="diagram-label">{asym_label}</div>{svg_asym}</div></div>"#
                 ))
             }
-            Category::PhotometricCalc => {
-                let polar = PolarDiagram::from_eulumdat(&self.projector);
-                let svg = polar.to_svg(300.0, 300.0, &theme);
-                let label = &locale.ui.projector_narrow;
-                Some(format!(
-                    r#"<div class="diagram-single"><div class="diagram-label">{label}</div>{svg}</div>"#
-                ))
-            }
             // DiagramReading uses per-question routing via diagram_svg_for_question()
             Category::DiagramReading => Some(self.fluorescent_polar_svg(&theme, locale)),
+            // DiagramTypes, PhotometricCalc, etc. — questions are theoretical/formula-based,
+            // showing a specific diagram would be misleading
             _ => None,
         }
     }
@@ -94,39 +88,49 @@ impl TemplateLuminaires {
             SvgTheme::light()
         };
 
-        Some(match question_id {
+        match question_id {
+            // Fluorescent polar: curve colors, nadir peak, grid circles, overlapping curves, 90° axis
+            17001 | 17002 | 17003 | 17004 | 17010 => {
+                Some(self.fluorescent_polar_svg(&theme, locale))
+            }
+            // No diagram — question asks about a hypothetical single-curve (Isym=1) luminaire
+            17005 => None,
             // Symmetric vs asymmetric comparison
             17006 | 17012 => {
                 let svg_sym =
                     PolarDiagram::from_eulumdat(&self.fluorescent).to_svg(250.0, 250.0, &theme);
-                let svg_asym = PolarDiagram::from_eulumdat(&self.road).to_svg(250.0, 250.0, &theme);
+                let svg_asym =
+                    PolarDiagram::from_eulumdat(&self.road).to_svg(250.0, 250.0, &theme);
                 let sym_label = &locale.ui.symmetric;
                 let asym_label = &locale.ui.asymmetric;
-                format!(
+                Some(format!(
                     r#"<div class="diagram-pair"><div class="diagram-item"><div class="diagram-label">{sym_label}</div>{svg_sym}</div><div class="diagram-item"><div class="diagram-label">{asym_label}</div>{svg_asym}</div></div>"#
-                )
+                ))
             }
             // Road luminaire (asymmetric)
             17007 => {
                 let svg = PolarDiagram::from_eulumdat(&self.road).to_svg(300.0, 300.0, &theme);
                 let label = &locale.ui.asymmetric;
-                format!(
+                Some(format!(
                     r#"<div class="diagram-single"><div class="diagram-label">{label}</div>{svg}</div>"#
-                )
+                ))
             }
             // Projector (narrow beam)
             17008 | 17011 => {
-                let svg = PolarDiagram::from_eulumdat(&self.projector).to_svg(300.0, 300.0, &theme);
+                let svg =
+                    PolarDiagram::from_eulumdat(&self.projector).to_svg(300.0, 300.0, &theme);
                 let label = &locale.ui.projector_narrow;
-                format!(
+                Some(format!(
                     r#"<div class="diagram-single"><div class="diagram-label">{label}</div>{svg}</div>"#
-                )
+                ))
             }
+            // Grid reading — fluorescent polar
+            17009 => Some(self.fluorescent_polar_svg(&theme, locale)),
             // Heatmap questions
-            17013..=17020 => self.fluorescent_heatmap_svg(&theme, locale),
-            // All other DiagramReading questions — fluorescent polar
-            _ => self.fluorescent_polar_svg(&theme, locale),
-        })
+            17013..=17020 => Some(self.fluorescent_heatmap_svg(&theme, locale)),
+            // Unknown — no diagram to avoid mismatches
+            _ => None,
+        }
     }
 
     fn fluorescent_polar_svg(&self, theme: &SvgTheme, locale: &QuizLocale) -> String {

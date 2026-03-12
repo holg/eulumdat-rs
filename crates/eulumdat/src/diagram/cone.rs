@@ -230,7 +230,7 @@ impl ConeIlluminanceTable {
         let total_flux: f64 = ldt
             .lamp_sets
             .iter()
-            .map(|ls| ls.total_luminous_flux * ls.num_lamps as f64)
+            .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
             .sum();
 
         let half_beam_c0 = PhotometricCalculations::half_beam_angle_for_plane(ldt, 0.0);
@@ -258,7 +258,7 @@ impl ConeIlluminanceTable {
         let total_flux: f64 = ldt
             .lamp_sets
             .iter()
-            .map(|ls| ls.total_luminous_flux * ls.num_lamps as f64)
+            .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
             .sum();
 
         let half_beam = PhotometricCalculations::half_beam_angle_for_plane(ldt, c_plane);

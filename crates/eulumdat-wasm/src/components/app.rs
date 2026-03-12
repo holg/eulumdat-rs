@@ -38,6 +38,7 @@ async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
 use crate::i18n::{use_locale, LanguageSelectorCompact};
 use eulumdat_i18n::Locale;
 
+use super::dashboard::Dashboard;
 use super::beam_angle_diagram::BeamAngleDiagram;
 use super::bevy_scene::BevySceneViewer;
 use super::bim_panel::{has_bim_data, BimPanel, BimPanelEmpty};
@@ -159,6 +160,14 @@ fn log_color_data_from_ldt(filename: &str, ldt: &Eulumdat, doc: &LuminaireOptica
     }
 
     web_sys::console::group_end();
+}
+
+/// Top-level view mode: Dashboard overview vs full Editor
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub enum ViewMode {
+    #[default]
+    Dashboard,
+    Editor,
 }
 
 /// Main tab groups
@@ -334,8 +343,18 @@ pub fn use_unit_system() -> ReadSignal<UnitSystem> {
     unit_system
 }
 
-/// Load unit system from localStorage, defaulting to Metric.
+/// Load unit system from URL param (`?units=imperial`), then localStorage, defaulting to Metric.
 fn load_unit_system() -> UnitSystem {
+    // URL param takes priority
+    if let Some(val) = crate::i18n::get_url_param("units") {
+        if val.eq_ignore_ascii_case("imperial") || val.eq_ignore_ascii_case("imp") {
+            return UnitSystem::Imperial;
+        }
+        if val.eq_ignore_ascii_case("metric") || val.eq_ignore_ascii_case("si") {
+            return UnitSystem::Metric;
+        }
+    }
+    // Then localStorage
     if let Some(window) = web_sys::window() {
         if let Ok(Some(storage)) = window.local_storage() {
             if let Ok(Some(val)) = storage.get_item("eulumdat_unit_system") {
@@ -538,6 +557,7 @@ pub fn App() -> impl IntoView {
         }
     });
 
+    let (view_mode, set_view_mode) = signal(ViewMode::default());
     let (current_file, set_current_file) = signal::<Option<String>>(None);
     let (active_tab, set_active_tab) = signal(Tab::default());
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
@@ -962,8 +982,27 @@ pub fn App() -> impl IntoView {
                 .unwrap_or(default_filename);
             super::file_handler::download_svg(&filename, &svg_content);
         } else {
-            // No diagram to export - show alert or log
             web_sys::console::warn_1(&"No diagram to export on this tab".into());
+        }
+    };
+
+    let on_export_png = move |_| {
+        if let Some((svg_content, default_filename)) = generate_current_svg() {
+            let filename = current_file
+                .get()
+                .map(|f| replace_extension(&f, "png"))
+                .unwrap_or_else(|| default_filename.replace(".svg", ".png"));
+            super::file_handler::export_svg_as_png(&filename, &svg_content, 2.0);
+        }
+    };
+
+    let on_export_jpeg = move |_| {
+        if let Some((svg_content, default_filename)) = generate_current_svg() {
+            let filename = current_file
+                .get()
+                .map(|f| replace_extension(&f, "jpg"))
+                .unwrap_or_else(|| default_filename.replace(".svg", ".jpg"));
+            super::file_handler::export_svg_as_jpeg(&filename, &svg_content, 2.0, 0.92);
         }
     };
 
@@ -1104,6 +1143,24 @@ pub fn App() -> impl IntoView {
                                         }
                                     }}
                                 </button>
+                                <button
+                                    class=move || {
+                                        if generate_current_svg().is_some() { "menu-item" } else { "menu-item disabled" }
+                                    }
+                                    on:click=on_export_png
+                                    disabled=move || generate_current_svg().is_none()
+                                >
+                                    "Export PNG (2x)"
+                                </button>
+                                <button
+                                    class=move || {
+                                        if generate_current_svg().is_some() { "menu-item" } else { "menu-item disabled" }
+                                    }
+                                    on:click=on_export_jpeg
+                                    disabled=move || generate_current_svg().is_none()
+                                >
+                                    "Export JPEG"
+                                </button>
                                 // PDF/Typst export - only shown on secret URL
                                 {move || export_enabled.then(|| view! {
                                     <button
@@ -1227,8 +1284,70 @@ pub fn App() -> impl IntoView {
                     <p>{move || locale.get().ui.dropzone.text.clone()}</p>
                 </div>
 
-                // Main content
-                <main id="main-content" class="main-content" role="main" aria-label="Editor content">
+                // View mode switch: Dashboard overview or Editor
+                {move || match view_mode.get() {
+                    ViewMode::Dashboard => view! {
+                        <Dashboard
+                            ldt=ldt
+                            on_select=Callback::new(move |(new_ldt, name): (Eulumdat, String)| {
+                                set_ldt.set(new_ldt);
+                                set_current_file.set(Some(name));
+                            })
+                            on_compare=Callback::new(move |(cmp_ldt, name): (Eulumdat, String)| {
+                                set_compare_ldt_b.set(Some(cmp_ldt));
+                                set_compare_label_b.set(Some(name));
+                            })
+                            on_edit=Callback::new(move |_| set_view_mode.set(ViewMode::Editor))
+                            on_compare_view=Callback::new(move |_| {
+                                set_view_mode.set(ViewMode::Editor);
+                                set_active_tab.set(Tab::CompareTab);
+                            })
+                            on_export_pdf=Callback::new(move |export_ldt: Eulumdat| {
+                                let (typst_source, _) = eulumdat_typst::generate_typst_with_files(
+                                    &export_ldt,
+                                    &ReportOptions::default().sections,
+                                );
+                                let filename = current_file
+                                    .get()
+                                    .map(|f| replace_extension(&f, "pdf"))
+                                    .unwrap_or_else(|| "photometric_report.pdf".to_string());
+                                set_pdf_exporting.set(true);
+                                wasm_bindgen_futures::spawn_local(async move {
+                                    match compile_typst_to_pdf(&typst_source).await {
+                                        Ok(pdf_bytes) => {
+                                            super::file_handler::download_bytes(
+                                                &filename,
+                                                &pdf_bytes,
+                                                "application/pdf",
+                                            );
+                                        }
+                                        Err(e) => {
+                                            web_sys::console::error_1(
+                                                &format!("PDF export failed: {}", e).into(),
+                                            );
+                                            let typ_filename = filename.replace(".pdf", ".typ");
+                                            super::file_handler::download_file(
+                                                &typ_filename,
+                                                &typst_source,
+                                                "text/plain",
+                                            );
+                                        }
+                                    }
+                                    set_pdf_exporting.set(false);
+                                });
+                            })
+                        />
+                    }.into_any(),
+                    ViewMode::Editor => view! {
+                        <main id="main-content" class="main-content" role="main" aria-label="Editor content">
+                            <div class="editor-back-bar">
+                                <button
+                                    class="btn btn-secondary btn-sm"
+                                    on:click=move |_| set_view_mode.set(ViewMode::Dashboard)
+                                >
+                                    "\u{2190} Dashboard"
+                                </button>
+                            </div>
                     <div class="panel">
                         // Main Tabs - navigation landmark
                         <nav class="tabs main-tabs" role="tablist" aria-label="Editor sections">
@@ -1465,13 +1584,13 @@ pub fn App() -> impl IntoView {
                                                     <label>{move || locale.get().diagram.cone.mounting_height.clone()}</label>
                                                     <input
                                                         type="range"
-                                                        min="1"
-                                                        max="15"
-                                                        step="0.5"
-                                                        prop:value=move || mounting_height.get()
+                                                        prop:min=move || match unit_system.get() { UnitSystem::Metric => "1", _ => "3" }
+                                                        prop:max=move || match unit_system.get() { UnitSystem::Metric => "15", _ => "50" }
+                                                        prop:step=move || match unit_system.get() { UnitSystem::Metric => "0.5", _ => "1" }
+                                                        prop:value=move || unit_system.get().convert_meters(mounting_height.get()).to_string()
                                                         on:input=move |ev| {
                                                             if let Ok(value) = event_target_value(&ev).parse::<f64>() {
-                                                                set_mounting_height.set(value);
+                                                                set_mounting_height.set(unit_system.get().to_meters(value));
                                                             }
                                                         }
                                                     />
@@ -1566,13 +1685,13 @@ pub fn App() -> impl IntoView {
                                                     <label>{move || locale.get().diagram.greenhouse.max_height.clone()}</label>
                                                     <input
                                                         type="range"
-                                                        min="0.5"
-                                                        max="6"
-                                                        step="0.5"
-                                                        prop:value=move || greenhouse_height.get()
+                                                        prop:min=move || match unit_system.get() { UnitSystem::Metric => "0.5", _ => "2" }
+                                                        prop:max=move || match unit_system.get() { UnitSystem::Metric => "6", _ => "20" }
+                                                        prop:step=move || match unit_system.get() { UnitSystem::Metric => "0.5", _ => "1" }
+                                                        prop:value=move || unit_system.get().convert_meters(greenhouse_height.get()).to_string()
                                                         on:input=move |ev| {
                                                             if let Ok(value) = event_target_value(&ev).parse::<f64>() {
-                                                                set_greenhouse_height.set(value);
+                                                                set_greenhouse_height.set(unit_system.get().to_meters(value));
                                                             }
                                                         }
                                                     />
@@ -1707,7 +1826,9 @@ pub fn App() -> impl IntoView {
                             }}
                         </div>
                     </div>
-                </main>
+                        </main>
+                    }.into_any()
+                }}
             </div>
 
             // About Modal
