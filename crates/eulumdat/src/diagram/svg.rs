@@ -36,6 +36,20 @@ use super::{
 };
 use crate::units::UnitSystem;
 
+/// Format an illuminance value with appropriate precision.
+///
+/// Uses more decimal places for small values so they don't all show as "0".
+fn fmt_lux(val: f64) -> String {
+    let abs = val.abs();
+    if abs < 0.1 {
+        format!("{val:.2}")
+    } else if abs < 10.0 {
+        format!("{val:.1}")
+    } else {
+        format!("{val:.0}")
+    }
+}
+
 /// Detail level for SVG rendering
 ///
 /// Controls what elements are rendered based on display size.
@@ -383,6 +397,128 @@ impl SvgTheme {
             "#eab308", // yellow
         ];
         COLORS[index % COLORS.len()]
+    }
+}
+
+/// Rendering configuration for the isometric isolux SVG view.
+///
+/// Controls layout margins, visual sizes, contour rendering, colors,
+/// and font sizes. All current hardcoded values are preserved as defaults.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct IsometricConfig {
+    // ── Layout margins ──
+    /// Horizontal margin in pixels
+    pub margin_x: f64,
+    /// Top margin in pixels
+    pub margin_top: f64,
+    /// Bottom margin in pixels
+    pub margin_bottom: f64,
+    /// Space reserved for the legend on the right
+    pub legend_width: f64,
+
+    // ── Pole & mini polar ──
+    /// Height of the vertical pole in pixels
+    pub pole_height_px: f64,
+    /// Radius of the mini polar diagram at the pole top
+    pub polar_radius: f64,
+
+    // ── Contour rendering ──
+    /// Fractional lux levels at which to draw contour lines (relative to max_lux)
+    pub contour_fractions: Vec<f64>,
+    /// Number of angular samples when tracing each contour
+    pub contour_num_angles: usize,
+    /// Radial march steps for contour tracing
+    pub contour_march_steps: usize,
+
+    // ── Legend bar ──
+    /// Width of the gradient legend bar in pixels
+    pub legend_bar_width: f64,
+    /// Number of gradient segments in the legend
+    pub legend_num_segments: usize,
+    /// Legend height as a fraction of available height
+    pub legend_height_fraction: f64,
+
+    // ── Font sizes ──
+    /// Title font size
+    pub title_font_size: f64,
+    /// Distance/axis label font size
+    pub label_font_size: f64,
+    /// Contour illuminance label font size
+    pub contour_label_font_size: f64,
+    /// Info line font size
+    pub info_font_size: f64,
+
+    // ── Grayscale mapping ──
+    /// Maximum darkening factor for the grayscale gradient (0.0–1.0)
+    pub grayscale_max_darken: f64,
+
+    // ── Isometric-specific colors ──
+    /// Grid line color on the ground plane
+    pub grid_color: String,
+    /// Grid line stroke width
+    pub grid_stroke_width: f64,
+    /// Vertical pole color
+    pub pole_color: String,
+    /// Vertical pole stroke width
+    pub pole_stroke_width: f64,
+    /// Mini polar diagram fill color
+    pub polar_fill: String,
+    /// Mini polar diagram stroke color
+    pub polar_stroke: String,
+    /// Mini polar diagram stroke width
+    pub polar_stroke_width: f64,
+
+    // ── Contour line styling ──
+    /// Minimum gray value for contour lines (0–255, lower = darker)
+    pub contour_gray_min: f64,
+    /// Gray range added for lighter contours
+    pub contour_gray_range: f64,
+    /// Minimum contour stroke width
+    pub contour_stroke_width_min: f64,
+    /// Additional stroke width scaled by normalized lux
+    pub contour_stroke_width_range: f64,
+}
+
+impl Default for IsometricConfig {
+    fn default() -> Self {
+        Self {
+            margin_x: 50.0,
+            margin_top: 50.0,
+            margin_bottom: 30.0,
+            legend_width: 50.0,
+
+            pole_height_px: 90.0,
+            polar_radius: 25.0,
+
+            contour_fractions: vec![0.1, 0.2, 0.35, 0.5, 0.7, 0.85],
+            contour_num_angles: 72,
+            contour_march_steps: 80,
+
+            legend_bar_width: 12.0,
+            legend_num_segments: 40,
+            legend_height_fraction: 0.6,
+
+            title_font_size: 14.0,
+            label_font_size: 9.0,
+            contour_label_font_size: 8.0,
+            info_font_size: 10.0,
+
+            grayscale_max_darken: 0.7,
+
+            grid_color: "rgba(180,180,180,0.4)".to_string(),
+            grid_stroke_width: 0.5,
+            pole_color: "rgb(153,153,153)".to_string(),
+            pole_stroke_width: 1.5,
+            polar_fill: "rgba(220,80,80,0.25)".to_string(),
+            polar_stroke: "rgb(200,80,80)".to_string(),
+            polar_stroke_width: 1.0,
+
+            contour_gray_min: 80.0,
+            contour_gray_range: 120.0,
+            contour_stroke_width_min: 0.8,
+            contour_stroke_width_range: 1.2,
+        }
     }
 }
 
@@ -3492,11 +3628,11 @@ impl IsoluxDiagram {
         let legend_labels = [
             (
                 0.0,
-                format!("{:.0} {illu_label}", units.convert_lux(self.max_lux)),
+                format!("{} {illu_label}", fmt_lux(units.convert_lux(self.max_lux))),
             ),
             (
                 0.5,
-                format!("{:.0} {illu_label}", units.convert_lux(self.max_lux * 0.5)),
+                format!("{} {illu_label}", fmt_lux(units.convert_lux(self.max_lux * 0.5))),
             ),
             (1.0, format!("0 {illu_label}")),
         ];
@@ -3519,12 +3655,624 @@ impl IsoluxDiagram {
 
         // Max lux annotation
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="10" fill="{}" font-family="{}">E_max = {:.1} {illu_label}</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="10" fill="{}" font-family="{}">E_max = {} {illu_label}</text>"#,
             margin_left + plot_width,
             margin_top + plot_height + 38.0,
             theme.text_secondary,
             theme.font_family,
-            units.convert_lux(self.max_lux)
+            fmt_lux(units.convert_lux(self.max_lux))
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+
+    /// Generate SVG with AEC-style discrete colored contour bands.
+    ///
+    /// Instead of a continuous heatmap, renders filled contour zones in distinct
+    /// colors (red → orange → yellow → green → cyan → purple) with a stepped
+    /// legend showing percentage and lux values — matching common AEC photometric
+    /// data sheets.
+    pub fn to_svg_aec(
+        &self,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        units: UnitSystem,
+    ) -> String {
+        let margin_left = self.margin_left;
+        let margin_top = self.margin_top;
+        let plot_width = self.plot_width;
+        let plot_height = self.plot_height;
+
+        let mut svg = String::new();
+
+        // SVG header
+        svg.push_str(&format!(
+            r#"<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#
+        ));
+
+        // Background
+        svg.push_str(&format!(
+            r#"<rect x="0" y="0" width="{width}" height="{height}" fill="{}"/>"#,
+            theme.background
+        ));
+
+        // AEC contour band definitions: (percentage of max, color, label)
+        let bands: &[(f64, &str, &str)] = &[
+            (0.50, "rgba(220,50,50,0.55)",   "50.0 %"),
+            (0.30, "rgba(240,140,40,0.55)",   "30.0 %"),
+            (0.10, "rgba(240,220,60,0.55)",   "10.0 %"),
+            (0.06, "rgba(80,200,80,0.55)",    "6.0 %"),
+            (0.03, "rgba(80,180,220,0.55)",   "3.0 %"),
+            (0.01, "rgba(160,80,200,0.45)",   "1.0 %"),
+        ];
+
+        // Build lux grid from cells
+        let n = self.params.grid_resolution;
+        let hw = self.params.area_half_width;
+        let hd = self.params.area_half_depth;
+        let mut lux_grid: Vec<Vec<f64>> = vec![vec![0.0; n]; n];
+        for cell in &self.cells {
+            let col = ((cell.x_m + hw) / (2.0 * hw) * n as f64) as usize;
+            let row = ((cell.y_m + hd) / (2.0 * hd) * n as f64) as usize;
+            if col < n && row < n {
+                lux_grid[row][col] = cell.lux;
+            }
+        }
+
+        // Light gray background for the plot area
+        svg.push_str(&format!(
+            r#"<rect x="{margin_left}" y="{margin_top}" width="{plot_width}" height="{plot_height}" fill="{}"/>"#,
+            theme.surface
+        ));
+
+        // Draw filled contour bands (from lowest threshold to highest so higher zones paint on top)
+        let cell_w = plot_width / n as f64;
+        let cell_h = plot_height / n as f64;
+
+        for &(frac, color, _) in bands.iter().rev() {
+            let threshold = self.max_lux * frac;
+            for row in 0..n {
+                for col in 0..n {
+                    if lux_grid[row][col] >= threshold {
+                        let x = margin_left + col as f64 * cell_w;
+                        let y = margin_top + row as f64 * cell_h;
+                        svg.push_str(&format!(
+                            r#"<rect x="{x:.1}" y="{y:.1}" width="{:.1}" height="{:.1}" fill="{color}"/>"#,
+                            cell_w + 0.5, cell_h + 0.5,
+                        ));
+                    }
+                }
+            }
+        }
+
+        // Contour lines at each threshold
+        for &(frac, color, _) in bands {
+            let threshold = self.max_lux * frac;
+            // Use the same contour paths from the diagram if available, or draw simple boundary
+            for contour in &self.contours {
+                if (contour.lux_value - threshold).abs() < self.max_lux * 0.05 {
+                    // Strip alpha from band color for the stroke
+                    let stroke_color = color.replace("0.55", "0.9").replace("0.45", "0.9");
+                    for path in &contour.paths {
+                        svg.push_str(&format!(
+                            r#"<path d="{}" fill="none" stroke="{stroke_color}" stroke-width="1.5"/>"#,
+                            path
+                        ));
+                    }
+                }
+            }
+        }
+
+        // Grid lines
+        let grid_steps = 5;
+        let grid_color = &theme.grid;
+        for i in 0..=grid_steps {
+            let frac = i as f64 / grid_steps as f64;
+            let x = margin_left + frac * plot_width;
+            let y = margin_top + frac * plot_height;
+            svg.push_str(&format!(
+                r#"<line x1="{x:.1}" y1="{margin_top}" x2="{x:.1}" y2="{:.1}" stroke="{grid_color}" stroke-width="0.5" stroke-dasharray="2,2"/>"#,
+                margin_top + plot_height
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{margin_left}" y1="{y:.1}" x2="{:.1}" y2="{y:.1}" stroke="{grid_color}" stroke-width="0.5" stroke-dasharray="2,2"/>"#,
+                margin_left + plot_width
+            ));
+        }
+
+        // Luminaire marker at center
+        let cx = margin_left + plot_width / 2.0;
+        let cy = margin_top + plot_height / 2.0;
+        svg.push_str(&format!(
+            r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="5" fill="rgba(255,220,60,0.8)" stroke="{}" stroke-width="1.5"/>"#,
+            theme.text
+        ));
+
+        // Axis labels
+        let dist_label = units.distance_label();
+        let x_label_positions = [-1.0, -0.5, 0.0, 0.5, 1.0];
+        for &frac in &x_label_positions {
+            let x = margin_left + plot_width * ((frac + 1.0) / 2.0);
+            let val = units.convert_meters(hw * frac);
+            svg.push_str(&format!(
+                r#"<text x="{x:.1}" y="{:.1}" text-anchor="middle" font-size="9" fill="{}" font-family="{}">{val:.0}</text>"#,
+                margin_top + plot_height + 14.0,
+                theme.text_secondary,
+                theme.font_family,
+            ));
+        }
+        for &frac in &x_label_positions {
+            let y = margin_top + plot_height * ((1.0 - frac) / 2.0);
+            let val = units.convert_meters(hd * frac);
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="9" fill="{}" font-family="{}">{val:.0}</text>"#,
+                margin_left - 4.0,
+                theme.text_secondary,
+                theme.font_family,
+            ));
+        }
+        // Unit label on X axis
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="9" fill="{}" font-family="{}">{dist_label}</text>"#,
+            margin_left + plot_width + 2.0,
+            margin_top + plot_height + 14.0,
+            theme.text_secondary,
+            theme.font_family,
+        ));
+
+        // ── Color legend with percentage and lux values ──
+        let illu_label = units.illuminance_label();
+        let legend_x = margin_left + plot_width + 12.0;
+        let swatch_size = 14.0;
+        let legend_line_h = 18.0;
+
+        for (i, &(frac, color, pct_label)) in bands.iter().enumerate() {
+            let y = margin_top + i as f64 * legend_line_h;
+            // Color swatch
+            svg.push_str(&format!(
+                r#"<rect x="{legend_x:.1}" y="{y:.1}" width="{swatch_size}" height="{swatch_size}" fill="{color}" stroke="{}" stroke-width="0.5" rx="2"/>"#,
+                theme.text_secondary
+            ));
+            // Percentage label
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{:.1}" font-size="9" fill="{}" font-family="{}">{pct_label}</text>"#,
+                legend_x + swatch_size + 4.0,
+                y + swatch_size - 3.0,
+                theme.text_secondary,
+                theme.font_family,
+            ));
+            // Lux value
+            let lux_val = fmt_lux(units.convert_lux(self.max_lux * frac));
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{:.1}" font-size="9" fill="{}" font-family="{}">{lux_val} {illu_label}</text>"#,
+                legend_x + swatch_size + 46.0,
+                y + swatch_size - 3.0,
+                theme.text,
+                theme.font_family,
+            ));
+        }
+
+        // Info line
+        let h_display = units.convert_meters(self.params.mounting_height);
+        svg.push_str(&format!(
+            r#"<text x="{margin_left}" y="{:.1}" font-size="9" fill="{}" font-family="{}">Peak illuminance: {} {illu_label}</text>"#,
+            margin_top + plot_height + 28.0,
+            theme.text_secondary,
+            theme.font_family,
+            fmt_lux(units.convert_lux(self.max_lux)),
+        ));
+        svg.push_str(&format!(
+            r#"<text x="{margin_left}" y="{:.1}" font-size="9" fill="{}" font-family="{}">Mounting height: {h_display:.1} {dist_label}</text>"#,
+            margin_top + plot_height + 40.0,
+            theme.text_secondary,
+            theme.font_family,
+        ));
+        svg.push_str(&format!(
+            r#"<text x="{margin_left}" y="{:.1}" font-size="9" fill="{}" font-family="{}">Number of c-planes: {}</text>"#,
+            margin_top + plot_height + 52.0,
+            theme.text_secondary,
+            theme.font_family,
+            self.contours.len() + 1,
+        ));
+
+        // Border
+        svg.push_str(&format!(
+            r#"<rect x="{margin_left}" y="{margin_top}" width="{plot_width}" height="{plot_height}" fill="none" stroke="{}" stroke-width="1"/>"#,
+            theme.axis
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+
+    /// Generate an isometric 3D isolux diagram matching the AEC "ISO view" style.
+    ///
+    /// Renders the ground plane in isometric projection with:
+    /// - Grayscale gradient cells (brightest at center)
+    /// - Grid lines on the ground plane
+    /// - Iso-illuminance contour lines
+    /// - A small red polar diagram on a vertical pole at the luminaire position
+    ///
+    /// `ldt` is needed to draw the mini polar diagram on the pole.
+    pub fn to_svg_isometric(
+        &self,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        config: &IsometricConfig,
+        units: UnitSystem,
+        ldt: &crate::Eulumdat,
+        title: &str,
+    ) -> String {
+        let mut svg = String::new();
+
+        // Isometric projection: rotate 45° around Z, then tilt ~30° toward viewer
+        let iso_angle = std::f64::consts::FRAC_PI_6; // 30°
+        let cos_a = iso_angle.cos();
+        let sin_a = iso_angle.sin();
+
+        let n = self.params.grid_resolution;
+        let hw = self.params.area_half_width;
+        let hd = self.params.area_half_depth;
+
+        let max_screen_x = (hw + hd) * cos_a;
+        let max_screen_y = (hw + hd) * sin_a;
+
+        let available_w = width - 2.0 * config.margin_x - config.legend_width;
+        let available_h = height - config.margin_top - config.margin_bottom;
+
+        // Use separate X/Y scales so the ground plane fills the rectangular viewport
+        let pole_px = config.pole_height_px;
+        let sx = available_w / (2.0 * max_screen_x);
+        let sy = (available_h - pole_px) / (2.0 * max_screen_y);
+
+        let cx = config.margin_x + available_w / 2.0;
+        let cy = config.margin_top + pole_px + (available_h - pole_px) * 0.5;
+
+        // Isometric projection with non-uniform scaling to fill rectangle
+        let iso = |wx: f64, wy: f64| -> (f64, f64) {
+            let screen_x = cx + (wx - wy) * cos_a * sx;
+            let screen_y = cy + (wx + wy) * sin_a * sy;
+            (screen_x, screen_y)
+        };
+
+        // SVG header
+        svg.push_str(&format!(
+            r#"<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">"#
+        ));
+
+        // Background — white/light
+        svg.push_str(&format!(
+            r#"<rect x="0" y="0" width="{width}" height="{height}" fill="{}"/>"#,
+            theme.background
+        ));
+
+        // Title
+        svg.push_str(&format!(
+            r#"<text x="20" y="28" font-size="{}" font-weight="bold" fill="{}" font-family="{}">{}</text>"#,
+            config.title_font_size, theme.text, theme.font_family, title
+        ));
+
+        // Build the lux grid (already computed in self.cells, but we need the 2D array)
+        let mut lux_grid: Vec<Vec<f64>> = vec![vec![0.0; n]; n];
+        for cell in &self.cells {
+            let col = ((cell.x_m + hw) / (2.0 * hw) * n as f64) as usize;
+            let row = ((cell.y_m + hd) / (2.0 * hd) * n as f64) as usize;
+            if col < n && row < n {
+                lux_grid[row][col] = cell.lux;
+            }
+        }
+
+        // Draw ground plane cells as isometric quadrilaterals (grayscale gradient)
+        let dx = 2.0 * hw / n as f64;
+        let dy = 2.0 * hd / n as f64;
+
+        for row in 0..n {
+            for col in 0..n {
+                let wx0 = -hw + col as f64 * dx;
+                let wy0 = -hd + row as f64 * dy;
+                let wx1 = wx0 + dx;
+                let wy1 = wy0 + dy;
+
+                let (x0, y0) = iso(wx0, wy0);
+                let (x1, y1) = iso(wx1, wy0);
+                let (x2, y2) = iso(wx1, wy1);
+                let (x3, y3) = iso(wx0, wy1);
+
+                let lux = lux_grid[row][col];
+                let norm = if self.max_lux > 0.0 { lux / self.max_lux } else { 0.0 };
+                // Grayscale: bright center (white) → dark edges (gray)
+                let gray = (255.0 * (1.0 - norm * config.grayscale_max_darken)) as u8;
+                let fill = format!("rgb({gray},{gray},{gray})");
+
+                svg.push_str(&format!(
+                    r#"<polygon points="{x0:.1},{y0:.1} {x1:.1},{y1:.1} {x2:.1},{y2:.1} {x3:.1},{y3:.1}" fill="{fill}" stroke="none"/>"#,
+                ));
+            }
+        }
+
+        // Grid lines on the ground plane
+        let grid_step = if n > 20 { n / 10 } else { 2 };
+        let grid_color = &config.grid_color;
+        let grid_sw = config.grid_stroke_width;
+        // Lines along X (constant Y)
+        for row_i in (0..=n).step_by(grid_step) {
+            let wy = -hd + row_i as f64 * dy;
+            let (x0, y0) = iso(-hw, wy);
+            let (x1, y1) = iso(hw, wy);
+            svg.push_str(&format!(
+                r#"<line x1="{x0:.1}" y1="{y0:.1}" x2="{x1:.1}" y2="{y1:.1}" stroke="{grid_color}" stroke-width="{grid_sw}"/>"#,
+            ));
+        }
+        // Lines along Y (constant X)
+        for col_i in (0..=n).step_by(grid_step) {
+            let wx = -hw + col_i as f64 * dx;
+            let (x0, y0) = iso(wx, -hd);
+            let (x1, y1) = iso(wx, hd);
+            svg.push_str(&format!(
+                r#"<line x1="{x0:.1}" y1="{y0:.1}" x2="{x1:.1}" y2="{y1:.1}" stroke="{grid_color}" stroke-width="{grid_sw}"/>"#,
+            ));
+        }
+
+        // Contour lines in isometric projection
+        // Re-trace contour paths: for each contour level, sample lux_grid and
+        // draw isometric ellipses approximating the iso-illuminance curves.
+        let contour_levels: Vec<f64> = if self.max_lux > 0.0 {
+            config.contour_fractions.iter().map(|f| self.max_lux * f).collect()
+        } else {
+            vec![]
+        };
+
+        for &level in &contour_levels {
+            // Trace the contour by scanning radially from center at many angles
+            let num_angles = config.contour_num_angles;
+            let mut contour_pts: Vec<(f64, f64)> = Vec::new();
+            for ai in 0..num_angles {
+                let angle = ai as f64 / num_angles as f64 * std::f64::consts::TAU;
+                let dir_x = angle.cos();
+                let dir_y = angle.sin();
+
+                // March outward along this ray to find where lux crosses level
+                let max_r = (hw * hw + hd * hd).sqrt();
+                let steps = config.contour_march_steps;
+                let mut found_r = max_r; // default to edge if never found
+                for si in 1..=steps {
+                    let r = max_r * si as f64 / steps as f64;
+                    let wx = dir_x * r;
+                    let wy = dir_y * r;
+                    if wx.abs() > hw || wy.abs() > hd {
+                        break;
+                    }
+                    let col = ((wx + hw) / (2.0 * hw) * (n - 1) as f64) as usize;
+                    let row = ((wy + hd) / (2.0 * hd) * (n - 1) as f64) as usize;
+                    if col < n && row < n && lux_grid[row][col] < level {
+                        // Interpolate between this step and previous
+                        let prev_r = max_r * (si - 1) as f64 / steps as f64;
+                        found_r = (prev_r + r) / 2.0;
+                        break;
+                    }
+                }
+                let wx = dir_x * found_r;
+                let wy = dir_y * found_r;
+                if wx.abs() <= hw && wy.abs() <= hd {
+                    contour_pts.push(iso(wx, wy));
+                }
+            }
+
+            if contour_pts.len() > 3 {
+                let norm = level / self.max_lux;
+                // Darker lines for higher lux (inner contours)
+                let gray = (config.contour_gray_min + config.contour_gray_range * (1.0 - norm)) as u8;
+                let stroke = format!("rgb({gray},{gray},{gray})");
+                let sw = config.contour_stroke_width_min + config.contour_stroke_width_range * norm;
+
+                let mut path = String::from("M ");
+                for (i, &(px, py)) in contour_pts.iter().enumerate() {
+                    if i > 0 { path.push_str(" L "); }
+                    path.push_str(&format!("{px:.1} {py:.1}"));
+                }
+                path.push_str(" Z");
+
+                svg.push_str(&format!(
+                    r#"<path d="{path}" fill="none" stroke="{stroke}" stroke-width="{sw:.1}"/>"#,
+                ));
+            }
+        }
+
+        // ── Distance labels along ground plane edges ────────────────
+        let dist_label = units.distance_label();
+        let illu_label = units.illuminance_label();
+        let label_positions = [-1.0, -0.5, 0.0, 0.5, 1.0];
+
+        // Labels along the front-left edge (constant Y = +hd, varying X)
+        for &frac in &label_positions {
+            let wx = hw * frac;
+            let wy = hd; // front edge
+            let (sx, sy) = iso(wx, wy);
+            let val = units.convert_meters(wx);
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="{}" fill="{}" font-family="{}">{val:.0}{dist_label}</text>"#,
+                sx, sy + 14.0,
+                config.label_font_size,
+                theme.text_secondary,
+                theme.font_family,
+            ));
+        }
+
+        // Labels along the front-right edge (constant X = +hw, varying Y)
+        for &frac in &label_positions {
+            let wx = hw; // right edge
+            let wy = hd * frac;
+            let (sx, sy) = iso(wx, wy);
+            let val = units.convert_meters(wy);
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{:.1}" text-anchor="start" font-size="{}" fill="{}" font-family="{}">{val:.0}{dist_label}</text>"#,
+                sx + 6.0, sy + 4.0,
+                config.label_font_size,
+                theme.text_secondary,
+                theme.font_family,
+            ));
+        }
+
+        // ── Contour illuminance labels ───────────────────────────────
+        for &level in &contour_levels {
+            // Place label at the rightmost point of each contour
+            let angle = 0.0_f64; // rightward (along +X axis)
+            let dir_x = angle.cos();
+            let dir_y = angle.sin();
+            let max_r = (hw * hw + hd * hd).sqrt();
+            let steps = config.contour_march_steps;
+            let mut label_r = 0.0;
+            for si in 1..=steps {
+                let r = max_r * si as f64 / steps as f64;
+                let wx = dir_x * r;
+                let wy = dir_y * r;
+                if wx.abs() > hw || wy.abs() > hd { break; }
+                let col = ((wx + hw) / (2.0 * hw) * (n - 1) as f64) as usize;
+                let row = ((wy + hd) / (2.0 * hd) * (n - 1) as f64) as usize;
+                if col < n && row < n && lux_grid[row][col] < level {
+                    label_r = (max_r * (si - 1) as f64 / steps as f64 + r) / 2.0;
+                    break;
+                }
+            }
+            if label_r > 0.0 {
+                let (lx, ly) = iso(dir_x * label_r, dir_y * label_r);
+                let display_val = fmt_lux(units.convert_lux(level));
+                svg.push_str(&format!(
+                    r#"<text x="{:.1}" y="{:.1}" font-size="{}" fill="{}" font-family="{}" font-weight="bold" paint-order="stroke" stroke="{}" stroke-width="2.5">{display_val} {illu_label}</text>"#,
+                    lx + 4.0, ly - 2.0,
+                    config.contour_label_font_size,
+                    theme.text,
+                    theme.font_family,
+                    theme.background,
+                ));
+            }
+        }
+
+        // ── Illuminance legend (grayscale gradient bar) ──────────────
+        let legend_x = width - config.legend_width + 5.0;
+        let legend_y_top = config.margin_top + 10.0;
+        let legend_h = available_h * config.legend_height_fraction;
+        let legend_bar_w = config.legend_bar_width;
+        let num_segments = config.legend_num_segments;
+        let seg_h = legend_h / num_segments as f64;
+
+        for i in 0..num_segments {
+            let frac = i as f64 / num_segments as f64;
+            // Top = max lux (dark), bottom = 0 (white)
+            let gray = (255.0 * (1.0 - (1.0 - frac) * config.grayscale_max_darken)) as u8;
+            let y = legend_y_top + i as f64 * seg_h;
+            svg.push_str(&format!(
+                r#"<rect x="{legend_x:.1}" y="{y:.1}" width="{legend_bar_w}" height="{seg_h:.1}" fill="rgb({gray},{gray},{gray})"/>"#,
+            ));
+        }
+        // Legend border
+        svg.push_str(&format!(
+            r#"<rect x="{legend_x:.1}" y="{legend_y_top:.1}" width="{legend_bar_w}" height="{legend_h}" fill="none" stroke="{}" stroke-width="0.5"/>"#,
+            theme.text_secondary
+        ));
+        // Legend labels: top (max), middle, bottom (0)
+        let legend_labels = [
+            (0.0, fmt_lux(units.convert_lux(self.max_lux))),
+            (0.5, fmt_lux(units.convert_lux(self.max_lux * 0.5))),
+            (1.0, "0".to_string()),
+        ];
+        for &(frac, ref label) in &legend_labels {
+            let y = legend_y_top + frac * legend_h;
+            svg.push_str(&format!(
+                r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="{}" fill="{}" font-family="{}" dominant-baseline="middle">{}</text>"#,
+                legend_x - 4.0, y,
+                config.label_font_size,
+                theme.text_secondary,
+                theme.font_family,
+                label
+            ));
+        }
+        // Legend unit label
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="{}" fill="{}" font-family="{}">{illu_label}</text>"#,
+            legend_x + legend_bar_w / 2.0,
+            legend_y_top - 6.0,
+            config.label_font_size,
+            theme.text_secondary,
+            theme.font_family,
+        ));
+
+        // ── Vertical pole at center ──────────────────────────────────
+        let (pole_bx, pole_by) = iso(0.0, 0.0);
+        let pole_top_y = pole_by - pole_px;
+        svg.push_str(&format!(
+            "<line x1=\"{pole_bx:.1}\" y1=\"{pole_by:.1}\" x2=\"{pole_bx:.1}\" y2=\"{pole_top_y:.1}\" stroke=\"{}\" stroke-width=\"{}\"/>",
+            config.pole_color, config.pole_stroke_width,
+        ));
+
+        // ── Mini polar diagram at pole top ───────────────────────────
+        let polar_radius = config.polar_radius;
+        let polar_cx = pole_bx;
+        let polar_cy = pole_top_y;
+
+        let max_i = ldt.max_intensity().max(1.0);
+        let mut polar_path = String::new();
+
+        let g_angles = &ldt.g_angles;
+        if !g_angles.is_empty() && !ldt.intensities.is_empty() {
+            let c0_idx = 0;
+            let intensities_c0 = &ldt.intensities[c0_idx.min(ldt.intensities.len() - 1)];
+
+            let c180_idx = ldt.c_angles.iter().position(|&a| (a - 180.0).abs() < 1.0)
+                .unwrap_or(0);
+            let intensities_c180 = &ldt.intensities[c180_idx.min(ldt.intensities.len() - 1)];
+
+            let mut pts_right: Vec<(f64, f64)> = Vec::new();
+            for (gi, &gamma) in g_angles.iter().enumerate() {
+                let intensity = if gi < intensities_c0.len() { intensities_c0[gi] } else { 0.0 };
+                let r = intensity / max_i * polar_radius;
+                let angle_rad = (gamma - 90.0).to_radians();
+                let px = polar_cx + r * angle_rad.cos();
+                let py = polar_cy - r * angle_rad.sin();
+                pts_right.push((px, py));
+            }
+
+            let mut pts_left: Vec<(f64, f64)> = Vec::new();
+            for (gi, &gamma) in g_angles.iter().enumerate() {
+                let intensity = if gi < intensities_c180.len() { intensities_c180[gi] } else { 0.0 };
+                let r = intensity / max_i * polar_radius;
+                let angle_rad = (gamma - 90.0).to_radians();
+                let px = polar_cx - r * angle_rad.cos();
+                let py = polar_cy - r * angle_rad.sin();
+                pts_left.push((px, py));
+            }
+
+            if !pts_right.is_empty() {
+                polar_path.push_str(&format!("M {:.1} {:.1}", pts_right[0].0, pts_right[0].1));
+                for &(px, py) in &pts_right[1..] {
+                    polar_path.push_str(&format!(" L {px:.1} {py:.1}"));
+                }
+                for &(px, py) in pts_left.iter().rev() {
+                    polar_path.push_str(&format!(" L {px:.1} {py:.1}"));
+                }
+                polar_path.push_str(" Z");
+            }
+        }
+
+        if !polar_path.is_empty() {
+            svg.push_str(&format!(
+                r#"<path d="{polar_path}" fill="{}" stroke="{}" stroke-width="{}"/>"#,
+                config.polar_fill, config.polar_stroke, config.polar_stroke_width,
+            ));
+        }
+
+        // ── Info line: mounting height + E_max ───────────────────────
+        let h_display = units.convert_meters(self.params.mounting_height);
+        svg.push_str(&format!(
+            r#"<text x="20" y="{:.1}" font-size="{}" fill="{}" font-family="{}">h = {h_display:.1}{dist_label}  |  E_max = {} {illu_label}</text>"#,
+            height - 8.0,
+            config.info_font_size,
+            theme.text_secondary,
+            theme.font_family,
+            fmt_lux(units.convert_lux(self.max_lux))
         ));
 
         svg.push_str("</svg>");

@@ -1,4 +1,5 @@
 mod app;
+mod area_designer;
 mod beam_angle_diagram;
 mod bevy_scene;
 mod bim_panel;
@@ -17,7 +18,9 @@ pub mod form;
 mod greenhouse_diagram;
 mod intensity_heatmap;
 mod isocandela_diagram;
+mod isolux_aec;
 mod isolux_footprint;
+mod isolux_isometric;
 mod lcs_classification;
 mod maps_designer;
 mod polar_diagram;

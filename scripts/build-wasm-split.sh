@@ -1022,7 +1022,7 @@ HTMLEOF
     cat >> "$DIST_DIR/404.html" << 'HTMLEOF'
         </div>
         <p class="message">The page you're looking for seems to be in the dark.</p>
-        <a href="/" class="home-link">← Back to Editor</a>
+        <a href="./" class="home-link">← Back to Editor</a>
     </div>
 </body>
 </html>

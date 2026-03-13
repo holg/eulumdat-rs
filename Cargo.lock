@@ -3991,6 +3991,7 @@ dependencies = [
  "eulumdat-bevy",
  "eulumdat-i18n",
  "eulumdat-typst",
+ "eulumdat-wasm-templates",
  "gloo",
  "gloo-file",
  "js-sys",

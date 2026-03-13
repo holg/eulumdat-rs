@@ -27,7 +27,7 @@
 
 mod butterfly;
 mod cartesian;
-mod color;
+pub(crate) mod color;
 mod cone;
 pub(crate) mod contour;
 mod floodlight_cartesian;
@@ -53,7 +53,7 @@ pub use isolux::{IsoluxCell, IsoluxContour, IsoluxDiagram, IsoluxParams};
 pub use labels::DiagramLabels;
 pub use polar::{PolarCurve, PolarDiagram, PolarPoint};
 pub use projection::IsometricProjection;
-pub use svg::{ConeDiagramLabels, DetailLevel, SvgLabels, SvgTheme};
+pub use svg::{ConeDiagramLabels, DetailLevel, IsometricConfig, SvgLabels, SvgTheme};
 pub use watchface::WatchFaceStyle;
 
 /// Common 2D point used across diagram types

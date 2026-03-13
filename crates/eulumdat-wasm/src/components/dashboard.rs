@@ -1,10 +1,10 @@
 //! Dashboard view — parameter grid with expandable detail panels.
 //!
 //! Supports switchable layout templates:
-//! - **Default** — compact grid with Polar + Cartesian + Isolux + BUG detail diagrams.
-//! - **AEC Extended** — wider grid with download icon columns and sidebar-driven
-//!   diagram modes (matching AEC Illumination layout: ISO curve, beam angles,
-//!   beam intensities, UGR table).
+//! - **Standard** — compact grid with Polar + Cartesian + Isolux + BUG detail diagrams.
+//! - **AEC** — isometric 3D ISO view + Polar + BUG, with sidebar diagram modes.
+//! - **Alternative** — wider grid with download badge columns and sidebar-driven
+//!   diagram modes (ISO curve, beam angles, beam intensities, UGR table).
 //!
 //! **Selection model:**
 //! - Click a row → select it (primary selection, blue highlight).
@@ -20,22 +20,17 @@
 use crate::i18n::use_locale;
 use eulumdat::{Eulumdat, IesParser};
 use leptos::prelude::*;
-use wasm_bindgen::prelude::*;
-
 use super::beam_angle_diagram::BeamAngleDiagram;
 use super::bug_rating::BugRating;
 use super::cartesian_diagram::CartesianDiagram;
 use super::cone_diagram::ConeDiagramView;
 use super::isocandela_diagram::IsocandelaDiagramView;
+use super::isolux_aec::IsoluxAec;
 use super::isolux_footprint::IsoluxFootprint;
+use super::isolux_isometric::IsoluxIsometric;
 use super::polar_diagram::PolarDiagram;
 use super::templates::{TemplateFormat, ALL_TEMPLATES};
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_name = getTemplateContent, catch)]
-    async fn get_template_content_js(id: &str) -> Result<JsValue, JsValue>;
-}
 
 // ── Dashboard Template Config ─────────────────────────────────────
 
@@ -47,13 +42,15 @@ pub enum DashboardTemplate {
     #[default]
     Default,
     Aec,
+    Alternative,
 }
 
 impl DashboardTemplate {
     fn label(self) -> &'static str {
         match self {
             Self::Default => "Standard",
-            Self::Aec => "AEC Extended",
+            Self::Aec => "AEC",
+            Self::Alternative => "Alternative",
         }
     }
 
@@ -61,14 +58,20 @@ impl DashboardTemplate {
         match self {
             Self::Default => "default",
             Self::Aec => "aec",
+            Self::Alternative => "alternative",
         }
     }
 
     fn from_str(s: &str) -> Self {
         match s {
             "aec" => Self::Aec,
+            "alternative" => Self::Alternative,
             _ => Self::Default,
         }
+    }
+
+    fn all() -> &'static [DashboardTemplate] {
+        &[Self::Default, Self::Aec, Self::Alternative]
     }
 }
 
@@ -76,7 +79,7 @@ fn load_dashboard_template() -> DashboardTemplate {
     if let Some(window) = web_sys::window() {
         if let Ok(search) = window.location().search() {
             if let Ok(params) = web_sys::UrlSearchParams::new_with_str(&search) {
-                if let Some(val) = params.get("dashboard") {
+                if let Some(val) = params.get("template").or_else(|| params.get("dashboard")) {
                     return DashboardTemplate::from_str(&val.to_lowercase());
                 }
             }
@@ -165,6 +168,8 @@ enum DiagramSlot {
     Polar,
     Cartesian,
     Isolux,
+    IsoluxAec,
+    IsoluxIso,
     BugRating,
     Isocandela,
     Cone,
@@ -196,6 +201,7 @@ fn default_config() -> DashboardConfig {
         default_diagrams: vec![
             DiagramSlot::Polar,
             DiagramSlot::Cartesian,
+            DiagramSlot::IsoluxIso,
             DiagramSlot::Isolux,
             DiagramSlot::BugRating,
         ],
@@ -203,6 +209,27 @@ fn default_config() -> DashboardConfig {
 }
 
 fn aec_config() -> DashboardConfig {
+    DashboardConfig {
+        columns: vec![
+            ColumnDef { label: "Light Distribution", min_width: "150px", extract: extract_name },
+            ColumnDef { label: "Optics",    min_width: "60px",  extract: extract_optics },
+            ColumnDef { label: "CCT",       min_width: "55px",  extract: extract_cct },
+            ColumnDef { label: "Power",     min_width: "55px",  extract: extract_power },
+            ColumnDef { label: "Lumens",    min_width: "70px",  extract: extract_lumens },
+            ColumnDef { label: "BUG Rating", min_width: "75px", extract: extract_bug },
+            ColumnDef { label: "CRI",       min_width: "40px",  extract: extract_cri },
+        ],
+        has_diagram_modes: true,
+        default_diagrams: vec![
+            DiagramSlot::IsoluxIso,
+            DiagramSlot::Polar,
+            DiagramSlot::IsoluxAec,
+            DiagramSlot::BugRating,
+        ],
+    }
+}
+
+fn alternative_config() -> DashboardConfig {
     DashboardConfig {
         columns: vec![
             ColumnDef { label: "Light Distribution", min_width: "150px", extract: extract_name },
@@ -352,6 +379,7 @@ pub fn Dashboard(
     on_edit: Callback<()>,
     on_compare_view: Callback<()>,
     on_export_pdf: Callback<Eulumdat>,
+    on_designer: Callback<()>,
 ) -> impl IntoView {
     let _locale = use_locale();
 
@@ -362,6 +390,7 @@ pub fn Dashboard(
     let config = Memo::new(move |_| match template.get() {
         DashboardTemplate::Default => default_config(),
         DashboardTemplate::Aec => aec_config(),
+        DashboardTemplate::Alternative => alternative_config(),
     });
 
     let grid_style = Memo::new(move |_| {
@@ -384,32 +413,28 @@ pub fn Dashboard(
     let (entries, set_entries) = signal(Vec::<LuminaireEntry>::new());
     let (loading, set_loading) = signal(true);
 
-    // Load templates
+    // Load templates (embedded directly in WASM via include_str!)
     Effect::new(move |_| {
         set_loading.set(true);
-        wasm_bindgen_futures::spawn_local(async move {
-            let mut loaded = Vec::new();
-            for tpl in ALL_TEMPLATES.iter() {
-                match tpl.format {
-                    TemplateFormat::Ldt | TemplateFormat::IesLm63 => {}
-                    _ => continue,
-                }
-                if let Ok(js_val) = get_template_content_js(tpl.id).await {
-                    if let Some(content) = js_val.as_string() {
-                        let parsed = match tpl.format {
-                            TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
-                            TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
-                            _ => None,
-                        };
-                        if let Some(ldt) = parsed {
-                            loaded.push(LuminaireEntry { name: tpl.name.to_string(), ldt });
-                        }
-                    }
+        let mut loaded = Vec::new();
+        for tpl in ALL_TEMPLATES.iter() {
+            match tpl.format {
+                TemplateFormat::Ldt | TemplateFormat::IesLm63 => {}
+                _ => continue,
+            }
+            if let Some(content) = eulumdat_wasm_templates::get_template_content(tpl.id) {
+                let parsed = match tpl.format {
+                    TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
+                    TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
+                    _ => None,
+                };
+                if let Some(ldt) = parsed {
+                    loaded.push(LuminaireEntry { name: tpl.name.to_string(), ldt });
                 }
             }
-            set_entries.set(loaded);
-            set_loading.set(false);
-        });
+        }
+        set_entries.set(loaded);
+        set_loading.set(false);
     });
 
     // ── Row click handler ───────────────────────────────────────
@@ -495,7 +520,13 @@ pub fn Dashboard(
     let active_diagrams = move || {
         let cfg = config.get();
         if cfg.has_diagram_modes {
-            diagrams_for_mode(diagram_mode.get())
+            let mode = diagram_mode.get();
+            if mode == DiagramMode::Overview {
+                // Overview uses the template's default_diagrams
+                cfg.default_diagrams.clone()
+            } else {
+                diagrams_for_mode(mode)
+            }
         } else {
             cfg.default_diagrams.clone()
         }
@@ -514,6 +545,7 @@ pub fn Dashboard(
                 on_zoom=Callback::new(move |_| on_zoom())
                 on_compare_view=Callback::new(move |_| on_compare_btn())
                 on_print=Callback::new(move |_| on_print())
+                on_designer=on_designer
             />
 
             <div class="dashboard-main">
@@ -526,18 +558,16 @@ pub fn Dashboard(
                             set_template.set(DashboardTemplate::from_str(&val));
                         }
                     >
-                        <option
-                            value="default"
-                            selected=move || template.get() == DashboardTemplate::Default
-                        >
-                            {DashboardTemplate::Default.label()}
-                        </option>
-                        <option
-                            value="aec"
-                            selected=move || template.get() == DashboardTemplate::Aec
-                        >
-                            {DashboardTemplate::Aec.label()}
-                        </option>
+                        {DashboardTemplate::all().iter().map(|&t| {
+                            view! {
+                                <option
+                                    value=t.storage_key()
+                                    selected=move || template.get() == t
+                                >
+                                    {t.label()}
+                                </option>
+                            }
+                        }).collect_view()}
                     </select>
                 </div>
 
@@ -693,6 +723,7 @@ fn DashboardSidebar(
     on_zoom: Callback<()>,
     on_compare_view: Callback<()>,
     on_print: Callback<()>,
+    on_designer: Callback<()>,
 ) -> impl IntoView {
     view! {
         <aside class="dashboard-sidebar">
@@ -749,6 +780,15 @@ fn DashboardSidebar(
                 "\u{2194}"
             </button>
 
+            // Area Designer
+            <button
+                class="sidebar-icon-btn"
+                title="Area Lighting Designer"
+                on:click=move |_| on_designer.run(())
+            >
+                "\u{1F4D0}"  // triangular ruler 📐
+            </button>
+
             // Print / Export PDF
             <button
                 class=move || format!("sidebar-icon-btn{}", if has_selection.get() { "" } else { " disabled" })
@@ -798,6 +838,8 @@ fn ZoomOverlay(
                         DiagramSlot::Polar => view! { <PolarDiagram ldt=ldt_sig /> }.into_any(),
                         DiagramSlot::Cartesian => view! { <CartesianDiagram ldt=ldt_sig /> }.into_any(),
                         DiagramSlot::Isolux => view! { <IsoluxFootprint ldt=ldt_sig /> }.into_any(),
+                        DiagramSlot::IsoluxAec => view! { <IsoluxAec ldt=ldt_sig /> }.into_any(),
+                        DiagramSlot::IsoluxIso => view! { <IsoluxIsometric ldt=ldt_sig /> }.into_any(),
                         DiagramSlot::BugRating => view! { <BugRating ldt=ldt_sig /> }.into_any(),
                         DiagramSlot::Isocandela => view! { <IsocandelaDiagramView ldt=ldt_sig /> }.into_any(),
                         DiagramSlot::Cone => {
@@ -862,7 +904,7 @@ fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl Into
                 match slot {
                     DiagramSlot::Polar => view! {
                         <div class="detail-diagram">
-                            <h4>"Polar Distribution"</h4>
+                            <h4>"Polar light distribution"</h4>
                             <PolarDiagram ldt=ldt_sig />
                         </div>
                     }.into_any(),
@@ -874,8 +916,20 @@ fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl Into
                     }.into_any(),
                     DiagramSlot::Isolux => view! {
                         <div class="detail-diagram">
-                            <h4>"Isolux Footprint"</h4>
+                            <h4>"ISO \u{2013} Illuminance Diagram (ISO-LUX)"</h4>
                             <IsoluxFootprint ldt=ldt_sig />
+                        </div>
+                    }.into_any(),
+                    DiagramSlot::IsoluxAec => view! {
+                        <div class="detail-diagram">
+                            <h4>"ISO \u{2013} Illuminance Diagram (ISO-LUX)"</h4>
+                            <IsoluxAec ldt=ldt_sig />
+                        </div>
+                    }.into_any(),
+                    DiagramSlot::IsoluxIso => view! {
+                        <div class="detail-diagram">
+                            <h4>"ISO View"</h4>
+                            <IsoluxIsometric ldt=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::BugRating => view! {

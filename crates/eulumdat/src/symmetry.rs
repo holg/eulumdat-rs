@@ -201,9 +201,31 @@ impl SymmetryHandler {
             }
         };
 
-        // Find surrounding C indices
-        let c_idx = Self::find_interpolation_indices(&eulumdat.c_angles, effective_c);
         let g_idx = Self::find_interpolation_indices(&eulumdat.g_angles, g_clamped);
+
+        // For Symmetry::None, C-planes are cyclic (360° wraps to 0°).
+        // We need special handling when effective_c falls between the last
+        // C-angle and 360° (which equals the first C-angle).
+        if eulumdat.symmetry == Symmetry::None && !eulumdat.c_angles.is_empty() {
+            let last_c = *eulumdat.c_angles.last().unwrap();
+            let first_c = eulumdat.c_angles[0];
+
+            // Check if the angle is beyond the last stored C-plane
+            if effective_c > last_c && eulumdat.c_angles.len() > 1 {
+                // Wrap: interpolate between last C-plane and first C-plane
+                let span = (360.0 - last_c) + first_c; // gap across the wrap
+                if span > 0.0 {
+                    let fraction = (effective_c - last_c) / span;
+                    let last_idx = eulumdat.c_angles.len() - 1;
+                    return Self::bilinear_interpolate_wrap(
+                        eulumdat, last_idx, 0, fraction, g_idx, g_clamped,
+                    );
+                }
+            }
+        }
+
+        // Find surrounding C indices (non-wrapping)
+        let c_idx = Self::find_interpolation_indices(&eulumdat.c_angles, effective_c);
 
         // Bilinear interpolation
         Self::bilinear_interpolate(eulumdat, c_idx, g_idx, effective_c, g_clamped)
@@ -260,6 +282,38 @@ impl SymmetryHandler {
         let i11 = get(ci + 1, gi + 1);
 
         // Bilinear interpolation
+        let i0 = i00 * (1.0 - gf) + i01 * gf;
+        let i1 = i10 * (1.0 - gf) + i11 * gf;
+
+        i0 * (1.0 - cf) + i1 * cf
+    }
+
+    /// Bilinear interpolation wrapping between two explicit C-plane indices.
+    /// Used when the C angle wraps from the last stored plane back to the first (360°→0°).
+    fn bilinear_interpolate_wrap(
+        eulumdat: &Eulumdat,
+        ci_lo: usize,
+        ci_hi: usize,
+        cf: f64,
+        g_idx: (usize, f64),
+        _g_angle: f64,
+    ) -> f64 {
+        let (gi, gf) = g_idx;
+
+        let get = |c: usize, g: usize| -> f64 {
+            eulumdat
+                .intensities
+                .get(c)
+                .and_then(|row| row.get(g))
+                .copied()
+                .unwrap_or(0.0)
+        };
+
+        let i00 = get(ci_lo, gi);
+        let i01 = get(ci_lo, gi + 1);
+        let i10 = get(ci_hi, gi);
+        let i11 = get(ci_hi, gi + 1);
+
         let i0 = i00 * (1.0 - gf) + i01 * gf;
         let i1 = i10 * (1.0 - gf) + i11 * gf;
 
@@ -411,5 +465,57 @@ mod tests {
         let i_c90 = ldt.sample(90.0, 60.0);
         let i_c270 = ldt.sample(270.0, 60.0);
         assert!((i_c90 - i_c270).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_c_angle_wraparound_symmetry_none() {
+        // With Symmetry::None, C-angles between the last stored plane and 360°
+        // must interpolate correctly by wrapping to C0.
+        let ldt = Eulumdat {
+            symmetry: Symmetry::None,
+            c_angles: vec![0.0, 90.0, 180.0, 270.0],
+            g_angles: vec![0.0, 45.0, 90.0],
+            intensities: vec![
+                vec![100.0, 80.0, 50.0], // C0
+                vec![100.0, 80.0, 50.0], // C90  (same as C0)
+                vec![100.0, 80.0, 50.0], // C180 (same)
+                vec![100.0, 80.0, 50.0], // C270 (same)
+            ],
+            ..Default::default()
+        };
+
+        // With all planes identical, any C angle should give the same result
+        let i_0 = SymmetryHandler::get_intensity_at(&ldt, 0.0, 45.0);
+        let i_315 = SymmetryHandler::get_intensity_at(&ldt, 315.0, 45.0);
+        let i_350 = SymmetryHandler::get_intensity_at(&ldt, 350.0, 45.0);
+        assert!((i_0 - i_315).abs() < 0.001, "C315 should equal C0 when all planes identical");
+        assert!((i_0 - i_350).abs() < 0.001, "C350 should equal C0 when all planes identical");
+
+        // Now test with different C0 and C270 to verify proper interpolation
+        let ldt2 = Eulumdat {
+            symmetry: Symmetry::None,
+            c_angles: vec![0.0, 90.0, 180.0, 270.0],
+            g_angles: vec![0.0, 90.0],
+            intensities: vec![
+                vec![100.0, 50.0], // C0
+                vec![100.0, 50.0], // C90
+                vec![100.0, 50.0], // C180
+                vec![200.0, 100.0], // C270
+            ],
+            ..Default::default()
+        };
+
+        // C315 = midpoint between C270 and C0(=C360)
+        let i_c315 = SymmetryHandler::get_intensity_at(&ldt2, 315.0, 0.0);
+        // Should be average of C270(200) and C0(100) = 150
+        assert!((i_c315 - 150.0).abs() < 0.01,
+            "C315 at gamma=0 should be 150, got {i_c315}");
+
+        // C-angle symmetry: sample(45°) should mirror sample(315°)
+        // when C0=C90 and C270 wraps to C0
+        let i_c45 = SymmetryHandler::get_intensity_at(&ldt2, 45.0, 0.0);
+        // C45 = midpoint between C0(100) and C90(100) = 100
+        assert!((i_c45 - 100.0).abs() < 0.01,
+            "C45 at gamma=0 should be 100, got {i_c45}");
     }
 }

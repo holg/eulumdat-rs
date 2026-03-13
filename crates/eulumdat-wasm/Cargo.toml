@@ -31,6 +31,7 @@ console_error_panic_hook.workspace = true
 eulumdat = { workspace = true, features = ["i18n"] }
 eulumdat-i18n.workspace = true
 eulumdat-typst.workspace = true
+eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates" }
 gloo.workspace = true
 gloo-file.workspace = true
 js-sys.workspace = true
@@ -88,6 +89,7 @@ features = [
     "Storage",
     "Location",
     "UrlSearchParams",
+    "History",
 ]
 
 [dev-dependencies]

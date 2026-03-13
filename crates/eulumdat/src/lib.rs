@@ -166,6 +166,7 @@
 //! - [IESNA LM-63-2002 Standard](https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/iesna_lm-63_format.htm)
 //! - [IES TM-15-11 BUG Ratings](https://www.ies.org/wp-content/uploads/2017/03/TM-15-11BUGRatingsAddendum.pdf)
 
+pub mod area;
 pub mod batch;
 pub mod bug_rating;
 pub mod interpolate;

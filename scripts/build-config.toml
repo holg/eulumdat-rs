@@ -55,7 +55,7 @@ load_strategy = "on_demand"
 [deploy]
 # rsync target for deployment (user@host:/path/)
 # Leave empty to disable deploy command
-target = "trahe.eu:/var/www/gldf.icu/html/QLumEdit"
+target = "iesna.eu:/var/www/iesna.eu/html/"
 # Additional rsync flags (never use --delete!)
 rsync_flags = "-avz"
 

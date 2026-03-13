@@ -12,12 +12,6 @@ use web_sys::HtmlInputElement;
 extern "C" {
     #[wasm_bindgen(js_name = compileTypstToPdf, catch)]
     async fn compile_typst_to_pdf_js(source: &str) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(js_name = getTemplateContent, catch)]
-    async fn get_template_content_js(id: &str) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(js_name = isTemplatesLoaded)]
-    fn is_templates_loaded() -> bool;
 }
 
 /// Compile Typst source to PDF using the WASM typst compiler.
@@ -54,7 +48,9 @@ use super::greenhouse_diagram::GreenhouseDiagramView;
 use super::intensity_heatmap::IntensityHeatmap;
 use super::isocandela_diagram::IsocandelaDiagramView;
 use super::isolux_footprint::IsoluxFootprint;
+use super::isolux_isometric::IsoluxIsometric;
 use super::lcs_classification::LcsClassification;
+use super::area_designer::AreaDesigner;
 use super::maps_designer::MapsDesigner;
 use super::polar_diagram::PolarDiagram;
 use super::spectral_diagram::SpectralDiagramView;
@@ -182,6 +178,7 @@ pub enum MainTab {
     Compare,
     Bim,
     Scene3D,
+    AreaDesigner,
     MapsDesigner,
 }
 
@@ -203,6 +200,7 @@ pub enum Tab {
     Cone,
     FloodlightVH,
     FloodlightIsolux,
+    FloodlightIsoView,
     FloodlightIsocandela,
     // Analysis group
     Spectral,
@@ -217,6 +215,8 @@ pub enum Tab {
     BimTab,
     // Scene 3D group (single tab, no sub-tabs)
     Scene3DTab,
+    // Area Designer group (single tab, no sub-tabs)
+    AreaDesignerTab,
     // Maps Designer group (single tab, no sub-tabs)
     MapsDesignerTab,
 }
@@ -233,12 +233,14 @@ impl Tab {
             | Tab::Cone
             | Tab::FloodlightVH
             | Tab::FloodlightIsolux
+            | Tab::FloodlightIsoView
             | Tab::FloodlightIsocandela => MainTab::Diagrams,
             Tab::Spectral | Tab::Greenhouse | Tab::BugRating | Tab::Lcs => MainTab::Analysis,
             Tab::ValidationTab => MainTab::Validation,
             Tab::CompareTab => MainTab::Compare,
             Tab::BimTab => MainTab::Bim,
             Tab::Scene3DTab => MainTab::Scene3D,
+            Tab::AreaDesignerTab => MainTab::AreaDesigner,
             Tab::MapsDesignerTab => MainTab::MapsDesigner,
         }
     }
@@ -254,6 +256,7 @@ impl Tab {
             MainTab::Compare => Tab::CompareTab,
             MainTab::Bim => Tab::BimTab,
             MainTab::Scene3D => Tab::Scene3DTab,
+            MainTab::AreaDesigner => Tab::AreaDesignerTab,
             MainTab::MapsDesigner => Tab::MapsDesignerTab,
         }
     }
@@ -275,6 +278,7 @@ impl Tab {
                 Tab::Cone,
                 Tab::FloodlightVH,
                 Tab::FloodlightIsolux,
+                Tab::FloodlightIsoView,
                 Tab::FloodlightIsocandela,
             ],
             MainTab::Analysis => &[Tab::Spectral, Tab::Greenhouse, Tab::BugRating, Tab::Lcs],
@@ -282,6 +286,7 @@ impl Tab {
             MainTab::Compare => &[Tab::CompareTab],
             MainTab::Bim => &[Tab::BimTab],
             MainTab::Scene3D => &[Tab::Scene3DTab],
+            MainTab::AreaDesigner => &[Tab::AreaDesignerTab],
             MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
         }
     }
@@ -415,64 +420,52 @@ fn load_template(
 
     set_templates_loading.set(true);
 
-    wasm_bindgen_futures::spawn_local(async move {
-        match get_template_content_js(&id).await {
-            Ok(js_val) => {
-                if let Some(content) = js_val.as_string() {
-                    match format {
-                        TemplateFormat::Ldt => {
-                            if let Ok(ldt) = Eulumdat::parse(&content) {
-                                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                                set_atla_doc.set(doc);
-                                set_current_file.set(Some(filename));
-                                set_selected_lamp_set.set(0);
-                            }
-                        }
-                        TemplateFormat::IesLm63 => {
-                            let opts = eulumdat::IesImportOptions {
-                                rotate_c_planes: if rotate_c_planes.get_untracked() {
-                                    90.0
-                                } else {
-                                    0.0
-                                },
-                            };
-                            if let Ok(ldt) = IesParser::parse_with_options(&content, &opts) {
-                                let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                                set_atla_doc.set(doc);
-                                set_current_file.set(Some(filename));
-                                set_selected_lamp_set.set(0);
-                            }
-                        }
-                        TemplateFormat::AtlaXml => {
-                            if let Ok(doc) = atla::xml::parse(&content) {
-                                set_atla_doc.set(doc);
-                                set_current_file.set(Some(filename));
-                                set_selected_lamp_set.set(0);
-                            }
-                        }
-                        TemplateFormat::AtlaJson => {
-                            if let Ok(doc) = atla::json::parse(&content) {
-                                set_atla_doc.set(doc);
-                                set_current_file.set(Some(filename));
-                                set_selected_lamp_set.set(0);
-                            }
-                        }
-                    }
-                } else {
-                    web_sys::console::error_1(
-                        &format!("Template '{}' returned non-string value", id).into(),
-                    );
+    if let Some(content) = eulumdat_wasm_templates::get_template_content(&id) {
+        match format {
+            TemplateFormat::Ldt => {
+                if let Ok(ldt) = Eulumdat::parse(&content) {
+                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(filename));
+                    set_selected_lamp_set.set(0);
                 }
             }
-            Err(e) => {
-                let msg = e.as_string().unwrap_or_else(|| "Unknown error".to_string());
-                web_sys::console::error_1(
-                    &format!("Failed to load template '{}': {}", id, msg).into(),
-                );
+            TemplateFormat::IesLm63 => {
+                let opts = eulumdat::IesImportOptions {
+                    rotate_c_planes: if rotate_c_planes.get_untracked() {
+                        90.0
+                    } else {
+                        0.0
+                    },
+                };
+                if let Ok(ldt) = IesParser::parse_with_options(&content, &opts) {
+                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(filename));
+                    set_selected_lamp_set.set(0);
+                }
+            }
+            TemplateFormat::AtlaXml => {
+                if let Ok(doc) = atla::xml::parse(&content) {
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(filename));
+                    set_selected_lamp_set.set(0);
+                }
+            }
+            TemplateFormat::AtlaJson => {
+                if let Ok(doc) = atla::json::parse(&content) {
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(filename));
+                    set_selected_lamp_set.set(0);
+                }
             }
         }
-        set_templates_loading.set(false);
-    });
+    } else {
+        web_sys::console::error_1(
+            &format!("Template '{}' not found", id).into(),
+        );
+    }
+    set_templates_loading.set(false);
 }
 
 /// Get localized template name
@@ -559,7 +552,18 @@ pub fn App() -> impl IntoView {
 
     let (view_mode, set_view_mode) = signal(ViewMode::default());
     let (current_file, set_current_file) = signal::<Option<String>>(None);
-    let (active_tab, set_active_tab) = signal(Tab::default());
+    // If URL hash starts with #designer, open the designer tab directly
+    let initial_tab = web_sys::window()
+        .and_then(|w| w.location().hash().ok())
+        .map(|h| {
+            if h.starts_with("#designer") {
+                Tab::AreaDesignerTab
+            } else {
+                Tab::default()
+            }
+        })
+        .unwrap_or_default();
+    let (active_tab, set_active_tab) = signal(initial_tab);
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
     let (templates_loading, set_templates_loading) = signal(false);
 
@@ -954,6 +958,22 @@ pub fn App() -> impl IntoView {
                 let svg = diagram.to_svg(600.0, 500.0, &theme);
                 Some((svg, "isolux_footprint.svg".to_string()))
             }
+            Tab::FloodlightIsoView => {
+                let params = eulumdat::diagram::IsoluxParams {
+                    area_half_width: 30.0,
+                    area_half_depth: 15.0,
+                    ..eulumdat::diagram::IsoluxParams::default()
+                };
+                let diagram =
+                    eulumdat::diagram::IsoluxDiagram::from_eulumdat(&ldt_val, 1200.0, 500.0, params);
+                let title = if !ldt_val.luminaire_name.is_empty() {
+                    format!("ISO view {}", ldt_val.luminaire_name)
+                } else {
+                    "ISO view".to_string()
+                };
+                let svg = diagram.to_svg_isometric(1200.0, 500.0, &theme, &eulumdat::diagram::IsometricConfig::default(), UnitSystem::default(), &ldt_val, &title);
+                Some((svg, "iso_view.svg".to_string()))
+            }
             Tab::FloodlightIsocandela => {
                 let diagram =
                     eulumdat::diagram::IsocandelaDiagram::from_eulumdat(&ldt_val, 600.0, 500.0);
@@ -970,6 +990,7 @@ pub fn App() -> impl IntoView {
             | Tab::CompareTab
             | Tab::BimTab
             | Tab::Scene3DTab
+            | Tab::AreaDesignerTab
             | Tab::MapsDesignerTab => None,
         }
     };
@@ -1138,6 +1159,7 @@ pub fn App() -> impl IntoView {
                                             Tab::Lcs => "Export SVG (LCS)",
                                             Tab::FloodlightVH => "Export SVG (V-H Diagram)",
                                             Tab::FloodlightIsolux => "Export SVG (Isolux)",
+                                            Tab::FloodlightIsoView => "Export SVG (ISO View)",
                                             Tab::FloodlightIsocandela => "Export SVG (Isocandela)",
                                             _ => "Export SVG",
                                         }
@@ -1302,6 +1324,10 @@ pub fn App() -> impl IntoView {
                                 set_view_mode.set(ViewMode::Editor);
                                 set_active_tab.set(Tab::CompareTab);
                             })
+                            on_designer=Callback::new(move |_| {
+                                set_view_mode.set(ViewMode::Editor);
+                                set_active_tab.set(Tab::AreaDesignerTab);
+                            })
                             on_export_pdf=Callback::new(move |export_ldt: Eulumdat| {
                                 let (typst_source, _) = eulumdat_typst::generate_typst_with_files(
                                     &export_ldt,
@@ -1409,6 +1435,12 @@ pub fn App() -> impl IntoView {
                             >
                                 {move || locale.get().ui.tabs.scene_3d.clone()}
                             </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::AreaDesigner { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::AreaDesigner))
+                            >
+                                "📐 Designer"
+                            </button>
                             // Maps Designer - only shown on secret URL (requires Google Maps API key)
                             {move || export_enabled.then(|| view! {
                                 <button
@@ -1444,11 +1476,13 @@ pub fn App() -> impl IntoView {
                                                 Tab::Lcs => locale.get().ui.tabs.lcs.clone(),
                                                 Tab::FloodlightVH => locale.get().ui.tabs.floodlight_vh.clone(),
                                                 Tab::FloodlightIsolux => locale.get().ui.tabs.floodlight_isolux.clone(),
+                                                Tab::FloodlightIsoView => "ISO View".to_string(),
                                                 Tab::FloodlightIsocandela => locale.get().ui.tabs.floodlight_isocandela.clone(),
                                                 Tab::ValidationTab => locale.get().ui.tabs.validation.clone(),
                                                 Tab::CompareTab => locale.get().ui.tabs.compare.clone(),
                                                 Tab::BimTab => "BIM".to_string(),
                                                 Tab::Scene3DTab => locale.get().ui.tabs.scene_3d.clone(),
+                                                Tab::AreaDesignerTab => "Designer".to_string(),
                                                 Tab::MapsDesignerTab => "Maps Designer".to_string(),
                                             };
                                             view! {
@@ -1756,6 +1790,15 @@ pub fn App() -> impl IntoView {
                                         <IsoluxFootprint ldt=ldt />
                                     </div>
                                 }.into_any(),
+                                Tab::FloodlightIsoView => view! {
+                                    <div class="iso-view-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">"ISO View"</span>
+                                            <span class="text-muted">"Isometric illuminance footprint with polar distribution"</span>
+                                        </div>
+                                        <IsoluxIsometric ldt=ldt />
+                                    </div>
+                                }.into_any(),
                                 Tab::FloodlightIsocandela => view! {
                                     <div class="isocandela-tab">
                                         <div class="diagram-header">
@@ -1811,6 +1854,14 @@ pub fn App() -> impl IntoView {
                                                 {move || locale.get().ui.diagram.scene_controls.clone()}
                                             </p>
                                         </div>
+                                    </div>
+                                }.into_any(),
+                                Tab::AreaDesignerTab => view! {
+                                    <div class="area-designer-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">"Area Lighting Designer"</span>
+                                        </div>
+                                        <AreaDesigner ldt=ldt />
                                     </div>
                                 }.into_any(),
                                 Tab::MapsDesignerTab => view! {

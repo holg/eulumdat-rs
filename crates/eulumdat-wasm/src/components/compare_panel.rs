@@ -13,12 +13,6 @@ use super::app::use_unit_system;
 use super::templates::{TemplateFormat, ALL_TEMPLATES};
 use crate::i18n::use_locale;
 
-// JS binding for lazy-loaded template content
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_name = getTemplateContent, catch)]
-    async fn get_template_content_js(id: &str) -> Result<JsValue, JsValue>;
-}
 
 /// Compare diagram mode
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -353,34 +347,22 @@ pub fn ComparePanel(
             let format = tmpl.format;
             let name = tmpl.name.to_string();
 
-            wasm_bindgen_futures::spawn_local(async move {
-                match get_template_content_js(&id).await {
-                    Ok(js_val) => {
-                        if let Some(content) = js_val.as_string() {
-                            let parsed = match format {
-                                TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
-                                TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
-                                TemplateFormat::AtlaXml => {
-                                    atla::xml::parse(&content).ok().map(|doc| doc.to_eulumdat())
-                                }
-                                TemplateFormat::AtlaJson => atla::json::parse(&content)
-                                    .ok()
-                                    .map(|doc| doc.to_eulumdat()),
-                            };
-                            if let Some(ldt) = parsed {
-                                set_ldt_b.set(Some(ldt));
-                                set_label_b.set(Some(name));
-                            }
-                        }
+            if let Some(content) = eulumdat_wasm_templates::get_template_content(&id) {
+                let parsed = match format {
+                    TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
+                    TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
+                    TemplateFormat::AtlaXml => {
+                        atla::xml::parse(&content).ok().map(|doc| doc.to_eulumdat())
                     }
-                    Err(e) => {
-                        let msg = e.as_string().unwrap_or_else(|| "Unknown error".to_string());
-                        web_sys::console::error_1(
-                            &format!("Failed to load template '{}': {}", id, msg).into(),
-                        );
-                    }
+                    TemplateFormat::AtlaJson => atla::json::parse(&content)
+                        .ok()
+                        .map(|doc| doc.to_eulumdat()),
+                };
+                if let Some(ldt) = parsed {
+                    set_ldt_b.set(Some(ldt));
+                    set_label_b.set(Some(name));
                 }
-            });
+            }
         }
     };
 
