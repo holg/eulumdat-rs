@@ -8,6 +8,7 @@ use eulumdat::area::{
     OptimizationCriteria, OptimizationRow, PoleConfig,
 };
 use eulumdat::diagram::SvgTheme;
+use eulumdat::scene3d::{build_exterior_scene, fit_scale, render_scene_svg, CameraPreset};
 use eulumdat::Eulumdat;
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -486,6 +487,19 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     // --- URL sync: update hash whenever parameters change ---
     let (link_copied, set_link_copied) = signal(false);
     let (pdf_exporting, set_pdf_exporting) = signal(false);
+    // Unified view tab: "heatmap", "room", "3d"
+    let (area_view_tab, set_area_view_tab) = signal("3d".to_string());
+    let (_scene_camera_preset, set_scene_camera_preset) = signal(CameraPreset::FrontRight);
+    let (show_light_cones, set_show_light_cones) = signal(true);
+
+    // Interactive 3D camera
+    let (area_cam_az, set_area_cam_az) = signal(30.0_f64);
+    let (area_cam_el, set_area_cam_el) = signal(30.0_f64);
+    let (area_cam_zoom, set_area_cam_zoom) = signal(1.0_f64);
+    let (area_dragging, set_area_dragging) = signal(false);
+    let (area_drag_start, set_area_drag_start) = signal((0.0_f64, 0.0_f64));
+    let (area_drag_az0, set_area_drag_az0) = signal(30.0_f64);
+    let (area_drag_el0, set_area_drag_el0) = signal(30.0_f64);
 
     let update_url_hash = move || {
         let hash = params_to_hash(&DesignerParams {
@@ -2179,36 +2193,150 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         }}
                     </div>
 
-                    // 3D Room perspective view
-                    <div class="area-panel">
-                        <h3>"Room View"</h3>
-                        {move || {
-                            let ldt_val = ldt.get();
-                            let (placements, _ldt_idx) = make_placements();
-                            let (result, _, _) = area_data();
-                            let h = mounting_height.get();
-                            let pf = proration.get();
-                            let svg_theme = SvgTheme::css_variables_with_locale(&locale.get());
-                            let u = units.get();
-                            let room_svg = AreaSvg::room_view(
-                                &result, &placements, &ldt_val,
-                                h, pf,
-                                600.0, 420.0,
-                                &svg_theme, u,
-                            );
-                            view! {
-                                <div class="area-iso-svg" inner_html=room_svg.clone()></div>
-                                <div class="area-export-buttons">
-                                    <button class="area-export-btn"
-                                        on:click=move |_| {
-                                            let svg = room_svg.clone();
-                                            super::file_handler::download_svg("area_room.svg", &svg);
-                                        }
-                                    >"Export Room SVG"</button>
-                                </div>
-                            }
-                        }}
+                    // View tab bar
+                    <div class="area-view-tabs">
+                        <button
+                            class=move || if area_view_tab.get() == "room" { "area-view-tab active" } else { "area-view-tab" }
+                            on:click=move |_| set_area_view_tab.set("room".to_string())
+                        >"Room View"</button>
+                        <button
+                            class=move || if area_view_tab.get() == "3d" { "area-view-tab active" } else { "area-view-tab" }
+                            on:click=move |_| set_area_view_tab.set("3d".to_string())
+                        >"3D Scene"</button>
+
+                        // 3D options (inline when 3D tab active)
+                        {move || (area_view_tab.get() == "3d").then(|| view! {
+                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; margin-left:8px;">
+                                <input type="checkbox"
+                                    prop:checked=move || show_light_cones.get()
+                                    on:change=move |ev| set_show_light_cones.set(event_target_checked(&ev))
+                                />" Light cones"
+                            </label>
+                            <select style="font-size:12px; padding:2px 4px; margin-left:4px;"
+                                on:change=move |ev| {
+                                    let idx: usize = event_target_value(&ev).parse().unwrap_or(0);
+                                    let p = CameraPreset::all()[idx];
+                                    set_scene_camera_preset.set(p);
+                                    let cam = p.to_camera(1.0, 1.0, 1.0);
+                                    set_area_cam_az.set(cam.azimuth);
+                                    set_area_cam_el.set(cam.elevation);
+                                    set_area_cam_zoom.set(1.0);
+                                }
+                            >
+                                {CameraPreset::all().iter().enumerate().map(|(i, p)| {
+                                    view! { <option value={i.to_string()} selected=i==0>{p.label()}</option> }
+                                }).collect::<Vec<_>>()}
+                            </select>
+                        })}
                     </div>
+
+                    // Tab content
+                    {move || {
+                        let tab = area_view_tab.get();
+                        match tab.as_str() {
+                            "room" => {
+                                let ldt_val = ldt.get();
+                                let (placements, _ldt_idx) = make_placements();
+                                let (result, _, _) = area_data();
+                                let h = mounting_height.get();
+                                let pf = proration.get();
+                                let svg_theme = SvgTheme::css_variables_with_locale(&locale.get());
+                                let u = units.get();
+                                let room_svg = AreaSvg::room_view(
+                                    &result, &placements, &ldt_val,
+                                    h, pf,
+                                    600.0, 420.0,
+                                    &svg_theme, u,
+                                );
+                                view! {
+                                    <div class="area-panel">
+                                        <h3>"Room View"</h3>
+                                        <div class="area-iso-svg" inner_html=room_svg.clone()></div>
+                                        <div class="area-export-buttons">
+                                            <button class="area-export-btn"
+                                                on:click=move |_| {
+                                                    let svg = room_svg.clone();
+                                                    super::file_handler::download_svg("area_room.svg", &svg);
+                                                }
+                                            >"Export Room SVG"</button>
+                                        </div>
+                                    </div>
+                                }.into_any()
+                            }
+                            _ => {
+                                // "3d" (default) — interactive
+                                let (placements, _ldt_idx) = make_placements();
+                                let (result, _, _) = area_data();
+                                let h = mounting_height.get();
+
+                                let faces = build_exterior_scene(&result, &placements, show_light_cones.get());
+
+                                let svg_w = 600.0;
+                                let svg_h = 450.0;
+                                let az = area_cam_az.get();
+                                let el = area_cam_el.get();
+                                let zoom = area_cam_zoom.get();
+                                let cam = eulumdat::scene3d::SceneCamera {
+                                    azimuth: az,
+                                    elevation: el,
+                                    scale: 1.0,
+                                    center: (svg_w / 2.0, svg_h / 2.0),
+                                };
+                                let base_scale = fit_scale(result.area_width, result.area_depth, h, svg_w, svg_h, &cam);
+                                let cam = eulumdat::scene3d::SceneCamera {
+                                    scale: base_scale * zoom,
+                                    ..cam
+                                };
+
+                                let scene_svg = render_scene_svg(&faces, &cam, svg_w, svg_h, "#f8f9fa");
+                                view! {
+                                    <div class="area-panel">
+                                        <h3>"3D Scene"
+                                            <span style="font-size:10px; font-weight:normal; opacity:0.5; margin-left:8px;">
+                                                "drag to rotate, scroll to zoom"
+                                            </span>
+                                        </h3>
+                                        <div class="area-3d-interactive"
+                                            inner_html=scene_svg.clone()
+                                            style="cursor:grab; user-select:none;"
+                                            on:mousedown=move |ev| {
+                                                ev.prevent_default();
+                                                set_area_dragging.set(true);
+                                                set_area_drag_start.set((ev.client_x() as f64, ev.client_y() as f64));
+                                                set_area_drag_az0.set(area_cam_az.get());
+                                                set_area_drag_el0.set(area_cam_el.get());
+                                            }
+                                            on:mousemove=move |ev| {
+                                                if !area_dragging.get() { return; }
+                                                ev.prevent_default();
+                                                let (sx, sy) = area_drag_start.get();
+                                                let dx = ev.client_x() as f64 - sx;
+                                                let dy = ev.client_y() as f64 - sy;
+                                                set_area_cam_az.set(area_drag_az0.get() - dx * 0.5);
+                                                set_area_cam_el.set((area_drag_el0.get() + dy * 0.5).clamp(0.0, 89.0));
+                                            }
+                                            on:mouseup=move |_| set_area_dragging.set(false)
+                                            on:mouseleave=move |_| set_area_dragging.set(false)
+                                            on:wheel=move |ev: web_sys::WheelEvent| {
+                                                ev.prevent_default();
+                                                let delta = ev.delta_y();
+                                                let factor = if delta > 0.0 { 0.9 } else { 1.1 };
+                                                set_area_cam_zoom.set((area_cam_zoom.get() * factor).clamp(0.3, 5.0));
+                                            }
+                                        ></div>
+                                        <div class="area-export-buttons">
+                                            <button class="area-export-btn"
+                                                on:click=move |_| {
+                                                    let svg = scene_svg.clone();
+                                                    super::file_handler::download_svg("area_3d_scene.svg", &svg);
+                                                }
+                                            >"Export 3D SVG"</button>
+                                        </div>
+                                    </div>
+                                }.into_any()
+                            }
+                        }
+                    }}
                 </div>
             </div>
         </div>

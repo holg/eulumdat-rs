@@ -179,9 +179,11 @@ mod ies;
 mod parser;
 mod symmetry;
 pub mod type_b_conversion;
+pub mod scene3d;
 pub mod units;
 mod validation;
 mod writer;
+pub mod zonal;
 
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 pub use bug_rating::{BugDiagram, BugRating, ZoneLumens};

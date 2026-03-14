@@ -64,6 +64,55 @@ struct CalculationBay {
                             // Can be overridden manually.
 }
 
+/// ── Shared 3D Scene Projection ──────────────────────────────────
+/// SVG-based axonometric projection for 3D scene views.
+/// No WebGL dependency — renders to clean SVG that exports/prints.
+/// Shared between Area (exterior) and Zonal (interior) designers.
+
+/// Camera for axonometric projection.
+/// Not free orbit — preset angles with smooth transitions.
+struct SceneCamera {
+    azimuth: f64,       // horizontal rotation, degrees (0° = front, 90° = right)
+    elevation: f64,     // vertical tilt, degrees (0° = side, 90° = top-down)
+    scale: f64,         // zoom factor (pixels per meter)
+    center: (f64, f64, f64),  // look-at point in world coordinates
+}
+
+/// Preset camera positions.
+enum CameraPreset {
+    FrontRight,    // azimuth=30°,  elevation=30° — default isometric
+    FrontLeft,     // azimuth=150°, elevation=30°
+    BackRight,     // azimuth=-30°, elevation=30°
+    TopDown,       // azimuth=0°,   elevation=85° — nearly plan view
+    LowAngle,     // azimuth=30°,  elevation=15° — eye-level perspective
+}
+
+/// A 3D polygon face for z-sorted SVG rendering.
+struct SceneFace {
+    vertices_3d: Vec<(f64, f64, f64)>,  // world-space corners
+    vertices_2d: Vec<(f64, f64)>,        // projected screen-space corners
+    z_center: f64,                        // average Z for painter's algorithm sort
+    fill: String,                         // SVG fill color/pattern
+    stroke: Option<String>,               // SVG stroke color
+    opacity: f64,                         // 0.0–1.0
+    label: Option<String>,                // optional text label
+}
+
+/// Project a 3D point to 2D SVG coordinates.
+///
+/// Uses axonometric (parallel) projection — no vanishing points,
+/// consistent scale across depth. Clean for technical visualization.
+///
+///   screen_x = (x·cos(az) - y·sin(az)) × scale
+///   screen_y = (-(x·sin(az) + y·cos(az))·sin(el) + z·cos(el)) × scale
+///
+/// Convention: X = east, Y = north, Z = up.
+fn project(camera: &SceneCamera, x: f64, y: f64, z: f64) -> (f64, f64)
+
+/// Build the complete scene face list, then z-sort back-to-front
+/// (painter's algorithm) for correct overlap in SVG rendering.
+fn render_scene_svg(faces: &mut Vec<SceneFace>, camera: &SceneCamera) -> String
+
 /// Result of multi-luminaire illuminance calculation.
 struct AreaResult {
     lux_grid: Vec<Vec<f64>>,  // combined illuminance at each ground point
@@ -316,6 +365,43 @@ Each luminaire can have individual:
 - Contour lines with lux labels
 - All pole/luminaire positions marked
 
+### 3D Scene View
+Interactive axonometric scene showing the physical installation — the key
+visual differentiator vs flat heatmaps. Renders as SVG (no WebGL).
+
+**Scene elements (exterior):**
+- Ground plane: rectangular area with illuminance heatmap texture
+  (colored bands from the calculation grid, mapped onto the ground face)
+- Contour lines projected onto the ground plane
+- Poles: vertical line segments from ground (0) to mounting_height at each
+  pole position. Rendered as thin rectangles with slight width for visibility.
+- Arms: short segments from pole top in arm_direction, length = arm_length,
+  with arm_droop angle visible
+- Luminaires: small rectangles/ellipses at arm endpoints, oriented by rotation.
+  Fill color indicates active/selected state.
+- Light cones (optional, toggle): semi-transparent triangular faces from
+  luminaire to ground showing approximate beam spread. Computed from the
+  50% intensity angle in the C0 and C90 planes. Visually communicates
+  where the light goes without cluttering the view.
+- Dimension labels: pole height, spacing, arm length shown as leader lines
+- Scale reference: 1m or 5m bar in corner of view
+
+**Interaction:**
+- Camera preset buttons: [Front-Right] [Front-Left] [Top-Down] [Low-Angle]
+- Mouse wheel: zoom (adjust camera.scale)
+- Click pole in 3D view: select it (synced with plan view selection)
+- Smooth animated transitions between camera presets (interpolate azimuth/elevation)
+- Toggle switches: [Poles ✓] [Light Cones ☐] [Contours ✓] [Dimensions ☐]
+
+**Rendering pipeline:**
+1. Build face list: ground plane (1 face, large), pole faces (2 faces each,
+   front+side for depth), arm faces, luminaire faces, optional cone faces
+2. Project all vertices through SceneCamera
+3. Compute z_center for each face
+4. Sort faces back-to-front (painter's algorithm)
+5. Emit SVG: `<polygon>` for each face in sorted order, with fill/stroke/opacity
+6. Overlay text labels (dimensions, lux values) at projected positions
+
 ### Spacing Optimizer
 - User sets target minimum illuminance (lux) and optionally target uniformity
 - Selects arrangement type and arm length
@@ -371,6 +457,12 @@ Each luminaire can have individual:
 ```
 crates/
   eulumdat/src/
+    scene3d/
+      mod.rs              — SceneCamera, CameraPreset, SceneFace, project()
+      render.rs           — render_scene_svg(), z-sort, SVG emission
+      exterior.rs         — build exterior scene: ground, poles, arms, luminaires, cones
+      interior.rs         — build interior scene: room box, ceiling, luminaires, workplane
+
     area/
       mod.rs              — pub mod, AreaResult, LuminairePlace, PoleConfig, etc.
       compute.rs          — compute_area_illuminance()
@@ -383,6 +475,7 @@ crates/
     area_designer.rs      — main Leptos component
     area_plan_view.rs     — interactive plan view (drag, select)
     area_iso_view.rs      — combined illuminance visualization
+    area_scene_view.rs    — 3D scene view component (camera controls, toggles)
     area_controls.rs      — toolbar, sliders, left panel
     area_optimizer.rs     — optimizer panel + results matrix
 ```
@@ -391,53 +484,61 @@ crates/
 
 ## Phases
 
-### Phase 1 — Core Calculation + Static UI ✅
+### Phase 1 — Core Calculation + Static UI
 - [x] `LuminairePlace`, `AreaResult`, `PoleConfig` types
 - [x] `ArrangementType` enum with luminaire generation from pole positions
 - [x] `compute_area_illuminance()` with superposition
-- [x] Grid layout presets (1, 2, 3, 4, 6, 9 poles)
-- [x] Static plan view SVG
+- [x] Grid layout presets (1, 2, 4, 6 poles)
+- [x] Static plan view SVG (no drag yet)
 - [x] Combined ISO view with contours
 - [x] Statistics panel (min/avg/max/uniformity)
 - [x] Wire into Designer tab
 
-### Phase 2 — Interactive Plan View + Arrangements ✅
-- [x] Draggable pole positions (mousedown/mousemove/mouseup + screen-to-world transform)
-- [x] Click to select, show properties in left panel
-- [x] Per-luminaire height/tilt/rotation overrides
-- [x] Quick position presets (9-button grid: corners, edges, center)
-- [x] Pole arrangement types in toolbar (Single/BackToBack/TwinArm/Quad/WallMounted)
-- [x] Arm length, droop controls
-- [x] Smart defaults from LDT photometric data (flux, beam spread, DFF)
-- [x] Imperial unit support throughout (m/lx ↔ ft/fc)
-- [x] URL hash-based state sharing (shareable links)
+### Phase 2 — Interactive Plan View + Arrangements
+- [ ] Draggable pole positions
+- [ ] Click to select, show properties
+- [ ] Per-luminaire height/tilt/rotation overrides
+- [ ] Quick position presets (top/mid/bottom, left/center/right)
+- [ ] Pole arrangement types in toolbar (Single/BackToBack/Quad)
+- [ ] Arm length, droop, and direction controls
+- [x] **3D Scene View (exterior):**
+  - [x] `SceneCamera`, `CameraPreset`, `SceneFace`, `project()` in scene3d module
+  - [x] `render_scene_svg()` with z-sorted painter's algorithm
+  - [x] `build_exterior_scene()` — ground plane with illuminance texture,
+        pole segments, arm segments, luminaire shapes
+  - [x] Camera preset buttons (Front-Right, Top-Down, Low-Angle)
+  - [ ] Mouse wheel zoom
+  - [x] Toggle switches: poles, light cones, contours, dimensions
+  - [x] Light cone visualization (optional, from 50% intensity angles)
+  - [ ] Click-to-select synced between plan view and 3D view
+  - [x] View toggle: [Room View] [3D Scene] (unified tab toggle)
 
-### Phase 3 — Spacing Optimizer + Height Comparison ✅
-- [x] `OptimizationCriteria` and `OptimizationRow` types
-- [x] `optimize_spacing()` with height sweep + golden-section search on spacing
-- [x] Bay-based computation with 3×3 neighbor contributions for optimizer speed
-- [x] Optimizer panel UI (target inputs, results matrix)
-- [x] Click result row → apply configuration to plan view
-- [x] Poles-needed column (cost-effectiveness metric)
-- [x] Multi-height comparison cards in left panel (clickable, selected state)
-- [x] Side-by-side statistics per height (min/avg/max/U₀/spacing/poles)
-- [x] Overlay toggle for contours at different heights (checkbox per card, colored dashed contours)
+### Phase 3 — Spacing Optimizer + Height Comparison
+- [ ] `OptimizationCriteria` and `OptimizationResult` types
+- [ ] `optimize_spacing()` with height sweep + golden-section search on spacing
+- [ ] `CalculationBay` with auto-detected neighbor depth for optimizer speed
+- [ ] Optimizer panel UI (target inputs, results matrix)
+- [ ] Click result row → apply configuration to plan view
+- [ ] Poles-needed column (cost-effectiveness metric)
+- [ ] Multi-height comparison cards in left panel
+- [ ] Side-by-side statistics
+- [ ] Overlay toggle for contours at different heights
 
-### Phase 4 — Proration & Export ✅
-- [x] Proration factor input (slider 0.3–1.0)
-- [x] CSV export of illuminance grid (with unit-aware headers)
-- [x] CSV export of optimizer results matrix
-- [x] SVG export of plan + ISO views
-- [x] Typst report export (.typ with embedded SVGs, stats, optimizer table)
+### Phase 4 — Proration & Export
+- [ ] Proration factor input with explanation tooltip
+- [ ] CSV export of illuminance grid
+- [ ] CSV export of optimizer results matrix
+- [ ] SVG export of plan + ISO views
+- [ ] PDF report via Typst
 
-### Phase 5 — Advanced ✅
-- [x] Bay view vs full-area view toggle (checkbox, computes single bay with 3×3 neighbors)
-- [x] Custom area shapes (polygon support — draw polygon, point-in-polygon masking, polygon SVG rendering)
-- [x] Perimeter placement preset (distributes poles evenly around rectangle edges)
-- [x] Mixed luminaire types (load extra LDT/IES files, per-pole LDT selector, `compute_area_illuminance_mixed`)
-- [x] Undo/redo for placement changes (history stack, Undo/Redo buttons in toolbar)
-- [x] Save/load design configurations (localStorage-based, Save/Load buttons in toolbar)
-- [x] Wall-mounted luminaire support (auto 90° tilt, no arm offset, info banner)
+### Phase 5 — Advanced
+- [ ] Bay view vs full-area view toggle
+- [ ] Custom area shapes (polygon support)
+- [ ] Perimeter placement preset
+- [ ] Mixed luminaire types (load different LDT per pole position)
+- [ ] Undo/redo for placement changes
+- [ ] Save/load design configurations
+- [ ] Wall-mounted luminaire support (vertical surface calculations)
 
 ---
 
@@ -470,3 +571,18 @@ crates/
      feedback, then auto-refine to 80×80 after 300ms debounce
    - Optimizer sweep: explicit "Optimize" button — runs dozens of
      calculations across the height/spacing matrix
+
+7. **3D rendering: SVG axonometric, not WebGL.** Rationale:
+   - Zero dependencies — no Three.js, no wasm-bindgen WebGL bindings
+   - SVG exports cleanly to PDF/print (Typst can embed SVG directly)
+   - Axonometric projection (parallel, no vanishing points) is standard
+     for technical lighting documentation — it's what AGi32 and Relux use
+   - Painter's algorithm (z-sort faces back-to-front) is sufficient for
+     the low polygon count (room box + poles + luminaires = ~50 faces max)
+   - Preset camera angles instead of free orbit keeps the UI simple
+     and avoids gimbal lock / trackball interaction complexity
+   - Performance: re-render on camera change is just re-projecting vertices
+     and re-sorting — sub-millisecond for this face count
+   - Trade-off: no smooth real-time rotation drag. Acceptable for a
+     calculation tool (not a 3D modeling app). If users demand free orbit
+     later, can add a lightweight WebGL path as a progressive enhancement.

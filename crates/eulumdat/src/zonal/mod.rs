@@ -9,8 +9,9 @@ mod presets;
 mod svg;
 
 pub use compute::{
-    compute_zonal, CavityResults, LightLossFactor, LuminaireLayout, Reflectances, Room,
-    SolveMode, ZonalResult,
+    compute_cavity_ratios, compute_ppb_overlay, compute_zonal, effective_cavity_reflectance,
+    find_best_layout, interpolate_cu, CavityResults, LightLossFactor, LuminaireLayout, PpbResult,
+    Reflectances, Room, SolveMode, ZonalResult,
 };
 pub use presets::{LlfPreset, ReflectancePreset, RoomPreset};
 pub use svg::ZonalSvg;

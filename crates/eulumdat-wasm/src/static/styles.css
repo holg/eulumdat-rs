@@ -4236,6 +4236,33 @@ tr.delta-major .metric-percent {
     color: var(--text-muted);
 }
 
+.area-view-tabs {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    width: fit-content;
+    margin-bottom: 0.5rem;
+}
+.area-view-tab {
+    padding: 4px 14px;
+    font-size: 12px;
+    border: none;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.area-view-tab:last-of-type { border-right: none; }
+.area-view-tab:hover { background: var(--surface-hover, #eef); }
+.area-view-tab.active {
+    background: var(--accent, #4488cc);
+    color: #fff;
+    font-weight: 600;
+}
+
 .area-plan-svg svg,
 .area-iso-svg svg {
     width: 100%;

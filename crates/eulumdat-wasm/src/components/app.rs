@@ -52,6 +52,7 @@ use super::isolux_isometric::IsoluxIsometric;
 use super::lcs_classification::LcsClassification;
 use super::area_designer::AreaDesigner;
 use super::maps_designer::MapsDesigner;
+use super::zonal_designer::ZonalDesigner;
 use super::polar_diagram::PolarDiagram;
 use super::spectral_diagram::SpectralDiagramView;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
@@ -179,6 +180,7 @@ pub enum MainTab {
     Bim,
     Scene3D,
     AreaDesigner,
+    ZonalDesigner,
     MapsDesigner,
 }
 
@@ -217,6 +219,8 @@ pub enum Tab {
     Scene3DTab,
     // Area Designer group (single tab, no sub-tabs)
     AreaDesignerTab,
+    // Zonal Designer group (single tab, no sub-tabs)
+    ZonalDesignerTab,
     // Maps Designer group (single tab, no sub-tabs)
     MapsDesignerTab,
 }
@@ -241,6 +245,7 @@ impl Tab {
             Tab::BimTab => MainTab::Bim,
             Tab::Scene3DTab => MainTab::Scene3D,
             Tab::AreaDesignerTab => MainTab::AreaDesigner,
+            Tab::ZonalDesignerTab => MainTab::ZonalDesigner,
             Tab::MapsDesignerTab => MainTab::MapsDesigner,
         }
     }
@@ -257,6 +262,7 @@ impl Tab {
             MainTab::Bim => Tab::BimTab,
             MainTab::Scene3D => Tab::Scene3DTab,
             MainTab::AreaDesigner => Tab::AreaDesignerTab,
+            MainTab::ZonalDesigner => Tab::ZonalDesignerTab,
             MainTab::MapsDesigner => Tab::MapsDesignerTab,
         }
     }
@@ -287,6 +293,7 @@ impl Tab {
             MainTab::Bim => &[Tab::BimTab],
             MainTab::Scene3D => &[Tab::Scene3DTab],
             MainTab::AreaDesigner => &[Tab::AreaDesignerTab],
+            MainTab::ZonalDesigner => &[Tab::ZonalDesignerTab],
             MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
         }
     }
@@ -991,6 +998,7 @@ pub fn App() -> impl IntoView {
             | Tab::BimTab
             | Tab::Scene3DTab
             | Tab::AreaDesignerTab
+            | Tab::ZonalDesignerTab
             | Tab::MapsDesignerTab => None,
         }
     };
@@ -1441,6 +1449,12 @@ pub fn App() -> impl IntoView {
                             >
                                 "📐 Designer"
                             </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::ZonalDesigner { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::ZonalDesigner))
+                            >
+                                "🏢 Interior"
+                            </button>
                             // Maps Designer - only shown on secret URL (requires Google Maps API key)
                             {move || export_enabled.then(|| view! {
                                 <button
@@ -1483,6 +1497,7 @@ pub fn App() -> impl IntoView {
                                                 Tab::BimTab => "BIM".to_string(),
                                                 Tab::Scene3DTab => locale.get().ui.tabs.scene_3d.clone(),
                                                 Tab::AreaDesignerTab => "Designer".to_string(),
+                                                Tab::ZonalDesignerTab => "Interior".to_string(),
                                                 Tab::MapsDesignerTab => "Maps Designer".to_string(),
                                             };
                                             view! {
@@ -1862,6 +1877,14 @@ pub fn App() -> impl IntoView {
                                             <span class="diagram-title">"Area Lighting Designer"</span>
                                         </div>
                                         <AreaDesigner ldt=ldt />
+                                    </div>
+                                }.into_any(),
+                                Tab::ZonalDesignerTab => view! {
+                                    <div class="zonal-designer-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">"Interior Lighting Designer"</span>
+                                        </div>
+                                        <ZonalDesigner ldt=ldt />
                                     </div>
                                 }.into_any(),
                                 Tab::MapsDesignerTab => view! {

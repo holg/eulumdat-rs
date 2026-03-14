@@ -516,6 +516,55 @@ User can always override.
 - Uniformity ratio (min/avg) — the metric that zonal cavity alone cannot provide
 - Toggle between plan (flat) and isometric view
 
+### 3D Room Scene View
+Interactive axonometric scene showing the physical room — the visual
+that sells the tool to non-technical users. Renders as SVG (no WebGL).
+Uses the shared `scene3d` module from the Area designer.
+
+**Scene elements (interior):**
+- Room box: floor, 4 walls, ceiling rendered as separate faces.
+  Back walls semi-transparent so interior is visible.
+  Wall reflectance visualized as fill brightness (ρw=0.7 → light gray,
+  ρw=0.3 → dark gray). Helps users intuit reflectance impact.
+- Ceiling plane: shows luminaire grid as rectangles/circles matching
+  LDT luminous opening dimensions. Luminaire shapes inset into ceiling
+  if recessed (suspension=0), hanging below if suspended.
+  Ceiling grid tiles (optional toggle) — shows T-bar grid at configured
+  tile size (600×600mm or 2'×2') as dashed lines on ceiling face.
+- Suspension rods: thin vertical lines from ceiling to luminaire if
+  suspension_length > 0.
+- Workplane: semi-transparent colored plane at workplane_height showing
+  illuminance heatmap (colored bands from PPB calculation).
+  Partially transparent so floor is visible below.
+  Contour lines on the workplane surface.
+- Floor: base plane, darker fill matching floor reflectance.
+- Cavity visualization (optional toggle): dashed horizontal lines at
+  luminaire plane and workplane height, with labels "hcc", "hrc", "hfc"
+  on the side wall — directly matches the cavity diagram from the
+  Background section. Educational feature for students/presentations.
+- Dimension labels: room length/width/height, workplane height,
+  suspension length as leader lines on room edges.
+
+**Interaction:**
+- Camera preset buttons: [Front-Right] [Front-Left] [Top-Down] [Section]
+  "Section" preset: azimuth=0°, elevation=0° — side cutaway view showing
+  the three cavities clearly. Hides front wall for visibility.
+- Mouse wheel: zoom
+- Click luminaire in 3D view: highlight it (cosmetic, no per-luminaire
+  editing in zonal — uniform grid only)
+- Toggle switches: [Walls ✓] [Ceiling Grid ☐] [Cavities ☐] [Workplane ✓]
+  [Dimensions ☐]
+- Wall transparency slider: 0% (opaque) to 80% (nearly invisible)
+
+**Rendering pipeline:**
+Same as exterior (shared scene3d module):
+1. Build face list: floor (1), walls (4, back walls flagged for transparency),
+   ceiling (1), luminaire faces (N), workplane (1), optional cavity lines
+2. Project all vertices through SceneCamera
+3. Z-sort back-to-front
+4. Emit SVG polygons with fill/stroke/opacity
+5. Overlay dimension labels at projected positions
+
 ### Solve Modes
 Three calculation modes, switchable:
 
@@ -552,6 +601,12 @@ Three calculation modes, switchable:
 ```
 crates/
   eulumdat/src/
+    scene3d/
+      mod.rs              — SceneCamera, CameraPreset, SceneFace, project()
+      render.rs           — render_scene_svg(), z-sort, SVG emission
+      exterior.rs         — build exterior scene: ground, poles, arms, luminaires, cones
+      interior.rs         — build interior scene: room box, ceiling, luminaires, workplane
+
     zonal/
       mod.rs              — pub mod, Room, Reflectances, ZonalResult, etc.
       cavity.rs           — cavity ratio computation, effective reflectances
@@ -570,6 +625,7 @@ crates/
     zonal_designer.rs     — main Leptos component
     zonal_room_view.rs    — room plan view (SVG)
     zonal_illum_view.rs   — point-by-point heatmap view
+    zonal_scene_view.rs   — 3D room scene component (camera controls, toggles)
     zonal_controls.rs     — toolbar, room config, LLF panel
     zonal_cu_display.rs   — CU table display panel
     zonal_results.rs      — results panel, zonal lumen summary
@@ -602,83 +658,85 @@ Partially created module structure:
 ## Phases
 
 ### Phase 1 — Core Types + Cavity Ratios (Step 1–2)
-- [ ] `Room` struct (length, width, height, workplane_height, suspension_length)
-      with `hrc()`, `hcc()`, `hfc()`, `area()`, `mounting_height()` helpers
-      Note: `mounting_height()` = hrc = height - workplane_height - suspension_length.
-      This is the room cavity height used for spacing criterion — NOT height from floor.
-- [ ] `Reflectances` struct (ceiling, walls, floor as 0.0–1.0)
-- [ ] `LightLossFactor` struct (lld, ldd, bf, rsdd) with `total()`
+- [x] `Room` struct (length, width, height, workplane_height, suspension_length)
+      with `hrc()`, `hcc()`, `hfc()`, `area()` helpers
+- [x] `Reflectances` struct (ceiling, walls, floor as 0.0–1.0)
+- [x] `LightLossFactor` struct (lld, ldd, bf, rsdd) with `total()`
 - [ ] `LuminaireSpec` struct — extract from parsed LDT/IES on load:
       luminaire_flux, lamp_flux, wattage, is_absolute, spacing_criterion.
       For EULUMDAT: luminaire_flux from header, is_absolute always false.
       For IES: check lamp_lumens == -1 for absolute photometry.
       spacing_criterion from existing `spacing_criterion_ies()`.
-- [ ] `CavityResults` struct (rcr, ccr, fcr, rho_cc_eff, rho_fc_eff)
-- [ ] `LuminaireLayout` struct (rows, cols, offset_x, offset_y)
-- [ ] `SolveMode` enum (TargetToCount, CountToIlluminance, TargetToLpd)
-- [ ] `ZonalResult` struct (cavity, cu, num_luminaires, avg/target illuminance,
-      lpd, llf, layout, spacing_x/y, spacing_ok, ppb fields)
-- [ ] `compute_cavity_ratios()` — CR = 5·h·(L+W)/(L·W) for each cavity
-- [ ] `effective_cavity_reflectance()` — IES approximation formula:
-      ρ_eff = ρ_base + (ρ_wall - ρ_base) × F(CR)
-      where F(CR) is an empirically derived correction factor.
-      Standard implementation: use the IES Lighting Handbook Table 9.3
-      (effective cavity reflectance for various CR, ρ_base, ρ_wall combos)
-      embedded as a lookup table with bilinear interpolation.
+- [x] `CavityResults` struct (rcr, ccr, fcr, rho_cc_eff, rho_fc_eff)
+- [x] `LuminaireLayout` struct (rows, cols, offset_x, offset_y, spacing, S/MH)
+- [x] `SolveMode` enum (TargetToCount, CountToIlluminance, TargetToLpd)
+- [x] `ZonalResult` struct (cavity, cu, layout, avg/target illuminance,
+      lpd, llf, spacing_criterion, ppb)
+- [x] `compute_cavity_ratios()` — CR = 5·h·(L+W)/(L·W) for each cavity
+- [x] `effective_cavity_reflectance()` — IES approximation formula
       Special case: CR = 0 → ρ_eff = ρ_base (passthrough, no cavity).
-- [ ] `interpolate_cu()` — bilinear interpolation across pre-computed CuTable
-      from existing `CuTable::calculate()`. Interpolate on both RCR (rows)
-      and reflectance combo (find two nearest ρcc_eff/ρw columns, interpolate).
-- [ ] `find_best_layout()` — for N luminaires in L×W room:
-      1. Find all (rows, cols) factor pairs where rows×cols ≥ N
-      2. Compute spacing_x = L / cols, spacing_y = W / rows
-      3. Compute offsets: offset_x = spacing_x / 2, offset_y = spacing_y / 2
-      4. Score by aspect ratio of spacing (prefer spacing_x/spacing_y ≈ 1)
-      5. Check spacing criterion: max(spacing_x, spacing_y) ≤ S/MH × hrc
-      6. Select layout with best uniformity that passes spacing check
-      If no factor pair works, try N+1, N+2, ... until feasible layout found.
-- [ ] Unit tests for cavity ratios, effective reflectance, CU interpolation, layout
+- [x] `interpolate_cu()` — bilinear interpolation across pre-computed CuTable
+- [x] `find_best_layout()` — factor pair search with aspect ratio scoring
+- [x] Unit tests for cavity ratios, effective reflectance, CU interpolation, layout
 
 File: `crates/eulumdat/src/zonal/compute.rs`
 Wire: `pub mod zonal;` in `lib.rs`
 
 ### Phase 2 — Main Calculation + Minimal UI (Step 3–4)
-- [ ] `compute_zonal()` main entry point — TargetToCount mode
-      (cavities → effective reflectances → interpolate CU → N → layout → spacing check → LPD)
-- [ ] `ZonalSvg::room_plan()` — top-down room with luminaire grid, spacing labels
-- [ ] `ZonalSvg::section_view()` — side section showing 3 cavities with dimensions
-- [ ] Skeleton `ZonalDesigner` Leptos component (room preset, dimensions, results)
-- [ ] Wire into `app.rs` as "Interior" tab (after "Exterior" area designer)
-- [ ] End-to-end test with sample LDT file
+- [x] `compute_zonal()` main entry point — all 3 solve modes
+- [x] `ZonalSvg::room_plan()` — top-down room with luminaire grid, spacing labels
+- [x] `ZonalSvg::section_view()` — side section showing 3 cavities with dimensions
+- [x] `ZonalDesigner` Leptos component (room presets, dimensions, results, solve modes)
+- [x] Wire into `app.rs` as "Interior" tab (after "Exterior" area designer)
+- [x] End-to-end test with sample LDT file
 
 Files: `zonal/compute.rs`, `zonal/svg.rs`, `zonal_designer.rs`, `app.rs`, `mod.rs`
 
 ### Phase 3 — Point-by-Point Overlay + Visualization (Step 5)
-- [ ] `compute_ppb_overlay()` — construct LuminairePlace instances from layout:
-      each grid position → LuminairePlace with x/y from grid, tilt=0, rotation=0,
-      mounting_height = hrc + workplane_height (height from floor, not hrc).
-      Call `compute_area_illuminance()` for direct component on workplane grid.
-      Add uniform reflected estimate: E_reflected = E_avg_zonal − E_avg_direct.
-      Note: E_avg_direct is the mean of the PPB grid before adding reflection.
-      If E_reflected < 0 (can happen with very direct luminaires in small rooms),
-      clamp to 0 — the zonal method is approximate and this is a known edge case.
-- [ ] `ZonalSvg::illuminance_view()` — PPB heatmap with contours
-      (reuse heatmap_color + marching_squares from area iso_view)
-- [ ] Min/max/avg/uniformity from point-by-point
-- [ ] PPB toggle in component, render heatmap panel
+- [x] `compute_ppb_overlay()` — construct LuminairePlace instances from layout,
+      call `compute_area_illuminance()` for direct component on workplane grid,
+      add uniform reflected estimate: E_reflected = E_avg_zonal − E_avg_direct,
+      clamp to 0 if negative.
+- [x] `ZonalSvg::illuminance_view()` — PPB heatmap with contours
+      (reuses heatmap_color + marching_squares from area iso_view)
+- [x] Min/max/avg/uniformity from point-by-point
+- [x] PPB toggle in component, render heatmap panel
+- [x] **3D Room Scene View (interior):**
+  - [x] `scene3d` module (shared with Area): SceneCamera, CameraPreset,
+        SceneFace, project(), render_scene_svg(), fit_scale()
+  - [x] `build_interior_scene()` — room box (floor + 4 walls + ceiling),
+        luminaire grid on ceiling, workplane with illuminance heatmap texture,
+        suspension rods if suspension > 0
+  - [x] `build_exterior_scene()` — ground heatmap, poles, arms, luminaire
+        heads, optional light cones (for Area designer)
+  - [x] Back walls semi-transparent (0.35), front walls very transparent (0.15)
+  - [x] Wall fill brightness mapped to reflectance values (reflectance_to_rgb)
+  - [x] Camera presets: Front-Right, Front-Left, Top-Down, Low-Angle, Section
+  - [x] Cavity visualization mode: dashed lines at luminaire plane + workplane
+        with hcc/hrc/hfc labels — educational/presentation feature
+  - [x] Toggle: 3D Room view checkbox, Cavity lines checkbox, camera dropdown
+  - [x] View toggle: [Heatmap] [3D Room] [Section] [CU Table] (unified tab toggle)
 
 ### Phase 4 — Solve Modes + LLF + Polish (Step 6–8)
-- [ ] CountToIlluminance mode: E = N·Φ·CU·LLF / A
-- [ ] TargetToLpd mode: N = target_lpd·A / wattage
-- [ ] Solve mode dropdown with conditional inputs
-- [ ] LLF component sliders with presets (LED, fluorescent)
-- [ ] Reflectance custom sliders per surface
-- [ ] CU table display panel (toggleable, highlighted operating point)
-- [ ] `ZonalSvg::cu_table_svg()` — tabular SVG with highlighted cell
-- [ ] Luminaire info sidebar (auto from LDT: lumens, watts, S/MH, DFF)
-- [ ] Zonal lumen summary display
-- [ ] URL hash serialization for shareable links
-- [ ] PDF export via Typst (same pattern as area designer)
+- [x] CountToIlluminance mode: E = N·Φ·CU·LLF / A
+- [x] TargetToLpd mode: N = target_lpd·A / wattage
+- [x] Solve mode dropdown with conditional inputs
+- [x] LLF component sliders with presets (LED, fluorescent)
+- [x] Reflectance custom sliders per surface
+- [x] CU table display panel (toggleable, highlighted operating point)
+- [x] `ZonalSvg::cu_table_svg()` — tabular SVG with highlighted cell
+- [x] Luminaire info sidebar (auto from LDT: lumens, watts, S/MH, DFF)
+- [x] Zonal lumen summary display
+- [x] URL hash serialization for shareable links
+- [x] PDF export via Typst (same pattern as area designer):
+  - Typst source generated inline with embedded SVG images
+  - Report includes: luminaire info, room parameters, reflectances, LLF,
+    cavity ratios, CU, results table (count, achieved lux, LPD, spacing),
+    room plan SVG, section view SVG, PPB heatmap SVG (if enabled),
+    CU table SVG (if enabled)
+  - `compileTypstToPdf()` JS bridge (shared with area designer)
+  - Fallback: download .typ source if PDF compilation fails
+  - "Export PDF" button in toolbar, disabled while exporting
 
 ### Phase 5 — Export + Photometric Report (deferred)
 - [ ] CU table CSV export (IES indoor report format)
@@ -770,6 +828,10 @@ Both tools share:
 - The `ldt.sample(C, γ)` candela interpolation
 - Point-by-point illuminance computation engine
 - SVG rendering (heatmaps, contour lines, isometric view)
+- **`scene3d` module** — shared axonometric 3D projection engine:
+  SceneCamera, CameraPreset, project(), render_scene_svg(), z-sort.
+  Area designer uses `build_exterior_scene()` (ground + poles),
+  Zonal designer uses `build_interior_scene()` (room box + ceiling).
 - LLF/proration factor model
 - Unit system toggle
 
@@ -827,3 +889,19 @@ Both live in the same "Designer" tab with a toggle:
    their product pages. Combined with the LDT file already loaded, this
    replicates Luxiflux's "launch from product page" workflow — but open,
    free, and embeddable without annual license fees.
+
+8. **3D room view: SVG axonometric, shared with Area designer.** The
+   `scene3d` module is shared code — Area builds an exterior scene (ground +
+   poles), Zonal builds an interior scene (room box + ceiling luminaires).
+   Same projection math, same z-sort renderer, same camera presets.
+   Interior-specific choices:
+   - Back walls rendered semi-transparent (50–80% opacity) so the room
+     interior is visible. Front walls can be hidden entirely in Section preset.
+   - Wall fill brightness tracks reflectance values — users immediately see
+     that dark walls (ρw=0.3) look different from bright walls (ρw=0.7),
+     building intuition for how reflectance affects CU.
+   - Cavity visualization toggle draws the three-cavity diagram directly
+     onto the room walls — a teaching tool for presentations and the
+     Wuhan lectures. No other web tool does this.
+   - Section camera preset (azimuth=0°, elevation=0°) produces a side
+     cutaway matching standard lighting textbook diagrams.

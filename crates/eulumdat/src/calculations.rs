@@ -2589,7 +2589,7 @@ pub const CU_RCR_VALUES: [u8; 11] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 ///
 /// Contains CU values (as percentages) for standard room cavity ratios
 /// and reflectance combinations, following IES Zonal Cavity Method.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CuTable {
     /// Effective floor cavity reflectance used
     pub floor_reflectance: f64,

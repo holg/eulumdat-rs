@@ -29,5 +29,6 @@ mod tabs;
 pub mod templates;
 pub mod theme;
 mod validation_panel;
+mod zonal_designer;
 
 pub use app::App;
