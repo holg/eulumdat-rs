@@ -280,20 +280,26 @@ struct DebugFlags {
 // ---------------------------------------------------------------------------
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    let debug_flags = DebugFlags {
-        no_sky: args.iter().any(|a| a == "--no-sky"),
-        no_matfix: args.iter().any(|a| a == "--no-matfix"),
-        no_lights: args.iter().any(|a| a == "--no-lights"),
+    #[cfg(not(target_arch = "wasm32"))]
+    let (debug_flags, scene) = {
+        let args: Vec<String> = std::env::args().collect();
+        let flags = DebugFlags {
+            no_sky: args.iter().any(|a| a == "--no-sky"),
+            no_matfix: args.iter().any(|a| a == "--no-matfix"),
+            no_lights: args.iter().any(|a| a == "--no-lights"),
+        };
+        let scene = args.iter().skip(1)
+            .find(|a| !a.starts_with("--"))
+            .cloned();
+        if flags.no_sky { println!("DEBUG: --no-sky — sky objects disabled"); }
+        if flags.no_matfix { println!("DEBUG: --no-matfix — material fixes disabled"); }
+        if flags.no_lights { println!("DEBUG: --no-lights — photometric lights disabled"); }
+        (flags, scene)
     };
-    // Scene from first positional arg (skip flags)
-    let scene = args.iter().skip(1)
-        .find(|a| !a.starts_with("--"))
-        .map(|s| s.as_str());
-
-    if debug_flags.no_sky { println!("DEBUG: --no-sky — sky objects disabled"); }
-    if debug_flags.no_matfix { println!("DEBUG: --no-matfix — material fixes disabled"); }
-    if debug_flags.no_lights { println!("DEBUG: --no-lights — photometric lights disabled"); }
+    #[cfg(target_arch = "wasm32")]
+    let (debug_flags, scene) = {
+        (DebugFlags { no_sky: false, no_matfix: false, no_lights: false }, None::<String>)
+    };
 
     let pollution_ldt =
         Eulumdat::parse(POLLUTION_LDT).expect("Failed to parse road_luminaire.ldt");
@@ -326,7 +332,7 @@ fn main() {
         .add_plugins(PhotometricPlugin::<Eulumdat>::default())
         .insert_resource(SimulationState {
             mode: Mode::StandardPollution,
-            scene: match scene {
+            scene: match scene.as_deref() {
                 Some("sponza") => SceneChoice::Sponza,
                 Some("bistro") => SceneChoice::BistroExterior,
                 _ => SceneChoice::UrbanStreet,
