@@ -149,6 +149,7 @@ BUILD_BEVY=$(toml_get "bundles.bevy" "true")
 BUILD_TYPST=$(toml_get "bundles.typst" "false")
 BUILD_GMAPS=$(toml_get "bundles.gmaps" "false")
 BUILD_TEMPLATES=$(toml_get "bundles.templates" "false")
+BUILD_OBSCURA=$(toml_get "bundles.obscura" "false")
 
 # Deploy settings
 DEPLOY_TARGET=$(toml_get "deploy.target" "")
@@ -298,6 +299,9 @@ fi
 if [[ "$BUILD_TEMPLATES" == "true" ]]; then
     echo "  Bundle 4: Templates (loads on demand)"
 fi
+if [[ "$BUILD_OBSCURA" == "true" ]]; then
+    echo "  Bundle 5: Obscura Demo (loads on demand, ?wasm=obscura_demo)"
+fi
 if [[ "$HAVE_BROTLI" == "true" ]]; then
     echo ""
     echo "  Brotli pre-compression: enabled"
@@ -371,6 +375,56 @@ fi
 ((STEP++))
 
 # -----------------------------------------------------------------------------
+# Step 1.5: Build Obscura Demo (from same Bevy crate, different binary)
+# -----------------------------------------------------------------------------
+OBSCURA_BINARY="obscura-demo"
+OBSCURA_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
+OBSCURA_BINDGEN_OUTPUT="$ROOT_DIR/target/obscura-wasm-bindgen"
+OBSCURA_BUILT=false
+if [[ "$BUILD_OBSCURA" == "true" ]]; then
+    OBSCURA_NEEDS_BUILD=false
+    if needs_rebuild "obscura" "$BEVY_DIR"; then
+        OBSCURA_NEEDS_BUILD=true
+    elif [[ ! -f "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" ]]; then
+        OBSCURA_NEEDS_BUILD=true
+    fi
+
+    if [[ "$OBSCURA_NEEDS_BUILD" == "true" ]]; then
+        echo "[1.5/$TOTAL_STEPS] Building Obscura Demo for WASM..."
+        cd "$ROOT_DIR"
+
+        # Build the obscura-demo binary for wasm32
+        cargo build --release --target wasm32-unknown-unknown \
+            --bin obscura-demo \
+            --features bevy-ui,post-process \
+            -p eulumdat-bevy
+
+        # Run wasm-bindgen to generate JS glue
+        mkdir -p "$OBSCURA_BINDGEN_OUTPUT"
+        wasm-bindgen --out-dir "$OBSCURA_BINDGEN_OUTPUT" --target web \
+            "$OBSCURA_OUTPUT/${OBSCURA_BINARY}.wasm"
+
+        # Optimize with wasm-opt if available
+        if command -v wasm-opt &> /dev/null && [[ -f "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" ]]; then
+            echo "  Running wasm-opt..."
+            ORIG_SIZE=$(ls -lh "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg_opt.wasm" \
+                "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm"
+            mv "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg_opt.wasm" \
+                "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm"
+            OPT_SIZE=$(ls -lh "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | awk '{print $5}')
+            echo "  Size: $ORIG_SIZE -> $OPT_SIZE"
+        fi
+
+        save_hash "obscura" "$(calculate_source_hash "$BEVY_DIR")"
+        OBSCURA_BUILT=true
+        echo ""
+    else
+        echo "[1.5/$TOTAL_STEPS] Obscura Demo: unchanged, skipping build"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # Step 2: Build Leptos editor
 # -----------------------------------------------------------------------------
 if [[ "$BUILD_LEPTOS" == "true" ]]; then
@@ -438,6 +492,46 @@ if [[ "$BUILD_BEVY" == "true" ]]; then
     fi
 fi
 ((STEP++))
+echo ""
+
+# -----------------------------------------------------------------------------
+# Step 3.5: Add content hashes to Obscura files
+# -----------------------------------------------------------------------------
+OBSCURA_JS_HASH=""
+OBSCURA_WASM_HASH=""
+if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -f "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" ]]; then
+    if command -v md5sum &> /dev/null; then
+        OBSCURA_JS_HASH=$(md5sum "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" | cut -c1-16)
+        OBSCURA_WASM_HASH=$(md5sum "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | cut -c1-16)
+    else
+        OBSCURA_JS_HASH=$(md5 -q "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" | cut -c1-16)
+        OBSCURA_WASM_HASH=$(md5 -q "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | cut -c1-16)
+    fi
+
+    OBSCURA_JS_TARGET="$DIST_DIR/obscura/${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js"
+    OBSCURA_WASM_TARGET="$DIST_DIR/obscura/${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm"
+
+    if [[ -f "$OBSCURA_JS_TARGET" ]] && [[ -f "$OBSCURA_WASM_TARGET" ]]; then
+        echo "[3.5/$TOTAL_STEPS] Obscura files: unchanged (hash match), skipping"
+    else
+        echo "[3.5/$TOTAL_STEPS] Adding content hashes to Obscura files..."
+        mkdir -p "$DIST_DIR/obscura"
+
+        rm -f "$DIST_DIR/obscura/"*.js "$DIST_DIR/obscura/"*.wasm "$DIST_DIR/obscura/"*.br
+
+        cp "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" "$OBSCURA_JS_TARGET"
+        cp "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" "$OBSCURA_WASM_TARGET"
+
+        # Update JS to reference hashed WASM
+        if [[ "$(uname)" == "Darwin" ]]; then
+            sed -i '' "s/${OBSCURA_BINARY}_bg.wasm/${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm/g" "$OBSCURA_JS_TARGET"
+        else
+            sed -i "s/${OBSCURA_BINARY}_bg.wasm/${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm/g" "$OBSCURA_JS_TARGET"
+        fi
+        echo "  ${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js"
+        echo "  ${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm"
+    fi
+fi
 echo ""
 
 # -----------------------------------------------------------------------------
@@ -848,6 +942,87 @@ EOF
 fi
 
 # -----------------------------------------------------------------------------
+# Step 6.8: Generate obscura-loader.js (if configured)
+# -----------------------------------------------------------------------------
+OBSCURA_LOADER_HASH=""
+if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -n "$OBSCURA_JS_HASH" ]]; then
+    EXISTING_OBSCURA_LOADER=$(ls "$DIST_DIR/obscura-loader-"*.js 2>/dev/null | head -1)
+    if [[ -n "$EXISTING_OBSCURA_LOADER" ]] && grep -q "${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js" "$EXISTING_OBSCURA_LOADER" 2>/dev/null; then
+        echo "[6.8/$TOTAL_STEPS] obscura-loader.js: unchanged, skipping"
+        OBSCURA_LOADER_HASH=$(echo "$EXISTING_OBSCURA_LOADER" | sed 's/.*obscura-loader-\([^.]*\)\.js/\1/')
+    else
+        echo "[6.8/$TOTAL_STEPS] Generating obscura-loader.js..."
+        rm -f "$DIST_DIR/obscura-loader-"*.js "$DIST_DIR/obscura-loader-"*.js.br
+
+        cat > "$DIST_DIR/obscura-loader-temp.js" << EOF
+// Obscura Demo loader — Darkness Preservation Simulator
+// Auto-generated with content hashes for cache busting
+
+let obscuraLoaded = false;
+let obscuraLoading = false;
+let obscuraLoadPromise = null;
+
+async function loadObscuraDemo() {
+    if (obscuraLoaded) {
+        console.log("[Obscura] Already loaded");
+        return;
+    }
+    if (obscuraLoading && obscuraLoadPromise) {
+        console.log("[Obscura] Loading in progress, waiting...");
+        return obscuraLoadPromise;
+    }
+
+    obscuraLoading = true;
+    console.log("[Obscura] Loading Darkness Preservation Simulator...");
+
+    obscuraLoadPromise = (async () => {
+        try {
+            const mod = await import('./obscura/${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js');
+            await mod.default();
+            obscuraLoaded = true;
+            obscuraLoading = false;
+            console.log("[Obscura] Demo loaded successfully");
+        } catch (error) {
+            const errorStr = error.toString();
+            if (errorStr.includes("Using exceptions for control flow") ||
+                errorStr.includes("don't mind me")) {
+                console.log("[Obscura] Ignoring control flow exception (not a real error)");
+                obscuraLoaded = true;
+                obscuraLoading = false;
+                return;
+            }
+            console.error("[Obscura] Failed to load:", error);
+            obscuraLoading = false;
+            obscuraLoadPromise = null;
+            throw error;
+        }
+    })();
+
+    return obscuraLoadPromise;
+}
+
+function isObscuraLoaded() { return obscuraLoaded; }
+function isObscuraLoading() { return obscuraLoading; }
+
+window.loadObscuraDemo = loadObscuraDemo;
+window.isObscuraLoaded = isObscuraLoaded;
+window.isObscuraLoading = isObscuraLoading;
+
+console.log("[Obscura] Loader ready (JS: ${OBSCURA_JS_HASH}, WASM: ${OBSCURA_WASM_HASH})");
+EOF
+
+        if command -v md5sum &> /dev/null; then
+            OBSCURA_LOADER_HASH=$(md5sum "$DIST_DIR/obscura-loader-temp.js" | cut -c1-16)
+        else
+            OBSCURA_LOADER_HASH=$(md5 -q "$DIST_DIR/obscura-loader-temp.js" | cut -c1-16)
+        fi
+        mv "$DIST_DIR/obscura-loader-temp.js" "$DIST_DIR/obscura-loader-${OBSCURA_LOADER_HASH}.js"
+        echo "  obscura-loader-${OBSCURA_LOADER_HASH}.js"
+    fi
+    echo ""
+fi
+
+# -----------------------------------------------------------------------------
 # Step 6.6: Update index.html with hashed loader filenames
 # -----------------------------------------------------------------------------
 # Only update if needed (check if already has correct hashes)
@@ -870,6 +1045,11 @@ if [[ "$BUILD_GMAPS" == "true" ]] && [[ -n "$GMAPS_LOADER_HASH" ]]; then
 fi
 if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_LOADER_HASH" ]]; then
     if ! grep -q "templates-loader-${TEMPLATES_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
+        INDEX_NEEDS_UPDATE=true
+    fi
+fi
+if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -n "$OBSCURA_LOADER_HASH" ]]; then
+    if ! grep -q "obscura-loader-${OBSCURA_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
         INDEX_NEEDS_UPDATE=true
     fi
 fi
@@ -904,11 +1084,32 @@ if [[ "$INDEX_NEEDS_UPDATE" == "true" ]]; then
         sed "${SED_INPLACE[@]}" "s|templates-loader-[a-f0-9]*.js\"|templates-loader-${TEMPLATES_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
     fi
 
+    if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -n "$OBSCURA_LOADER_HASH" ]]; then
+        sed "${SED_INPLACE[@]}" "s|obscura-loader.js\"|obscura-loader-${OBSCURA_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|obscura-loader.js?v=[0-9]*\"|obscura-loader-${OBSCURA_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|obscura-loader-[a-f0-9]*.js\"|obscura-loader-${OBSCURA_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+    fi
+
     echo "  Updated loader references"
 else
     echo "[6.6/$TOTAL_STEPS] index.html: unchanged, skipping"
 fi
 echo ""
+
+# -----------------------------------------------------------------------------
+# Step 6.9: Copy packed GLB scenes + env maps into dist/assets/
+# -----------------------------------------------------------------------------
+if [[ "$BUILD_OBSCURA" == "true" ]]; then
+    mkdir -p "$DIST_DIR/assets/environment_maps"
+    # Copy self-contained GLB scenes (no external texture files needed)
+    cp -f "$BEVY_DIR/assets/Sponza_web.glb" "$DIST_DIR/assets/" 2>/dev/null || true
+    cp -f "$BEVY_DIR/assets/BistroExterior_web.glb" "$DIST_DIR/assets/" 2>/dev/null || true
+    cp -f "$BEVY_DIR/assets/BistroExteriorFakeGI.gltf" "$DIST_DIR/assets/" 2>/dev/null || true
+    # Copy environment maps (required for IBL lighting)
+    cp -f "$BEVY_DIR/assets/environment_maps/"*.ktx2 "$DIST_DIR/assets/environment_maps/" 2>/dev/null || true
+    echo "[6.9/$TOTAL_STEPS] Copied packed GLB scenes + env maps into dist/assets/"
+    echo ""
+fi
 
 # -----------------------------------------------------------------------------
 # Step 7: Pre-compress with Brotli (only files missing .br)
@@ -919,8 +1120,8 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
     FILES_TO_COMPRESS=()
 
     # Only add files that don't have an up-to-date .br version
-    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm \
-             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js \
+    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/obscura/"*.wasm \
+             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/obscura/"*.js \
              "$DIST_DIR/"*.css; do
         if [[ -f "$f" ]]; then
             # Skip non-hashed loader files (we use hashed versions)
