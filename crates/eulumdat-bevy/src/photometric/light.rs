@@ -34,7 +34,7 @@ pub struct PhotometricLight<T: PhotometricData> {
     /// Whether to render the luminaire geometry model
     pub show_model: bool,
     /// Whether to enable shadows
-    pub shadows_enabled: bool,
+    pub shadow_maps_enabled: bool,
 }
 
 impl<T: PhotometricData> PhotometricLight<T> {
@@ -45,7 +45,7 @@ impl<T: PhotometricData> PhotometricLight<T> {
             intensity_scale: 1.0,
             show_solid: false,
             show_model: true,
-            shadows_enabled: false,
+            shadow_maps_enabled: false,
         }
     }
 
@@ -69,7 +69,7 @@ impl<T: PhotometricData> PhotometricLight<T> {
 
     /// Enable or disable shadows.
     pub fn with_shadows(mut self, enabled: bool) -> Self {
-        self.shadows_enabled = enabled;
+        self.shadow_maps_enabled = enabled;
         self
     }
 }

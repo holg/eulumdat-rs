@@ -35,12 +35,14 @@ pub fn spawn_photometric_lights<T: PhotometricData>(
 }
 
 /// System to update Bevy lights when PhotometricLight components change.
+/// Skips newly-added entities (handled by `spawn_photometric_lights`).
 pub fn update_photometric_lights<T: PhotometricData>(
     mut commands: Commands,
     changed_query: Query<
         (Entity, &PhotometricLight<T>, &GlobalTransform),
         Changed<PhotometricLight<T>>,
     >,
+    added: Query<(), Added<PhotometricLight<T>>>,
     bevy_lights: Query<(Entity, &BevyLightMarker<T>)>,
     solids: Query<(Entity, &PhotometricSolid<T>)>,
     models: Query<(Entity, &LuminaireModel<T>)>,
@@ -48,6 +50,10 @@ pub fn update_photometric_lights<T: PhotometricData>(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for (entity, light, global_transform) in changed_query.iter() {
+        // Skip entities that were just added this frame — spawn system handles those
+        if added.contains(entity) {
+            continue;
+        }
         // Despawn old lights, solids, and models for this entity
         for (light_entity, marker) in bevy_lights.iter() {
             if marker.parent == entity {
@@ -149,7 +155,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
             intensity: luminaire_flux * intensity_scale * 0.3,
             radius: 0.05,
             range: 50.0,
-            shadows_enabled: false,
+            shadow_maps_enabled: false,
             ..default()
         },
         Transform::from_translation(position),
@@ -182,7 +188,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
                 radius: 0.05,
                 inner_angle: beam_angle * 0.2,
                 outer_angle: beam_angle * 0.6,
-                shadows_enabled: light.shadows_enabled,
+                shadow_maps_enabled: light.shadow_maps_enabled,
                 ..default()
             },
             Transform::from_translation(spot_pos).looking_at(main_target, local_z),
@@ -205,7 +211,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
                 radius: 0.05,
                 inner_angle: 0.3, // ~17 degrees
                 outer_angle: 0.8, // ~46 degrees
-                shadows_enabled: light.shadows_enabled,
+                shadow_maps_enabled: light.shadow_maps_enabled,
                 ..default()
             },
             Transform::from_translation(spot_pos).looking_at(target_across_pos, local_x),
@@ -226,7 +232,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
                 radius: 0.05,
                 inner_angle: 0.2,
                 outer_angle: 0.6,
-                shadows_enabled: false,
+                shadow_maps_enabled: false,
                 ..default()
             },
             Transform::from_translation(spot_pos).looking_at(target_across_neg, local_x),
@@ -252,7 +258,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
                 radius: 0.05,
                 inner_angle: beam_angle * 0.5,
                 outer_angle: beam_angle * 1.5,
-                shadows_enabled: light.shadows_enabled,
+                shadow_maps_enabled: light.shadow_maps_enabled,
                 ..default()
             },
             Transform::from_translation(position).looking_at(target, up_hint),

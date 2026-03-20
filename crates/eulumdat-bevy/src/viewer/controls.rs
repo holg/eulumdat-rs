@@ -31,6 +31,12 @@ const MAX_PENDULUM: f32 = 20.0;
 ///
 /// ## Scene selection
 /// - `1-4`: Switch scene type (Room, Road, Parking, Outdoor)
+/// - `5`: Designer Exterior (Area Lighting)
+/// - `6`: Designer Interior (Zonal Cavity)
+///
+/// ## Designer toggles
+/// - `C`: Toggle cavity zone overlays (interior)
+/// - `V`: Toggle light cone visualization
 ///
 /// ## Room dimensions
 /// - `[` / `]`: Decrease/increase room width (±0.5m)
@@ -72,6 +78,32 @@ pub fn viewer_controls_system(
     }
     if keyboard.just_pressed(KeyCode::Digit4) {
         settings.scene_type = SceneType::Outdoor;
+    }
+    if keyboard.just_pressed(KeyCode::Digit5) {
+        settings.scene_type = SceneType::DesignerExterior;
+        // Auto-populate exterior designer data from LDT if not already set
+        if settings.area_result.is_none() {
+            if let Some(ldt) = settings.ldt_data.clone() {
+                populate_exterior_defaults(&mut settings, &ldt);
+            }
+        }
+    }
+    if keyboard.just_pressed(KeyCode::Digit6) {
+        settings.scene_type = SceneType::DesignerInterior;
+        // Auto-populate interior designer data from LDT if not already set
+        if settings.designer_room.is_none() {
+            if let Some(ldt) = settings.ldt_data.clone() {
+                populate_interior_defaults(&mut settings, &ldt);
+            }
+        }
+    }
+
+    // Designer toggles
+    if keyboard.just_pressed(KeyCode::KeyC) {
+        settings.show_cavities = !settings.show_cavities;
+    }
+    if keyboard.just_pressed(KeyCode::KeyV) {
+        settings.show_light_cones = !settings.show_light_cones;
     }
 
     // Room dimension controls (only for Room scene, but allow adjustment for all)
@@ -189,7 +221,7 @@ pub fn sync_viewer_to_lights(
                     crate::photometric::PhotometricLight::new(light.data.clone());
                 updated_light.show_solid = settings.show_photometric_solid;
                 updated_light.show_model = settings.show_luminaire;
-                updated_light.shadows_enabled = settings.show_shadows;
+                updated_light.shadow_maps_enabled = settings.show_shadows;
                 updated_light.intensity_scale = light.intensity_scale;
 
                 commands.entity(entity).insert((
@@ -235,6 +267,17 @@ pub fn calculate_all_luminaire_transforms(
                 ),
                 rotation: Quat::IDENTITY,
             }]
+        }
+        SceneType::DesignerExterior => {
+            super::designer_scenes::calculate_exterior_transforms(&settings.area_placements)
+        }
+        SceneType::DesignerInterior => {
+            match (&settings.designer_room, &settings.designer_layout) {
+                (Some(room), Some(layout)) => {
+                    super::designer_scenes::calculate_interior_transforms(room, layout)
+                }
+                _ => vec![],
+            }
         }
     }
 }
@@ -365,5 +408,74 @@ pub fn calculate_light_rotation(settings: &ViewerSettings) -> Quat {
         }
         SceneType::Parking => Quat::IDENTITY, // Parking lots typically want omnidirectional
         SceneType::Outdoor => Quat::IDENTITY, // Garden lights typically want omnidirectional
+        SceneType::DesignerExterior | SceneType::DesignerInterior => Quat::IDENTITY,
     }
+}
+
+/// Auto-populate interior designer data from the loaded LDT.
+///
+/// Uses the zonal cavity method to compute a realistic room, layout,
+/// reflectances, cavity ratios, and point-by-point illuminance grid
+/// so the 3D viewer has something to show in native mode.
+fn populate_interior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
+    use eulumdat::zonal;
+    use eulumdat::CuTable;
+
+    let room = zonal::Room::new(
+        settings.room_length as f64,
+        settings.room_width as f64,
+        settings.room_height as f64,
+        0.80,
+        settings.pendulum_length as f64,
+    );
+    let reflectances = zonal::Reflectances::new(0.80, 0.50, 0.20);
+    let llf = zonal::LightLossFactor::new(0.90, 0.95, 1.0, 0.98);
+    let cu_table = CuTable::calculate(ldt);
+
+    let zr = zonal::compute_zonal(
+        ldt,
+        &room,
+        &reflectances,
+        &llf,
+        500.0, // 500 lux target
+        &cu_table,
+        zonal::SolveMode::TargetToCount,
+        None,
+        None,
+    );
+
+    // Compute PPB overlay for workplane heatmap
+    let ppb = zonal::compute_ppb_overlay(
+        ldt, &zr.layout, &room, 20, zr.llf_total, zr.cu, zr.achieved_illuminance,
+    );
+
+    settings.designer_room = Some(room);
+    settings.designer_layout = Some(zr.layout);
+    settings.designer_reflectances = Some(reflectances);
+    settings.designer_cavity = Some(zr.cavity);
+    settings.designer_ppb = Some(ppb);
+}
+
+/// Auto-populate exterior designer data from the loaded LDT.
+///
+/// Creates a simple 2×2 grid of luminaire placements and computes
+/// the area illuminance heatmap.
+fn populate_exterior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
+    use eulumdat::area;
+
+    let area_w = 20.0;
+    let area_d = 20.0;
+    let mh = settings.mounting_height as f64;
+
+    // Create a 2×2 grid of poles
+    let placements = vec![
+        area::LuminairePlace::simple(0, 5.0, 5.0, mh),
+        area::LuminairePlace::simple(1, 15.0, 5.0, mh),
+        area::LuminairePlace::simple(2, 5.0, 15.0, mh),
+        area::LuminairePlace::simple(3, 15.0, 15.0, mh),
+    ];
+
+    let result = area::compute_area_illuminance(ldt, &placements, area_w, area_d, 20, 1.0);
+    settings.area_result = Some(result);
+    settings.area_placements = placements;
 }

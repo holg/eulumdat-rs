@@ -37,25 +37,41 @@ wasm-sync = ["viewer", "wasm-bindgen", "wasm-bindgen-futures", "web-sys"]
 
 # Enable standalone binary (for eulumdat-wasm integration)
 # Disable when embedding in another WASM app to avoid duplicate wasm_start
-standalone = ["wasm-sync", "egui-ui"]
+standalone = ["wasm-sync"]
 
-# Enable egui UI for native settings panel
-egui-ui = ["bevy_egui"]
+# Enable native bevy_ui overlay panel
+bevy-ui = [
+    "bevy/bevy_ui",
+    "bevy/bevy_ui_render",
+    "bevy/bevy_ui_widgets",
+    "bevy/bevy_text",
+    "bevy/default_font",
+    "bevy/bevy_picking",
+    "bevy/bevy_input_focus",
+    "bevy/ui_picking",
+]
+
+# Enable post-processing effects (Bloom, SSAO)
+post-process = ["bevy/bevy_post_process"]
 
 [dependencies]
-bevy = { version = "0.18", default-features = false, features = [
+bevy = { path = "../../../_to_sort/bevy", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
     "bevy_core_pipeline",
     "bevy_pbr",
     "bevy_render",
     "bevy_state",
-    "bevy_ui",
-    "bevy_text",
     "bevy_gizmos",
+    "bevy_scene",
+    "bevy_gltf",
+    "bevy_log",
     "multi_threaded",
+    "reflect_auto_register",
     "tonemapping_luts",
     "png",
+    "jpeg",
+    "ktx2",
     "x11",        # Linux
     "wayland",    # Linux
     "zstd_rust",
@@ -63,27 +79,42 @@ bevy = { version = "0.18", default-features = false, features = [
 eulumdat = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
 
-# egui for native settings UI
-bevy_egui = { version = "0.39", optional = true }
+# JSON parsing for star catalog + designer data sync
+serde_json = "1"
+
+# Obscura Demo binary — buildable for native and WASM
+[[bin]]
+name = "obscura-demo"
+path = "examples/obscura_demo.rs"
+required-features = ["post-process"]
 
 # File dialogs (native only)
+[[example]]
+name = "obscura_demo"
+required-features = ["post-process"]
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rfd = "0.15"
+# UASTC transcoder for GPU-compressed textures (C++ lib, doesn't compile for wasm32)
+bevy = { path = "../../../_to_sort/bevy", default-features = false, features = ["basis-universal"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-bevy = { version = "0.18", default-features = false, features = [
+bevy = { path = "../../../_to_sort/bevy", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
     "bevy_core_pipeline",
     "bevy_pbr",
     "bevy_render",
     "bevy_state",
-    "bevy_ui",
-    "bevy_text",
     "bevy_gizmos",
-    "webgl2",
+    "bevy_scene",
+    "bevy_gltf",
+    "bevy_log",
+    "webgpu",
     "tonemapping_luts",
     "png",
+    "jpeg",
+    "ktx2",
     "zstd_rust",
 ] }
 getrandom = { version = "0.3", features = ["wasm_js"] }
