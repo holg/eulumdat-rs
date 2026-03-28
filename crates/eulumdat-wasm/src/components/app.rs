@@ -184,6 +184,7 @@ pub enum MainTab {
     AreaDesigner,
     ZonalDesigner,
     MapsDesigner,
+    GonioSim,
 }
 
 /// Sub-tabs within each main tab group
@@ -225,6 +226,8 @@ pub enum Tab {
     ZonalDesignerTab,
     // Maps Designer group (single tab, no sub-tabs)
     MapsDesignerTab,
+    // GonioSim group (single tab, no sub-tabs)
+    GonioSimTab,
 }
 
 impl Tab {
@@ -249,6 +252,7 @@ impl Tab {
             Tab::AreaDesignerTab => MainTab::AreaDesigner,
             Tab::ZonalDesignerTab => MainTab::ZonalDesigner,
             Tab::MapsDesignerTab => MainTab::MapsDesigner,
+            Tab::GonioSimTab => MainTab::GonioSim,
         }
     }
 
@@ -266,6 +270,7 @@ impl Tab {
             MainTab::AreaDesigner => Tab::AreaDesignerTab,
             MainTab::ZonalDesigner => Tab::ZonalDesignerTab,
             MainTab::MapsDesigner => Tab::MapsDesignerTab,
+            MainTab::GonioSim => Tab::GonioSimTab,
         }
     }
 
@@ -297,6 +302,7 @@ impl Tab {
             MainTab::AreaDesigner => &[Tab::AreaDesignerTab],
             MainTab::ZonalDesigner => &[Tab::ZonalDesignerTab],
             MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
+            MainTab::GonioSim => &[Tab::GonioSimTab],
         }
     }
 }
@@ -1011,7 +1017,8 @@ pub fn App() -> impl IntoView {
             | Tab::Scene3DTab
             | Tab::AreaDesignerTab
             | Tab::ZonalDesignerTab
-            | Tab::MapsDesignerTab => None,
+            | Tab::MapsDesignerTab
+            | Tab::GonioSimTab => None,
         }
     };
 
@@ -1478,6 +1485,12 @@ pub fn App() -> impl IntoView {
                                     {move || format!("🗺️ {}", locale.get().ui.tabs.maps_designer)}
                                 </button>
                             })}
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::GonioSim { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::GonioSim))
+                            >
+                                {move || format!("🔬 {}", locale.get().goniosim.title)}
+                            </button>
                         </nav>
 
                         // Sub-tabs (shown only when main tab has multiple sub-tabs)
@@ -1513,6 +1526,7 @@ pub fn App() -> impl IntoView {
                                                 Tab::AreaDesignerTab => locale.get().ui.tabs.area_designer.clone(),
                                                 Tab::ZonalDesignerTab => locale.get().ui.tabs.zonal_designer.clone(),
                                                 Tab::MapsDesignerTab => locale.get().ui.tabs.maps_designer.clone(),
+                                                Tab::GonioSimTab => locale.get().goniosim.title.clone(),
                                             };
                                             view! {
                                                 <button
@@ -1910,6 +1924,9 @@ pub fn App() -> impl IntoView {
                                             <MapsDesigner />
                                         </div>
                                     </div>
+                                }.into_any(),
+                                Tab::GonioSimTab => view! {
+                                    <GonioSimDemo />
                                 }.into_any(),
                             }}
                         </div>
