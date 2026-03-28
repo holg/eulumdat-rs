@@ -6,6 +6,7 @@
 //!
 //! Activated via `?wasm=goniosim` query parameter.
 
+use crate::i18n::use_locale;
 use eulumdat::diagram::{PolarDiagram as CorePolarDiagram, SvgTheme};
 use eulumdat::Eulumdat;
 use eulumdat_goniosim::nalgebra::{Point3, Vector3};
@@ -97,6 +98,8 @@ impl CoverPreset {
 
 #[component]
 pub fn GonioSimDemo() -> impl IntoView {
+    let locale = use_locale();
+
     // --- Input LDT (the source luminaire) ---
     let (source_ldt, set_source_ldt) = signal::<Option<Eulumdat>>(None);
     let (source_name, set_source_name) = signal(String::new());
@@ -406,8 +409,8 @@ pub fn GonioSimDemo() -> impl IntoView {
         <div style="width: 100vw; height: 100vh; background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace; display: flex; flex-direction: column; overflow: hidden;">
             // Header
             <div style="padding: 12px 20px; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 16px; flex-shrink: 0;">
-                <h1 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #58a6ff;">"Virtual Goniophotometer"</h1>
-                <span style="color: #484f58; font-size: 0.8rem;">"CIE 171:2006 validated"</span>
+                <h1 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #58a6ff;">{move || locale.get().goniosim.title.clone()}</h1>
+                <span style="color: #484f58; font-size: 0.8rem;">{move || locale.get().goniosim.subtitle.clone()}</span>
                 <div style="margin-left: auto; display: flex; gap: 8px;">
                     <button
                         style="padding: 6px 16px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;"
@@ -420,13 +423,16 @@ pub fn GonioSimDemo() -> impl IntoView {
                             }
                         }
                     >
-                        {move || if running.get() { "Pause" } else if photons_done.get() > 0 { "Resume" } else { "Trace" }}
+                        {move || {
+                            let g = locale.get().goniosim;
+                            if running.get() { g.pause.clone() } else if photons_done.get() > 0 { g.resume.clone() } else { g.trace.clone() }
+                        }}
                     </button>
                     <button
                         style="padding: 6px 16px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 0.85rem;"
                         on:click=move |_| reset()
                     >
-                        "Reset"
+                        {move || locale.get().goniosim.reset.clone()}
                     </button>
                 </div>
             </div>
@@ -438,7 +444,7 @@ pub fn GonioSimDemo() -> impl IntoView {
 
                     // Source LDT input
                     <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">"Input Luminaire"</label>
+                        <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{move || locale.get().goniosim.input_luminaire.clone()}</label>
                         // Template selector
                         <select
                             style="width: 100%; padding: 6px; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; margin-bottom: 6px;"
@@ -450,7 +456,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                         </select>
                         // File upload
                         <label style="display: block; padding: 6px; text-align: center; background: #161b22; border: 1px dashed #30363d; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: #8b949e;">
-                            "Upload .ldt / .ies"
+                            {move || locale.get().goniosim.upload.clone()}
                             <input
                                 type="file"
                                 accept=".ldt,.LDT,.ies,.IES"
@@ -473,7 +479,7 @@ pub fn GonioSimDemo() -> impl IntoView {
 
                     // Cover material
                     <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">"Cover Material"</label>
+                        <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{move || locale.get().goniosim.cover_material.clone()}</label>
                         <select
                             style="width: 100%; padding: 6px; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; margin-bottom: 8px;"
                             on:change=move |ev| {
@@ -493,12 +499,12 @@ pub fn GonioSimDemo() -> impl IntoView {
                             if cover_preset.get().has_cover() {
                                 view! {
                                     <div>
-                                        {slider("Reflexion", "%", reflectance_pct, set_reflectance_pct, 0.0, 50.0, 1.0, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
-                                        {slider("Streuung", "%", diffusion_pct, set_diffusion_pct, 0.0, 100.0, 1.0, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
-                                        {slider("Durchl\u{00e4}ssigkeit", "%", transmittance_pct, set_transmittance_pct, 5.0, 98.0, 1.0, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
-                                        {slider("Brechungsindex", "", ior, set_ior, 1.0, 2.0, 0.01, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
-                                        {slider("Dicke", "mm", thickness_mm, set_thickness_mm, 1.0, 10.0, 0.5, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
-                                        {slider("Abstand", "mm", cover_distance_mm, set_cover_distance_mm, 5.0, 200.0, 5.0, move || reset())}
+                                        {slider(locale.get().goniosim.reflectance.clone(), "%", reflectance_pct, set_reflectance_pct, 0.0, 50.0, 1.0, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
+                                        {slider(locale.get().goniosim.diffusion.clone(), "%", diffusion_pct, set_diffusion_pct, 0.0, 100.0, 1.0, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
+                                        {slider(locale.get().goniosim.transmittance.clone(), "%", transmittance_pct, set_transmittance_pct, 5.0, 98.0, 1.0, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
+                                        {slider(locale.get().goniosim.ior.clone(), "", ior, set_ior, 1.0, 2.0, 0.01, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
+                                        {slider(locale.get().goniosim.thickness.clone(), "mm", thickness_mm, set_thickness_mm, 1.0, 10.0, 0.5, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
+                                        {slider(locale.get().goniosim.distance.clone(), "mm", cover_distance_mm, set_cover_distance_mm, 5.0, 200.0, 5.0, move || reset())}
                                     </div>
                                 }.into_any()
                             } else {
@@ -509,15 +515,15 @@ pub fn GonioSimDemo() -> impl IntoView {
 
                     // Stats
                     <div style="padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d;">
-                        <div style="font-size: 0.75rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">"Statistics"</div>
+                        <div style="font-size: 0.75rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">{move || locale.get().goniosim.statistics.clone()}</div>
                         <div style="font-size: 0.85rem; line-height: 1.8;">
-                            <div>"Photons: " {move || format!("{} / {}", format_number(photons_done.get()), format_number(TARGET_PHOTONS))}</div>
-                            <div>"Detected: " {move || {
+                            <div>{move || locale.get().goniosim.photons.clone()} ": " {move || format!("{} / {}", format_number(photons_done.get()), format_number(TARGET_PHOTONS))}</div>
+                            <div>{move || locale.get().goniosim.detected.clone()} ": " {move || {
                                 let d = photons_done.get();
                                 let det = photons_detected.get();
                                 if d > 0 { format!("{:.1}%", det as f64 / d as f64 * 100.0) } else { "-".into() }
                             }}</div>
-                            <div>"Absorbed: " {move || {
+                            <div>{move || locale.get().goniosim.absorbed.clone()} ": " {move || {
                                 let d = photons_done.get();
                                 let a = photons_absorbed.get();
                                 if d > 0 { format!("{:.1}%", a as f64 / d as f64 * 100.0) } else { "-".into() }
@@ -532,7 +538,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                             disabled=move || photons_done.get() == 0
                             on:click=export_ldt
                         >
-                            "Export .ldt"
+                            {move || locale.get().goniosim.export_ldt.clone()}
                         </button>
                     </div>
                 </div>
@@ -541,7 +547,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                 <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
                     // Labels + C-plane slider
                     <div style="display: flex; padding: 8px 20px 0; gap: 20px; flex-shrink: 0; align-items: center;">
-                        <div style="flex: 1; text-align: center; font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">"Original LVK"</div>
+                        <div style="flex: 1; text-align: center; font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">{move || locale.get().goniosim.original_lvk.clone()}</div>
                         // C-plane selector (only for asymmetric luminaires)
                         {move || {
                             let planes = c_planes.get();
@@ -575,7 +581,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                                                             set_selected_plane.set(None);
                                                             set_slider_idx.set(0);
                                                         }
-                                                    >"All"</button>
+                                                    >{move || locale.get().goniosim.all_planes.clone()}</button>
                                                 }.into_any()
                                             } else {
                                                 view! {
@@ -584,7 +590,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                                                             set_selected_plane.set(Some(0.0));
                                                             set_slider_idx.set(0);
                                                         }
-                                                    >"C-plane"</button>
+                                                    >{move || locale.get().goniosim.c_plane.clone()}</button>
                                                 }.into_any()
                                             }
                                         }}
@@ -594,7 +600,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                                 view! { <div /> }.into_any()
                             }
                         }}
-                        <div style="flex: 1; text-align: center; font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">"Simulated (through cover)"</div>
+                        <div style="flex: 1; text-align: center; font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">{move || locale.get().goniosim.simulated.clone()}</div>
                     </div>
                     // Diagrams
                     <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 20px; gap: 20px; overflow: hidden;">
@@ -605,7 +611,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                                 let cp = selected_plane.get();
                                 if ldt_opt.is_none() {
                                     view! {
-                                        <div style="color: #484f58; text-align: center; font-size: 0.9rem;">"Select or upload a luminaire"</div>
+                                        <div style="color: #484f58; text-align: center; font-size: 0.9rem;">{move || locale.get().goniosim.select_luminaire.clone()}</div>
                                     }.into_any()
                                 } else {
                                     let ldt = ldt_opt.unwrap();
@@ -627,7 +633,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                                 if ldt_opt.is_none() {
                                     view! {
                                         <div style="color: #484f58; text-align: center; font-size: 0.9rem;">
-                                            "Click " <strong style="color: #238636;">"Trace"</strong> " to simulate"
+                                            {move || locale.get().goniosim.click_trace.clone()}
                                         </div>
                                     }.into_any()
                                 } else {
@@ -676,7 +682,7 @@ fn reset_sim(
 
 /// Labeled slider with value display.
 fn slider(
-    label: &'static str,
+    label: String,
     unit: &'static str,
     value: ReadSignal<f64>,
     set_value: WriteSignal<f64>,
@@ -688,7 +694,7 @@ fn slider(
     view! {
         <div style="margin-bottom: 6px;">
             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 2px;">
-                <span style="color: #8b949e;">{label}</span>
+                <span style="color: #8b949e;">{label.clone()}</span>
                 <span style="color: #c9d1d9;">{move || {
                     let v = value.get();
                     if step >= 1.0 { format!("{:.0}{unit}", v) }
