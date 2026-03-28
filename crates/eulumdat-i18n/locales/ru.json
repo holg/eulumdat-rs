@@ -1128,6 +1128,12 @@
     "select_luminaire": "Выберите или загрузите светильник",
     "click_trace": "Нажмите Измерить для симуляции",
     "c_plane": "Плоскость C",
-    "all_planes": "Все"
+    "all_planes": "Все",
+    "mat_clear_pmma": "ПММА прозрачный 3мм",
+    "mat_satin_pmma": "ПММА сатин 3мм",
+    "mat_opal_light_pmma": "ПММА опал лёгкий 3мм",
+    "mat_opal_pmma": "ПММА опал 3мм",
+    "mat_clear_glass": "Стекло прозрачное 4мм",
+    "mat_satin_glass": "Стекло сатин 4мм"
   }
 }

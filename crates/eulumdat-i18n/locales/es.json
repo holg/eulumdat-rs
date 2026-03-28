@@ -1128,6 +1128,12 @@
     "select_luminaire": "Seleccionar o subir una luminaria",
     "click_trace": "Haga clic en Trazar para simular",
     "c_plane": "Plano C",
-    "all_planes": "Todos"
+    "all_planes": "Todos",
+    "mat_clear_pmma": "PMMA claro 3mm",
+    "mat_satin_pmma": "PMMA satinado 3mm",
+    "mat_opal_light_pmma": "PMMA ópalo ligero 3mm",
+    "mat_opal_pmma": "PMMA ópalo 3mm",
+    "mat_clear_glass": "Vidrio claro 4mm",
+    "mat_satin_glass": "Vidrio satinado 4mm"
   }
 }

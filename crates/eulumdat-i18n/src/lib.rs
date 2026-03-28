@@ -1489,6 +1489,19 @@ pub struct GoniosimLocale {
     pub c_plane: String,
     #[serde(default = "default_goniosim_all")]
     pub all_planes: String,
+    // Material names
+    #[serde(default = "default_mat_clear_pmma")]
+    pub mat_clear_pmma: String,
+    #[serde(default = "default_mat_satin_pmma")]
+    pub mat_satin_pmma: String,
+    #[serde(default = "default_mat_opal_light_pmma")]
+    pub mat_opal_light_pmma: String,
+    #[serde(default = "default_mat_opal_pmma")]
+    pub mat_opal_pmma: String,
+    #[serde(default = "default_mat_clear_glass")]
+    pub mat_clear_glass: String,
+    #[serde(default = "default_mat_satin_glass")]
+    pub mat_satin_glass: String,
 }
 
 fn default_goniosim_title() -> String { "Virtual Goniophotometer".into() }
@@ -1519,6 +1532,12 @@ fn default_goniosim_select() -> String { "Select or upload a luminaire".into() }
 fn default_goniosim_click_trace() -> String { "Click Trace to simulate".into() }
 fn default_goniosim_c_plane() -> String { "C-plane".into() }
 fn default_goniosim_all() -> String { "All".into() }
+fn default_mat_clear_pmma() -> String { "PMMA clear 3mm".into() }
+fn default_mat_satin_pmma() -> String { "PMMA satin 3mm".into() }
+fn default_mat_opal_light_pmma() -> String { "PMMA opal light 3mm".into() }
+fn default_mat_opal_pmma() -> String { "PMMA opal 3mm".into() }
+fn default_mat_clear_glass() -> String { "Glass clear 4mm".into() }
+fn default_mat_satin_glass() -> String { "Glass satin 4mm".into() }
 
 // Embedded locale JSON files
 const EN_JSON: &str = include_str!("../locales/en.json");

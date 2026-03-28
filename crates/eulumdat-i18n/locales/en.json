@@ -1128,6 +1128,12 @@
     "select_luminaire": "Select or upload a luminaire",
     "click_trace": "Click Trace to simulate",
     "c_plane": "C-plane",
-    "all_planes": "All"
+    "all_planes": "All",
+    "mat_clear_pmma": "PMMA clear 3mm",
+    "mat_satin_pmma": "PMMA satin 3mm",
+    "mat_opal_light_pmma": "PMMA opal light 3mm",
+    "mat_opal_pmma": "PMMA opal 3mm",
+    "mat_clear_glass": "Glass clear 4mm",
+    "mat_satin_glass": "Glass satin 4mm"
   }
 }

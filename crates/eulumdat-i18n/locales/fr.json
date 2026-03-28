@@ -1128,6 +1128,12 @@
     "select_luminaire": "Sélectionner ou charger un luminaire",
     "click_trace": "Cliquez sur Tracer pour simuler",
     "c_plane": "Plan C",
-    "all_planes": "Tous"
+    "all_planes": "Tous",
+    "mat_clear_pmma": "PMMA clair 3mm",
+    "mat_satin_pmma": "PMMA satiné 3mm",
+    "mat_opal_light_pmma": "PMMA opale léger 3mm",
+    "mat_opal_pmma": "PMMA opale 3mm",
+    "mat_clear_glass": "Verre clair 4mm",
+    "mat_satin_glass": "Verre satiné 4mm"
   }
 }

@@ -1128,6 +1128,12 @@
     "select_luminaire": "Seleziona o carica un apparecchio",
     "click_trace": "Clicca Tracciare per simulare",
     "c_plane": "Piano C",
-    "all_planes": "Tutti"
+    "all_planes": "Tutti",
+    "mat_clear_pmma": "PMMA trasparente 3mm",
+    "mat_satin_pmma": "PMMA satinato 3mm",
+    "mat_opal_light_pmma": "PMMA opale leggero 3mm",
+    "mat_opal_pmma": "PMMA opale 3mm",
+    "mat_clear_glass": "Vetro trasparente 4mm",
+    "mat_satin_glass": "Vetro satinato 4mm"
   }
 }

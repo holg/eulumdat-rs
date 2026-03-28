@@ -45,16 +45,16 @@ enum CoverPreset {
 }
 
 impl CoverPreset {
-    fn label(&self) -> &'static str {
+    fn label(&self, g: &eulumdat_i18n::GoniosimLocale) -> String {
         match self {
-            Self::None => "No cover (free space)",
-            Self::Custom => "Custom",
-            Self::ClearPmma => "PMMA klar 3mm",
-            Self::SatinPmma => "PMMA satin 3mm",
-            Self::OpalLightPmma => "PMMA opal leicht 3mm",
-            Self::OpalPmma => "PMMA opal 3mm",
-            Self::ClearGlass => "Glas klar 4mm",
-            Self::SatinGlass => "Glas satiniert 4mm",
+            Self::None => g.no_cover.clone(),
+            Self::Custom => g.custom.clone(),
+            Self::ClearPmma => g.mat_clear_pmma.clone(),
+            Self::SatinPmma => g.mat_satin_pmma.clone(),
+            Self::OpalLightPmma => g.mat_opal_light_pmma.clone(),
+            Self::OpalPmma => g.mat_opal_pmma.clone(),
+            Self::ClearGlass => g.mat_clear_glass.clone(),
+            Self::SatinGlass => g.mat_satin_glass.clone(),
         }
     }
 
@@ -491,9 +491,13 @@ pub fn GonioSimDemo() -> impl IntoView {
                             }
                             prop:value=move || cover_preset.get().index().to_string()
                         >
-                            {CoverPreset::all().iter().enumerate().map(|(i, p)| {
-                                view! { <option value=i.to_string()>{p.label()}</option> }
-                            }).collect::<Vec<_>>()}
+                            {move || {
+                                let g = locale.get().goniosim;
+                                CoverPreset::all().iter().enumerate().map(|(i, p)| {
+                                    let lbl = p.label(&g);
+                                    view! { <option value=i.to_string()>{lbl}</option> }
+                                }).collect::<Vec<_>>()
+                            }}
                         </select>
                         // Sliders (shown when cover is active)
                         {move || {

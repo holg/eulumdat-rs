@@ -1128,6 +1128,12 @@
     "select_luminaire": "选择或上传灯具",
     "click_trace": "点击追踪开始模拟",
     "c_plane": "C平面",
-    "all_planes": "全部"
+    "all_planes": "全部",
+    "mat_clear_pmma": "PMMA 透明 3mm",
+    "mat_satin_pmma": "PMMA 磨砂 3mm",
+    "mat_opal_light_pmma": "PMMA 轻乳白 3mm",
+    "mat_opal_pmma": "PMMA 乳白 3mm",
+    "mat_clear_glass": "玻璃 透明 4mm",
+    "mat_satin_glass": "玻璃 磨砂 4mm"
   }
 }
