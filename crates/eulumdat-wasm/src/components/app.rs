@@ -35,6 +35,8 @@ use eulumdat_i18n::Locale;
 use super::dashboard::Dashboard;
 use super::beam_angle_diagram::BeamAngleDiagram;
 use super::bevy_scene::BevySceneViewer;
+use super::goniosim::GonioSimDemo;
+use super::obscura_demo::ObscuraDemo;
 use super::bim_panel::{has_bim_data, BimPanel, BimPanelEmpty};
 use super::bug_rating::BugRating;
 use super::butterfly_3d::Butterfly3D;
@@ -532,6 +534,16 @@ fn save_to_storage(doc: &LuminaireOpticalData) {
 
 #[component]
 pub fn App() -> impl IntoView {
+    // Check for ?wasm= query parameter — render standalone WASM demos
+    if let Some(demo) = crate::i18n::get_url_param("wasm") {
+        if demo == "obscura_demo" {
+            return view! { <ObscuraDemo /> }.into_any();
+        }
+        if demo == "goniosim" {
+            return view! { <GonioSimDemo /> }.into_any();
+        }
+    }
+
     // Primary state: ATLA document (source of truth)
     let (atla_doc, set_atla_doc) = signal(create_default_atla());
 
@@ -1091,7 +1103,7 @@ pub fn App() -> impl IntoView {
         <ThemeProvider mode=theme_mode>
             <div class=move || format!("app {}", theme_mode.get().class_name()) role="application" aria-label="Eulumdat Editor">
                 // Skip to main content link for keyboard users
-                <a href="#main-content" class="skip-link">"Skip to main content"</a>
+                <a href="#main-content" class="skip-link">{move || locale.get().ui.header.skip_link.clone()}</a>
 
                 // Header with navigation landmark
                 <header class="header" role="banner">
@@ -1118,7 +1130,7 @@ pub fn App() -> impl IntoView {
                                     />
                                 </label>
                                 <div class="menu-divider"></div>
-                                <label class="menu-item checkbox-item" title="Rotate C-planes ±90° when importing/exporting IES (fixes EU↔US axis orientation)">
+                                <label class="menu-item checkbox-item" title=move || locale.get().ui.header.rotate_c_planes_tooltip.clone()>
                                     <input
                                         type="checkbox"
                                         prop:checked=move || rotate_c_planes.get()
@@ -1127,7 +1139,7 @@ pub fn App() -> impl IntoView {
                                             set_rotate_c_planes.set(checked);
                                         }
                                     />
-                                    " Rotate C0 ±90° (IES)"
+                                    {move || format!(" {}", locale.get().ui.header.rotate_c_planes)}
                                 </label>
                                 <div class="menu-divider"></div>
                                 <button class="menu-item" on:click=on_save_ldt>
@@ -1152,24 +1164,26 @@ pub fn App() -> impl IntoView {
                                 >
                                     {move || {
                                         let tab = active_tab.get();
+                                        let loc = locale.get();
+                                        let prefix = loc.ui.header.export_svg_prefix.clone();
                                         match tab {
                                             Tab::Diagram2D => match diagram_type.get() {
-                                                DiagramType::Polar => "Export SVG (Polar)",
-                                                DiagramType::Cartesian => "Export SVG (Cartesian)",
-                                                DiagramType::BeamAngle => "Export SVG (Beam Angle)",
+                                                DiagramType::Polar => format!("{} ({})", prefix, loc.ui.tabs.polar),
+                                                DiagramType::Cartesian => format!("{} ({})", prefix, loc.ui.tabs.cartesian),
+                                                DiagramType::BeamAngle => format!("{} ({})", prefix, loc.ui.tabs.beam_angle),
                                             },
-                                            Tab::Diagram3D => "Export SVG (3D Butterfly)",
-                                            Tab::Heatmap => "Export SVG (Heatmap)",
-                                            Tab::Cone => "Export SVG (Cone)",
-                                            Tab::Spectral => "Export SVG (Spectral)",
-                                            Tab::Greenhouse => "Export SVG (Greenhouse)",
-                                            Tab::BugRating => "Export SVG (BUG Rating)",
-                                            Tab::Lcs => "Export SVG (LCS)",
-                                            Tab::FloodlightVH => "Export SVG (V-H Diagram)",
-                                            Tab::FloodlightIsolux => "Export SVG (Isolux)",
-                                            Tab::FloodlightIsoView => "Export SVG (ISO View)",
-                                            Tab::FloodlightIsocandela => "Export SVG (Isocandela)",
-                                            _ => "Export SVG",
+                                            Tab::Diagram3D => format!("{} ({})", prefix, loc.ui.tabs.diagram_3d),
+                                            Tab::Heatmap => format!("{} ({})", prefix, loc.ui.tabs.heatmap),
+                                            Tab::Cone => format!("{} ({})", prefix, loc.ui.tabs.cone),
+                                            Tab::Spectral => format!("{} ({})", prefix, loc.ui.tabs.spectral),
+                                            Tab::Greenhouse => format!("{} ({})", prefix, loc.ui.tabs.greenhouse),
+                                            Tab::BugRating => format!("{} ({})", prefix, loc.ui.tabs.bug_rating),
+                                            Tab::Lcs => format!("{} ({})", prefix, loc.ui.tabs.lcs),
+                                            Tab::FloodlightVH => format!("{} ({})", prefix, loc.ui.tabs.floodlight_vh),
+                                            Tab::FloodlightIsolux => format!("{} ({})", prefix, loc.ui.tabs.floodlight_isolux),
+                                            Tab::FloodlightIsoView => format!("{} ({})", prefix, loc.ui.tabs.iso_view),
+                                            Tab::FloodlightIsocandela => format!("{} ({})", prefix, loc.ui.tabs.floodlight_isocandela),
+                                            _ => prefix,
                                         }
                                     }}
                                 </button>
@@ -1180,7 +1194,7 @@ pub fn App() -> impl IntoView {
                                     on:click=on_export_png
                                     disabled=move || generate_current_svg().is_none()
                                 >
-                                    "Export PNG (2x)"
+                                    {move || locale.get().ui.header.export_png.clone()}
                                 </button>
                                 <button
                                     class=move || {
@@ -1189,7 +1203,7 @@ pub fn App() -> impl IntoView {
                                     on:click=on_export_jpeg
                                     disabled=move || generate_current_svg().is_none()
                                 >
-                                    "Export JPEG"
+                                    {move || locale.get().ui.header.export_jpeg.clone()}
                                 </button>
                                 // PDF/Typst export - only shown on secret URL
                                 {move || export_enabled.then(|| view! {
@@ -1197,16 +1211,16 @@ pub fn App() -> impl IntoView {
                                         class="menu-item"
                                         on:click=on_export_report_pdf
                                         disabled=move || pdf_exporting.get()
-                                        title="Export as PDF report (compiles in browser)"
+                                        title=move || locale.get().ui.header.export_pdf_tooltip.clone()
                                     >
-                                        {move || if pdf_exporting.get() { "Generating PDF..." } else { "Export Report (.pdf)" }}
+                                        {move || if pdf_exporting.get() { locale.get().ui.header.generating_pdf.clone() } else { locale.get().ui.header.export_pdf.clone() }}
                                     </button>
                                     <button
                                         class="menu-item"
                                         on:click=on_export_report_typ
-                                        title="Export as Typst source file (.typ) - compile with 'typst compile report.typ'"
+                                        title=move || locale.get().ui.header.export_typ_tooltip.clone()
                                     >
-                                        "Export Report (.typ)"
+                                        {move || locale.get().ui.header.export_typ.clone()}
                                     </button>
                                 })}
                                 <div class="menu-divider"></div>
@@ -1216,13 +1230,13 @@ pub fn App() -> impl IntoView {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    "GitHub"
+                                    {move || locale.get().ui.header.github.clone()}
                                 </a>
                                 <button
                                     class="menu-item"
                                     on:click=move |_| set_show_about.set(true)
                                 >
-                                    "About"
+                                    {move || locale.get().ui.header.about.clone()}
                                 </button>
                             </div>
                         </div>
@@ -1257,7 +1271,7 @@ pub fn App() -> impl IntoView {
                         </div>
                         // Templates loading indicator
                         {move || templates_loading.get().then(|| view! {
-                            <span class="templates-loading">"Loading..."</span>
+                            <span class="templates-loading">{move || locale.get().ui.header.loading.clone()}</span>
                         })}
                         // Settings
                         <button
@@ -1284,13 +1298,13 @@ pub fn App() -> impl IntoView {
                                 });
                             }
                             title=move || match unit_system.get() {
-                                UnitSystem::Metric => "Switch to Imperial (ft, fc, in)",
-                                UnitSystem::Imperial => "Switch to Metric (m, lx, mm)",
+                                UnitSystem::Metric => locale.get().ui.header.switch_to_imperial.clone(),
+                                UnitSystem::Imperial => locale.get().ui.header.switch_to_metric.clone(),
                             }
                         >
                             {move || match unit_system.get() {
-                                UnitSystem::Metric => "SI",
-                                UnitSystem::Imperial => "IMP",
+                                UnitSystem::Metric => locale.get().ui.header.unit_si.clone(),
+                                UnitSystem::Imperial => locale.get().ui.header.unit_imp.clone(),
                             }}
                         </button>
                         <LanguageSelectorCompact />
@@ -1379,7 +1393,7 @@ pub fn App() -> impl IntoView {
                                     class="btn btn-secondary btn-sm"
                                     on:click=move |_| set_view_mode.set(ViewMode::Dashboard)
                                 >
-                                    "\u{2190} Dashboard"
+                                    {move || format!("\u{2190} {}", locale.get().dashboard.back)}
                                 </button>
                             </div>
                     <div class="panel">
@@ -1428,9 +1442,9 @@ pub fn App() -> impl IntoView {
                                         <button
                                             class=move || format!("tab{}", if active_main_tab.get() == MainTab::Bim { " active" } else { "" })
                                             on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::Bim))
-                                            title="TM-32-24 BIM Parameters"
+                                            title=move || locale.get().ui.bim.tooltip.clone()
                                         >
-                                            "BIM"
+                                            {move || locale.get().ui.tabs.bim.clone()}
                                         </button>
                                     })
                                 } else {
@@ -1447,13 +1461,13 @@ pub fn App() -> impl IntoView {
                                 class=move || format!("tab{}", if active_main_tab.get() == MainTab::AreaDesigner { " active" } else { "" })
                                 on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::AreaDesigner))
                             >
-                                "📐 Designer"
+                                {move || format!("📐 {}", locale.get().ui.tabs.area_designer)}
                             </button>
                             <button
                                 class=move || format!("tab{}", if active_main_tab.get() == MainTab::ZonalDesigner { " active" } else { "" })
                                 on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::ZonalDesigner))
                             >
-                                "🏢 Interior"
+                                {move || format!("🏢 {}", locale.get().ui.tabs.zonal_designer)}
                             </button>
                             // Maps Designer - only shown on secret URL (requires Google Maps API key)
                             {move || export_enabled.then(|| view! {
@@ -1461,7 +1475,7 @@ pub fn App() -> impl IntoView {
                                     class=move || format!("tab{}", if active_main_tab.get() == MainTab::MapsDesigner { " active" } else { "" })
                                     on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::MapsDesigner))
                                 >
-                                    "🗺️ Maps"
+                                    {move || format!("🗺️ {}", locale.get().ui.tabs.maps_designer)}
                                 </button>
                             })}
                         </nav>
@@ -1490,15 +1504,15 @@ pub fn App() -> impl IntoView {
                                                 Tab::Lcs => locale.get().ui.tabs.lcs.clone(),
                                                 Tab::FloodlightVH => locale.get().ui.tabs.floodlight_vh.clone(),
                                                 Tab::FloodlightIsolux => locale.get().ui.tabs.floodlight_isolux.clone(),
-                                                Tab::FloodlightIsoView => "ISO View".to_string(),
+                                                Tab::FloodlightIsoView => locale.get().ui.tabs.iso_view.clone(),
                                                 Tab::FloodlightIsocandela => locale.get().ui.tabs.floodlight_isocandela.clone(),
                                                 Tab::ValidationTab => locale.get().ui.tabs.validation.clone(),
                                                 Tab::CompareTab => locale.get().ui.tabs.compare.clone(),
-                                                Tab::BimTab => "BIM".to_string(),
+                                                Tab::BimTab => locale.get().ui.tabs.bim.clone(),
                                                 Tab::Scene3DTab => locale.get().ui.tabs.scene_3d.clone(),
-                                                Tab::AreaDesignerTab => "Designer".to_string(),
-                                                Tab::ZonalDesignerTab => "Interior".to_string(),
-                                                Tab::MapsDesignerTab => "Maps Designer".to_string(),
+                                                Tab::AreaDesignerTab => locale.get().ui.tabs.area_designer.clone(),
+                                                Tab::ZonalDesignerTab => locale.get().ui.tabs.zonal_designer.clone(),
+                                                Tab::MapsDesignerTab => locale.get().ui.tabs.maps_designer.clone(),
                                             };
                                             view! {
                                                 <button
@@ -1570,9 +1584,9 @@ pub fn App() -> impl IntoView {
                                                     <button
                                                         class=move || format!("btn-toggle{}", if diagram_type.get() == DiagramType::BeamAngle { " active" } else { "" })
                                                         on:click=move |_| set_diagram_type.set(DiagramType::BeamAngle)
-                                                        title="IES vs CIE beam angle comparison (Wikipedia style)"
+                                                        title=move || locale.get().ui.diagram.beam_angle_tooltip.clone()
                                                     >
-                                                        "Beam Angle"
+                                                        {move || locale.get().ui.diagram.beam_angle.clone()}
                                                     </button>
                                                 </div>
                                                 <span class="zoom-hint">{move || locale.get().ui.diagram.zoom_hint.clone()}</span>
@@ -1808,8 +1822,8 @@ pub fn App() -> impl IntoView {
                                 Tab::FloodlightIsoView => view! {
                                     <div class="iso-view-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"ISO View"</span>
-                                            <span class="text-muted">"Isometric illuminance footprint with polar distribution"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.diagram.title_iso_view.clone()}</span>
+                                            <span class="text-muted">{move || locale.get().ui.diagram.desc_iso_view.clone()}</span>
                                         </div>
                                         <IsoluxIsometric ldt=ldt />
                                     </div>
@@ -1874,7 +1888,7 @@ pub fn App() -> impl IntoView {
                                 Tab::AreaDesignerTab => view! {
                                     <div class="area-designer-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"Area Lighting Designer"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.tabs.area_designer.clone()}</span>
                                         </div>
                                         <AreaDesigner ldt=ldt />
                                     </div>
@@ -1882,7 +1896,7 @@ pub fn App() -> impl IntoView {
                                 Tab::ZonalDesignerTab => view! {
                                     <div class="zonal-designer-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"Interior Lighting Designer"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.tabs.zonal_designer.clone()}</span>
                                         </div>
                                         <ZonalDesigner ldt=ldt />
                                     </div>
@@ -1890,7 +1904,7 @@ pub fn App() -> impl IntoView {
                                 Tab::MapsDesignerTab => view! {
                                     <div class="maps-designer-tab">
                                         <div class="diagram-header">
-                                            <span class="diagram-title">"Lighting Designer"</span>
+                                            <span class="diagram-title">{move || locale.get().ui.tabs.maps_designer.clone()}</span>
                                         </div>
                                         <div class="maps-container" style="height: 600px; position: relative;">
                                             <MapsDesigner />
@@ -1911,21 +1925,21 @@ pub fn App() -> impl IntoView {
                     view! {
                         <div class="modal-overlay" on:click=move |_| set_show_about.set(false)>
                             <div class="modal-content about-modal" on:click=|e| e.stop_propagation()>
-                                <h2>"Eulumdat"</h2>
-                                <p class="about-subtitle">"Rust/WASM Lighting Data Toolkit"</p>
+                                <h2>{move || locale.get().ui.about.title.clone()}</h2>
+                                <p class="about-subtitle">{move || locale.get().ui.about.subtitle.clone()}</p>
                                 <div class="about-description">
-                                    <p>"Parses EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX files."</p>
-                                    <p>"Generates SVG diagrams: polar, cartesian, spectral, heatmap."</p>
-                                    <p class="about-highlight">"One Rust codebase → Web, CLI, iOS, Android, Python"</p>
+                                    <p>{move || locale.get().ui.about.desc_parsing.clone()}</p>
+                                    <p>{move || locale.get().ui.about.desc_diagrams.clone()}</p>
+                                    <p class="about-highlight">{move || locale.get().ui.about.desc_platforms.clone()}</p>
                                 </div>
                                 <div class="about-links">
                                     <a href="https://github.com/holg/eulumdat-rs" target="_blank" rel="noopener noreferrer">
-                                        "GitHub"
+                                        {move || locale.get().ui.header.github.clone()}
                                     </a>
                                     <span class="about-version">"v0.4.0"</span>
                                 </div>
                                 <button class="btn btn-primary" on:click=move |_| set_show_about.set(false)>
-                                    "Close"
+                                    {move || locale.get().ui.about.close.clone()}
                                 </button>
                             </div>
                         </div>
@@ -1936,5 +1950,5 @@ pub fn App() -> impl IntoView {
                 }
             }}
         </ThemeProvider>
-    }
+    }.into_any()
 }

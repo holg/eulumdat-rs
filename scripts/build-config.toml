@@ -33,6 +33,7 @@ bevy = true
 typst = true
 gmaps = true
 templates = true
+obscura = true
 
 [bundles.leptos]
 description = "Leptos editor"
@@ -51,6 +52,19 @@ size_estimate = "~10MB compressed"
 [bundles.templates]
 description = "Template files"
 load_strategy = "on_demand"
+
+[bundles.obscura]
+description = "Obscura Darkness Preservation Demo"
+load_strategy = "on_demand"
+size_estimate = "~25MB compressed"
+
+# GonioSim is compiled INTO the Leptos bundle (not a separate WASM).
+# No separate build step, loader, or content hashing needed.
+# Access via: ?wasm=goniosim
+[bundles.goniosim]
+description = "Virtual Goniophotometer (Monte Carlo tracer)"
+load_strategy = "embedded"
+note = "Part of Leptos bundle, no separate build"
 
 [deploy]
 # rsync target for deployment (user@host:/path/)
