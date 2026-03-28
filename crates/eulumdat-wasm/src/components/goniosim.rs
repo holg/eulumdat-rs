@@ -102,7 +102,7 @@ pub fn GonioSimDemo() -> impl IntoView {
     let (source_name, set_source_name) = signal(String::new());
 
     // --- Cover material ---
-    let (cover_preset, set_cover_preset) = signal(CoverPreset::OpalPmma);
+    let (cover_preset, set_cover_preset) = signal(CoverPreset::None);
     let (reflectance_pct, set_reflectance_pct) = signal(4.0f64);
     let (diffusion_pct, set_diffusion_pct) = signal(95.0f64);
     let (transmittance_pct, set_transmittance_pct) = signal(50.0f64);
