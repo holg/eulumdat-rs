@@ -3,8 +3,8 @@
 //! Generates the vectors and data needed for traditional polar intensity diagrams
 //! showing C0-C180 and C90-C270 planes.
 
-use super::{DiagramScale, Point2D};
-use crate::{Eulumdat, Symmetry};
+use super::{DiagramScale, Point2D, SvgTheme};
+use crate::{Eulumdat, PhotometricSummary, Symmetry, SymmetryHandler};
 use std::f64::consts::FRAC_PI_2;
 
 /// A point in a polar curve
@@ -198,6 +198,45 @@ impl PolarDiagram {
     /// is identical to C0-C180 and shouldn't be shown separately.
     pub fn show_c90_c270(&self) -> bool {
         self.symmetry != Symmetry::VerticalAxis && !self.c90_c270_curve.is_empty()
+    }
+
+    /// Check if the luminaire has C-plane variation (i.e. a C-plane selector makes sense).
+    pub fn has_c_plane_variation(ldt: &Eulumdat) -> bool {
+        !matches!(ldt.symmetry, Symmetry::VerticalAxis)
+    }
+
+    /// Get the available C-plane angles for a slider/selector.
+    ///
+    /// Returns the full list of C-angles after symmetry expansion, filtered to <= 360°.
+    /// For VerticalAxis luminaires, returns an empty list (no variation).
+    pub fn available_c_planes(ldt: &Eulumdat) -> Vec<f64> {
+        if matches!(ldt.symmetry, Symmetry::VerticalAxis) {
+            return Vec::new();
+        }
+        SymmetryHandler::expand_c_angles(ldt)
+            .into_iter()
+            .filter(|&a| a <= 360.0)
+            .collect()
+    }
+
+    /// Render a polar diagram SVG for a given LDT, optionally at a specific C-plane.
+    ///
+    /// This is the universal entry point — use from any frontend (WASM, desktop, CLI).
+    /// If `c_plane` is None, renders the default C0-C180 / C90-C270 overview.
+    /// If `c_plane` is Some(angle), renders that specific C-plane pair.
+    pub fn render_svg(
+        ldt: &Eulumdat,
+        c_plane: Option<f64>,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+    ) -> String {
+        let summary = PhotometricSummary::from_eulumdat(ldt);
+        let polar = match c_plane {
+            Some(cp) => Self::from_eulumdat_for_plane(ldt, cp),
+            None => Self::from_eulumdat(ldt),
+        };
+        polar.to_svg_with_summary(width, height, theme, &summary)
     }
 }
 

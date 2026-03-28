@@ -1,10 +1,10 @@
 //! Polar diagram component for intensity visualization
-//! Uses eulumdat-core diagram module for SVG generation
+//! Uses PolarDiagram::render_svg() from eulumdat-core
 
 use crate::i18n::use_locale;
 use eulumdat::{
-    diagram::{ConeDiagram, PolarDiagram as CorePolarDiagram, SvgTheme},
-    Eulumdat, PhotometricSummary, SymmetryHandler,
+    diagram::{PolarDiagram as CorePolarDiagram, SvgTheme},
+    Eulumdat,
 };
 use leptos::prelude::*;
 
@@ -12,24 +12,16 @@ use leptos::prelude::*;
 pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
-    let has_variation = Memo::new(move |_| ConeDiagram::has_c_plane_variation(&ldt.get()));
-
-    let half_angles = Memo::new(move |_| {
-        let angles = SymmetryHandler::expand_c_angles(&ldt.get());
-        angles
-            .into_iter()
-            .filter(|&a| a <= 360.0)
-            .collect::<Vec<f64>>()
-    });
+    let c_planes = Memo::new(move |_| CorePolarDiagram::available_c_planes(&ldt.get()));
 
     let (selected_plane, set_selected_plane) = signal::<Option<f64>>(None);
     let (slider_idx, set_slider_idx) = signal(0usize);
 
     view! {
         {move || {
-            if has_variation.get() {
-                let ha = half_angles.get();
-                let max_idx = if ha.is_empty() { 0 } else { ha.len() - 1 };
+            let planes = c_planes.get();
+            if !planes.is_empty() {
+                let max_idx = planes.len() - 1;
                 view! {
                     <div class="isolux-controls">
                         <div class="control-group">
@@ -44,8 +36,8 @@ pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                             on:input=move |ev| {
                                                 if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
                                                     set_slider_idx.set(idx);
-                                                    let ha = half_angles.get();
-                                                    if let Some(&angle) = ha.get(idx) {
+                                                    let planes = c_planes.get();
+                                                    if let Some(&angle) = planes.get(idx) {
                                                         set_selected_plane.set(Some(angle));
                                                     }
                                                 }
@@ -74,7 +66,7 @@ pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                 set_slider_idx.set(0);
                                             }
                                         >
-                                            "C-Plane ▸"
+                                            {move || locale.get().ui.butterfly.c_plane_selector.clone()}
                                         </button>
                                     }.into_any()
                                 }
@@ -87,16 +79,8 @@ pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             }
         }}
         <div class="polar-diagram" inner_html=move || {
-            let ldt = ldt.get();
             let theme = SvgTheme::css_variables_with_locale(&locale.get());
-            let summary = PhotometricSummary::from_eulumdat(&ldt);
-            if let Some(cp) = selected_plane.get() {
-                let polar = CorePolarDiagram::from_eulumdat_for_plane(&ldt, cp);
-                polar.to_svg_with_summary(500.0, 500.0, &theme, &summary)
-            } else {
-                let polar = CorePolarDiagram::from_eulumdat(&ldt);
-                polar.to_svg_with_summary(500.0, 500.0, &theme, &summary)
-            }
+            CorePolarDiagram::render_svg(&ldt.get(), selected_plane.get(), 500.0, 500.0, &theme)
         } />
     }
 }

@@ -7,7 +7,7 @@
 //! Activated via `?wasm=goniosim` query parameter.
 
 use eulumdat::diagram::{PolarDiagram as CorePolarDiagram, SvgTheme};
-use eulumdat::{Eulumdat, PhotometricSummary};
+use eulumdat::Eulumdat;
 use eulumdat_goniosim::nalgebra::{Point3, Vector3};
 use eulumdat_goniosim::*;
 use leptos::prelude::*;
@@ -100,7 +100,6 @@ pub fn GonioSimDemo() -> impl IntoView {
     // --- Input LDT (the source luminaire) ---
     let (source_ldt, set_source_ldt) = signal::<Option<Eulumdat>>(None);
     let (source_name, set_source_name) = signal(String::new());
-    let (source_svg, set_source_svg) = signal(String::new());
 
     // --- Cover material ---
     let (cover_preset, set_cover_preset) = signal(CoverPreset::OpalPmma);
@@ -110,6 +109,14 @@ pub fn GonioSimDemo() -> impl IntoView {
     let (ior, set_ior) = signal(1.49f64);
     let (thickness_mm, set_thickness_mm) = signal(3.0f64);
     let (cover_distance_mm, set_cover_distance_mm) = signal(40.0f64);
+
+    // --- C-plane selector ---
+    let (selected_plane, set_selected_plane) = signal::<Option<f64>>(None);
+    let (slider_idx, set_slider_idx) = signal(0usize);
+
+    let c_planes = Memo::new(move |_| {
+        source_ldt.get().map_or(vec![], |l| CorePolarDiagram::available_c_planes(&l))
+    });
 
     // --- Simulation state ---
     let (running, set_running) = signal(false);
@@ -136,12 +143,6 @@ pub fn GonioSimDemo() -> impl IntoView {
     let load_ldt = move |name: String, content: String| {
         match Eulumdat::parse(&content) {
             Ok(ldt) => {
-                // Generate original SVG
-                let theme = SvgTheme::dark();
-                let summary = PhotometricSummary::from_eulumdat(&ldt);
-                let polar = CorePolarDiagram::from_eulumdat(&ldt);
-                let svg = polar.to_svg_with_summary(450.0, 450.0, &theme, &summary);
-                set_source_svg.set(svg);
                 set_source_name.set(name);
                 set_source_ldt.set(Some(ldt));
                 // Reset simulation
@@ -153,11 +154,6 @@ pub fn GonioSimDemo() -> impl IntoView {
             Err(_) => {
                 // Try IES
                 if let Ok(ldt) = eulumdat::IesParser::parse(&content) {
-                    let theme = SvgTheme::dark();
-                    let summary = PhotometricSummary::from_eulumdat(&ldt);
-                    let polar = CorePolarDiagram::from_eulumdat(&ldt);
-                    let svg = polar.to_svg_with_summary(450.0, 450.0, &theme, &summary);
-                    set_source_svg.set(svg);
                     set_source_name.set(name);
                     set_source_ldt.set(Some(ldt));
                     reset_sim(
@@ -384,9 +380,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                 let energy_frac = det.total_energy() / total_done as f64;
                 ldt.light_output_ratio = src_clone.light_output_ratio * energy_frac;
                 let theme = SvgTheme::dark();
-                let summary = PhotometricSummary::from_eulumdat(&ldt);
-                let polar = CorePolarDiagram::from_eulumdat(&ldt);
-                let svg = polar.to_svg_with_summary(450.0, 450.0, &theme, &summary);
+                let svg = CorePolarDiagram::render_svg(&ldt, selected_plane.get_untracked(), 450.0, 450.0, &theme);
                 set_sim_svg.set(svg);
                 set_export_ldt_string.set(ldt.to_ldt());
 
@@ -547,22 +541,78 @@ pub fn GonioSimDemo() -> impl IntoView {
 
                 // Right panel: side-by-side polar diagrams
                 <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-                    // Labels
-                    <div style="display: flex; padding: 8px 20px 0; gap: 20px; flex-shrink: 0;">
+                    // Labels + C-plane slider
+                    <div style="display: flex; padding: 8px 20px 0; gap: 20px; flex-shrink: 0; align-items: center;">
                         <div style="flex: 1; text-align: center; font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">"Original LVK"</div>
+                        // C-plane selector (only for asymmetric luminaires)
+                        {move || {
+                            let planes = c_planes.get();
+                            if !planes.is_empty() {
+                                let max_idx = planes.len() - 1;
+                                view! {
+                                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                        {move || {
+                                            if selected_plane.get().is_some() {
+                                                view! {
+                                                    <span style="font-size: 0.75rem; color: #58a6ff; white-space: nowrap;">
+                                                        {move || format!("C {:.0}\u{00b0}", selected_plane.get().unwrap_or(0.0))}
+                                                    </span>
+                                                    <input type="range"
+                                                        style="width: 100px; accent-color: #58a6ff;"
+                                                        min="0"
+                                                        prop:max=max_idx.to_string()
+                                                        prop:value=move || slider_idx.get().to_string()
+                                                        on:input=move |ev| {
+                                                            if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
+                                                                set_slider_idx.set(idx);
+                                                                let p = c_planes.get();
+                                                                if let Some(&angle) = p.get(idx) {
+                                                                    set_selected_plane.set(Some(angle));
+                                                                }
+                                                            }
+                                                        }
+                                                    />
+                                                    <button style="background: none; border: 1px solid #30363d; color: #8b949e; border-radius: 4px; padding: 1px 6px; cursor: pointer; font-size: 0.75rem;"
+                                                        on:click=move |_| {
+                                                            set_selected_plane.set(None);
+                                                            set_slider_idx.set(0);
+                                                        }
+                                                    >"All"</button>
+                                                }.into_any()
+                                            } else {
+                                                view! {
+                                                    <button style="background: none; border: 1px solid #30363d; color: #58a6ff; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 0.75rem;"
+                                                        on:click=move |_| {
+                                                            set_selected_plane.set(Some(0.0));
+                                                            set_slider_idx.set(0);
+                                                        }
+                                                    >"C-plane"</button>
+                                                }.into_any()
+                                            }
+                                        }}
+                                    </div>
+                                }.into_any()
+                            } else {
+                                view! { <div /> }.into_any()
+                            }
+                        }}
                         <div style="flex: 1; text-align: center; font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">"Simulated (through cover)"</div>
                     </div>
                     // Diagrams
                     <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 20px; gap: 20px; overflow: hidden;">
-                        // Original
+                        // Original — re-renders when selected_plane changes
                         <div style="flex: 1; max-width: 500px; display: flex; align-items: center; justify-content: center;">
                             {move || {
-                                let svg = source_svg.get();
-                                if svg.is_empty() {
+                                let ldt_opt = source_ldt.get();
+                                let cp = selected_plane.get();
+                                if ldt_opt.is_none() {
                                     view! {
                                         <div style="color: #484f58; text-align: center; font-size: 0.9rem;">"Select or upload a luminaire"</div>
                                     }.into_any()
                                 } else {
+                                    let ldt = ldt_opt.unwrap();
+                                    let theme = SvgTheme::dark();
+                                    let svg = CorePolarDiagram::render_svg(&ldt, cp, 450.0, 450.0, &theme);
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
                                     }.into_any()
