@@ -72,8 +72,10 @@ fn cmd_roundtrip(args: &[String]) {
     // Use the calculated flux from intensity integration — this is the actual
     // luminous output implied by the cd/klm data, which may differ from
     // lamp_flux * LOR for some files.
-    let calc_flux_klm = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
-    let calculated_flux = calc_flux_klm * lamp_flux / 1000.0;
+    // calculated_luminous_flux returns the integrated flux from intensity data.
+    // This is the value to use as source flux for FromLvk — it represents the
+    // actual luminous output encoded in the cd/klm distribution.
+    let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
     let c_res = if ldt.c_plane_distance > 0.0 { ldt.c_plane_distance } else { 15.0 };
     let g_res = if ldt.g_plane_distance > 0.0 { ldt.g_plane_distance } else { 5.0 };
 
@@ -108,7 +110,7 @@ fn cmd_roundtrip(args: &[String]) {
     println!("  Elapsed: {:.2}s", result.stats.elapsed.as_secs_f64());
     println!();
 
-    // Export
+    // Export — use source LDT's exact C/G angles for perfect grid matching
     let export_cfg = ExportConfig {
         c_step_deg: c_res,
         g_step_deg: g_res,
@@ -118,7 +120,14 @@ fn cmd_roundtrip(args: &[String]) {
         luminaire_dimensions_mm: (ldt.length, ldt.width, ldt.height),
         luminous_area_mm: (ldt.luminous_area_length, ldt.luminous_area_width),
     };
-    let mut sim_ldt = detector_to_eulumdat_with_lamp_flux(&result.detector, calculated_flux, lamp_flux, &export_cfg);
+    let mut sim_ldt = detector_to_eulumdat_at_angles(
+        &result.detector,
+        calculated_flux,
+        lamp_flux,
+        Some(&ldt.c_angles),
+        Some(&ldt.g_angles),
+        &export_cfg,
+    );
     sim_ldt.lamp_sets = ldt.lamp_sets.clone();
     sim_ldt.type_indicator = ldt.type_indicator;
     sim_ldt.light_output_ratio = ldt.light_output_ratio;
@@ -154,8 +163,10 @@ fn cmd_trace(args: &[String]) {
 
     let ldt = load_ldt(input_path);
     let lamp_flux = ldt.total_luminous_flux();
-    let calc_flux_klm = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
-    let calculated_flux = calc_flux_klm * lamp_flux / 1000.0;
+    // calculated_luminous_flux returns the integrated flux from intensity data.
+    // This is the value to use as source flux for FromLvk — it represents the
+    // actual luminous output encoded in the cd/klm distribution.
+    let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
     let c_res = if ldt.c_plane_distance > 0.0 { ldt.c_plane_distance } else { 15.0 };
     let g_res = if ldt.g_plane_distance > 0.0 { ldt.g_plane_distance } else { 5.0 };
 

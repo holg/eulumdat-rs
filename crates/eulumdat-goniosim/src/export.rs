@@ -62,29 +62,86 @@ pub fn detector_to_eulumdat_with_lamp_flux(
     lamp_flux_lm: f64,
     config: &ExportConfig,
 ) -> Eulumdat {
-    // Resample detector to export resolution
-    let resampled = detector.resample(config.c_step_deg, config.g_step_deg);
-    let candela = resampled.to_candela(source_flux_lm);
+    detector_to_eulumdat_at_angles(
+        detector,
+        source_flux_lm,
+        lamp_flux_lm,
+        None, // use uniform grid from config
+        None,
+        config,
+    )
+}
 
-    let num_c = resampled.num_c();
-    let num_g = resampled.num_g();
+/// Build an Eulumdat struct from detector data, sampling at explicit C/G angles.
+///
+/// If `c_angles` or `g_angles` is None, uses uniform grid from config.
+/// This enables exact reproduction of non-uniform C-plane spacing from the source LDT.
+pub fn detector_to_eulumdat_at_angles(
+    detector: &Detector,
+    source_flux_lm: f64,
+    lamp_flux_lm: f64,
+    c_angles_opt: Option<&[f64]>,
+    g_angles_opt: Option<&[f64]>,
+    config: &ExportConfig,
+) -> Eulumdat {
+    // Determine the angle grid to use
+    let c_angles: Vec<f64> = match c_angles_opt {
+        Some(angles) => angles.to_vec(),
+        None => {
+            let num_c = (360.0 / config.c_step_deg).round() as usize;
+            (0..num_c).map(|i| i as f64 * config.c_step_deg).collect()
+        }
+    };
 
-    // Build C-angle list
-    let c_angles: Vec<f64> = (0..num_c)
-        .map(|i| i as f64 * config.c_step_deg)
-        .collect();
+    let g_angles: Vec<f64> = match g_angles_opt {
+        Some(angles) => angles.to_vec(),
+        None => {
+            let num_g = (180.0 / config.g_step_deg).round() as usize + 1;
+            (0..num_g).map(|i| i as f64 * config.g_step_deg).collect()
+        }
+    };
 
-    // Build gamma-angle list
-    let g_angles: Vec<f64> = (0..num_g)
-        .map(|i| i as f64 * config.g_step_deg)
-        .collect();
+    let num_c = c_angles.len();
+    let num_g = g_angles.len();
 
-    // Convert candela to cd/klm (per 1000 lumens of LAMP flux)
+    // Build intensity grid.
+    // If explicit angles were provided, use the fine-resolution detector's candela grid
+    // and extract values at the closest bin (nearest-neighbor), which avoids the
+    // solid-angle interpolation bias of candela_at().
     let scale = 1000.0 / lamp_flux_lm.max(1.0);
-    let intensities: Vec<Vec<f64>> = candela
-        .iter()
-        .map(|c_plane| c_plane.iter().map(|cd| cd * scale).collect())
-        .collect();
+
+    let intensities: Vec<Vec<f64>> = if c_angles_opt.is_some() || g_angles_opt.is_some() {
+        // Get full candela grid at detector resolution
+        let full_cd = detector.to_candela(source_flux_lm);
+        let det_c_res = detector.c_resolution_deg();
+        let det_g_res = detector.g_resolution_deg();
+        let det_num_c = detector.num_c();
+        let det_num_g = detector.num_g();
+
+        c_angles
+            .iter()
+            .map(|&c| {
+                // Find nearest C-bin
+                let c_norm = c.rem_euclid(360.0);
+                let ci = ((c_norm / det_c_res).round() as usize).min(det_num_c - 1);
+                g_angles
+                    .iter()
+                    .map(|&g| {
+                        let gi = ((g / det_g_res).round() as usize).min(det_num_g - 1);
+                        full_cd[ci][gi] * scale
+                    })
+                    .collect()
+            })
+            .collect()
+    } else {
+        // Uniform grid — use resample for best accuracy
+        let resampled = detector.resample(config.c_step_deg, config.g_step_deg);
+        let candela = resampled.to_candela(source_flux_lm);
+        candela
+            .iter()
+            .map(|c_plane| c_plane.iter().map(|cd| cd * scale).collect())
+            .collect()
+    };
 
     // Compute downward flux fraction from detector data
     let downward_energy: f64 = {
@@ -133,9 +190,20 @@ pub fn detector_to_eulumdat_with_lamp_flux(
 
     ldt.symmetry = symmetry;
     ldt.num_c_planes = num_c;
-    ldt.c_plane_distance = config.c_step_deg;
+    // If explicit angles were provided, compute spacing from them (0 = non-uniform)
+    ldt.c_plane_distance = if c_angles_opt.is_some() && num_c > 1 {
+        let d = c_angles[1] - c_angles[0];
+        if c_angles.windows(2).all(|w| (w[1] - w[0] - d).abs() < 0.01) { d } else { 0.0 }
+    } else {
+        config.c_step_deg
+    };
     ldt.num_g_planes = num_g;
-    ldt.g_plane_distance = config.g_step_deg;
+    ldt.g_plane_distance = if g_angles_opt.is_some() && num_g > 1 {
+        let d = g_angles[1] - g_angles[0];
+        if g_angles.windows(2).all(|w| (w[1] - w[0] - d).abs() < 0.01) { d } else { 0.0 }
+    } else {
+        config.g_step_deg
+    };
 
     ldt.length = config.luminaire_dimensions_mm.0;
     ldt.width = config.luminaire_dimensions_mm.1;

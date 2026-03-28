@@ -140,6 +140,55 @@ impl Detector {
         self.total_energy += other.total_energy;
     }
 
+    /// Sample the candela value at a specific (C, gamma) angle pair.
+    ///
+    /// Uses bilinear interpolation from the fine-resolution bins.
+    /// This allows extracting cd values at the source LDT's exact
+    /// (non-uniform) C-plane angles.
+    pub fn candela_at(&self, c_deg: f64, g_deg: f64, source_flux_lm: f64) -> f64 {
+        if self.total_energy <= 0.0 {
+            return 0.0;
+        }
+
+        let flux_per_energy = source_flux_lm / self.total_energy;
+        let dc_rad = self.c_resolution_deg.to_radians();
+        let dg_rad = self.g_resolution_deg.to_radians();
+
+        // Find surrounding bin indices
+        let c_norm = c_deg.rem_euclid(360.0);
+        let ci_f = c_norm / self.c_resolution_deg;
+        let gi_f = g_deg / self.g_resolution_deg;
+
+        let ci0 = (ci_f.floor() as usize).min(self.num_c - 1);
+        let ci1 = (ci0 + 1) % self.num_c;
+        let gi0 = (gi_f.floor() as usize).min(self.num_g - 1);
+        let gi1 = (gi0 + 1).min(self.num_g - 1);
+
+        let cf = ci_f - ci_f.floor(); // fractional part
+        let gf = gi_f - gi_f.floor();
+
+        // Get candela for the 4 surrounding bins
+        let cd = |ci: usize, gi: usize| -> f64 {
+            let g_center_rad = (gi as f64 * self.g_resolution_deg).to_radians();
+            let sa = solid_angle_for_bin(g_center_rad, dg_rad, dc_rad);
+            if sa > 0.0 {
+                self.bins[ci][gi] * flux_per_energy / sa
+            } else {
+                0.0
+            }
+        };
+
+        // Bilinear interpolation
+        let v00 = cd(ci0, gi0);
+        let v10 = cd(ci1, gi0);
+        let v01 = cd(ci0, gi1);
+        let v11 = cd(ci1, gi1);
+
+        let v0 = v00 * (1.0 - cf) + v10 * cf;
+        let v1 = v01 * (1.0 - cf) + v11 * cf;
+        v0 * (1.0 - gf) + v1 * gf
+    }
+
     /// Resample to a coarser resolution for export.
     pub fn resample(&self, c_step_deg: f64, g_step_deg: f64) -> Detector {
         let mut resampled = Detector::new(c_step_deg, g_step_deg);

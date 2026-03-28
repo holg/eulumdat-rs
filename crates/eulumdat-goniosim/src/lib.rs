@@ -75,7 +75,10 @@ pub use rand_xoshiro;
 // Re-exports for convenience
 pub use catalog::material_catalog;
 pub use detector::Detector;
-pub use export::{detector_to_eulumdat, detector_to_eulumdat_with_lamp_flux, ExportConfig};
+pub use export::{
+    detector_to_eulumdat, detector_to_eulumdat_at_angles, detector_to_eulumdat_with_lamp_flux,
+    ExportConfig,
+};
 pub use geometry::{Primitive, SceneObject};
 pub use material::{Interaction, Material, MaterialParams};
 pub use ray::{HitRecord, Photon, Ray};

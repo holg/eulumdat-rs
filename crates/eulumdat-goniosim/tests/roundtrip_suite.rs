@@ -43,10 +43,14 @@ fn roundtrip(content: &str, name: &str, num_photons: u64) -> RoundtripResult {
         calculated_flux,
     ));
 
+    // Detector resolution: use the source's resolution for uniform grids.
+    // For non-uniform (Dc=0), use 5° as a reasonable compromise.
+    let det_c_res = if c_res > 0.0 { c_res } else { 5.0 };
+    let det_g_res = if g_res > 0.0 { g_res } else { 5.0 };
     let config = TracerConfig {
         num_photons,
-        detector_c_resolution: c_res,
-        detector_g_resolution: g_res,
+        detector_c_resolution: det_c_res,
+        detector_g_resolution: det_g_res,
         seed: 42,
         ..TracerConfig::default()
     };
@@ -63,7 +67,18 @@ fn roundtrip(content: &str, name: &str, num_photons: u64) -> RoundtripResult {
         luminaire_dimensions_mm: (ldt.length, ldt.width, ldt.height),
         luminous_area_mm: (ldt.luminous_area_length, ldt.luminous_area_width),
     };
-    let mut sim_ldt = detector_to_eulumdat_with_lamp_flux(&result.detector, calculated_flux, lamp_flux, &export_cfg);
+    // Use source angles only when C-plane spacing is truly non-uniform (Dc=0, Nc>1).
+    // For uniform grids, use the fast resample+to_candela path.
+    let use_source_c = ldt.c_plane_distance.abs() < 0.01 && ldt.c_angles.len() > 1;
+    let use_source_g = ldt.g_plane_distance.abs() < 0.01 && ldt.g_angles.len() > 1;
+    let mut sim_ldt = detector_to_eulumdat_at_angles(
+        &result.detector,
+        calculated_flux,
+        lamp_flux,
+        if use_source_c { Some(&ldt.c_angles) } else { None },
+        if use_source_g { Some(&ldt.g_angles) } else { None },
+        &export_cfg,
+    );
     sim_ldt.lamp_sets = ldt.lamp_sets.clone();
     sim_ldt.type_indicator = ldt.type_indicator;
     sim_ldt.light_output_ratio = ldt.light_output_ratio * energy_frac;
@@ -163,9 +178,7 @@ fn cover_reduces_efficiency() {
     let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
     let ldt = Eulumdat::parse(content).unwrap();
     let lamp_flux = ldt.total_luminous_flux();
-    // calculated_flux is in lm/klm — multiply by lamp_flux/1000 for actual lumens
-    let calc_flux_klm = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
-    let flux = calc_flux_klm * lamp_flux / 1000.0;
+    let flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
     let c_res = ldt.c_plane_distance;
     let g_res = ldt.g_plane_distance;
 
@@ -230,9 +243,7 @@ fn thickness_affects_absorption() {
     let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
     let ldt = Eulumdat::parse(content).unwrap();
     let lamp_flux = ldt.total_luminous_flux();
-    // calculated_flux is in lm/klm — multiply by lamp_flux/1000 for actual lumens
-    let calc_flux_klm = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
-    let flux = calc_flux_klm * lamp_flux / 1000.0;
+    let flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
 
     let thicknesses = [2.0, 3.0, 5.0, 8.0]; // mm
     let mut prev_throughput = 1.0f64;
@@ -297,9 +308,7 @@ fn reflectance_increases_loss() {
     let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
     let ldt = Eulumdat::parse(content).unwrap();
     let lamp_flux = ldt.total_luminous_flux();
-    // calculated_flux is in lm/klm — multiply by lamp_flux/1000 for actual lumens
-    let calc_flux_klm = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
-    let flux = calc_flux_klm * lamp_flux / 1000.0;
+    let flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
 
     let reflectances = [0.0, 10.0, 20.0, 40.0];
     let mut prev_throughput = 1.0f64;
