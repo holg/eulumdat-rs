@@ -123,7 +123,7 @@ pub fn GonioSimDemo() -> impl IntoView {
     let (photons_done, set_photons_done) = signal(0u64);
     let (photons_detected, set_photons_detected) = signal(0u64);
     let (photons_absorbed, set_photons_absorbed) = signal(0u64);
-    let (sim_svg, set_sim_svg) = signal(String::new());
+    let (sim_ldt, set_sim_ldt) = signal::<Option<Eulumdat>>(None);
     let (generation, set_generation) = signal(0u32);
     let (export_ldt_string, set_export_ldt_string) = signal(String::new());
 
@@ -148,7 +148,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                 // Reset simulation
                 reset_sim(
                     set_running, set_photons_done, set_photons_detected,
-                    set_photons_absorbed, set_sim_svg, set_export_ldt_string, set_generation,
+                    set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
                 );
             }
             Err(_) => {
@@ -158,7 +158,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                     set_source_ldt.set(Some(ldt));
                     reset_sim(
                         set_running, set_photons_done, set_photons_detected,
-                        set_photons_absorbed, set_sim_svg, set_export_ldt_string, set_generation,
+                        set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
                     );
                 }
             }
@@ -207,7 +207,7 @@ pub fn GonioSimDemo() -> impl IntoView {
     let reset = move || {
         reset_sim(
             set_running, set_photons_done, set_photons_detected,
-            set_photons_absorbed, set_sim_svg, set_export_ldt_string, set_generation,
+            set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
         );
     };
 
@@ -379,10 +379,8 @@ pub fn GonioSimDemo() -> impl IntoView {
                 // ClearTransmitter attenuates energy without killing photons)
                 let energy_frac = det.total_energy() / total_done as f64;
                 ldt.light_output_ratio = src_clone.light_output_ratio * energy_frac;
-                let theme = SvgTheme::dark();
-                let svg = CorePolarDiagram::render_svg(&ldt, selected_plane.get_untracked(), 450.0, 450.0, &theme);
-                set_sim_svg.set(svg);
                 set_export_ldt_string.set(ldt.to_ldt());
+                set_sim_ldt.set(Some(ldt));
 
                 // Yield to browser
                 let promise = js_sys::Promise::new(&mut |resolve, _| {
@@ -621,17 +619,21 @@ pub fn GonioSimDemo() -> impl IntoView {
                         </div>
                         // Divider
                         <div style="width: 1px; height: 80%; background: #30363d; flex-shrink: 0;" />
-                        // Simulated
+                        // Simulated — re-renders when sim_ldt or selected_plane changes
                         <div style="flex: 1; max-width: 500px; display: flex; align-items: center; justify-content: center;">
                             {move || {
-                                let svg = sim_svg.get();
-                                if svg.is_empty() {
+                                let ldt_opt = sim_ldt.get();
+                                let cp = selected_plane.get();
+                                if ldt_opt.is_none() {
                                     view! {
                                         <div style="color: #484f58; text-align: center; font-size: 0.9rem;">
                                             "Click " <strong style="color: #238636;">"Trace"</strong> " to simulate"
                                         </div>
                                     }.into_any()
                                 } else {
+                                    let ldt = ldt_opt.unwrap();
+                                    let theme = SvgTheme::dark();
+                                    let svg = CorePolarDiagram::render_svg(&ldt, cp, 450.0, 450.0, &theme);
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
                                     }.into_any()
@@ -659,7 +661,7 @@ fn reset_sim(
     set_photons_done: WriteSignal<u64>,
     set_photons_detected: WriteSignal<u64>,
     set_photons_absorbed: WriteSignal<u64>,
-    set_sim_svg: WriteSignal<String>,
+    set_sim_ldt: WriteSignal<Option<Eulumdat>>,
     set_export_ldt_string: WriteSignal<String>,
     set_generation: WriteSignal<u32>,
 ) {
@@ -667,7 +669,7 @@ fn reset_sim(
     set_photons_done.set(0);
     set_photons_detected.set(0);
     set_photons_absorbed.set(0);
-    set_sim_svg.set(String::new());
+    set_sim_ldt.set(None);
     set_export_ldt_string.set(String::new());
     set_generation.update(|g| *g += 1);
 }
