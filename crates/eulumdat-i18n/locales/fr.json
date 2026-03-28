@@ -355,7 +355,25 @@
       "atla_xml": "Exporter en ATLA XML",
       "atla_json": "Exporter en ATLA JSON",
       "switch_to_dark": "Passer en mode sombre",
-      "switch_to_light": "Passer en mode clair"
+      "switch_to_light": "Passer en mode clair",
+      "skip_link": "Aller au contenu principal",
+      "rotate_c_planes": "Rotation C0 ±90° (IES)",
+      "rotate_c_planes_tooltip": "Faire pivoter les plans C de ±90° lors de l'import/export IES (corrige l'orientation des axes EU↔US)",
+      "export_svg_prefix": "Exporter SVG",
+      "export_png": "Exporter PNG (2×)",
+      "export_jpeg": "Exporter JPEG",
+      "export_pdf": "Exporter rapport (.pdf)",
+      "export_pdf_tooltip": "Exporter en rapport PDF (compilé dans le navigateur)",
+      "export_typ": "Exporter rapport (.typ)",
+      "export_typ_tooltip": "Exporter en fichier source Typst (.typ)",
+      "generating_pdf": "Génération du PDF...",
+      "github": "GitHub",
+      "about": "À propos",
+      "switch_to_imperial": "Passer en Impérial (ft, fc, in)",
+      "switch_to_metric": "Passer en Métrique (m, lx, mm)",
+      "unit_si": "SI",
+      "unit_imp": "IMP",
+      "loading": "Chargement..."
     },
     "tabs": {
       "general": "Général",
@@ -384,7 +402,13 @@
       "cartesian": "Cartésien",
       "cone": "Cône",
       "export": "Exporter",
-      "compare": "Comparer"
+      "compare": "Comparer",
+      "bim": "BIM",
+      "area_designer": "Concepteur",
+      "zonal_designer": "Intérieur",
+      "maps_designer": "Cartes",
+      "beam_angle": "Angle de faisceau",
+      "iso_view": "Vue ISO"
     },
     "subtabs": {
       "spd": "DSP",
@@ -412,7 +436,11 @@
       "cartesian": "Cartésien",
       "zoom_hint": "Défiler pour zoomer | Glisser pour déplacer",
       "rotate_hint": "Glisser pour tourner | Défiler pour zoomer | Rotation auto au chargement",
-      "scene_controls": "Contrôles: ZQSD/Flèches déplacer • A/E haut/bas • Clic droit+glisser regarder • R réinitialiser • 1-4 types de scène • P solide photométrique • L luminaire"
+      "scene_controls": "Contrôles: ZQSD/Flèches déplacer • A/E haut/bas • Clic droit+glisser regarder • R réinitialiser • 1-4 types de scène • P solide photométrique • L luminaire",
+      "beam_angle": "Angle de faisceau",
+      "beam_angle_tooltip": "Comparaison des angles de faisceau IES vs CIE (style Wikipédia)",
+      "title_iso_view": "Vue ISO",
+      "desc_iso_view": "Empreinte d'éclairement isométrique avec distribution polaire"
     },
     "intensity": {
       "title": "Intensité lumineuse (cd/klm)",
@@ -459,7 +487,8 @@
       "auto": "Auto",
       "reset": "Réinitialiser",
       "drag_hint": "Glisser pour tourner",
-      "max": "Max"
+      "max": "Max",
+      "c_plane_selector": "Plan C ▸"
     },
     "bevy_scene": {
       "title": "Visualiseur de scène 3D",
@@ -482,7 +511,22 @@
       "show_luminaire": "Afficher le luminaire",
       "show_solid": "Solide photométrique",
       "show_shadows": "Ombres",
-      "controls_hint": "ZQSD: Déplacer, Souris: Regarder, R: Réinitialiser, 1-4: Scène"
+      "controls_hint": "ZQSD: Déplacer, Souris: Regarder, R: Réinitialiser, 1-4: Scène",
+      "scene_designer_exterior": "Designer: Extérieur",
+      "scene_designer_interior": "Designer: Intérieur",
+      "hide": "Masquer",
+      "road_layout": "Disposition de la route",
+      "lanes": "Voies",
+      "lane_width": "Largeur de voie (m)",
+      "sidewalk_width": "Largeur du trottoir (m)",
+      "road_length": "Longueur de la route (m)",
+      "luminaire_settings": "Paramètres du luminaire",
+      "tilt_angle": "Angle d'inclinaison (°)",
+      "pole_spacing": "Espacement des mâts (m, 0=auto)",
+      "show_light_cones": "Afficher les cônes lumineux",
+      "show_cavity_zones": "Afficher les zones de cavité",
+      "exterior_hint": "Données de scène synchronisées depuis l'onglet Designer extérieur. Ouvrez le Designer extérieur pour configurer les mâts et l'éclairage.",
+      "interior_hint": "Données de scène synchronisées depuis l'onglet Designer intérieur. Ouvrez le Designer intérieur pour configurer la pièce et les luminaires."
     },
     "bug_rating": {
       "title": "Classement BUG IESNA TM-15-11",
@@ -515,7 +559,17 @@
     },
     "validation_panel": {
       "all_passed": "Toutes les vérifications de validation ont réussi",
-      "error_count": "{errors} erreur(s), {warnings} avertissement(s)"
+      "error_count": "{errors} erreur(s), {warnings} avertissement(s)",
+      "schema_validation": "Validation du schéma",
+      "ldt_validation": "Validation LDT/IES",
+      "valid": "Valide",
+      "invalid": "Invalide",
+      "missing_fields": "Champs manquants",
+      "warnings": "Avertissements",
+      "see_tm33": "Voir TM-33-23",
+      "tm33_issues": "Problèmes TM-33-23",
+      "tm32_issues": "Problèmes BIM TM-32-24",
+      "n_errors": "{0} erreur(s)"
     },
     "spectral_badges": {
       "ir": "IR",
@@ -605,6 +659,24 @@
       "percent": "%",
       "empty_title": "Chargez un second fichier photométrique pour comparer côte à côte.",
       "empty_hint": "Compare le flux, l'efficacité, les angles de faisceau, la distribution d'intensité, et plus."
+    },
+    "about": {
+      "title": "Eulumdat",
+      "subtitle": "Boîte à outils Rust/WASM pour données d'éclairage",
+      "desc_parsing": "Analyse les fichiers EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX.",
+      "desc_diagrams": "Génère des diagrammes SVG : polaire, cartésien, spectral, carte thermique.",
+      "desc_platforms": "Un seul code source Rust → Web, CLI, iOS, Android, Python",
+      "close": "Fermer"
+    },
+    "bim": {
+      "title": "Paramètres BIM TM-32-24",
+      "tooltip": "Paramètres BIM TM-32-24",
+      "export_csv": "Exporter CSV",
+      "export_report": "Exporter le rapport",
+      "info_text": "Les paramètres BIM suivent la norme ANSI/IES TM-32-24 pour la modélisation des informations du bâtiment.",
+      "no_data_title": "Aucune donnée BIM disponible",
+      "no_data_text": "Ce fichier ne contient pas de paramètres BIM TM-32-24. Les données BIM se trouvent généralement dans les fichiers XML TM-33-23 avec des sections CustomData.",
+      "template_hint": "Essayez de charger l'un des modèles BIM TM-32-24 depuis le menu Modèles."
     }
   },
   "report": {
@@ -761,5 +833,301 @@
       "atlaUvBlacklight": "Lumière noire UV (ATLA)",
       "atlaUvBlacklight_desc": "Lumière noire UV avec spectre UV-A"
     }
+  },
+  "designer": {
+    "height": "Hauteur :",
+    "width": "Largeur :",
+    "length": "Longueur :",
+    "rotation": "Rotation :",
+    "tilt": "Inclinaison :",
+    "resolution": "Résolution :",
+    "mounting_height": "Hauteur de montage :",
+    "export_csv": "Exporter CSV",
+    "export_pdf": "Exporter PDF",
+    "export_svg": "Exporter SVG",
+    "exporting_pdf": "Exportation du PDF...",
+    "share_link": "Partager le lien",
+    "copied": "Copié !",
+    "save": "Enregistrer",
+    "load": "Charger",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "remove": "Supprimer",
+    "plan_view": "Vue en plan",
+    "room_view": "Vue de la pièce",
+    "min": "Min",
+    "avg": "Moy",
+    "max": "Max",
+    "luminaire": "Luminaire",
+    "luminaires": "Luminaires"
+  },
+  "area_designer": {
+    "title": "Concepteur d'éclairage extérieur",
+    "layout": {
+      "label": "Disposition :",
+      "single": "Simple",
+      "pair": "Paire",
+      "row_of_3": "Rangée de 3",
+      "grid_2x2": "Grille 2×2",
+      "grid_2x3": "Grille 2×3",
+      "grid_3x3": "Grille 3×3",
+      "perimeter": "Périmètre"
+    },
+    "arrangement": {
+      "label": "Montage :",
+      "single": "Simple",
+      "back_to_back": "Dos à dos",
+      "twin_arm": "Double bras",
+      "quad": "Quadruple",
+      "wall_mounted": "Fixation murale"
+    },
+    "params": {
+      "arm": "Bras :",
+      "droop": "Inclinaison :",
+      "area_w": "Largeur zone :",
+      "area_d": "Profondeur zone :",
+      "proration": "Prorata :",
+      "poles": "Mâts :"
+    },
+    "polygon": {
+      "cancel": "Annuler",
+      "clear": "Effacer le polygone",
+      "draw": "Dessiner un polygone"
+    },
+    "pole": {
+      "selected": "Mât sélectionné",
+      "pole_n": "Mât n°",
+      "x": "X :",
+      "y": "Y :",
+      "reset_overrides": "Réinitialiser les remplacements",
+      "click_to_select": "Cliquez sur un mât dans la vue en plan pour le sélectionner",
+      "ldt": "LDT :",
+      "primary": "Principal"
+    },
+    "presets": {
+      "title": "Préréglages de position",
+      "top_left": "Haut-gauche",
+      "top": "Haut",
+      "top_right": "Haut-droite",
+      "left": "Gauche",
+      "center": "Centre",
+      "right": "Droite",
+      "bottom_left": "Bas-gauche",
+      "bottom": "Bas",
+      "bottom_right": "Bas-droite"
+    },
+    "mixed": {
+      "title": "Luminaires mixtes",
+      "description": "Chargez des fichiers LDT supplémentaires, puis assignez-les par mât."
+    },
+    "optimizer": {
+      "title": "Optimiseur d'espacement",
+      "target": "Cible :",
+      "uniformity": "U₀ ≥ :",
+      "heights": "Hauteurs :",
+      "step": "Pas :",
+      "running": "Calcul en cours...",
+      "optimize": "Optimiser",
+      "ht": "Ht",
+      "spc": "Esp",
+      "poles_col": "Mâts"
+    },
+    "height_compare": {
+      "title": "Comparaison des hauteurs",
+      "run_hint": "Lancez l'optimiseur pour comparer les hauteurs"
+    },
+    "combined": "Éclairement combiné",
+    "wall_mounted_hint": "Mode fixation murale : luminaires inclinés à 90° vers l'extérieur. Placez les mâts le long du bord du mur. Hauteur = hauteur de fixation murale.",
+    "stats": {
+      "u0": "U₀ (min/moy)",
+      "ud": "Ud (min/max)",
+      "avg_min": "Moy/Min"
+    },
+    "export_iso_svg": "Exporter SVG ISO",
+    "export_plan_svg": "Exporter SVG vue en plan",
+    "export_room_svg": "Exporter SVG vue de pièce",
+    "export_3d_svg": "Exporter SVG 3D",
+    "export_optimizer": "Exporter l'optimiseur"
+  },
+  "zonal_designer": {
+    "title": "Concepteur d'éclairage intérieur",
+    "room": "Pièce :",
+    "workplane": "Plan de travail :",
+    "suspension": "Suspension :",
+    "mode": {
+      "label": "Mode :",
+      "target_to_count": "Cible → Nombre",
+      "count_to_illuminance": "Nombre → Éclairement",
+      "target_lpd": "LPD cible → Nombre"
+    },
+    "target": "Cible :",
+    "count": "Nombre :",
+    "lpd": "LPD :",
+    "reflectances": {
+      "title": "Réflectances",
+      "ceiling": "Plafond :",
+      "wall": "Mur :",
+      "floor": "Sol :"
+    },
+    "llf": {
+      "title": "Facteur de maintenance",
+      "preset": "Préréglage",
+      "lld": "LLD :",
+      "ldd": "LDD :",
+      "bf": "BF :",
+      "total": "LLF total :"
+    },
+    "views": {
+      "heatmap": "Carte thermique",
+      "room_3d": "Pièce 3D",
+      "section": "Section",
+      "cu_table": "Tableau CU"
+    },
+    "camera": "Caméra",
+    "info": {
+      "name": "Nom :",
+      "lumens": "Lumens :",
+      "power": "Puissance :",
+      "dff": "DFF :",
+      "smh": "S/MH :"
+    },
+    "results": {
+      "luminaires": "Luminaires",
+      "achieved": "Obtenu",
+      "cu": "CU",
+      "rcr": "RCR",
+      "lpd": "LPD",
+      "spacing": "Espacement",
+      "ok": "OK",
+      "exceeds": "DÉPASSÉ"
+    },
+    "heatmap_title": "Carte thermique d'éclairement",
+    "computing_heatmap": "Calcul de la carte thermique...",
+    "cavity_section": "Section de cavité",
+    "cu_table_title": "Tableau CU",
+    "export_pdf": "Exporter PDF",
+    "room_view_3d": "Vue 3D de la pièce",
+    "room_view_hint": "glisser pour tourner, défiler pour zoomer",
+    "export_3d_svg": "Exporter SVG 3D",
+    "cavity_lines": "Lignes de cavité",
+    "light_cones": "Cônes lumineux",
+    "options_3d": "Options 3D"
+  },
+  "dashboard": {
+    "templates": {
+      "standard": "Standard",
+      "aec": "AEC",
+      "alternative": "Alternatif"
+    },
+    "modes": {
+      "overview": "Vue d'ensemble (ISO + Polaire + Isolux + BUG)",
+      "beam_angles": "Angles de faisceau",
+      "beam_intensities": "Intensités de faisceau / Cône",
+      "ugr_table": "Tableau UGR"
+    },
+    "columns": {
+      "name": "Nom",
+      "cct": "CCT",
+      "power": "Puissance",
+      "lumens": "Lumens",
+      "lor": "LOR",
+      "bug": "BUG",
+      "cri": "CRI",
+      "beam": "Faisceau",
+      "light_dist": "Distribution lumineuse",
+      "optics": "Optique",
+      "modules": "Modules",
+      "current": "Courant",
+      "spec": "Fiche",
+      "ies": "IES",
+      "cad": "CAD",
+      "bim": "BIM"
+    },
+    "optics": {
+      "narrow": "Étroit",
+      "medium": "Moyen",
+      "wide": "Large",
+      "very_wide": "T. large"
+    },
+    "loaded_file": "(fichier chargé)",
+    "loading_templates": "Chargement des modèles...",
+    "luminaires_count": "{0} luminaires",
+    "click_to_select": "Cliquer pour sélectionner",
+    "back": "Tableau de bord",
+    "edit_data": "Modifier les données du luminaire",
+    "zoom_diagram": "Zoomer sur le diagramme actif",
+    "open_compare": "Ouvrir la vue de comparaison",
+    "area_designer": "Concepteur d'éclairage extérieur",
+    "export_pdf": "Exporter le rapport PDF",
+    "polar_title": "Distribution polaire de la lumière",
+    "cartesian_title": "Distribution cartésienne",
+    "iso_lux_title": "ISO – Diagramme d'éclairement (ISO-LUX)",
+    "iso_view_title": "Vue ISO",
+    "bug_title": "Classement BUG",
+    "iso_curve_title": "Courbe ISO",
+    "beam_intensities_title": "Intensités de faisceau",
+    "beam_angle_title": "Angle de faisceau"
+  },
+  "maps_designer": {
+    "title": "Concepteur d'éclairage",
+    "instructions_title": "Instructions :",
+    "instruction_polygon": "Dessiner un polygone (zone de parking)",
+    "instruction_luminaires": "Placer des luminaires (marqueurs)",
+    "instruction_calculate": "Cliquer sur Calculer pour voir la carte thermique",
+    "area_defined": "Zone définie :",
+    "luminaires_count": "Luminaires :",
+    "calculate": "Calculer la carte thermique",
+    "my_location": "Ma position",
+    "export_csv": "Exporter CSV",
+    "show_values": "Afficher les valeurs",
+    "hide_values": "Masquer les valeurs",
+    "clear_all": "Tout effacer",
+    "results_title": "Résultats du calcul",
+    "min": "Min",
+    "max": "Max",
+    "average": "Moyenne",
+    "uniformity": "Uniformité (U₀)",
+    "good_uniformity": "Bonne uniformité (U₀ ≥ 0,40)",
+    "acceptable_uniformity": "Uniformité acceptable (U₀ ≥ 0,25)",
+    "poor_uniformity": "Uniformité médiocre - ajoutez davantage de luminaires",
+    "legend_title": "Légende de la carte thermique",
+    "legend_low": "Faible",
+    "legend_high": "Élevé",
+    "loading_description": "Concevez l'éclairage extérieur sur de vraies cartes satellites. Dessinez votre parking, placez les luminaires et calculez l'éclairement.",
+    "load_maps": "Charger Google Maps",
+    "loading_maps": "Chargement de Google Maps...",
+    "toolbar_hint": "Utilisez la barre d'outils : Polygone pour dessiner la zone, Marqueur pour placer les luminaires",
+    "load_failed": "Échec du chargement de Google Maps",
+    "try_again": "Réessayer"
+  },
+  "goniosim": {
+    "title": "Goniophotomètre Virtuel",
+    "subtitle": "Validé CIE 171:2006",
+    "trace": "Tracer",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "reset": "Réinitialiser",
+    "input_luminaire": "Luminaire d'entrée",
+    "upload": "Charger .ldt / .ies",
+    "cover_material": "Matériau de couverture",
+    "no_cover": "Sans couverture (espace libre)",
+    "custom": "Personnalisé",
+    "reflectance": "Réflectance",
+    "diffusion": "Diffusion",
+    "transmittance": "Transmittance",
+    "ior": "Indice de réfraction",
+    "thickness": "Épaisseur",
+    "distance": "Distance",
+    "statistics": "Statistiques",
+    "photons": "Photons",
+    "detected": "Détectés",
+    "absorbed": "Absorbés",
+    "export_ldt": "Exporter .ldt",
+    "original_lvk": "LVK Original",
+    "simulated": "Simulé (à travers la couverture)",
+    "select_luminaire": "Sélectionner ou charger un luminaire",
+    "click_trace": "Cliquez sur Tracer pour simuler",
+    "c_plane": "Plan C",
+    "all_planes": "Tous"
   }
 }

@@ -355,7 +355,25 @@
       "atla_xml": "Export as ATLA XML",
       "atla_json": "Export as ATLA JSON",
       "switch_to_dark": "Switch to dark mode",
-      "switch_to_light": "Switch to light mode"
+      "switch_to_light": "Switch to light mode",
+      "skip_link": "Skip to main content",
+      "rotate_c_planes": "Rotate C0 ±90° (IES)",
+      "rotate_c_planes_tooltip": "Rotate C-planes ±90° when importing/exporting IES (fixes EU↔US axis orientation)",
+      "export_svg_prefix": "Export SVG",
+      "export_png": "Export PNG (2x)",
+      "export_jpeg": "Export JPEG",
+      "export_pdf": "Export Report (.pdf)",
+      "export_pdf_tooltip": "Export as PDF report (compiles in browser)",
+      "export_typ": "Export Report (.typ)",
+      "export_typ_tooltip": "Export as Typst source file (.typ)",
+      "generating_pdf": "Generating PDF...",
+      "github": "GitHub",
+      "about": "About",
+      "switch_to_imperial": "Switch to Imperial (ft, fc, in)",
+      "switch_to_metric": "Switch to Metric (m, lx, mm)",
+      "unit_si": "SI",
+      "unit_imp": "IMP",
+      "loading": "Loading..."
     },
     "tabs": {
       "general": "General",
@@ -384,7 +402,13 @@
       "cartesian": "Cartesian",
       "cone": "Cone",
       "export": "Export",
-      "compare": "Compare"
+      "compare": "Compare",
+      "bim": "BIM",
+      "area_designer": "Designer",
+      "zonal_designer": "Interior",
+      "maps_designer": "Maps",
+      "beam_angle": "Beam Angle",
+      "iso_view": "ISO View"
     },
     "subtabs": {
       "spd": "SPD",
@@ -412,7 +436,11 @@
       "cartesian": "Cartesian",
       "zoom_hint": "Scroll to zoom | Drag to pan",
       "rotate_hint": "Drag to rotate | Scroll to zoom | Auto-rotates on load",
-      "scene_controls": "Controls: WASD/Arrows to move • Q/E up/down • Right-click+drag to look • R to reset view • 1-4 for scene types • P for photometric solid • L for luminaire"
+      "scene_controls": "Controls: WASD/Arrows to move • Q/E up/down • Right-click+drag to look • R to reset view • 1-4 for scene types • P for photometric solid • L for luminaire",
+      "beam_angle": "Beam Angle",
+      "beam_angle_tooltip": "IES vs CIE beam angle comparison (Wikipedia style)",
+      "title_iso_view": "ISO View",
+      "desc_iso_view": "Isometric illuminance footprint with polar distribution"
     },
     "intensity": {
       "title": "Luminous Intensity (cd/klm)",
@@ -459,7 +487,8 @@
       "auto": "Auto",
       "reset": "Reset",
       "drag_hint": "Drag to rotate",
-      "max": "Max"
+      "max": "Max",
+      "c_plane_selector": "C-Plane ▸"
     },
     "bevy_scene": {
       "title": "3D Scene Viewer",
@@ -482,7 +511,22 @@
       "show_luminaire": "Show Luminaire",
       "show_solid": "Photometric Solid",
       "show_shadows": "Shadows",
-      "controls_hint": "WASD: Move, Mouse: Look, R: Reset, 1-4: Scene"
+      "controls_hint": "WASD: Move, Mouse: Look, R: Reset, 1-4: Scene",
+      "scene_designer_exterior": "Designer: Exterior",
+      "scene_designer_interior": "Designer: Interior",
+      "hide": "Hide",
+      "road_layout": "Road Layout",
+      "lanes": "Lanes",
+      "lane_width": "Lane Width (m)",
+      "sidewalk_width": "Sidewalk Width (m)",
+      "road_length": "Road Length (m)",
+      "luminaire_settings": "Luminaire Settings",
+      "tilt_angle": "Tilt Angle (°)",
+      "pole_spacing": "Pole Spacing (m, 0=auto)",
+      "show_light_cones": "Show Light Cones",
+      "show_cavity_zones": "Show Cavity Zones",
+      "exterior_hint": "Scene data synced from Area Designer tab. Open the Area Designer to configure poles and lighting.",
+      "interior_hint": "Scene data synced from Zonal Designer tab. Open the Interior Designer to configure room and luminaires."
     },
     "bug_rating": {
       "title": "IESNA TM-15-11 BUG Rating",
@@ -515,7 +559,17 @@
     },
     "validation_panel": {
       "all_passed": "All validation checks passed",
-      "error_count": "{errors} error(s), {warnings} warning(s)"
+      "error_count": "{errors} error(s), {warnings} warning(s)",
+      "schema_validation": "Schema Validation",
+      "ldt_validation": "LDT/IES Validation",
+      "valid": "Valid",
+      "invalid": "Invalid",
+      "missing_fields": "Missing fields",
+      "warnings": "Warnings",
+      "see_tm33": "See TM-33-23",
+      "tm33_issues": "TM-33-23 Issues",
+      "tm32_issues": "TM-32-24 BIM Issues",
+      "n_errors": "{0} errors"
     },
     "spectral_badges": {
       "ir": "IR",
@@ -605,6 +659,24 @@
       "percent": "%",
       "empty_title": "Load a second photometric file to compare side-by-side.",
       "empty_hint": "Compares flux, efficacy, beam angles, intensity distribution, and more."
+    },
+    "about": {
+      "title": "Eulumdat",
+      "subtitle": "Rust/WASM Lighting Data Toolkit",
+      "desc_parsing": "Parses EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX files.",
+      "desc_diagrams": "Generates SVG diagrams: polar, cartesian, spectral, heatmap.",
+      "desc_platforms": "One Rust codebase → Web, CLI, iOS, Android, Python",
+      "close": "Close"
+    },
+    "bim": {
+      "title": "TM-32-24 BIM Parameters",
+      "tooltip": "TM-32-24 BIM Parameters",
+      "export_csv": "Export CSV",
+      "export_report": "Export Report",
+      "info_text": "BIM parameters follow ANSI/IES TM-32-24 standard for Building Information Modeling.",
+      "no_data_title": "No BIM Data Available",
+      "no_data_text": "This file does not contain TM-32-24 BIM parameters. BIM data is typically found in TM-33-23 XML files with CustomData sections.",
+      "template_hint": "Try loading one of the TM-32-24 BIM templates from the Templates menu."
     }
   },
   "report": {
@@ -761,5 +833,301 @@
       "atlaUvBlacklight": "UV Blacklight (ATLA)",
       "atlaUvBlacklight_desc": "UV blacklight with UV-A spectrum"
     }
+  },
+  "designer": {
+    "height": "Height:",
+    "width": "Width:",
+    "length": "Length:",
+    "rotation": "Rotation:",
+    "tilt": "Tilt:",
+    "resolution": "Resolution:",
+    "mounting_height": "Mounting Height:",
+    "export_csv": "Export CSV",
+    "export_pdf": "Export PDF",
+    "export_svg": "Export SVG",
+    "exporting_pdf": "Exporting PDF...",
+    "share_link": "Share Link",
+    "copied": "Copied!",
+    "save": "Save",
+    "load": "Load",
+    "undo": "Undo",
+    "redo": "Redo",
+    "remove": "Remove",
+    "plan_view": "Plan View",
+    "room_view": "Room View",
+    "min": "Min",
+    "avg": "Avg",
+    "max": "Max",
+    "luminaire": "Luminaire",
+    "luminaires": "Luminaires"
+  },
+  "area_designer": {
+    "title": "Area Lighting Designer",
+    "layout": {
+      "label": "Layout:",
+      "single": "Single",
+      "pair": "Pair",
+      "row_of_3": "Row of 3",
+      "grid_2x2": "2×2 Grid",
+      "grid_2x3": "2×3 Grid",
+      "grid_3x3": "3×3 Grid",
+      "perimeter": "Perimeter"
+    },
+    "arrangement": {
+      "label": "Arrangement:",
+      "single": "Single",
+      "back_to_back": "Back-to-Back",
+      "twin_arm": "Twin Arm",
+      "quad": "Quad",
+      "wall_mounted": "Wall Mounted"
+    },
+    "params": {
+      "arm": "Arm:",
+      "droop": "Droop:",
+      "area_w": "Area W:",
+      "area_d": "Area D:",
+      "proration": "Proration:",
+      "poles": "Poles:"
+    },
+    "polygon": {
+      "cancel": "Cancel",
+      "clear": "Clear Polygon",
+      "draw": "Draw Polygon"
+    },
+    "pole": {
+      "selected": "Selected Pole",
+      "pole_n": "Pole #",
+      "x": "X:",
+      "y": "Y:",
+      "reset_overrides": "Reset Overrides",
+      "click_to_select": "Click a pole in the plan view to select it",
+      "ldt": "LDT:",
+      "primary": "Primary"
+    },
+    "presets": {
+      "title": "Position Presets",
+      "top_left": "Top-Left",
+      "top": "Top",
+      "top_right": "Top-Right",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bottom_left": "Bottom-Left",
+      "bottom": "Bottom",
+      "bottom_right": "Bottom-Right"
+    },
+    "mixed": {
+      "title": "Mixed Luminaires",
+      "description": "Load extra LDT files, then assign per pole."
+    },
+    "optimizer": {
+      "title": "Spacing Optimizer",
+      "target": "Target:",
+      "uniformity": "U₀ ≥:",
+      "heights": "Heights:",
+      "step": "Step:",
+      "running": "Running...",
+      "optimize": "Optimize",
+      "ht": "Ht",
+      "spc": "Spc",
+      "poles_col": "Poles"
+    },
+    "height_compare": {
+      "title": "Height Compare",
+      "run_hint": "Run optimizer to compare heights"
+    },
+    "combined": "Combined Illuminance",
+    "wall_mounted_hint": "Wall-mounted mode: luminaires tilted 90° outward. Place poles along wall edge. Height = wall mounting height.",
+    "stats": {
+      "u0": "U₀ (min/avg)",
+      "ud": "Ud (min/max)",
+      "avg_min": "Avg/Min"
+    },
+    "export_iso_svg": "Export ISO SVG",
+    "export_plan_svg": "Export Plan SVG",
+    "export_room_svg": "Export Room SVG",
+    "export_3d_svg": "Export 3D SVG",
+    "export_optimizer": "Export Optimizer"
+  },
+  "zonal_designer": {
+    "title": "Interior Lighting Designer",
+    "room": "Room:",
+    "workplane": "Workplane:",
+    "suspension": "Suspension:",
+    "mode": {
+      "label": "Mode:",
+      "target_to_count": "Target → Count",
+      "count_to_illuminance": "Count → Illuminance",
+      "target_lpd": "Target LPD → Count"
+    },
+    "target": "Target:",
+    "count": "Count:",
+    "lpd": "LPD:",
+    "reflectances": {
+      "title": "Reflectances",
+      "ceiling": "Ceiling:",
+      "wall": "Wall:",
+      "floor": "Floor:"
+    },
+    "llf": {
+      "title": "Light Loss Factor",
+      "preset": "Preset",
+      "lld": "LLD:",
+      "ldd": "LDD:",
+      "bf": "BF:",
+      "total": "Total LLF:"
+    },
+    "views": {
+      "heatmap": "Heatmap",
+      "room_3d": "3D Room",
+      "section": "Section",
+      "cu_table": "CU Table"
+    },
+    "camera": "Camera",
+    "info": {
+      "name": "Name:",
+      "lumens": "Lumens:",
+      "power": "Power:",
+      "dff": "DFF:",
+      "smh": "S/MH:"
+    },
+    "results": {
+      "luminaires": "Luminaires",
+      "achieved": "Achieved",
+      "cu": "CU",
+      "rcr": "RCR",
+      "lpd": "LPD",
+      "spacing": "Spacing",
+      "ok": "OK",
+      "exceeds": "EXCEEDS"
+    },
+    "heatmap_title": "Illuminance Heatmap",
+    "computing_heatmap": "Computing heatmap...",
+    "cavity_section": "Cavity Section",
+    "cu_table_title": "CU Table",
+    "export_pdf": "Export PDF",
+    "room_view_3d": "3D Room View",
+    "room_view_hint": "drag to rotate, scroll to zoom",
+    "export_3d_svg": "Export 3D SVG",
+    "cavity_lines": "Cavity lines",
+    "light_cones": "Light cones",
+    "options_3d": "3D Options"
+  },
+  "dashboard": {
+    "templates": {
+      "standard": "Standard",
+      "aec": "AEC",
+      "alternative": "Alternative"
+    },
+    "modes": {
+      "overview": "Overview (ISO + Polar + Isolux + BUG)",
+      "beam_angles": "Beam Angles",
+      "beam_intensities": "Beam Intensities / Cone",
+      "ugr_table": "UGR Table"
+    },
+    "columns": {
+      "name": "Name",
+      "cct": "CCT",
+      "power": "Power",
+      "lumens": "Lumens",
+      "lor": "LOR",
+      "bug": "BUG",
+      "cri": "CRI",
+      "beam": "Beam",
+      "light_dist": "Light Distribution",
+      "optics": "Optics",
+      "modules": "Modules",
+      "current": "Current",
+      "spec": "Spec",
+      "ies": "IES",
+      "cad": "CAD",
+      "bim": "BIM"
+    },
+    "optics": {
+      "narrow": "Narrow",
+      "medium": "Medium",
+      "wide": "Wide",
+      "very_wide": "V. Wide"
+    },
+    "loaded_file": "(loaded file)",
+    "loading_templates": "Loading templates...",
+    "luminaires_count": "{0} luminaires",
+    "click_to_select": "Click to select",
+    "back": "Dashboard",
+    "edit_data": "Edit luminaire data",
+    "zoom_diagram": "Zoom active diagram",
+    "open_compare": "Open compare view",
+    "area_designer": "Area Lighting Designer",
+    "export_pdf": "Export PDF report",
+    "polar_title": "Polar light distribution",
+    "cartesian_title": "Cartesian Distribution",
+    "iso_lux_title": "ISO – Illuminance Diagram (ISO-LUX)",
+    "iso_view_title": "ISO View",
+    "bug_title": "BUG Rating",
+    "iso_curve_title": "ISO Curve",
+    "beam_intensities_title": "Beam Intensities",
+    "beam_angle_title": "Beam Angle"
+  },
+  "maps_designer": {
+    "title": "Lighting Designer",
+    "instructions_title": "Instructions:",
+    "instruction_polygon": "Draw a polygon (parking lot area)",
+    "instruction_luminaires": "Place luminaires (markers)",
+    "instruction_calculate": "Click Calculate to see heatmap",
+    "area_defined": "Area defined:",
+    "luminaires_count": "Luminaires:",
+    "calculate": "Calculate Heatmap",
+    "my_location": "My Location",
+    "export_csv": "Export CSV",
+    "show_values": "Show Values",
+    "hide_values": "Hide Values",
+    "clear_all": "Clear All",
+    "results_title": "Calculation Results",
+    "min": "Min",
+    "max": "Max",
+    "average": "Average",
+    "uniformity": "Uniformity (U₀)",
+    "good_uniformity": "Good uniformity (U₀ ≥ 0.40)",
+    "acceptable_uniformity": "Acceptable uniformity (U₀ ≥ 0.25)",
+    "poor_uniformity": "Poor uniformity - add more luminaires",
+    "legend_title": "Heatmap Legend",
+    "legend_low": "Low",
+    "legend_high": "High",
+    "loading_description": "Design outdoor lighting on real satellite maps. Draw your parking lot, place luminaires, and calculate illuminance.",
+    "load_maps": "Load Google Maps",
+    "loading_maps": "Loading Google Maps...",
+    "toolbar_hint": "Use toolbar: Polygon to draw area, Marker to place luminaires",
+    "load_failed": "Failed to load Google Maps",
+    "try_again": "Try Again"
+  },
+  "goniosim": {
+    "title": "Virtual Goniophotometer",
+    "subtitle": "CIE 171:2006 validated",
+    "trace": "Trace",
+    "pause": "Pause",
+    "resume": "Resume",
+    "reset": "Reset",
+    "input_luminaire": "Input Luminaire",
+    "upload": "Upload .ldt / .ies",
+    "cover_material": "Cover Material",
+    "no_cover": "No cover (free space)",
+    "custom": "Custom",
+    "reflectance": "Reflectance",
+    "diffusion": "Diffusion",
+    "transmittance": "Transmittance",
+    "ior": "Refractive index",
+    "thickness": "Thickness",
+    "distance": "Distance",
+    "statistics": "Statistics",
+    "photons": "Photons",
+    "detected": "Detected",
+    "absorbed": "Absorbed",
+    "export_ldt": "Export .ldt",
+    "original_lvk": "Original LVK",
+    "simulated": "Simulated (through cover)",
+    "select_luminaire": "Select or upload a luminaire",
+    "click_trace": "Click Trace to simulate",
+    "c_plane": "C-plane",
+    "all_planes": "All"
   }
 }

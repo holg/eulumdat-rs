@@ -121,6 +121,18 @@ pub struct Locale {
     pub report: ReportLocale,
     #[serde(default)]
     pub comparison: ComparisonLocale,
+    #[serde(default)]
+    pub designer: DesignerLocale,
+    #[serde(default)]
+    pub area_designer: AreaDesignerLocale,
+    #[serde(default)]
+    pub zonal_designer: ZonalDesignerLocale,
+    #[serde(default)]
+    pub dashboard: DashboardLocale,
+    #[serde(default)]
+    pub maps_designer: MapsDesignerLocale,
+    #[serde(default)]
+    pub goniosim: GoniosimLocale,
 }
 
 /// Locale metadata
@@ -561,6 +573,10 @@ pub struct UiLocale {
     pub template: UiTemplate,
     pub messages: UiMessages,
     pub compare: UiCompare,
+    #[serde(default)]
+    pub about: UiAbout,
+    #[serde(default)]
+    pub bim: UiBim,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -576,6 +592,42 @@ pub struct UiHeader {
     pub atla_json: String,
     pub switch_to_dark: String,
     pub switch_to_light: String,
+    #[serde(default)]
+    pub skip_link: String,
+    #[serde(default)]
+    pub rotate_c_planes: String,
+    #[serde(default)]
+    pub rotate_c_planes_tooltip: String,
+    #[serde(default)]
+    pub export_svg_prefix: String,
+    #[serde(default)]
+    pub export_png: String,
+    #[serde(default)]
+    pub export_jpeg: String,
+    #[serde(default)]
+    pub export_pdf: String,
+    #[serde(default)]
+    pub export_pdf_tooltip: String,
+    #[serde(default)]
+    pub export_typ: String,
+    #[serde(default)]
+    pub export_typ_tooltip: String,
+    #[serde(default)]
+    pub generating_pdf: String,
+    #[serde(default)]
+    pub github: String,
+    #[serde(default)]
+    pub about: String,
+    #[serde(default)]
+    pub switch_to_imperial: String,
+    #[serde(default)]
+    pub switch_to_metric: String,
+    #[serde(default)]
+    pub unit_si: String,
+    #[serde(default)]
+    pub unit_imp: String,
+    #[serde(default)]
+    pub loading: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -610,6 +662,18 @@ pub struct UiTabs {
     pub cone: String,
     pub export: String,
     pub compare: String,
+    #[serde(default)]
+    pub bim: String,
+    #[serde(default)]
+    pub area_designer: String,
+    #[serde(default)]
+    pub zonal_designer: String,
+    #[serde(default)]
+    pub maps_designer: String,
+    #[serde(default)]
+    pub beam_angle: String,
+    #[serde(default)]
+    pub iso_view: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -644,6 +708,14 @@ pub struct UiDiagram {
     pub zoom_hint: String,
     pub rotate_hint: String,
     pub scene_controls: String,
+    #[serde(default)]
+    pub beam_angle: String,
+    #[serde(default)]
+    pub beam_angle_tooltip: String,
+    #[serde(default)]
+    pub title_iso_view: String,
+    #[serde(default)]
+    pub desc_iso_view: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -705,6 +777,8 @@ pub struct UiButterfly {
     pub reset: String,
     pub drag_hint: String,
     pub max: String,
+    #[serde(default)]
+    pub c_plane_selector: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -731,6 +805,36 @@ pub struct UiBevyScene {
     pub show_solid: String,
     pub show_shadows: String,
     pub controls_hint: String,
+    #[serde(default)]
+    pub scene_designer_exterior: String,
+    #[serde(default)]
+    pub scene_designer_interior: String,
+    #[serde(default)]
+    pub hide: String,
+    #[serde(default)]
+    pub road_layout: String,
+    #[serde(default)]
+    pub lanes: String,
+    #[serde(default)]
+    pub lane_width: String,
+    #[serde(default)]
+    pub sidewalk_width: String,
+    #[serde(default)]
+    pub road_length: String,
+    #[serde(default)]
+    pub luminaire_settings: String,
+    #[serde(default)]
+    pub tilt_angle: String,
+    #[serde(default)]
+    pub pole_spacing: String,
+    #[serde(default)]
+    pub show_light_cones: String,
+    #[serde(default)]
+    pub show_cavity_zones: String,
+    #[serde(default)]
+    pub exterior_hint: String,
+    #[serde(default)]
+    pub interior_hint: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -774,6 +878,26 @@ pub struct UiDataTable {
 pub struct UiValidationPanel {
     pub all_passed: String,
     pub error_count: String,
+    #[serde(default)]
+    pub schema_validation: String,
+    #[serde(default)]
+    pub ldt_validation: String,
+    #[serde(default)]
+    pub valid: String,
+    #[serde(default)]
+    pub invalid: String,
+    #[serde(default)]
+    pub missing_fields: String,
+    #[serde(default)]
+    pub warnings: String,
+    #[serde(default)]
+    pub see_tm33: String,
+    #[serde(default)]
+    pub tm33_issues: String,
+    #[serde(default)]
+    pub tm32_issues: String,
+    #[serde(default)]
+    pub n_errors: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -929,6 +1053,371 @@ pub struct ComparisonMetricLocale {
     pub height: String,
 }
 
+/// About modal translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct UiAbout {
+    pub title: String,
+    pub subtitle: String,
+    pub desc_parsing: String,
+    pub desc_diagrams: String,
+    pub desc_platforms: String,
+    pub close: String,
+}
+
+/// BIM panel translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct UiBim {
+    pub title: String,
+    pub tooltip: String,
+    pub export_csv: String,
+    pub export_report: String,
+    pub info_text: String,
+    pub no_data_title: String,
+    pub no_data_text: String,
+    pub template_hint: String,
+}
+
+/// Shared designer labels
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DesignerLocale {
+    pub height: String,
+    pub width: String,
+    pub length: String,
+    pub rotation: String,
+    pub tilt: String,
+    pub resolution: String,
+    pub mounting_height: String,
+    pub export_csv: String,
+    pub export_pdf: String,
+    pub export_svg: String,
+    pub exporting_pdf: String,
+    pub share_link: String,
+    pub copied: String,
+    pub save: String,
+    pub load: String,
+    pub undo: String,
+    pub redo: String,
+    pub remove: String,
+    pub plan_view: String,
+    pub room_view: String,
+    pub min: String,
+    pub avg: String,
+    pub max: String,
+    pub luminaire: String,
+    pub luminaires: String,
+}
+
+/// Area lighting designer translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerLocale {
+    pub title: String,
+    pub layout: AreaDesignerLayout,
+    pub arrangement: AreaDesignerArrangement,
+    pub params: AreaDesignerParams,
+    pub polygon: AreaDesignerPolygon,
+    pub pole: AreaDesignerPole,
+    pub presets: AreaDesignerPresets,
+    pub mixed: AreaDesignerMixed,
+    pub optimizer: AreaDesignerOptimizer,
+    pub height_compare: AreaDesignerHeightCompare,
+    pub combined: String,
+    pub wall_mounted_hint: String,
+    pub stats: AreaDesignerStats,
+    pub export_iso_svg: String,
+    pub export_plan_svg: String,
+    pub export_room_svg: String,
+    pub export_3d_svg: String,
+    pub export_optimizer: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerLayout {
+    pub label: String,
+    pub single: String,
+    pub pair: String,
+    pub row_of_3: String,
+    pub grid_2x2: String,
+    pub grid_2x3: String,
+    pub grid_3x3: String,
+    pub perimeter: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerArrangement {
+    pub label: String,
+    pub single: String,
+    pub back_to_back: String,
+    pub twin_arm: String,
+    pub quad: String,
+    pub wall_mounted: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerParams {
+    pub arm: String,
+    pub droop: String,
+    pub area_w: String,
+    pub area_d: String,
+    pub proration: String,
+    pub poles: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerPolygon {
+    pub cancel: String,
+    pub clear: String,
+    pub draw: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerPole {
+    pub selected: String,
+    pub pole_n: String,
+    pub x: String,
+    pub y: String,
+    pub reset_overrides: String,
+    pub click_to_select: String,
+    pub ldt: String,
+    pub primary: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerPresets {
+    pub title: String,
+    pub top_left: String,
+    pub top: String,
+    pub top_right: String,
+    pub left: String,
+    pub center: String,
+    pub right: String,
+    pub bottom_left: String,
+    pub bottom: String,
+    pub bottom_right: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerMixed {
+    pub title: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerOptimizer {
+    pub title: String,
+    pub target: String,
+    pub uniformity: String,
+    pub heights: String,
+    pub step: String,
+    pub running: String,
+    pub optimize: String,
+    pub ht: String,
+    pub spc: String,
+    pub poles_col: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerHeightCompare {
+    pub title: String,
+    pub run_hint: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct AreaDesignerStats {
+    pub u0: String,
+    pub ud: String,
+    pub avg_min: String,
+}
+
+/// Zonal cavity designer translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ZonalDesignerLocale {
+    pub title: String,
+    pub room: String,
+    pub workplane: String,
+    pub suspension: String,
+    pub mode: ZonalDesignerMode,
+    pub target: String,
+    pub count: String,
+    pub lpd: String,
+    pub reflectances: ZonalDesignerReflectances,
+    pub llf: ZonalDesignerLlf,
+    pub views: ZonalDesignerViews,
+    pub camera: String,
+    pub info: ZonalDesignerInfo,
+    pub results: ZonalDesignerResults,
+    pub heatmap_title: String,
+    pub computing_heatmap: String,
+    pub cavity_section: String,
+    pub cu_table_title: String,
+    pub export_pdf: String,
+    pub room_view_3d: String,
+    pub room_view_hint: String,
+    pub export_3d_svg: String,
+    pub cavity_lines: String,
+    pub light_cones: String,
+    pub options_3d: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ZonalDesignerMode {
+    pub label: String,
+    pub target_to_count: String,
+    pub count_to_illuminance: String,
+    pub target_lpd: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ZonalDesignerReflectances {
+    pub title: String,
+    pub ceiling: String,
+    pub wall: String,
+    pub floor: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ZonalDesignerLlf {
+    pub title: String,
+    pub preset: String,
+    pub lld: String,
+    pub ldd: String,
+    pub bf: String,
+    pub total: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ZonalDesignerViews {
+    pub heatmap: String,
+    pub room_3d: String,
+    pub section: String,
+    pub cu_table: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ZonalDesignerInfo {
+    pub name: String,
+    pub lumens: String,
+    pub power: String,
+    pub dff: String,
+    pub smh: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ZonalDesignerResults {
+    pub luminaires: String,
+    pub achieved: String,
+    pub cu: String,
+    pub rcr: String,
+    pub lpd: String,
+    pub spacing: String,
+    pub ok: String,
+    pub exceeds: String,
+}
+
+/// Dashboard translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DashboardLocale {
+    pub templates: DashboardTemplates,
+    pub modes: DashboardModes,
+    pub columns: DashboardColumns,
+    pub optics: DashboardOptics,
+    pub loaded_file: String,
+    pub loading_templates: String,
+    pub luminaires_count: String,
+    pub click_to_select: String,
+    pub back: String,
+    pub edit_data: String,
+    pub zoom_diagram: String,
+    pub open_compare: String,
+    pub area_designer: String,
+    pub export_pdf: String,
+    pub polar_title: String,
+    pub cartesian_title: String,
+    pub iso_lux_title: String,
+    pub iso_view_title: String,
+    pub bug_title: String,
+    pub iso_curve_title: String,
+    pub beam_intensities_title: String,
+    pub beam_angle_title: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DashboardTemplates {
+    pub standard: String,
+    pub aec: String,
+    pub alternative: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DashboardModes {
+    pub overview: String,
+    pub beam_angles: String,
+    pub beam_intensities: String,
+    pub ugr_table: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DashboardColumns {
+    pub name: String,
+    pub cct: String,
+    pub power: String,
+    pub lumens: String,
+    pub lor: String,
+    pub bug: String,
+    pub cri: String,
+    pub beam: String,
+    pub light_dist: String,
+    pub optics: String,
+    pub modules: String,
+    pub current: String,
+    pub spec: String,
+    pub ies: String,
+    pub cad: String,
+    pub bim: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct DashboardOptics {
+    pub narrow: String,
+    pub medium: String,
+    pub wide: String,
+    pub very_wide: String,
+}
+
+/// Maps designer translations
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct MapsDesignerLocale {
+    pub title: String,
+    pub instructions_title: String,
+    pub instruction_polygon: String,
+    pub instruction_luminaires: String,
+    pub instruction_calculate: String,
+    pub area_defined: String,
+    pub luminaires_count: String,
+    pub calculate: String,
+    pub my_location: String,
+    pub export_csv: String,
+    pub show_values: String,
+    pub hide_values: String,
+    pub clear_all: String,
+    pub results_title: String,
+    pub min: String,
+    pub max: String,
+    pub average: String,
+    pub uniformity: String,
+    pub good_uniformity: String,
+    pub acceptable_uniformity: String,
+    pub poor_uniformity: String,
+    pub legend_title: String,
+    pub legend_low: String,
+    pub legend_high: String,
+    pub loading_description: String,
+    pub load_maps: String,
+    pub loading_maps: String,
+    pub toolbar_hint: String,
+    pub load_failed: String,
+    pub try_again: String,
+}
+
 /// Report translations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportLocale {
@@ -940,6 +1429,96 @@ pub struct ReportLocale {
     pub details: String,
     pub appendix: String,
 }
+
+/// Translations for the virtual goniophotometer / simulation UI.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct GoniosimLocale {
+    #[serde(default = "default_goniosim_title")]
+    pub title: String,
+    #[serde(default = "default_goniosim_subtitle")]
+    pub subtitle: String,
+    #[serde(default = "default_goniosim_trace")]
+    pub trace: String,
+    #[serde(default = "default_goniosim_pause")]
+    pub pause: String,
+    #[serde(default = "default_goniosim_resume")]
+    pub resume: String,
+    #[serde(default = "default_goniosim_reset")]
+    pub reset: String,
+    #[serde(default = "default_goniosim_input")]
+    pub input_luminaire: String,
+    #[serde(default = "default_goniosim_upload")]
+    pub upload: String,
+    #[serde(default = "default_goniosim_cover")]
+    pub cover_material: String,
+    #[serde(default = "default_goniosim_no_cover")]
+    pub no_cover: String,
+    #[serde(default = "default_goniosim_custom")]
+    pub custom: String,
+    #[serde(default = "default_goniosim_reflectance")]
+    pub reflectance: String,
+    #[serde(default = "default_goniosim_diffusion")]
+    pub diffusion: String,
+    #[serde(default = "default_goniosim_transmittance")]
+    pub transmittance: String,
+    #[serde(default = "default_goniosim_ior")]
+    pub ior: String,
+    #[serde(default = "default_goniosim_thickness")]
+    pub thickness: String,
+    #[serde(default = "default_goniosim_distance")]
+    pub distance: String,
+    #[serde(default = "default_goniosim_statistics")]
+    pub statistics: String,
+    #[serde(default = "default_goniosim_photons")]
+    pub photons: String,
+    #[serde(default = "default_goniosim_detected")]
+    pub detected: String,
+    #[serde(default = "default_goniosim_absorbed")]
+    pub absorbed: String,
+    #[serde(default = "default_goniosim_export")]
+    pub export_ldt: String,
+    #[serde(default = "default_goniosim_original")]
+    pub original_lvk: String,
+    #[serde(default = "default_goniosim_simulated")]
+    pub simulated: String,
+    #[serde(default = "default_goniosim_select")]
+    pub select_luminaire: String,
+    #[serde(default = "default_goniosim_click_trace")]
+    pub click_trace: String,
+    #[serde(default = "default_goniosim_c_plane")]
+    pub c_plane: String,
+    #[serde(default = "default_goniosim_all")]
+    pub all_planes: String,
+}
+
+fn default_goniosim_title() -> String { "Virtual Goniophotometer".into() }
+fn default_goniosim_subtitle() -> String { "CIE 171:2006 validated".into() }
+fn default_goniosim_trace() -> String { "Trace".into() }
+fn default_goniosim_pause() -> String { "Pause".into() }
+fn default_goniosim_resume() -> String { "Resume".into() }
+fn default_goniosim_reset() -> String { "Reset".into() }
+fn default_goniosim_input() -> String { "Input Luminaire".into() }
+fn default_goniosim_upload() -> String { "Upload .ldt / .ies".into() }
+fn default_goniosim_cover() -> String { "Cover Material".into() }
+fn default_goniosim_no_cover() -> String { "No cover (free space)".into() }
+fn default_goniosim_custom() -> String { "Custom".into() }
+fn default_goniosim_reflectance() -> String { "Reflectance".into() }
+fn default_goniosim_diffusion() -> String { "Diffusion".into() }
+fn default_goniosim_transmittance() -> String { "Transmittance".into() }
+fn default_goniosim_ior() -> String { "Refractive index".into() }
+fn default_goniosim_thickness() -> String { "Thickness".into() }
+fn default_goniosim_distance() -> String { "Distance".into() }
+fn default_goniosim_statistics() -> String { "Statistics".into() }
+fn default_goniosim_photons() -> String { "Photons".into() }
+fn default_goniosim_detected() -> String { "Detected".into() }
+fn default_goniosim_absorbed() -> String { "Absorbed".into() }
+fn default_goniosim_export() -> String { "Export .ldt".into() }
+fn default_goniosim_original() -> String { "Original LVK".into() }
+fn default_goniosim_simulated() -> String { "Simulated (through cover)".into() }
+fn default_goniosim_select() -> String { "Select or upload a luminaire".into() }
+fn default_goniosim_click_trace() -> String { "Click Trace to simulate".into() }
+fn default_goniosim_c_plane() -> String { "C-plane".into() }
+fn default_goniosim_all() -> String { "All".into() }
 
 // Embedded locale JSON files
 const EN_JSON: &str = include_str!("../locales/en.json");

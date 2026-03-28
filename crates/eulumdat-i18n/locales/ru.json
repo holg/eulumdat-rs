@@ -355,7 +355,25 @@
       "atla_xml": "Экспорт в ATLA XML",
       "atla_json": "Экспорт в ATLA JSON",
       "switch_to_dark": "Переключить на тёмную тему",
-      "switch_to_light": "Переключить на светлую тему"
+      "switch_to_light": "Переключить на светлую тему",
+      "skip_link": "Перейти к основному содержимому",
+      "rotate_c_planes": "Повернуть C0 ±90° (IES)",
+      "rotate_c_planes_tooltip": "Повернуть C-плоскости ±90° при импорте/экспорте IES (исправляет ориентацию осей EU↔US)",
+      "export_svg_prefix": "Экспорт SVG",
+      "export_png": "Экспорт PNG (2x)",
+      "export_jpeg": "Экспорт JPEG",
+      "export_pdf": "Экспорт отчёта (.pdf)",
+      "export_pdf_tooltip": "Экспорт в виде PDF-отчёта (компилируется в браузере)",
+      "export_typ": "Экспорт отчёта (.typ)",
+      "export_typ_tooltip": "Экспорт в виде исходного файла Typst (.typ)",
+      "generating_pdf": "Создание PDF...",
+      "github": "GitHub",
+      "about": "О программе",
+      "switch_to_imperial": "Переключить на имперские единицы (фут, фк, дюйм)",
+      "switch_to_metric": "Переключить на метрические единицы (м, лк, мм)",
+      "unit_si": "СИ",
+      "unit_imp": "ИМП",
+      "loading": "Загрузка..."
     },
     "tabs": {
       "general": "Общие",
@@ -384,7 +402,13 @@
       "cartesian": "Декартова",
       "cone": "Конус",
       "export": "Экспорт",
-      "compare": "Сравнение"
+      "compare": "Сравнение",
+      "bim": "BIM",
+      "area_designer": "Проектировщик",
+      "zonal_designer": "Интерьер",
+      "maps_designer": "Карты",
+      "beam_angle": "Угол луча",
+      "iso_view": "ISO-вид"
     },
     "subtabs": {
       "spd": "СРМ",
@@ -412,7 +436,11 @@
       "cartesian": "Декартова",
       "zoom_hint": "Прокрутка для масштаба | Перетаскивание для панорамы",
       "rotate_hint": "Перетаскивание для вращения | Прокрутка для масштаба | Автовращение при загрузке",
-      "scene_controls": "Управление: WASD/Стрелки движение • Q/E вверх/вниз • ПКМ+перетаскивание осмотр • R сброс вида • 1-4 типы сцен • P фотометрическое тело • L светильник"
+      "scene_controls": "Управление: WASD/Стрелки движение • Q/E вверх/вниз • ПКМ+перетаскивание осмотр • R сброс вида • 1-4 типы сцен • P фотометрическое тело • L светильник",
+      "beam_angle": "Угол луча",
+      "beam_angle_tooltip": "Сравнение углов луча IES и CIE (стиль Википедии)",
+      "title_iso_view": "ISO-вид",
+      "desc_iso_view": "Изометрический отпечаток освещённости с полярным распределением"
     },
     "intensity": {
       "title": "Сила света (кд/клм)",
@@ -459,7 +487,8 @@
       "auto": "Авто",
       "reset": "Сброс",
       "drag_hint": "Перетащите для вращения",
-      "max": "Макс"
+      "max": "Макс",
+      "c_plane_selector": "C-Плоск. ▸"
     },
     "bevy_scene": {
       "title": "3D-просмотр сцены",
@@ -482,7 +511,22 @@
       "show_luminaire": "Показать светильник",
       "show_solid": "Фотометрическое тело",
       "show_shadows": "Тени",
-      "controls_hint": "WASD: Движение, Мышь: Обзор, R: Сброс, 1-4: Сцена"
+      "controls_hint": "WASD: Движение, Мышь: Обзор, R: Сброс, 1-4: Сцена",
+      "scene_designer_exterior": "Проектировщик: Экстерьер",
+      "scene_designer_interior": "Проектировщик: Интерьер",
+      "hide": "Скрыть",
+      "road_layout": "Планировка дороги",
+      "lanes": "Полосы",
+      "lane_width": "Ширина полосы (м)",
+      "sidewalk_width": "Ширина тротуара (м)",
+      "road_length": "Длина дороги (м)",
+      "luminaire_settings": "Настройки светильника",
+      "tilt_angle": "Угол наклона (°)",
+      "pole_spacing": "Шаг опор (м, 0=авто)",
+      "show_light_cones": "Показать световые конусы",
+      "show_cavity_zones": "Показать зоны полости",
+      "exterior_hint": "Данные сцены синхронизированы со вкладкой «Проектировщик». Откройте Проектировщик для настройки опор и освещения.",
+      "interior_hint": "Данные сцены синхронизированы со вкладкой «Интерьер». Откройте Проектировщик интерьера для настройки помещения и светильников."
     },
     "bug_rating": {
       "title": "Рейтинг BUG по IESNA TM-15-11",
@@ -515,7 +559,17 @@
     },
     "validation_panel": {
       "all_passed": "Все проверки пройдены",
-      "error_count": "{errors} ошибок, {warnings} предупреждений"
+      "error_count": "{errors} ошибок, {warnings} предупреждений",
+      "schema_validation": "Валидация схемы",
+      "ldt_validation": "Валидация LDT/IES",
+      "valid": "Валидный",
+      "invalid": "Невалидный",
+      "missing_fields": "Отсутствующие поля",
+      "warnings": "Предупреждения",
+      "see_tm33": "См. TM-33-23",
+      "tm33_issues": "Проблемы TM-33-23",
+      "tm32_issues": "Проблемы BIM TM-32-24",
+      "n_errors": "{0} ошибок"
     },
     "spectral_badges": {
       "ir": "ИК",
@@ -605,6 +659,24 @@
       "percent": "%",
       "empty_title": "Загрузите второй фотометрический файл для сравнения.",
       "empty_hint": "Сравнивает поток, эффективность, углы луча, распределение силы света и другое."
+    },
+    "about": {
+      "title": "Eulumdat",
+      "subtitle": "Инструментарий Rust/WASM для работы с данными освещения",
+      "desc_parsing": "Разбирает файлы EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX.",
+      "desc_diagrams": "Генерирует SVG-диаграммы: полярные, декартовы, спектральные, тепловые карты.",
+      "desc_platforms": "Единая кодовая база Rust → Web, CLI, iOS, Android, Python",
+      "close": "Закрыть"
+    },
+    "bim": {
+      "title": "Параметры BIM TM-32-24",
+      "tooltip": "Параметры BIM TM-32-24",
+      "export_csv": "Экспорт CSV",
+      "export_report": "Экспорт отчёта",
+      "info_text": "Параметры BIM соответствуют стандарту ANSI/IES TM-32-24 для информационного моделирования зданий.",
+      "no_data_title": "Данные BIM недоступны",
+      "no_data_text": "Этот файл не содержит параметров BIM TM-32-24. Данные BIM обычно находятся в XML-файлах TM-33-23 с разделами CustomData.",
+      "template_hint": "Попробуйте загрузить один из шаблонов BIM TM-32-24 из меню «Шаблоны»."
     }
   },
   "report": {
@@ -761,5 +833,301 @@
       "atlaUvBlacklight": "УФ-лампа (ATLA)",
       "atlaUvBlacklight_desc": "УФ чёрный свет со спектром UV-A"
     }
+  },
+  "designer": {
+    "height": "Высота:",
+    "width": "Ширина:",
+    "length": "Длина:",
+    "rotation": "Поворот:",
+    "tilt": "Наклон:",
+    "resolution": "Разрешение:",
+    "mounting_height": "Высота установки:",
+    "export_csv": "Экспорт CSV",
+    "export_pdf": "Экспорт PDF",
+    "export_svg": "Экспорт SVG",
+    "exporting_pdf": "Экспорт PDF...",
+    "share_link": "Поделиться ссылкой",
+    "copied": "Скопировано!",
+    "save": "Сохранить",
+    "load": "Загрузить",
+    "undo": "Отменить",
+    "redo": "Повторить",
+    "remove": "Удалить",
+    "plan_view": "Вид сверху",
+    "room_view": "Вид комнаты",
+    "min": "Мин",
+    "avg": "Средн",
+    "max": "Макс",
+    "luminaire": "Светильник",
+    "luminaires": "Светильники"
+  },
+  "area_designer": {
+    "title": "Проектирование наружного освещения",
+    "layout": {
+      "label": "Расположение:",
+      "single": "Одиночный",
+      "pair": "Парный",
+      "row_of_3": "Ряд из 3",
+      "grid_2x2": "Сетка 2×2",
+      "grid_2x3": "Сетка 2×3",
+      "grid_3x3": "Сетка 3×3",
+      "perimeter": "Периметр"
+    },
+    "arrangement": {
+      "label": "Монтаж:",
+      "single": "Одиночный",
+      "back_to_back": "Спина к спине",
+      "twin_arm": "Двойной кронштейн",
+      "quad": "Четырёхместный",
+      "wall_mounted": "Настенный"
+    },
+    "params": {
+      "arm": "Кронштейн:",
+      "droop": "Наклон:",
+      "area_w": "Ширина зоны:",
+      "area_d": "Глубина зоны:",
+      "proration": "Пропорция:",
+      "poles": "Опоры:"
+    },
+    "polygon": {
+      "cancel": "Отмена",
+      "clear": "Очистить полигон",
+      "draw": "Нарисовать полигон"
+    },
+    "pole": {
+      "selected": "Выбранная опора",
+      "pole_n": "Опора №",
+      "x": "X:",
+      "y": "Y:",
+      "reset_overrides": "Сбросить переопределения",
+      "click_to_select": "Нажмите на опору на плане для выбора",
+      "ldt": "LDT:",
+      "primary": "Основной"
+    },
+    "presets": {
+      "title": "Предустановки позиции",
+      "top_left": "Верх-Лево",
+      "top": "Верх",
+      "top_right": "Верх-Право",
+      "left": "Лево",
+      "center": "Центр",
+      "right": "Право",
+      "bottom_left": "Низ-Лево",
+      "bottom": "Низ",
+      "bottom_right": "Низ-Право"
+    },
+    "mixed": {
+      "title": "Смешанные светильники",
+      "description": "Загрузите дополнительные файлы LDT, затем назначьте для каждой опоры."
+    },
+    "optimizer": {
+      "title": "Оптимизатор шага",
+      "target": "Цель:",
+      "uniformity": "U₀ ≥:",
+      "heights": "Высоты:",
+      "step": "Шаг:",
+      "running": "Вычисление...",
+      "optimize": "Оптимизировать",
+      "ht": "Вт",
+      "spc": "Шаг",
+      "poles_col": "Опоры"
+    },
+    "height_compare": {
+      "title": "Сравнение высот",
+      "run_hint": "Запустите оптимизатор для сравнения высот"
+    },
+    "combined": "Суммарная освещённость",
+    "wall_mounted_hint": "Режим настенного монтажа: светильники наклонены на 90° наружу. Размещайте опоры вдоль края стены. Высота = высота монтажа на стене.",
+    "stats": {
+      "u0": "U₀ (мин/средн)",
+      "ud": "Ud (мин/макс)",
+      "avg_min": "Средн/Мин"
+    },
+    "export_iso_svg": "Экспорт ISO SVG",
+    "export_plan_svg": "Экспорт SVG плана",
+    "export_room_svg": "Экспорт SVG комнаты",
+    "export_3d_svg": "Экспорт 3D SVG",
+    "export_optimizer": "Экспорт оптимизатора"
+  },
+  "zonal_designer": {
+    "title": "Проектирование внутреннего освещения",
+    "room": "Помещение:",
+    "workplane": "Рабочая плоскость:",
+    "suspension": "Подвес:",
+    "mode": {
+      "label": "Режим:",
+      "target_to_count": "Цель → Количество",
+      "count_to_illuminance": "Количество → Освещённость",
+      "target_lpd": "Целевой LPD → Количество"
+    },
+    "target": "Цель:",
+    "count": "Количество:",
+    "lpd": "LPD:",
+    "reflectances": {
+      "title": "Коэффициенты отражения",
+      "ceiling": "Потолок:",
+      "wall": "Стена:",
+      "floor": "Пол:"
+    },
+    "llf": {
+      "title": "Коэффициент запаса",
+      "preset": "Предустановка",
+      "lld": "LLD:",
+      "ldd": "LDD:",
+      "bf": "BF:",
+      "total": "Общий LLF:"
+    },
+    "views": {
+      "heatmap": "Тепловая карта",
+      "room_3d": "3D помещение",
+      "section": "Разрез",
+      "cu_table": "Таблица CU"
+    },
+    "camera": "Камера",
+    "info": {
+      "name": "Название:",
+      "lumens": "Люмены:",
+      "power": "Мощность:",
+      "dff": "DFF:",
+      "smh": "S/MH:"
+    },
+    "results": {
+      "luminaires": "Светильники",
+      "achieved": "Достигнуто",
+      "cu": "CU",
+      "rcr": "RCR",
+      "lpd": "LPD",
+      "spacing": "Шаг",
+      "ok": "OK",
+      "exceeds": "ПРЕВЫШАЕТ"
+    },
+    "heatmap_title": "Тепловая карта освещённости",
+    "computing_heatmap": "Вычисление тепловой карты...",
+    "cavity_section": "Разрез полости",
+    "cu_table_title": "Таблица CU",
+    "export_pdf": "Экспорт PDF",
+    "room_view_3d": "3D-вид помещения",
+    "room_view_hint": "перетащите для вращения, прокрутите для масштаба",
+    "export_3d_svg": "Экспорт 3D SVG",
+    "cavity_lines": "Линии полости",
+    "light_cones": "Световые конусы",
+    "options_3d": "3D-параметры"
+  },
+  "dashboard": {
+    "templates": {
+      "standard": "Стандарт",
+      "aec": "AEC",
+      "alternative": "Альтернативный"
+    },
+    "modes": {
+      "overview": "Обзор (ISO + Полярная + Изолюкс + BUG)",
+      "beam_angles": "Углы луча",
+      "beam_intensities": "Интенсивности луча / Конус",
+      "ugr_table": "Таблица UGR"
+    },
+    "columns": {
+      "name": "Название",
+      "cct": "CCT",
+      "power": "Мощность",
+      "lumens": "Люмены",
+      "lor": "LOR",
+      "bug": "BUG",
+      "cri": "CRI",
+      "beam": "Луч",
+      "light_dist": "Распределение света",
+      "optics": "Оптика",
+      "modules": "Модули",
+      "current": "Ток",
+      "spec": "Спецификация",
+      "ies": "IES",
+      "cad": "CAD",
+      "bim": "BIM"
+    },
+    "optics": {
+      "narrow": "Узкий",
+      "medium": "Средний",
+      "wide": "Широкий",
+      "very_wide": "Очень широкий"
+    },
+    "loaded_file": "(загруженный файл)",
+    "loading_templates": "Загрузка шаблонов...",
+    "luminaires_count": "{0} светильников",
+    "click_to_select": "Нажмите для выбора",
+    "back": "Панель",
+    "edit_data": "Редактировать данные светильника",
+    "zoom_diagram": "Увеличить активную диаграмму",
+    "open_compare": "Открыть режим сравнения",
+    "area_designer": "Проектирование наружного освещения",
+    "export_pdf": "Экспорт PDF-отчёта",
+    "polar_title": "Полярное распределение света",
+    "cartesian_title": "Декартово распределение",
+    "iso_lux_title": "ISO — Диаграмма освещённости (ISO-LUX)",
+    "iso_view_title": "ISO-вид",
+    "bug_title": "Рейтинг BUG",
+    "iso_curve_title": "ISO-кривая",
+    "beam_intensities_title": "Интенсивности луча",
+    "beam_angle_title": "Угол луча"
+  },
+  "maps_designer": {
+    "title": "Проектирование освещения",
+    "instructions_title": "Инструкции:",
+    "instruction_polygon": "Нарисуйте полигон (зона парковки)",
+    "instruction_luminaires": "Разместите светильники (маркеры)",
+    "instruction_calculate": "Нажмите «Рассчитать» для просмотра тепловой карты",
+    "area_defined": "Зона задана:",
+    "luminaires_count": "Светильники:",
+    "calculate": "Рассчитать тепловую карту",
+    "my_location": "Моё местоположение",
+    "export_csv": "Экспорт CSV",
+    "show_values": "Показать значения",
+    "hide_values": "Скрыть значения",
+    "clear_all": "Очистить всё",
+    "results_title": "Результаты расчёта",
+    "min": "Мин",
+    "max": "Макс",
+    "average": "Среднее",
+    "uniformity": "Равномерность (U₀)",
+    "good_uniformity": "Хорошая равномерность (U₀ ≥ 0.40)",
+    "acceptable_uniformity": "Допустимая равномерность (U₀ ≥ 0.25)",
+    "poor_uniformity": "Плохая равномерность — добавьте больше светильников",
+    "legend_title": "Легенда тепловой карты",
+    "legend_low": "Низкая",
+    "legend_high": "Высокая",
+    "loading_description": "Проектируйте наружное освещение на реальных спутниковых картах. Нарисуйте зону парковки, разместите светильники и рассчитайте освещённость.",
+    "load_maps": "Загрузить Google Maps",
+    "loading_maps": "Загрузка Google Maps...",
+    "toolbar_hint": "Используйте панель инструментов: Полигон для рисования зоны, Маркер для размещения светильников",
+    "load_failed": "Не удалось загрузить Google Maps",
+    "try_again": "Повторить"
+  },
+  "goniosim": {
+    "title": "Виртуальный гониофотометр",
+    "subtitle": "Валидация по CIE 171:2006",
+    "trace": "Измерить",
+    "pause": "Пауза",
+    "resume": "Продолжить",
+    "reset": "Сброс",
+    "input_luminaire": "Входной светильник",
+    "upload": "Загрузить .ldt / .ies",
+    "cover_material": "Материал покрытия",
+    "no_cover": "Без покрытия (свободное пространство)",
+    "custom": "Произвольный",
+    "reflectance": "Отражение",
+    "diffusion": "Рассеивание",
+    "transmittance": "Светопропускание",
+    "ior": "Показатель преломления",
+    "thickness": "Толщина",
+    "distance": "Расстояние",
+    "statistics": "Статистика",
+    "photons": "Фотоны",
+    "detected": "Обнаружено",
+    "absorbed": "Поглощено",
+    "export_ldt": "Экспорт .ldt",
+    "original_lvk": "Оригинал КСС",
+    "simulated": "Симуляция (через покрытие)",
+    "select_luminaire": "Выберите или загрузите светильник",
+    "click_trace": "Нажмите Измерить для симуляции",
+    "c_plane": "Плоскость C",
+    "all_planes": "Все"
   }
 }

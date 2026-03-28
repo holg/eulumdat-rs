@@ -4,7 +4,7 @@
 //! light distribution from a top-down isometric view with all C-planes.
 
 use super::color::{hsl_to_rgb, Color};
-use super::{DiagramScale, IsometricProjection, Point2D};
+use super::{DiagramScale, IsometricProjection, Point2D, SvgTheme};
 use crate::{Eulumdat, Symmetry};
 
 /// Data for a single C-plane: (c_angle, intensities for each gamma)
@@ -122,6 +122,20 @@ impl ButterflyDiagram {
             g_angles: ldt.g_angles.clone(),
             symmetry: ldt.symmetry,
         }
+    }
+
+    /// Render a butterfly diagram SVG for a given LDT.
+    ///
+    /// Universal entry point — usable from any frontend.
+    pub fn render_svg(
+        ldt: &Eulumdat,
+        width: f64,
+        height: f64,
+        tilt_degrees: f64,
+        theme: &SvgTheme,
+    ) -> String {
+        let diagram = Self::from_eulumdat(ldt, width, height, tilt_degrees);
+        diagram.to_svg(width, height, theme)
     }
 }
 

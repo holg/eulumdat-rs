@@ -355,7 +355,25 @@
       "atla_xml": "导出为 ATLA XML",
       "atla_json": "导出为 ATLA JSON",
       "switch_to_dark": "切换到深色模式",
-      "switch_to_light": "切换到浅色模式"
+      "switch_to_light": "切换到浅色模式",
+      "skip_link": "跳转到主要内容",
+      "rotate_c_planes": "旋转C0 ±90° (IES)",
+      "rotate_c_planes_tooltip": "导入/导出IES时旋转C平面±90°（修正欧美坐标轴方向）",
+      "export_svg_prefix": "导出SVG",
+      "export_png": "导出PNG (2x)",
+      "export_jpeg": "导出JPEG",
+      "export_pdf": "导出报告 (.pdf)",
+      "export_pdf_tooltip": "导出为PDF报告（在浏览器中编译）",
+      "export_typ": "导出报告 (.typ)",
+      "export_typ_tooltip": "导出为Typst源文件 (.typ)",
+      "generating_pdf": "正在生成PDF...",
+      "github": "GitHub",
+      "about": "关于",
+      "switch_to_imperial": "切换到英制 (ft, fc, in)",
+      "switch_to_metric": "切换到公制 (m, lx, mm)",
+      "unit_si": "SI",
+      "unit_imp": "IMP",
+      "loading": "加载中..."
     },
     "tabs": {
       "general": "常规",
@@ -384,7 +402,13 @@
       "cartesian": "直角坐标",
       "cone": "光锥",
       "export": "导出",
-      "compare": "比较"
+      "compare": "比较",
+      "bim": "BIM",
+      "area_designer": "室外设计器",
+      "zonal_designer": "室内设计器",
+      "maps_designer": "地图",
+      "beam_angle": "光束角",
+      "iso_view": "ISO视图"
     },
     "subtabs": {
       "spd": "SPD",
@@ -412,7 +436,11 @@
       "cartesian": "直角坐标",
       "zoom_hint": "滚动缩放 | 拖动平移",
       "rotate_hint": "拖动旋转 | 滚动缩放 | 加载时自动旋转",
-      "scene_controls": "控制：WASD/方向键移动 • Q/E上下 • 右键+拖动环顾 • R重置视图 • 1-4场景类型 • P光度体 • L灯具"
+      "scene_controls": "控制：WASD/方向键移动 • Q/E上下 • 右键+拖动环顾 • R重置视图 • 1-4场景类型 • P光度体 • L灯具",
+      "beam_angle": "光束角",
+      "beam_angle_tooltip": "IES与CIE光束角对比（维基百科风格）",
+      "title_iso_view": "ISO视图",
+      "desc_iso_view": "带极坐标分布的等轴测照度投影图"
     },
     "intensity": {
       "title": "发光强度 (cd/klm)",
@@ -459,7 +487,8 @@
       "auto": "自动",
       "reset": "重置",
       "drag_hint": "拖动旋转",
-      "max": "最大"
+      "max": "最大",
+      "c_plane_selector": "C平面 ▸"
     },
     "bevy_scene": {
       "title": "3D场景查看器",
@@ -482,7 +511,22 @@
       "show_luminaire": "显示灯具",
       "show_solid": "光度体",
       "show_shadows": "阴影",
-      "controls_hint": "WASD: 移动, 鼠标: 查看, R: 重置, 1-4: 场景"
+      "controls_hint": "WASD: 移动, 鼠标: 查看, R: 重置, 1-4: 场景",
+      "scene_designer_exterior": "设计器：室外",
+      "scene_designer_interior": "设计器：室内",
+      "hide": "隐藏",
+      "road_layout": "道路布局",
+      "lanes": "车道数",
+      "lane_width": "车道宽度 (m)",
+      "sidewalk_width": "人行道宽度 (m)",
+      "road_length": "道路长度 (m)",
+      "luminaire_settings": "灯具设置",
+      "tilt_angle": "倾斜角度 (°)",
+      "pole_spacing": "灯杆间距 (m，0=自动)",
+      "show_light_cones": "显示光锥",
+      "show_cavity_zones": "显示腔体区域",
+      "exterior_hint": "场景数据与室外设计器标签页同步。打开室外设计器以配置灯杆和照明。",
+      "interior_hint": "场景数据与室内设计器标签页同步。打开室内设计器以配置房间和灯具。"
     },
     "bug_rating": {
       "title": "IESNA TM-15-11 BUG评级",
@@ -515,7 +559,17 @@
     },
     "validation_panel": {
       "all_passed": "所有验证检查已通过",
-      "error_count": "{errors}个错误，{warnings}个警告"
+      "error_count": "{errors}个错误，{warnings}个警告",
+      "schema_validation": "架构验证",
+      "ldt_validation": "LDT/IES验证",
+      "valid": "有效",
+      "invalid": "无效",
+      "missing_fields": "缺失字段",
+      "warnings": "警告",
+      "see_tm33": "参见TM-33-23",
+      "tm33_issues": "TM-33-23问题",
+      "tm32_issues": "TM-32-24 BIM问题",
+      "n_errors": "{0}个错误"
     },
     "spectral_badges": {
       "ir": "红外",
@@ -605,6 +659,24 @@
       "percent": "%",
       "empty_title": "加载第二个光度文件以进行并排比较。",
       "empty_hint": "比较光通量、光效、光束角、光强分布等参数。"
+    },
+    "about": {
+      "title": "Eulumdat",
+      "subtitle": "Rust/WASM 照明数据工具包",
+      "desc_parsing": "解析EULUMDAT (.ldt)、IES、TM-33、ATLA-S001、SPDX文件。",
+      "desc_diagrams": "生成SVG图表：极坐标、直角坐标、光谱、热力图。",
+      "desc_platforms": "单一Rust代码库 → 网页、CLI、iOS、Android、Python",
+      "close": "关闭"
+    },
+    "bim": {
+      "title": "TM-32-24 BIM参数",
+      "tooltip": "TM-32-24 BIM参数",
+      "export_csv": "导出CSV",
+      "export_report": "导出报告",
+      "info_text": "BIM参数遵循ANSI/IES TM-32-24建筑信息模型标准。",
+      "no_data_title": "无可用BIM数据",
+      "no_data_text": "此文件不包含TM-32-24 BIM参数。BIM数据通常存在于带有CustomData部分的TM-33-23 XML文件中。",
+      "template_hint": "请尝试从模板菜单加载TM-32-24 BIM模板之一。"
     }
   },
   "report": {
@@ -761,5 +833,301 @@
       "atlaUvBlacklight": "紫外黑光灯 (ATLA)",
       "atlaUvBlacklight_desc": "UV-A光谱紫外黑光灯"
     }
+  },
+  "designer": {
+    "height": "高度:",
+    "width": "宽度:",
+    "length": "长度:",
+    "rotation": "旋转:",
+    "tilt": "倾斜:",
+    "resolution": "分辨率:",
+    "mounting_height": "安装高度:",
+    "export_csv": "导出CSV",
+    "export_pdf": "导出PDF",
+    "export_svg": "导出SVG",
+    "exporting_pdf": "正在导出PDF...",
+    "share_link": "分享链接",
+    "copied": "已复制！",
+    "save": "保存",
+    "load": "加载",
+    "undo": "撤销",
+    "redo": "重做",
+    "remove": "移除",
+    "plan_view": "平面图",
+    "room_view": "房间视图",
+    "min": "最小",
+    "avg": "平均",
+    "max": "最大",
+    "luminaire": "灯具",
+    "luminaires": "灯具"
+  },
+  "area_designer": {
+    "title": "室外照明设计器",
+    "layout": {
+      "label": "布局:",
+      "single": "单个",
+      "pair": "一对",
+      "row_of_3": "三个一排",
+      "grid_2x2": "2×2网格",
+      "grid_2x3": "2×3网格",
+      "grid_3x3": "3×3网格",
+      "perimeter": "周边"
+    },
+    "arrangement": {
+      "label": "排列方式:",
+      "single": "单个",
+      "back_to_back": "背靠背",
+      "twin_arm": "双悬臂",
+      "quad": "四方",
+      "wall_mounted": "壁装"
+    },
+    "params": {
+      "arm": "悬臂:",
+      "droop": "下垂角:",
+      "area_w": "区域宽:",
+      "area_d": "区域深:",
+      "proration": "分配比例:",
+      "poles": "灯杆:"
+    },
+    "polygon": {
+      "cancel": "取消",
+      "clear": "清除多边形",
+      "draw": "绘制多边形"
+    },
+    "pole": {
+      "selected": "已选灯杆",
+      "pole_n": "灯杆 #",
+      "x": "X:",
+      "y": "Y:",
+      "reset_overrides": "重置覆盖",
+      "click_to_select": "点击平面图中的灯杆以选择",
+      "ldt": "LDT:",
+      "primary": "主要"
+    },
+    "presets": {
+      "title": "位置预设",
+      "top_left": "左上",
+      "top": "上",
+      "top_right": "右上",
+      "left": "左",
+      "center": "中",
+      "right": "右",
+      "bottom_left": "左下",
+      "bottom": "下",
+      "bottom_right": "右下"
+    },
+    "mixed": {
+      "title": "混合灯具",
+      "description": "加载额外的LDT文件，然后按灯杆分配。"
+    },
+    "optimizer": {
+      "title": "间距优化器",
+      "target": "目标值:",
+      "uniformity": "U₀ ≥:",
+      "heights": "高度:",
+      "step": "步长:",
+      "running": "计算中...",
+      "optimize": "优化",
+      "ht": "高度",
+      "spc": "间距",
+      "poles_col": "灯杆"
+    },
+    "height_compare": {
+      "title": "高度对比",
+      "run_hint": "运行优化器以比较高度"
+    },
+    "combined": "综合照度",
+    "wall_mounted_hint": "壁装模式：灯具向外倾斜90°。将灯杆沿墙边放置。高度 = 壁装安装高度。",
+    "stats": {
+      "u0": "U₀ (最小/平均)",
+      "ud": "Ud (最小/最大)",
+      "avg_min": "平均/最小"
+    },
+    "export_iso_svg": "导出ISO SVG",
+    "export_plan_svg": "导出平面图SVG",
+    "export_room_svg": "导出房间SVG",
+    "export_3d_svg": "导出3D SVG",
+    "export_optimizer": "导出优化器结果"
+  },
+  "zonal_designer": {
+    "title": "室内照明设计器",
+    "room": "房间:",
+    "workplane": "工作面:",
+    "suspension": "悬挂高度:",
+    "mode": {
+      "label": "模式:",
+      "target_to_count": "目标值 → 数量",
+      "count_to_illuminance": "数量 → 照度",
+      "target_lpd": "目标LPD → 数量"
+    },
+    "target": "目标值:",
+    "count": "数量:",
+    "lpd": "LPD:",
+    "reflectances": {
+      "title": "反射率",
+      "ceiling": "天花板:",
+      "wall": "墙面:",
+      "floor": "地面:"
+    },
+    "llf": {
+      "title": "光通维持因子",
+      "preset": "预设",
+      "lld": "LLD:",
+      "ldd": "LDD:",
+      "bf": "BF:",
+      "total": "LLF总计:"
+    },
+    "views": {
+      "heatmap": "热力图",
+      "room_3d": "3D房间",
+      "section": "剖面",
+      "cu_table": "CU表"
+    },
+    "camera": "摄像机",
+    "info": {
+      "name": "名称:",
+      "lumens": "光通量:",
+      "power": "功率:",
+      "dff": "DFF:",
+      "smh": "S/MH:"
+    },
+    "results": {
+      "luminaires": "灯具",
+      "achieved": "实际值",
+      "cu": "CU",
+      "rcr": "RCR",
+      "lpd": "LPD",
+      "spacing": "间距",
+      "ok": "合格",
+      "exceeds": "超标"
+    },
+    "heatmap_title": "照度热力图",
+    "computing_heatmap": "正在计算热力图...",
+    "cavity_section": "腔体剖面",
+    "cu_table_title": "CU表",
+    "export_pdf": "导出PDF",
+    "room_view_3d": "3D房间视图",
+    "room_view_hint": "拖动旋转，滚轮缩放",
+    "export_3d_svg": "导出3D SVG",
+    "cavity_lines": "腔体线",
+    "light_cones": "光锥",
+    "options_3d": "3D选项"
+  },
+  "dashboard": {
+    "templates": {
+      "standard": "标准",
+      "aec": "AEC",
+      "alternative": "替代"
+    },
+    "modes": {
+      "overview": "概览 (ISO + 极坐标 + 等照度 + BUG)",
+      "beam_angles": "光束角",
+      "beam_intensities": "光束强度 / 光锥",
+      "ugr_table": "UGR表"
+    },
+    "columns": {
+      "name": "名称",
+      "cct": "CCT",
+      "power": "功率",
+      "lumens": "光通量",
+      "lor": "LOR",
+      "bug": "BUG",
+      "cri": "CRI",
+      "beam": "光束",
+      "light_dist": "光分布",
+      "optics": "光学",
+      "modules": "模块",
+      "current": "电流",
+      "spec": "规格",
+      "ies": "IES",
+      "cad": "CAD",
+      "bim": "BIM"
+    },
+    "optics": {
+      "narrow": "窄",
+      "medium": "中",
+      "wide": "宽",
+      "very_wide": "超宽"
+    },
+    "loaded_file": "（已加载文件）",
+    "loading_templates": "正在加载模板...",
+    "luminaires_count": "{0} 个灯具",
+    "click_to_select": "点击选择",
+    "back": "仪表板",
+    "edit_data": "编辑灯具数据",
+    "zoom_diagram": "放大当前图表",
+    "open_compare": "打开比较视图",
+    "area_designer": "室外照明设计器",
+    "export_pdf": "导出PDF报告",
+    "polar_title": "极坐标光分布",
+    "cartesian_title": "直角坐标分布",
+    "iso_lux_title": "ISO – 照度图 (ISO-LUX)",
+    "iso_view_title": "ISO视图",
+    "bug_title": "BUG评级",
+    "iso_curve_title": "ISO曲线",
+    "beam_intensities_title": "光束强度",
+    "beam_angle_title": "光束角"
+  },
+  "maps_designer": {
+    "title": "照明设计器",
+    "instructions_title": "说明:",
+    "instruction_polygon": "绘制多边形（停车场区域）",
+    "instruction_luminaires": "放置灯具（标记点）",
+    "instruction_calculate": "点击计算以查看热力图",
+    "area_defined": "已定义区域:",
+    "luminaires_count": "灯具数量:",
+    "calculate": "计算热力图",
+    "my_location": "我的位置",
+    "export_csv": "导出CSV",
+    "show_values": "显示数值",
+    "hide_values": "隐藏数值",
+    "clear_all": "全部清除",
+    "results_title": "计算结果",
+    "min": "最小",
+    "max": "最大",
+    "average": "平均",
+    "uniformity": "均匀度 (U₀)",
+    "good_uniformity": "均匀度良好 (U₀ ≥ 0.40)",
+    "acceptable_uniformity": "均匀度可接受 (U₀ ≥ 0.25)",
+    "poor_uniformity": "均匀度差 - 请增加灯具",
+    "legend_title": "热力图图例",
+    "legend_low": "低",
+    "legend_high": "高",
+    "loading_description": "在真实卫星地图上设计室外照明。绘制停车场区域，放置灯具，计算照度。",
+    "load_maps": "加载Google地图",
+    "loading_maps": "正在加载Google地图...",
+    "toolbar_hint": "使用工具栏：多边形绘制区域，标记点放置灯具",
+    "load_failed": "加载Google地图失败",
+    "try_again": "重试"
+  },
+  "goniosim": {
+    "title": "虚拟配光曲线仪",
+    "subtitle": "CIE 171:2006 验证",
+    "trace": "追踪",
+    "pause": "暂停",
+    "resume": "继续",
+    "reset": "重置",
+    "input_luminaire": "输入灯具",
+    "upload": "上传 .ldt / .ies",
+    "cover_material": "罩面材料",
+    "no_cover": "无罩面（自由空间）",
+    "custom": "自定义",
+    "reflectance": "反射率",
+    "diffusion": "散射度",
+    "transmittance": "透光率",
+    "ior": "折射率",
+    "thickness": "厚度",
+    "distance": "距离",
+    "statistics": "统计",
+    "photons": "光子",
+    "detected": "检测到",
+    "absorbed": "被吸收",
+    "export_ldt": "导出 .ldt",
+    "original_lvk": "原始配光曲线",
+    "simulated": "模拟（通过罩面）",
+    "select_luminaire": "选择或上传灯具",
+    "click_trace": "点击追踪开始模拟",
+    "c_plane": "C平面",
+    "all_planes": "全部"
   }
 }

@@ -355,7 +355,25 @@
       "atla_xml": "Als ATLA XML exportieren",
       "atla_json": "Als ATLA JSON exportieren",
       "switch_to_dark": "Zum Dunkelmodus wechseln",
-      "switch_to_light": "Zum Hellmodus wechseln"
+      "switch_to_light": "Zum Hellmodus wechseln",
+      "skip_link": "Zum Hauptinhalt springen",
+      "rotate_c_planes": "C0 ±90° drehen (IES)",
+      "rotate_c_planes_tooltip": "C-Ebenen ±90° drehen beim Im-/Export von IES (korrigiert EU↔US Achsenausrichtung)",
+      "export_svg_prefix": "SVG exportieren",
+      "export_png": "PNG exportieren (2x)",
+      "export_jpeg": "JPEG exportieren",
+      "export_pdf": "Bericht exportieren (.pdf)",
+      "export_pdf_tooltip": "Als PDF-Bericht exportieren (wird im Browser erstellt)",
+      "export_typ": "Bericht exportieren (.typ)",
+      "export_typ_tooltip": "Als Typst-Quelldatei exportieren (.typ)",
+      "generating_pdf": "PDF wird erstellt...",
+      "github": "GitHub",
+      "about": "Über",
+      "switch_to_imperial": "Zu Imperial wechseln (ft, fc, in)",
+      "switch_to_metric": "Zu Metrisch wechseln (m, lx, mm)",
+      "unit_si": "SI",
+      "unit_imp": "IMP",
+      "loading": "Laden..."
     },
     "tabs": {
       "general": "Allgemein",
@@ -384,7 +402,13 @@
       "cartesian": "Kartesisch",
       "cone": "Kegel",
       "export": "Export",
-      "compare": "Vergleich"
+      "compare": "Vergleich",
+      "bim": "BIM",
+      "area_designer": "Planer",
+      "zonal_designer": "Innenraum",
+      "maps_designer": "Karten",
+      "beam_angle": "Strahlwinkel",
+      "iso_view": "ISO-Ansicht"
     },
     "subtabs": {
       "spd": "SPD",
@@ -412,7 +436,11 @@
       "cartesian": "Kartesisch",
       "zoom_hint": "Scrollen zum Zoomen | Ziehen zum Schwenken",
       "rotate_hint": "Ziehen zum Drehen | Scrollen zum Zoomen | Automatische Rotation beim Laden",
-      "scene_controls": "Steuerung: WASD/Pfeile bewegen • Q/E auf/ab • Rechtsklick+ziehen zum Umschauen • R zurücksetzen • 1-4 Szenentypen • P fotometrischer Körper • L Leuchte"
+      "scene_controls": "Steuerung: WASD/Pfeile bewegen • Q/E auf/ab • Rechtsklick+ziehen zum Umschauen • R zurücksetzen • 1-4 Szenentypen • P fotometrischer Körper • L Leuchte",
+      "beam_angle": "Strahlwinkel",
+      "beam_angle_tooltip": "IES vs. CIE Strahlwinkel-Vergleich (Wikipedia-Stil)",
+      "title_iso_view": "ISO-Ansicht",
+      "desc_iso_view": "Isometrischer Beleuchtungsstärke-Footprint mit Polarlichtverteilung"
     },
     "intensity": {
       "title": "Lichtstärke (cd/klm)",
@@ -459,7 +487,8 @@
       "auto": "Auto",
       "reset": "Zurücksetzen",
       "drag_hint": "Ziehen zum Drehen",
-      "max": "Max"
+      "max": "Max",
+      "c_plane_selector": "C-Ebene ▸"
     },
     "bevy_scene": {
       "title": "3D-Szenenansicht",
@@ -482,7 +511,22 @@
       "show_luminaire": "Leuchte anzeigen",
       "show_solid": "Photometrischer Körper",
       "show_shadows": "Schatten",
-      "controls_hint": "WASD: Bewegen, Maus: Blicken, R: Zurücksetzen, 1-4: Szene"
+      "controls_hint": "WASD: Bewegen, Maus: Blicken, R: Zurücksetzen, 1-4: Szene",
+      "scene_designer_exterior": "Designer: Außenbereich",
+      "scene_designer_interior": "Designer: Innenbereich",
+      "hide": "Ausblenden",
+      "road_layout": "Straßenlayout",
+      "lanes": "Fahrspuren",
+      "lane_width": "Fahrspurbreite (m)",
+      "sidewalk_width": "Gehwegbreite (m)",
+      "road_length": "Straßenlänge (m)",
+      "luminaire_settings": "Leuchteneinstellungen",
+      "tilt_angle": "Neigungswinkel (°)",
+      "pole_spacing": "Mastabstand (m, 0=auto)",
+      "show_light_cones": "Lichtkegel anzeigen",
+      "show_cavity_zones": "Raumzonen anzeigen",
+      "exterior_hint": "Szenendaten werden vom Außenbeleuchtungs-Designer synchronisiert. Öffnen Sie den Designer, um Masten und Beleuchtung zu konfigurieren.",
+      "interior_hint": "Szenendaten werden vom Innenbeleuchtungs-Designer synchronisiert. Öffnen Sie den Designer, um Raum und Leuchten zu konfigurieren."
     },
     "bug_rating": {
       "title": "IESNA TM-15-11 BUG-Bewertung",
@@ -515,7 +559,17 @@
     },
     "validation_panel": {
       "all_passed": "Alle Validierungsprüfungen bestanden",
-      "error_count": "{errors} Fehler, {warnings} Warnungen"
+      "error_count": "{errors} Fehler, {warnings} Warnungen",
+      "schema_validation": "Schema-Validierung",
+      "ldt_validation": "LDT/IES-Validierung",
+      "valid": "Gültig",
+      "invalid": "Ungültig",
+      "missing_fields": "Fehlende Felder",
+      "warnings": "Warnungen",
+      "see_tm33": "Siehe TM-33-23",
+      "tm33_issues": "TM-33-23 Probleme",
+      "tm32_issues": "TM-32-24 BIM-Probleme",
+      "n_errors": "{0} Fehler"
     },
     "spectral_badges": {
       "ir": "IR",
@@ -605,6 +659,24 @@
       "percent": "%",
       "empty_title": "Laden Sie eine zweite photometrische Datei zum Vergleich.",
       "empty_hint": "Vergleicht Lichtstrom, Effizienz, Abstrahlwinkel, Lichtstärkeverteilung und mehr."
+    },
+    "about": {
+      "title": "Eulumdat",
+      "subtitle": "Rust/WASM Lichtdaten-Toolkit",
+      "desc_parsing": "Liest EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX-Dateien.",
+      "desc_diagrams": "Erstellt SVG-Diagramme: Polar, Kartesisch, Spektral, Heatmap.",
+      "desc_platforms": "Eine Rust-Codebasis → Web, CLI, iOS, Android, Python",
+      "close": "Schließen"
+    },
+    "bim": {
+      "title": "TM-32-24 BIM-Parameter",
+      "tooltip": "TM-32-24 BIM-Parameter",
+      "export_csv": "CSV exportieren",
+      "export_report": "Bericht exportieren",
+      "info_text": "BIM-Parameter folgen dem ANSI/IES TM-32-24 Standard für Building Information Modeling.",
+      "no_data_title": "Keine BIM-Daten verfügbar",
+      "no_data_text": "Diese Datei enthält keine TM-32-24 BIM-Parameter. BIM-Daten sind typischerweise in TM-33-23 XML-Dateien mit CustomData-Abschnitten zu finden.",
+      "template_hint": "Versuchen Sie, eine der TM-32-24 BIM-Vorlagen aus dem Vorlagen-Menü zu laden."
     }
   },
   "report": {
@@ -761,5 +833,301 @@
       "atlaUvBlacklight": "UV-Schwarzlicht (ATLA)",
       "atlaUvBlacklight_desc": "UV-Schwarzlicht mit UV-A-Spektrum"
     }
+  },
+  "designer": {
+    "height": "Höhe:",
+    "width": "Breite:",
+    "length": "Länge:",
+    "rotation": "Drehung:",
+    "tilt": "Neigung:",
+    "resolution": "Auflösung:",
+    "mounting_height": "Montagehöhe:",
+    "export_csv": "CSV exportieren",
+    "export_pdf": "PDF exportieren",
+    "export_svg": "SVG exportieren",
+    "exporting_pdf": "PDF wird exportiert...",
+    "share_link": "Link teilen",
+    "copied": "Kopiert!",
+    "save": "Speichern",
+    "load": "Laden",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "remove": "Entfernen",
+    "plan_view": "Planansicht",
+    "room_view": "Raumansicht",
+    "min": "Min",
+    "avg": "Mittel",
+    "max": "Max",
+    "luminaire": "Leuchte",
+    "luminaires": "Leuchten"
+  },
+  "area_designer": {
+    "title": "Außenbeleuchtungs-Designer",
+    "layout": {
+      "label": "Anordnung:",
+      "single": "Einzeln",
+      "pair": "Paar",
+      "row_of_3": "Reihe von 3",
+      "grid_2x2": "2×2 Raster",
+      "grid_2x3": "2×3 Raster",
+      "grid_3x3": "3×3 Raster",
+      "perimeter": "Umfang"
+    },
+    "arrangement": {
+      "label": "Montage:",
+      "single": "Einzeln",
+      "back_to_back": "Rücken an Rücken",
+      "twin_arm": "Doppelarm",
+      "quad": "Vierfach",
+      "wall_mounted": "Wandmontage"
+    },
+    "params": {
+      "arm": "Ausleger:",
+      "droop": "Neigung:",
+      "area_w": "Fläche B:",
+      "area_d": "Fläche T:",
+      "proration": "Verteilung:",
+      "poles": "Masten:"
+    },
+    "polygon": {
+      "cancel": "Abbrechen",
+      "clear": "Polygon löschen",
+      "draw": "Polygon zeichnen"
+    },
+    "pole": {
+      "selected": "Ausgewählter Mast",
+      "pole_n": "Mast #",
+      "x": "X:",
+      "y": "Y:",
+      "reset_overrides": "Überschreibungen zurücksetzen",
+      "click_to_select": "Klicken Sie auf einen Mast in der Planansicht",
+      "ldt": "LDT:",
+      "primary": "Primär"
+    },
+    "presets": {
+      "title": "Positionsvorlagen",
+      "top_left": "Oben-Links",
+      "top": "Oben",
+      "top_right": "Oben-Rechts",
+      "left": "Links",
+      "center": "Mitte",
+      "right": "Rechts",
+      "bottom_left": "Unten-Links",
+      "bottom": "Unten",
+      "bottom_right": "Unten-Rechts"
+    },
+    "mixed": {
+      "title": "Gemischte Leuchten",
+      "description": "Zusätzliche LDT-Dateien laden und pro Mast zuweisen."
+    },
+    "optimizer": {
+      "title": "Abstandsoptimierer",
+      "target": "Zielwert:",
+      "uniformity": "U₀ ≥:",
+      "heights": "Höhen:",
+      "step": "Schritt:",
+      "running": "Berechne...",
+      "optimize": "Optimieren",
+      "ht": "Hö",
+      "spc": "Abs",
+      "poles_col": "Masten"
+    },
+    "height_compare": {
+      "title": "Höhenvergleich",
+      "run_hint": "Optimierer starten um Höhen zu vergleichen"
+    },
+    "combined": "Kombinierte Beleuchtungsstärke",
+    "wall_mounted_hint": "Wandmontagemodus: Leuchten 90° nach außen geneigt. Masten entlang der Wandkante platzieren. Höhe = Wandmontagehöhe.",
+    "stats": {
+      "u0": "U₀ (min/mittel)",
+      "ud": "Ud (min/max)",
+      "avg_min": "Mittel/Min"
+    },
+    "export_iso_svg": "ISO SVG exportieren",
+    "export_plan_svg": "Plan SVG exportieren",
+    "export_room_svg": "Raum SVG exportieren",
+    "export_3d_svg": "3D SVG exportieren",
+    "export_optimizer": "Optimierer exportieren"
+  },
+  "zonal_designer": {
+    "title": "Innenbeleuchtungs-Designer",
+    "room": "Raum:",
+    "workplane": "Arbeitsebene:",
+    "suspension": "Abhängung:",
+    "mode": {
+      "label": "Modus:",
+      "target_to_count": "Zielwert → Anzahl",
+      "count_to_illuminance": "Anzahl → Beleuchtungsstärke",
+      "target_lpd": "Ziel-LPD → Anzahl"
+    },
+    "target": "Zielwert:",
+    "count": "Anzahl:",
+    "lpd": "LPD:",
+    "reflectances": {
+      "title": "Reflexionsgrade",
+      "ceiling": "Decke:",
+      "wall": "Wand:",
+      "floor": "Boden:"
+    },
+    "llf": {
+      "title": "Lichtstromminderungsfaktor",
+      "preset": "Voreinstellung",
+      "lld": "LLD:",
+      "ldd": "LDD:",
+      "bf": "BF:",
+      "total": "Gesamt LLF:"
+    },
+    "views": {
+      "heatmap": "Wärmebild",
+      "room_3d": "3D-Raum",
+      "section": "Schnitt",
+      "cu_table": "CU-Tabelle"
+    },
+    "camera": "Kamera",
+    "info": {
+      "name": "Name:",
+      "lumens": "Lumen:",
+      "power": "Leistung:",
+      "dff": "DFF:",
+      "smh": "S/MH:"
+    },
+    "results": {
+      "luminaires": "Leuchten",
+      "achieved": "Erreicht",
+      "cu": "CU",
+      "rcr": "RCR",
+      "lpd": "LPD",
+      "spacing": "Abstand",
+      "ok": "OK",
+      "exceeds": "ÜBERSCHRITTEN"
+    },
+    "heatmap_title": "Beleuchtungsstärke-Heatmap",
+    "computing_heatmap": "Berechne Heatmap...",
+    "cavity_section": "Raumzone-Schnitt",
+    "cu_table_title": "CU-Tabelle",
+    "export_pdf": "PDF exportieren",
+    "room_view_3d": "3D-Raumansicht",
+    "room_view_hint": "Ziehen zum Drehen, Scrollen zum Zoomen",
+    "export_3d_svg": "3D SVG exportieren",
+    "cavity_lines": "Raumzonenlinien",
+    "light_cones": "Lichtkegel",
+    "options_3d": "3D-Optionen"
+  },
+  "dashboard": {
+    "templates": {
+      "standard": "Standard",
+      "aec": "AEC",
+      "alternative": "Alternativ"
+    },
+    "modes": {
+      "overview": "Übersicht (ISO + Polar + Isolux + BUG)",
+      "beam_angles": "Strahlwinkel",
+      "beam_intensities": "Strahlstärken / Kegel",
+      "ugr_table": "UGR-Tabelle"
+    },
+    "columns": {
+      "name": "Name",
+      "cct": "CCT",
+      "power": "Leistung",
+      "lumens": "Lumen",
+      "lor": "LOR",
+      "bug": "BUG",
+      "cri": "CRI",
+      "beam": "Strahl",
+      "light_dist": "Lichtverteilung",
+      "optics": "Optik",
+      "modules": "Module",
+      "current": "Strom",
+      "spec": "Spec",
+      "ies": "IES",
+      "cad": "CAD",
+      "bim": "BIM"
+    },
+    "optics": {
+      "narrow": "Schmal",
+      "medium": "Mittel",
+      "wide": "Breit",
+      "very_wide": "Sehr breit"
+    },
+    "loaded_file": "(geladene Datei)",
+    "loading_templates": "Vorlagen werden geladen...",
+    "luminaires_count": "{0} Leuchten",
+    "click_to_select": "Klicken zum Auswählen",
+    "back": "Dashboard",
+    "edit_data": "Leuchtendaten bearbeiten",
+    "zoom_diagram": "Aktives Diagramm zoomen",
+    "open_compare": "Vergleichsansicht öffnen",
+    "area_designer": "Außenbeleuchtungs-Designer",
+    "export_pdf": "PDF-Bericht exportieren",
+    "polar_title": "Polare Lichtverteilung",
+    "cartesian_title": "Kartesische Verteilung",
+    "iso_lux_title": "ISO – Beleuchtungsstärke-Diagramm (ISO-LUX)",
+    "iso_view_title": "ISO-Ansicht",
+    "bug_title": "BUG-Bewertung",
+    "iso_curve_title": "ISO-Kurve",
+    "beam_intensities_title": "Strahlstärken",
+    "beam_angle_title": "Strahlwinkel"
+  },
+  "maps_designer": {
+    "title": "Beleuchtungs-Designer",
+    "instructions_title": "Anleitung:",
+    "instruction_polygon": "Polygon zeichnen (Parkplatzfläche)",
+    "instruction_luminaires": "Leuchten platzieren (Markierungen)",
+    "instruction_calculate": "Klicken Sie auf Berechnen für Heatmap",
+    "area_defined": "Fläche definiert:",
+    "luminaires_count": "Leuchten:",
+    "calculate": "Heatmap berechnen",
+    "my_location": "Mein Standort",
+    "export_csv": "CSV exportieren",
+    "show_values": "Werte anzeigen",
+    "hide_values": "Werte ausblenden",
+    "clear_all": "Alles löschen",
+    "results_title": "Berechnungsergebnisse",
+    "min": "Min",
+    "max": "Max",
+    "average": "Durchschnitt",
+    "uniformity": "Gleichmäßigkeit (U₀)",
+    "good_uniformity": "Gute Gleichmäßigkeit (U₀ ≥ 0,40)",
+    "acceptable_uniformity": "Akzeptable Gleichmäßigkeit (U₀ ≥ 0,25)",
+    "poor_uniformity": "Schlechte Gleichmäßigkeit – mehr Leuchten hinzufügen",
+    "legend_title": "Heatmap-Legende",
+    "legend_low": "Niedrig",
+    "legend_high": "Hoch",
+    "loading_description": "Außenbeleuchtung auf echten Satellitenbildern planen. Parkplatz zeichnen, Leuchten platzieren und Beleuchtungsstärke berechnen.",
+    "load_maps": "Google Maps laden",
+    "loading_maps": "Google Maps wird geladen...",
+    "toolbar_hint": "Werkzeugleiste: Polygon zum Zeichnen der Fläche, Markierung zum Platzieren von Leuchten",
+    "load_failed": "Google Maps konnte nicht geladen werden",
+    "try_again": "Erneut versuchen"
+  },
+  "goniosim": {
+    "title": "Virtuelles Goniophotometer",
+    "subtitle": "CIE 171:2006 validiert",
+    "trace": "Messen",
+    "pause": "Pause",
+    "resume": "Fortsetzen",
+    "reset": "Zurücksetzen",
+    "input_luminaire": "Eingabe-Leuchte",
+    "upload": ".ldt / .ies hochladen",
+    "cover_material": "Abdeckmaterial",
+    "no_cover": "Ohne Abdeckung (Freiraum)",
+    "custom": "Benutzerdefiniert",
+    "reflectance": "Reflexionsgrad",
+    "diffusion": "Streuungsgrad",
+    "transmittance": "Lichtdurchlässigkeit",
+    "ior": "Brechungsindex",
+    "thickness": "Dicke",
+    "distance": "Abstand",
+    "statistics": "Statistik",
+    "photons": "Photonen",
+    "detected": "Erkannt",
+    "absorbed": "Absorbiert",
+    "export_ldt": "Export .ldt",
+    "original_lvk": "Original-LVK",
+    "simulated": "Simuliert (durch Abdeckung)",
+    "select_luminaire": "Leuchte auswählen oder hochladen",
+    "click_trace": "Klicken Sie auf Messen",
+    "c_plane": "C-Ebene",
+    "all_planes": "Alle"
   }
 }

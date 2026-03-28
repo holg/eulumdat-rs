@@ -4,8 +4,8 @@
 //! for each C-plane.
 
 use super::color::{Color, ColorPalette};
-use super::{DiagramScale, Point2D};
-use crate::Eulumdat;
+use super::{DiagramScale, Point2D, SvgTheme};
+use crate::{Eulumdat, PhotometricSummary};
 
 /// A point in a cartesian curve
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -263,6 +263,24 @@ impl CartesianDiagram {
                 (curve, points)
             })
             .collect()
+    }
+
+    /// Render a cartesian diagram SVG for a given LDT, optionally at a specific C-plane.
+    ///
+    /// Universal entry point — usable from any frontend.
+    pub fn render_svg(
+        ldt: &Eulumdat,
+        c_plane: Option<f64>,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+    ) -> String {
+        let summary = PhotometricSummary::from_eulumdat(ldt);
+        let diagram = match c_plane {
+            Some(cp) => Self::from_eulumdat_for_plane(ldt, cp, width, height),
+            None => Self::from_eulumdat(ldt, width, height, 8),
+        };
+        diagram.to_svg_with_summary(width, height, theme, &summary)
     }
 }
 

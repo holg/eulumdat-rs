@@ -4,8 +4,8 @@
 //! candela values across C-planes (x-axis) and gamma angles (y-axis).
 
 use super::color::{heatmap_color, Color};
-use super::DiagramScale;
-use crate::Eulumdat;
+use super::{DiagramScale, SvgTheme};
+use crate::{Eulumdat, PhotometricSummary};
 
 /// A single cell in the heatmap
 #[derive(Debug, Clone, PartialEq)]
@@ -219,6 +219,20 @@ impl HeatmapDiagram {
                 (y, g, format!("{:.0}", g))
             })
             .collect()
+    }
+
+    /// Render a heatmap SVG for a given LDT.
+    ///
+    /// Universal entry point — usable from any frontend.
+    pub fn render_svg(
+        ldt: &Eulumdat,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+    ) -> String {
+        let summary = PhotometricSummary::from_eulumdat(ldt);
+        let diagram = Self::from_eulumdat(ldt, width, height);
+        diagram.to_svg_with_summary(width, height, theme, &summary)
     }
 }
 
