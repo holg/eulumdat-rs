@@ -6,7 +6,7 @@
 //!
 //! Activated via `?wasm=goniosim` query parameter.
 
-use crate::i18n::use_locale;
+use crate::i18n::{use_locale, LanguageSelectorCompact};
 use eulumdat::diagram::{PolarDiagram as CorePolarDiagram, SvgTheme};
 use eulumdat::Eulumdat;
 use eulumdat_goniosim::nalgebra::{Point3, Vector3};
@@ -411,7 +411,8 @@ pub fn GonioSimDemo() -> impl IntoView {
             <div style="padding: 12px 20px; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 16px; flex-shrink: 0;">
                 <h1 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #58a6ff;">{move || locale.get().goniosim.title.clone()}</h1>
                 <span style="color: #484f58; font-size: 0.8rem;">{move || locale.get().goniosim.subtitle.clone()}</span>
-                <div style="margin-left: auto; display: flex; gap: 8px;">
+                <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                    <LanguageSelectorCompact />
                     <button
                         style="padding: 6px 16px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;"
                         disabled=move || source_ldt.get().is_none()
