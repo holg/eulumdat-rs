@@ -35,6 +35,61 @@ pub struct CameraImage {
 }
 
 impl CameraImage {
+    /// Apply edge-preserving denoise (bilateral filter).
+    /// `strength` controls the spatial radius (3-7 recommended).
+    pub fn denoise(&mut self, strength: u32) {
+        let radius = strength.min(10) as i32;
+        let sigma_space = radius as f32 * 0.5;
+        let sigma_color = 0.15f32; // how different colors can be before edge is detected
+        let src = self.pixels.clone();
+        let w = self.width as i32;
+        let h = self.height as i32;
+
+        for y in 0..h {
+            for x in 0..w {
+                let idx = (y * w + x) as usize;
+                let center = src[idx];
+                let mut sum = [0.0f32; 3];
+                let mut weight_sum = 0.0f32;
+
+                for dy in -radius..=radius {
+                    for dx in -radius..=radius {
+                        let nx = x + dx;
+                        let ny = y + dy;
+                        if nx < 0 || nx >= w || ny < 0 || ny >= h { continue; }
+
+                        let ni = (ny * w + nx) as usize;
+                        let neighbor = src[ni];
+
+                        // Spatial weight (Gaussian)
+                        let dist2 = (dx * dx + dy * dy) as f32;
+                        let w_space = (-dist2 / (2.0 * sigma_space * sigma_space)).exp();
+
+                        // Color weight (edge-preserving)
+                        let cdiff = (center[0] - neighbor[0]).powi(2)
+                            + (center[1] - neighbor[1]).powi(2)
+                            + (center[2] - neighbor[2]).powi(2);
+                        let w_color = (-cdiff / (2.0 * sigma_color * sigma_color)).exp();
+
+                        let w = w_space * w_color;
+                        sum[0] += neighbor[0] * w;
+                        sum[1] += neighbor[1] * w;
+                        sum[2] += neighbor[2] * w;
+                        weight_sum += w;
+                    }
+                }
+
+                if weight_sum > 0.0 {
+                    self.pixels[idx] = [
+                        sum[0] / weight_sum,
+                        sum[1] / weight_sum,
+                        sum[2] / weight_sum,
+                    ];
+                }
+            }
+        }
+    }
+
     /// Convert to 8-bit sRGB bytes (for saving as PNG/BMP).
     pub fn to_srgb_bytes(&self) -> Vec<u8> {
         self.to_srgb_bytes_with_exposure(1.0)

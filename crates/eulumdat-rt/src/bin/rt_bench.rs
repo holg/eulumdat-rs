@@ -382,20 +382,28 @@ fn cmd_render(args: &[String]) {
     println!("Primitives: {}, Materials: {}", prims.len(), mats.len());
     println!();
 
+    let denoise: u32 = parse_flag(args, "--denoise", "0").parse().unwrap_or(0);
+
     let start = Instant::now();
-    let image = pollster::block_on(camera.render(
+    let mut image = pollster::block_on(camera.render(
         width, height, spp,
-        [1.8, 0.8, 2.2],   // camera in corner
-        [0.0, 0.5, 0.0],   // look at center
+        [1.8, 0.8, 2.2],
+        [0.0, 0.5, 0.0],
         55.0,
         &prims, &mats,
-        500.0,              // bright source at ceiling
+        500.0,
     ));
-    let elapsed = start.elapsed();
+    let render_ms = start.elapsed().as_secs_f64() * 1000.0;
 
     println!("Rendered in {:.1}ms ({:.1}M rays/sec)",
-        elapsed.as_secs_f64() * 1000.0,
-        (width * height * spp) as f64 / elapsed.as_secs_f64() / 1_000_000.0);
+        render_ms,
+        (width * height * spp) as f64 / (render_ms / 1000.0) / 1_000_000.0);
+
+    if denoise > 0 {
+        let dn_start = Instant::now();
+        image.denoise(denoise);
+        println!("Denoised (radius={denoise}) in {:.1}ms", dn_start.elapsed().as_secs_f64() * 1000.0);
+    }
 
     // Write PPM
     let ppm_bytes: Vec<u8> = image.to_srgb_bytes_with_exposure(exposure)

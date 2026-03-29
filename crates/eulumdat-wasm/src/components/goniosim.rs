@@ -447,7 +447,7 @@ pub fn GonioSimDemo(
                 // Render a 3D camera image of a room scene
                 if let Ok(camera) = eulumdat_rt::GpuCamera::new().await {
                     let (scene_prims, scene_mats) = build_render_scene(&gpu_prims, &gpu_mats);
-                    let image = camera.render(
+                    let mut image = camera.render(
                         512, 384, 64,
                         [1.8, 0.8, 2.2],    // camera in corner of room
                         [0.0, 0.3, 0.0],    // look at center-ceiling area
@@ -455,6 +455,7 @@ pub fn GonioSimDemo(
                         &scene_prims, &scene_mats,
                         500.0,              // bright source
                     ).await;
+                    image.denoise(3); // bilateral filter, radius 3
                     let rgba = image.to_srgb_bytes_with_exposure(2.5);
                     let bmp = encode_bmp(&rgba, image.width, image.height);
                     let b64 = base64::engine::general_purpose::STANDARD.encode(&bmp);
