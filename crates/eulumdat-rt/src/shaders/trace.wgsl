@@ -10,12 +10,17 @@ struct TraceConfig {
     detector_g_res: f32,
     seed_offset: u32,
     num_photons: u32,
-    source_type: u32,       // 0=isotropic, 1=lambertian
+    source_type: u32,       // 0=isotropic, 1=lambertian, 2=from_lvk
     source_flux: f32,
     num_primitives: u32,
     max_bounces: u32,
-    rr_threshold: f32,      // Russian roulette energy threshold
-    _padding: u32,
+    rr_threshold: f32,
+    // CDF parameters for FromLvk source
+    cdf_g_steps: u32,       // number of gamma steps in CDF
+    cdf_c_steps: u32,       // number of C steps in CDF
+    cdf_g_max: f32,         // max gamma angle (degrees)
+    _pad0: u32,
+    _pad1: u32,
 }
 
 // Material types
@@ -57,6 +62,8 @@ struct GpuMaterial {
 @group(0) @binding(1) var<uniform> config: TraceConfig;
 @group(0) @binding(2) var<storage, read> primitives: array<GpuPrimitive>;
 @group(0) @binding(3) var<storage, read> materials: array<GpuMaterial>;
+// CDF for FromLvk source: marginal_g (g_steps) + conditional_c (g_steps * c_steps)
+@group(0) @binding(4) var<storage, read> cdf_data: array<f32>;
 
 // ============================================================================
 // RNG: PCG
@@ -113,6 +120,40 @@ fn random_sphere() -> vec3<f32> {
     let r = sqrt(max(1.0 - z * z, 0.0));
     let phi = 2.0 * PI * random_f32();
     return vec3<f32>(r * cos(phi), r * sin(phi), z);
+}
+
+/// Sample direction from LVK CDF (pre-computed on CPU, uploaded as buffer).
+fn sample_from_lvk_cdf() -> vec3<f32> {
+    let g_steps = config.cdf_g_steps;
+    let c_steps = config.cdf_c_steps;
+
+    // Binary search in marginal CDF (first g_steps entries)
+    let u_g = random_f32();
+    var gi = 0u;
+    for (var i = 0u; i < g_steps; i++) {
+        if (cdf_data[i] < u_g) { gi = i + 1u; }
+    }
+    gi = min(gi, g_steps - 1u);
+    let gamma_deg = f32(gi) / f32(max(g_steps - 1u, 1u)) * config.cdf_g_max;
+
+    // Binary search in conditional CDF (starts at offset g_steps + gi * c_steps)
+    let u_c = random_f32();
+    let cond_offset = g_steps + gi * c_steps;
+    var ci = 0u;
+    for (var i = 0u; i < c_steps; i++) {
+        if (cdf_data[cond_offset + i] < u_c) { ci = i + 1u; }
+    }
+    ci = min(ci, c_steps - 1u);
+    let c_deg = f32(ci) * (360.0 / f32(c_steps));
+
+    // Convert to direction
+    let g_rad = radians(gamma_deg);
+    let c_rad = radians(c_deg);
+    return vec3<f32>(
+        sin(g_rad) * cos(c_rad),
+        sin(g_rad) * sin(c_rad),
+        -cos(g_rad)
+    );
 }
 
 fn random_cosine_hemisphere_down() -> vec3<f32> {
@@ -428,6 +469,7 @@ fn trace_photons(@builtin(global_invocation_id) id: vec3<u32>) {
     switch (config.source_type) {
         case 0u: { dir = random_sphere(); }
         case 1u: { dir = random_cosine_hemisphere_down(); }
+        case 2u: { dir = sample_from_lvk_cdf(); }
         default: { dir = random_sphere(); }
     }
 

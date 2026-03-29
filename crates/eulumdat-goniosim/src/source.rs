@@ -215,19 +215,20 @@ fn build_onb(n: &Unit<Vector3<f64>>) -> (Unit<Vector3<f64>>, Unit<Vector3<f64>>)
 #[derive(Debug, Clone)]
 pub struct LvkCdf {
     /// Gamma angles sampled at 1° resolution
-    g_steps: usize,
+    pub g_steps: usize,
     /// C angles sampled at 5° resolution
-    c_steps: usize,
+    pub c_steps: usize,
     /// g_max from LDT data
-    g_max: f64,
+    pub g_max: f64,
     /// Marginal CDF over gamma: P(G <= g)
-    marginal_g: Vec<f64>,
+    pub marginal_g: Vec<f64>,
     /// Conditional CDF over C for each gamma bin: P(C <= c | G=g)
-    conditional_c: Vec<Vec<f64>>,
+    pub conditional_c: Vec<Vec<f64>>,
 }
 
 impl LvkCdf {
-    fn build(ldt: &Eulumdat) -> Self {
+    /// Build CDF from an Eulumdat. Used by Source::from_lvk and GPU tracer.
+    pub fn build(ldt: &Eulumdat) -> Self {
         let g_max = ldt.g_angles.last().copied().unwrap_or(180.0);
         let g_step: f64 = 1.0; // 1° resolution
         let c_step: f64 = 5.0; // 5° resolution

@@ -19,7 +19,11 @@ pub struct GpuTracerConfig {
     pub num_primitives: u32,
     pub max_bounces: u32,
     pub rr_threshold: f32,
-    pub _padding: u32,
+    pub cdf_g_steps: u32,
+    pub cdf_c_steps: u32,
+    pub cdf_g_max: f32,
+    pub _pad0: u32,
+    pub _pad1: u32,
 }
 
 /// GPU primitive — matches GpuPrimitive in WGSL.
@@ -133,6 +137,7 @@ impl GpuMaterial {
 pub enum SourceType {
     Isotropic = 0,
     Lambertian = 1,
+    FromLvk = 2,
 }
 
 /// Result from a GPU trace — detector bins as f64.
@@ -282,6 +287,17 @@ impl GpuTracer {
                         },
                         count: None,
                     },
+                    // cdf_data: storage buffer (read) for FromLvk source
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 4,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
                 ],
             });
 
@@ -343,7 +359,41 @@ impl GpuTracer {
     ) -> GpuDetectorResult {
         self.trace_inner(
             num_photons, c_res_deg, g_res_deg, source_type, source_flux,
-            primitives, materials, 50, 0.01,
+            primitives, materials, &[], 0, 0, 0.0,
+            50, 0.01,
+        ).await
+    }
+
+    /// Trace from an LDT source (FromLvk) with optional cover geometry.
+    pub async fn trace_from_lvk(
+        &self,
+        num_photons: u32,
+        c_res_deg: f32,
+        g_res_deg: f32,
+        source_flux: f32,
+        cdf: &eulumdat_goniosim::source::LvkCdf,
+        primitives: &[GpuPrimitive],
+        materials: &[GpuMaterial],
+    ) -> GpuDetectorResult {
+        // Flatten CDF data: marginal_g (g_steps) + conditional_c (g_steps * c_steps)
+        let g_steps = cdf.g_steps;
+        let c_steps = cdf.c_steps;
+        let mut cdf_flat = Vec::with_capacity(g_steps + g_steps * c_steps);
+        // Marginal CDF
+        for v in &cdf.marginal_g {
+            cdf_flat.push(*v as f32);
+        }
+        // Conditional CDFs (flattened)
+        for row in &cdf.conditional_c {
+            for v in row {
+                cdf_flat.push(*v as f32);
+            }
+        }
+
+        self.trace_inner(
+            num_photons, c_res_deg, g_res_deg, SourceType::FromLvk, source_flux,
+            primitives, materials, &cdf_flat, g_steps as u32, c_steps as u32, cdf.g_max as f32,
+            50, 0.01,
         ).await
     }
 
@@ -356,10 +406,10 @@ impl GpuTracer {
         source_type: SourceType,
         source_flux: f32,
     ) -> GpuDetectorResult {
-        // Free space: no geometry
         self.trace_inner(
             num_photons, c_res_deg, g_res_deg, source_type, source_flux,
-            &[], &[], 1, 0.01,
+            &[], &[], &[], 0, 0, 0.0,
+            1, 0.01,
         ).await
     }
 
@@ -372,6 +422,10 @@ impl GpuTracer {
         source_flux: f32,
         primitives_data: &[GpuPrimitive],
         materials_data: &[GpuMaterial],
+        cdf_data: &[f32],
+        cdf_g_steps: u32,
+        cdf_c_steps: u32,
+        cdf_g_max: f32,
         max_bounces: u32,
         rr_threshold: f32,
     ) -> GpuDetectorResult {
@@ -391,7 +445,11 @@ impl GpuTracer {
             num_primitives: primitives_data.len() as u32,
             max_bounces,
             rr_threshold,
-            _padding: 0,
+            cdf_g_steps,
+            cdf_c_steps,
+            cdf_g_max,
+            _pad0: 0,
+            _pad1: 0,
         };
 
         let config_buffer = self
@@ -447,6 +505,14 @@ impl GpuTracer {
             usage: wgpu::BufferUsages::STORAGE,
         });
 
+        // CDF buffer
+        let cdf_buf_data: Vec<f32> = if cdf_data.is_empty() { vec![0.0] } else { cdf_data.to_vec() };
+        let cdf_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("cdf_buffer"),
+            contents: bytemuck::cast_slice(&cdf_buf_data),
+            usage: wgpu::BufferUsages::STORAGE,
+        });
+
         // Bind group
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("rt_bind_group"),
@@ -467,6 +533,10 @@ impl GpuTracer {
                 wgpu::BindGroupEntry {
                     binding: 3,
                     resource: materials_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: cdf_buffer.as_entire_binding(),
                 },
             ],
         });

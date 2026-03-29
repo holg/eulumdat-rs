@@ -149,3 +149,38 @@ fn isotropic_with_opal_cover_gpu_vs_cpu() {
         "GPU/CPU throughput ratio {ratio:.3} too far off"
     );
 }
+
+#[test]
+fn from_lvk_free_space_gpu_vs_cpu() {
+    // Load a real LDT and trace through free space on both GPU and CPU
+    let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
+    let ldt = eulumdat::Eulumdat::parse(content).unwrap();
+    let lamp_flux = ldt.total_luminous_flux();
+    let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
+
+    // Build CDF for GPU
+    let cdf = eulumdat_goniosim::source::LvkCdf::build(&ldt);
+
+    // GPU trace
+    let tracer = pollster::block_on(eulumdat_rt::GpuTracer::new()).unwrap();
+    let gpu_result = pollster::block_on(tracer.trace_from_lvk(
+        1_000_000, 10.0, 5.0, calculated_flux as f32,
+        &cdf, &[], &[],
+    ));
+    let gpu_energy = gpu_result.total_energy();
+    let gpu_ratio = gpu_energy / 1_000_000.0;
+    eprintln!("GPU FromLvk: energy ratio={gpu_ratio:.4}");
+
+    // Should be ~1.0 (all photons escape in free space)
+    assert!(
+        (gpu_ratio - 1.0).abs() < 0.01,
+        "GPU FromLvk energy: {gpu_ratio:.4}"
+    );
+
+    // Compare candela at key angles
+    let gpu_cd = gpu_result.to_candela(calculated_flux);
+    let gi_45 = 9; // 45 / 5.0
+    let gpu_avg_45: f64 = gpu_cd.iter().map(|c| c[gi_45]).sum::<f64>() / gpu_cd.len() as f64;
+    let expected_cd_45 = ldt.sample(0.0, 45.0) * lamp_flux / 1000.0; // absolute cd
+    eprintln!("GPU cd at g=45: {gpu_avg_45:.1} (expected ~{expected_cd_45:.1})");
+}
