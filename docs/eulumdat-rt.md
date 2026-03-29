@@ -13,10 +13,71 @@ We build the engine AND the physics.
 
 > "The only ray tracer that outputs an LDT file."
 
+## Why Not Use Existing Ray Tracers
+
+### Standard Bevy (rasterization)
+- Shadow maps, screen-space reflections, ambient occlusion — all faked
+- Fast (60fps) but physically wrong for measurement
+- No concept of candela, lux, or photometric output
+
+### Unity / Unreal
+- Baked lightmaps (pre-computed, static only) + optional hardware RT
+- Unreal Lumen: software RT hybrid — clever but approximate, temporal artifacts
+- Both output PICTURES, not MEASUREMENTS — no LDT/IES export possible
+- Can't access or modify the core rendering pipeline
+
+### Bevy Solari (bevy_solari)
+- Real-time path tracing with ReSTIR DI/GI by JMS55
+- First-party Bevy crate at `crates/bevy_solari/`
+- **Requires hardware RT** (NVIDIA RTX, `EXPERIMENTAL_RAY_QUERY`)
+- Uses `StandardMaterial` — game PBR, not physical optics
+- Uses hardware TLAS/BLAS for acceleration — no software fallback
+- Denoises and temporally accumulates for visual quality
+- Hooks into Bevy's deferred GBuffer — outputs screen pixels
+- No macOS/Metal support (hardware RT not available)
+- Goal: make Bevy games look as good as Unreal RTX
+
+### Mitsuba / LuxCoreRender (offline)
+- Physically correct spectral rendering — the gold standard
+- Offline only — minutes to hours per image
+- C++ codebases, not embeddable in Rust/WASM
+- No real-time interaction, no live parameter adjustment
+
+### eulumdat-rt (ours)
+- Monte Carlo photon tracing for MEASUREMENT, not visuals
+- **No hardware RT required** — pure compute shaders, runs on any GPU
+- Works on Metal (macOS/iOS), Vulkan, DX12, and WebGPU (browser)
+- Own material system: IOR, transmittance, diffusion (not game PBR)
+- Own software ray intersection (no TLAS/BLAS dependency)
+- No denoising — we want raw statistical results
+- No temporal tricks — each trace is independent, deterministic
+- Output: detector bins → candela → LDT/IES files
+- Validates against CIE 171:2006, not "does it look good"
+
+### Comparison Table
+
+|                        | Bevy std | Unity/Unreal | Solari    | Mitsuba   | eulumdat-rt |
+|------------------------|----------|-------------|-----------|-----------|-------------|
+| Method                 | Raster   | Raster+bake | HW RT     | Offline MC | GPU compute |
+| Physically correct     | No       | No          | Approx    | Yes       | Yes         |
+| Real-time              | Yes      | Yes         | Yes       | No        | Yes (target)|
+| Hardware RT required   | No       | Optional    | **Yes**   | No        | **No**      |
+| macOS/Metal            | Yes      | Yes         | **No**    | Yes       | Yes         |
+| WebGPU/WASM            | Yes      | No          | No        | No        | **Yes**     |
+| Custom materials       | Limited  | Yes         | No (StdMat)| Yes      | Yes         |
+| Output photometric data| No       | No          | No        | Possible  | **Yes**     |
+| Outputs LDT/IES        | No       | No          | No        | No        | **Yes**     |
+| CIE validated          | N/A      | N/A         | N/A       | Partial   | **Yes**     |
+
+The fundamental difference: Solari asks "does the image look physically
+plausible?" We ask "is the photometric measurement correct to within 0.1%?"
+
 ## Architecture
 
-Bevy plugin crate (like Solari) — own compute pipeline, own material type,
+Bevy plugin crate — own compute pipeline, own material type,
 Bevy ECS for entity management, windowing, input, asset loading.
+Inspired by Solari's plugin pattern but fundamentally different in purpose:
+Solari writes pixels to the screen, we write candela to detector bins.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -410,13 +471,24 @@ sufficient photon count. If they diverge, the GPU shader has a bug.
 
 ## Relationship to Solari
 
-Solari (Jasmine's Bevy path tracer) is the closest architectural reference:
-- Bevy plugin with own BRDF, may remove `bevy_pbr` dependency
-- Own `SolariMaterial` type
-- Uses Bevy's wgpu access but not the rendering pipeline
+Solari (`bevy_solari`, by JMS55) is Bevy's first-party hardware ray tracing
+system. It's the closest architectural reference for a Bevy plugin that runs
+its own compute pipeline, but there are fundamental differences:
 
-eulumdat-rt follows the same pattern:
-- Own `RtMaterial` type (maps to `MaterialParams`)
-- Own compute pipeline (not Bevy's render graph)
-- Uses Bevy for ECS, windowing, input — not rendering
-- Output is photometric data, not screen pixels
+**What we share with Solari:**
+- Bevy plugin pattern — registers systems, uses RenderDevice/RenderQueue
+- Pure compute shaders — no render graph involvement
+- Own material extraction pipeline
+
+**Where we diverge:**
+- Solari requires hardware RT (RTX) — we use software ray intersection
+- Solari reads Bevy's deferred GBuffer — we don't render to screen
+- Solari uses `StandardMaterial` — we use `MaterialParams` (physical optics)
+- Solari denoises for visual quality — we preserve raw statistical data
+- Solari outputs pixels — we output photometric measurements
+- Solari is desktop-only (no macOS) — we target Metal + WebGPU too
+
+**Architectural lesson from Solari:**
+The key insight is that you CAN build a complete ray tracing system as a
+Bevy plugin without touching core. Solari proves the pattern works.
+We follow it — but for measurement, not visuals.
