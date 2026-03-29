@@ -7,7 +7,9 @@
 //! Activated via `?wasm=goniosim` query parameter.
 
 use crate::i18n::{use_locale, LanguageSelectorCompact};
-use eulumdat::diagram::{PolarDiagram as CorePolarDiagram, SvgTheme};
+use eulumdat::diagram::{
+    ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram as CorePolarDiagram, SvgTheme,
+};
 use eulumdat::Eulumdat;
 use eulumdat_goniosim::nalgebra::{Point3, Vector3};
 use eulumdat_goniosim::*;
@@ -17,8 +19,39 @@ use wasm_bindgen::JsCast;
 /// Batch size: photons traced per requestAnimationFrame tick.
 const BATCH_SIZE: u64 = 10_000;
 
-/// Total photons target.
-const TARGET_PHOTONS: u64 = 1_000_000;
+/// Photon count presets for the slider.
+const PHOTON_PRESETS: &[(u64, &str)] = &[
+    (10_000, "10K"),
+    (50_000, "50K"),
+    (100_000, "100K"),
+    (500_000, "500K"),
+    (1_000_000, "1M"),
+    (5_000_000, "5M"),
+    (10_000_000, "10M"),
+];
+
+/// Diagram types available for visualization.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DiagramType {
+    Polar,
+    Cartesian,
+    Heatmap,
+    Butterfly,
+}
+
+impl DiagramType {
+    fn all() -> &'static [DiagramType] {
+        &[Self::Polar, Self::Cartesian, Self::Heatmap, Self::Butterfly]
+    }
+    fn label(&self, _g: &eulumdat_i18n::GoniosimLocale) -> &'static str {
+        match self {
+            Self::Polar => "Polar",
+            Self::Cartesian => "Cartesian",
+            Self::Heatmap => "Heatmap",
+            Self::Butterfly => "3D",
+        }
+    }
+}
 
 /// Built-in template LDT files (name, content).
 const TEMPLATES: &[(&str, &str)] = &[
@@ -144,6 +177,8 @@ pub fn GonioSimDemo(
     // --- Simulation state ---
     let (running, set_running) = signal(false);
     let (photons_done, set_photons_done) = signal(0u64);
+    let (target_photons, set_target_photons) = signal(1_000_000u64);
+    let (diagram_type, set_diagram_type) = signal(DiagramType::Polar);
     let (photons_detected, set_photons_detected) = signal(0u64);
     let (photons_absorbed, set_photons_absorbed) = signal(0u64);
     let (sim_ldt, set_sim_ldt) = signal::<Option<Eulumdat>>(None);
@@ -321,12 +356,12 @@ pub fn GonioSimDemo(
                 if !running.get_untracked() || generation.get_untracked() != gen {
                     break;
                 }
-                if total_done >= TARGET_PHOTONS {
+                if total_done >= target_photons.get_untracked() {
                     set_running.set(false);
                     break;
                 }
 
-                let batch = BATCH_SIZE.min(TARGET_PHOTONS - total_done);
+                let batch = BATCH_SIZE.min(target_photons.get_untracked() - total_done);
 
                 for i in 0..batch {
                     let source = &scene.sources[(i as usize) % num_sources];
@@ -541,11 +576,52 @@ pub fn GonioSimDemo(
                         }}
                     </div>
 
+                    // Photon count
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{move || locale.get().goniosim.photons.clone()}</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                            {PHOTON_PRESETS.iter().map(|&(count, label)| {
+                                view! {
+                                    <button
+                                        style=move || format!(
+                                            "padding: 3px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; border: 1px solid {}; background: {}; color: {};",
+                                            if target_photons.get() == count { "#58a6ff" } else { "#30363d" },
+                                            if target_photons.get() == count { "#1f3a5f" } else { "#161b22" },
+                                            if target_photons.get() == count { "#58a6ff" } else { "#8b949e" },
+                                        )
+                                        on:click=move |_| set_target_photons.set(count)
+                                    >{label}</button>
+                                }
+                            }).collect::<Vec<_>>()}
+                        </div>
+                    </div>
+
+                    // Diagram type
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">"Diagram"</label>
+                        <div style="display: flex; gap: 4px;">
+                            {DiagramType::all().iter().map(|&dt| {
+                                let label = dt.label(&eulumdat_i18n::GoniosimLocale::default());
+                                view! {
+                                    <button
+                                        style=move || format!(
+                                            "padding: 3px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; border: 1px solid {}; background: {}; color: {};",
+                                            if diagram_type.get() == dt { "#58a6ff" } else { "#30363d" },
+                                            if diagram_type.get() == dt { "#1f3a5f" } else { "#161b22" },
+                                            if diagram_type.get() == dt { "#58a6ff" } else { "#8b949e" },
+                                        )
+                                        on:click=move |_| set_diagram_type.set(dt)
+                                    >{label}</button>
+                                }
+                            }).collect::<Vec<_>>()}
+                        </div>
+                    </div>
+
                     // Stats
                     <div style="padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d;">
                         <div style="font-size: 0.75rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">{move || locale.get().goniosim.statistics.clone()}</div>
                         <div style="font-size: 0.85rem; line-height: 1.8;">
-                            <div>{move || locale.get().goniosim.photons.clone()} ": " {move || format!("{} / {}", format_number(photons_done.get()), format_number(TARGET_PHOTONS))}</div>
+                            <div>{move || locale.get().goniosim.photons.clone()} ": " {move || format!("{} / {}", format_number(photons_done.get()), format_number(target_photons.get()))}</div>
                             <div>{move || locale.get().goniosim.detected.clone()} ": " {move || {
                                 let d = photons_done.get();
                                 let det = photons_detected.get();
@@ -644,7 +720,7 @@ pub fn GonioSimDemo(
                                 } else {
                                     let ldt = ldt_opt.unwrap();
                                     let theme = SvgTheme::dark();
-                                    let svg = CorePolarDiagram::render_svg(&ldt, cp, 450.0, 450.0, &theme);
+                                    let svg = render_diagram(&ldt, diagram_type.get_untracked(), cp, &theme, 450.0, 450.0);
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
                                     }.into_any()
@@ -667,7 +743,7 @@ pub fn GonioSimDemo(
                                 } else {
                                     let ldt = ldt_opt.unwrap();
                                     let theme = SvgTheme::dark();
-                                    let svg = CorePolarDiagram::render_svg(&ldt, cp, 450.0, 450.0, &theme);
+                                    let svg = render_diagram(&ldt, diagram_type.get_untracked(), cp, &theme, 450.0, 450.0);
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
                                     }.into_any()
@@ -683,7 +759,7 @@ pub fn GonioSimDemo(
                 <div style=move || format!(
                     "height: 100%; background: {}; width: {}%; transition: width 0.1s;",
                     if running.get() { "#238636" } else { "#1f6feb" },
-                    if TARGET_PHOTONS > 0 { photons_done.get() as f64 / TARGET_PHOTONS as f64 * 100.0 } else { 0.0 }
+                    { let t = target_photons.get(); if t > 0 { photons_done.get() as f64 / t as f64 * 100.0 } else { 0.0 } }
                 ) />
             </div>
         </div>
@@ -757,6 +833,23 @@ fn format_number(n: u64) -> String {
         result.push(c);
     }
     result.chars().rev().collect()
+}
+
+/// Render the appropriate diagram type for an Eulumdat.
+fn render_diagram(
+    ldt: &Eulumdat,
+    dtype: DiagramType,
+    c_plane: Option<f64>,
+    theme: &SvgTheme,
+    w: f64,
+    h: f64,
+) -> String {
+    match dtype {
+        DiagramType::Polar => CorePolarDiagram::render_svg(ldt, c_plane, w, h, theme),
+        DiagramType::Cartesian => CartesianDiagram::render_svg(ldt, c_plane, w, h, theme),
+        DiagramType::Heatmap => HeatmapDiagram::render_svg(ldt, w, h, theme),
+        DiagramType::Butterfly => ButterflyDiagram::render_svg(ldt, w, h, 60.0, theme),
+    }
 }
 
 fn download_string(content: &str, filename: &str) {
