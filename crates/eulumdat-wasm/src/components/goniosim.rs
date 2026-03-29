@@ -444,15 +444,18 @@ pub fn GonioSimDemo(
                 set_export_ldt_string.set(ldt.to_ldt());
                 set_sim_ldt.set(Some(ldt));
 
-                // Also render a 3D camera image
+                // Render a 3D camera image of a room scene
                 if let Ok(camera) = eulumdat_rt::GpuCamera::new().await {
+                    let (scene_prims, scene_mats) = build_render_scene(&gpu_prims, &gpu_mats);
                     let image = camera.render(
-                        400, 300, 32,
-                        [0.4, 0.2, 0.6], [0.0, -0.05, 0.0], 60.0,
-                        &gpu_prims, &gpu_mats,
-                        200.0,
+                        512, 384, 64,
+                        [1.8, 0.8, 2.2],    // camera in corner of room
+                        [0.0, 0.3, 0.0],    // look at center-ceiling area
+                        55.0,
+                        &scene_prims, &scene_mats,
+                        500.0,              // bright source
                     ).await;
-                    let rgba = image.to_srgb_bytes_with_exposure(3.0);
+                    let rgba = image.to_srgb_bytes_with_exposure(2.5);
                     let bmp = encode_bmp(&rgba, image.width, image.height);
                     let b64 = base64::engine::general_purpose::STANDARD.encode(&bmp);
                     set_render_image_uri.set(format!("data:image/bmp;base64,{b64}"));
@@ -1028,6 +1031,87 @@ fn render_diagram(
             String::new()
         }
     }
+}
+
+/// Build a room scene for the 3D render view.
+/// Adds floor, ceiling, walls around the cover/source setup.
+fn build_render_scene(
+    cover_prims: &[eulumdat_rt::GpuPrimitive],
+    cover_mats: &[eulumdat_rt::GpuMaterial],
+) -> (Vec<eulumdat_rt::GpuPrimitive>, Vec<eulumdat_rt::GpuMaterial>) {
+    use eulumdat_rt::{GpuMaterial, GpuPrimitive};
+
+    let mut prims = Vec::new();
+    let mut mats = Vec::new();
+
+    // Material 0: white diffuse floor
+    mats.push(GpuMaterial {
+        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
+        reflectance: 0.75, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
+        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+    });
+    // Material 1: light grey walls
+    mats.push(GpuMaterial {
+        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
+        reflectance: 0.6, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
+        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+    });
+    // Material 2: ceiling (slightly darker)
+    mats.push(GpuMaterial {
+        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
+        reflectance: 0.5, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
+        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+    });
+
+    let room_w = 2.0f32; // half-width of room
+    let room_h = 1.5f32; // floor to ceiling
+
+    // Floor (y = 0)
+    prims.push(GpuPrimitive::sheet(
+        [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],
+        room_w, room_w, 0.001, 0,
+    ));
+    // Ceiling (y = room_h)
+    prims.push(GpuPrimitive::sheet(
+        [0.0, room_h, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0],
+        room_w, room_w, 0.001, 2,
+    ));
+    // Back wall (z = -room_w)
+    prims.push(GpuPrimitive::sheet(
+        [0.0, room_h * 0.5, -room_w], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
+        room_w, room_h * 0.5, 0.001, 1,
+    ));
+    // Left wall (x = -room_w)
+    prims.push(GpuPrimitive::sheet(
+        [-room_w, room_h * 0.5, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
+        room_w, room_h * 0.5, 0.001, 1,
+    ));
+    // Right wall (x = room_w)
+    prims.push(GpuPrimitive::sheet(
+        [room_w, room_h * 0.5, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
+        room_w, room_h * 0.5, 0.001, 1,
+    ));
+
+    // Add cover primitives with adjusted material IDs
+    let mat_offset = mats.len() as u32;
+    for m in cover_mats {
+        mats.push(*m);
+    }
+    for p in cover_prims {
+        let mut prim = *p;
+        // Adjust material ID and position (move cover to ceiling height - distance)
+        prim.material_id += mat_offset;
+        // Move from z=-distance to y=(room_h - distance) — remap coordinate
+        // The cover in the goniosim uses z-down, but the camera uses y-up
+        let cover_y = room_h - 0.04; // near ceiling
+        prim.params[1] = cover_y;    // y position
+        prim.params[3] = 0.0;       // normal x
+        prim.params[4] = -1.0;      // normal y (facing down)
+        prim.params[5] = 0.0;       // normal z
+        prims.push(prim);
+    }
+
+    (prims, mats)
 }
 
 /// Encode RGBA bytes as BMP (uncompressed, 24-bit, bottom-up).

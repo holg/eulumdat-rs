@@ -323,37 +323,57 @@ fn cmd_render(args: &[String]) {
     let mut prims = Vec::new();
     let mut mats = Vec::new();
 
-    // Floor (diffuse white, y = -0.2)
+    let room_w = 2.0f32;
+    let room_h = 1.5f32;
+
+    // Floor (y=0, white diffuse)
     mats.push(GpuMaterial {
         mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: 0.7, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
+        reflectance: 0.75, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
         absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
     });
     prims.push(GpuPrimitive::sheet(
-        [0.0, -0.2, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],
-        2.0, 2.0, 0.001, 0, // mat 0 = floor
+        [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],
+        room_w, room_w, 0.001, 0,
     ));
 
-    // Back wall (diffuse light grey, z = -1.0)
+    // Ceiling (y=room_h)
     mats.push(GpuMaterial {
         mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
         reflectance: 0.5, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
         absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
     });
     prims.push(GpuPrimitive::sheet(
-        [0.0, 0.5, -1.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
-        2.0, 1.0, 0.001, 1, // mat 1 = wall
+        [0.0, room_h, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0],
+        room_w, room_w, 0.001, 1,
     ));
 
-    // Cover sheet (if specified)
+    // Back wall (z=-room_w)
+    mats.push(GpuMaterial {
+        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
+        reflectance: 0.6, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
+        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+    });
+    prims.push(GpuPrimitive::sheet(
+        [0.0, room_h * 0.5, -room_w], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
+        room_w, room_h * 0.5, 0.001, 2,
+    ));
+
+    // Left wall (x=-room_w)
+    prims.push(GpuPrimitive::sheet(
+        [-room_w, room_h * 0.5, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
+        room_w, room_h * 0.5, 0.001, 2,
+    ));
+
+    // Cover sheet near ceiling (if specified)
     if let Some(ref c) = cover {
         println!("Cover: {}", c.name);
         let cover_mat = GpuMaterial::from_material_params(c);
         let cover_mat_id = mats.len() as u32;
         mats.push(cover_mat);
         prims.push(GpuPrimitive::sheet(
-            [0.0, -0.04, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],
-            0.3, 0.3, c.thickness_mm as f32 / 1000.0, cover_mat_id,
+            [0.0, room_h - 0.04, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0],
+            0.4, 0.4, c.thickness_mm as f32 / 1000.0, cover_mat_id,
         ));
     } else {
         println!("Cover: none");
@@ -365,11 +385,11 @@ fn cmd_render(args: &[String]) {
     let start = Instant::now();
     let image = pollster::block_on(camera.render(
         width, height, spp,
-        [0.4, 0.2, 0.6],   // camera
-        [0.0, -0.05, 0.0],  // look at
-        60.0,
+        [1.8, 0.8, 2.2],   // camera in corner
+        [0.0, 0.5, 0.0],   // look at center
+        55.0,
         &prims, &mats,
-        200.0,              // source intensity
+        500.0,              // bright source at ceiling
     ));
     let elapsed = start.elapsed();
 
