@@ -190,6 +190,60 @@ fn intersect_scene(ray_origin: vec3<f32>, ray_dir: vec3<f32>) -> HitRecord {
 // Path tracing: trace a camera ray and return color
 // ============================================================================
 
+/// Sample a point on the emissive light source (small sphere at origin).
+fn sample_light_point() -> vec3<f32> {
+    // Small area light at origin with radius
+    let r = config.source_radius;
+    let u = random_f32();
+    let v = random_f32();
+    let theta = 2.0 * PI * u;
+    let phi = acos(2.0 * v - 1.0);
+    return vec3<f32>(
+        r * sin(phi) * cos(theta),
+        r * sin(phi) * sin(theta),
+        r * cos(phi)
+    );
+}
+
+/// Compute direct illumination from the light source at a surface point.
+fn direct_lighting(hit_point: vec3<f32>, hit_normal: vec3<f32>) -> vec3<f32> {
+    // Sample a point on the light
+    let light_pos = sample_light_point();
+    let to_light = light_pos - hit_point;
+    let dist2 = dot(to_light, to_light);
+    let dist = sqrt(dist2);
+    let light_dir = to_light / dist;
+
+    // Check visibility (shadow ray)
+    let shadow_hit = intersect_scene(hit_point + light_dir * EPSILON * 2.0, light_dir);
+
+    // If shadow ray hits something closer than the light, we're in shadow
+    // But transparent objects should partially transmit
+    var shadow_atten = 1.0;
+    if (shadow_hit.valid && shadow_hit.t < dist - EPSILON * 4.0) {
+        let shadow_mat = materials[shadow_hit.material_id];
+        // Transparent materials partially transmit shadow rays
+        if (shadow_mat.mtype == 4u) { // clear transmitter
+            shadow_atten = shadow_mat.transmittance;
+        } else if (shadow_mat.mtype == 5u) { // diffuse transmitter
+            shadow_atten = exp(-shadow_mat.absorption_coeff * shadow_mat.thickness) * 0.5;
+        } else {
+            shadow_atten = 0.0;
+        }
+    }
+
+    let n_dot_l = max(dot(hit_normal, light_dir), 0.0);
+
+    // Light emission: warm white
+    let light_color = vec3<f32>(1.0, 0.95, 0.85) * config.source_intensity;
+
+    // Inverse square law with area light solid angle
+    let light_area = 4.0 * PI * config.source_radius * config.source_radius;
+    let irradiance = light_color * n_dot_l * light_area / (4.0 * PI * dist2);
+
+    return irradiance * shadow_atten;
+}
+
 fn trace_path(ray_origin: vec3<f32>, ray_dir: vec3<f32>) -> vec3<f32> {
     var origin = ray_origin;
     var dir = ray_dir;
@@ -200,87 +254,105 @@ fn trace_path(ray_origin: vec3<f32>, ray_dir: vec3<f32>) -> vec3<f32> {
         let hit = intersect_scene(origin, dir);
 
         if (!hit.valid) {
-            // Sky / environment: dark blue gradient
-            let t = 0.5 * (dir.y + 1.0);
-            let sky = mix(vec3<f32>(0.02, 0.02, 0.05), vec3<f32>(0.1, 0.15, 0.3), t);
+            // Sky: warm gradient (like indoor ambient)
+            let t = clamp(0.5 * (dir.y + 1.0), 0.0, 1.0);
+            let sky = mix(
+                vec3<f32>(0.03, 0.03, 0.05),   // horizon
+                vec3<f32>(0.08, 0.10, 0.18),   // zenith
+                t
+            );
             color += throughput * sky;
+            break;
+        }
+
+        // Check if we hit the light source directly (sphere at origin)
+        let to_origin = -hit.point;
+        if (length(to_origin) < config.source_radius * 1.5 && bounce == 0u) {
+            color += throughput * vec3<f32>(1.0, 0.95, 0.85) * config.source_intensity * 0.5;
             break;
         }
 
         let mat = materials[hit.material_id];
 
-        // Emissive check: if material has high reflectance, it glows
-        // (simplified: source indicator would be a separate emissive object)
-
-        // Material interaction for camera rays
         switch (mat.mtype) {
-            case 0u: { // Absorber — black surface
-                color += throughput * vec3<f32>(0.01, 0.01, 0.01);
+            case 0u: { // Absorber
                 break;
             }
             case 1u: { // Diffuse reflector
-                // Direct lighting from source
-                let to_source = normalize(-origin);
-                let n_dot_l = max(dot(hit.normal, to_source), 0.0);
-                let diffuse_color = vec3<f32>(mat.reflectance, mat.reflectance, mat.reflectance);
-                color += throughput * diffuse_color * n_dot_l * config.source_intensity * 0.01;
+                let albedo = vec3<f32>(mat.reflectance, mat.reflectance, mat.reflectance);
 
-                // Continue bouncing
+                // Next-event estimation: direct light sampling
+                let direct = direct_lighting(hit.point, hit.normal);
+                color += throughput * albedo * direct / PI;
+
+                // Indirect: cosine-weighted random bounce
                 let new_dir = random_cosine_hemisphere(hit.normal);
-                origin = hit.point + new_dir * EPSILON;
+                origin = hit.point + new_dir * EPSILON * 2.0;
                 dir = new_dir;
-                throughput *= diffuse_color;
+                throughput *= albedo;
             }
-            case 4u: { // Clear transmitter
+            case 2u: { // Specular reflector
+                let refl = reflect_dir(dir, hit.normal);
+                origin = hit.point + refl * EPSILON * 2.0;
+                dir = normalize(refl);
+                throughput *= mat.reflectance;
+            }
+            case 4u: { // Clear transmitter (glass/clear PMMA)
                 var eta: f32;
-                if (hit.front_face) { eta = 1.0 / mat.ior; }
-                else { eta = mat.ior; }
-                let cos_i = abs(dot(dir, hit.normal));
+                var n: vec3<f32>;
+                if (hit.front_face) {
+                    eta = 1.0 / mat.ior;
+                    n = hit.normal;
+                } else {
+                    eta = mat.ior;
+                    n = -hit.normal;
+                }
+                let cos_i = abs(dot(dir, n));
                 let fr = max(fresnel_schlick(cos_i, eta), mat.min_reflectance);
 
-                // Glass color: slightly tinted
-                let glass_color = vec3<f32>(0.9, 0.95, 1.0);
-
                 if (random_f32() < fr) {
-                    // Reflect
-                    let refl = reflect_dir(dir, hit.normal);
-                    origin = hit.point + refl * EPSILON;
+                    let refl = reflect_dir(dir, n);
+                    origin = hit.point + refl * EPSILON * 2.0;
                     dir = normalize(refl);
-                    throughput *= glass_color;
                 } else {
-                    // Transmit (simplified — no refraction for now)
+                    // Pass through (simplified — no angular refraction)
                     origin = hit.point + dir * EPSILON * 10.0;
-                    throughput *= glass_color * sqrt(mat.transmittance);
+                    throughput *= sqrt(mat.transmittance);
                 }
+                throughput *= vec3<f32>(0.95, 0.97, 1.0); // slight blue tint
             }
-            case 5u: { // Diffuse transmitter (opal)
+            case 5u: { // Diffuse transmitter (opal PMMA)
                 let tau = exp(-mat.absorption_coeff * mat.thickness);
-                let opal_color = vec3<f32>(0.9, 0.92, 0.95) * tau;
 
                 if (random_f32() > tau) {
-                    // Absorbed
-                    color += throughput * vec3<f32>(0.01, 0.01, 0.02);
+                    // Absorbed — slight warm glow at absorption point
+                    color += throughput * vec3<f32>(0.02, 0.015, 0.01);
                     break;
                 }
 
-                // Transmitted with scattering
+                // Direct light through the diffuser (subsurface-like)
+                let direct = direct_lighting(hit.point, -hit.normal);
+                color += throughput * direct * tau * 0.3 / PI;
+
+                // Scattered transmission
                 let scattered = random_cosine_hemisphere(-hit.normal);
-                origin = hit.point + scattered * EPSILON;
+                origin = hit.point - hit.normal * (mat.thickness + EPSILON);
                 dir = scattered;
-                throughput *= opal_color;
+                throughput *= vec3<f32>(0.92, 0.94, 0.96) * tau;
             }
             default: {
-                // Unknown material — show as magenta
                 color += throughput * vec3<f32>(1.0, 0.0, 1.0);
                 break;
             }
         }
 
-        // Russian roulette
-        let max_component = max(throughput.x, max(throughput.y, throughput.z));
-        if (max_component < 0.01) {
-            if (random_f32() > max_component * 10.0) { break; }
-            throughput /= max_component * 10.0;
+        // Russian roulette after bounce 2
+        if (bounce > 1u) {
+            let p = max(throughput.x, max(throughput.y, throughput.z));
+            if (p < 0.1) {
+                if (random_f32() > p) { break; }
+                throughput /= p;
+            }
         }
     }
 

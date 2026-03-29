@@ -37,15 +37,25 @@ pub struct CameraImage {
 impl CameraImage {
     /// Convert to 8-bit sRGB bytes (for saving as PNG/BMP).
     pub fn to_srgb_bytes(&self) -> Vec<u8> {
+        self.to_srgb_bytes_with_exposure(1.0)
+    }
+
+    /// Convert with exposure adjustment (1.0 = default, 2.0 = brighter).
+    pub fn to_srgb_bytes_with_exposure(&self, exposure: f32) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(self.width as usize * self.height as usize * 4);
         for pixel in &self.pixels {
-            // Reinhard tone mapping
-            let mapped = [
-                pixel[0] / (1.0 + pixel[0]),
-                pixel[1] / (1.0 + pixel[1]),
-                pixel[2] / (1.0 + pixel[2]),
+            let exposed = [
+                pixel[0] * exposure,
+                pixel[1] * exposure,
+                pixel[2] * exposure,
             ];
-            // Linear to sRGB
+            // ACES filmic tone mapping (more natural than Reinhard)
+            let mapped = [
+                aces_tonemap(exposed[0]),
+                aces_tonemap(exposed[1]),
+                aces_tonemap(exposed[2]),
+            ];
+            // Linear to sRGB gamma
             for c in &mapped {
                 let srgb = if *c <= 0.0031308 {
                     c * 12.92
@@ -54,10 +64,20 @@ impl CameraImage {
                 };
                 bytes.push((srgb.clamp(0.0, 1.0) * 255.0) as u8);
             }
-            bytes.push(255); // alpha
+            bytes.push(255);
         }
         bytes
     }
+}
+
+/// ACES filmic tone mapping curve.
+fn aces_tonemap(x: f32) -> f32 {
+    let a = 2.51;
+    let b = 0.03;
+    let c = 2.43;
+    let d = 0.59;
+    let e = 0.14;
+    ((x * (a * x + b)) / (x * (c * x + d) + e)).clamp(0.0, 1.0)
 }
 
 /// GPU camera renderer — uses the same device as GpuTracer.

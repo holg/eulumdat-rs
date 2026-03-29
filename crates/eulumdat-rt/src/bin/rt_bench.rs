@@ -310,6 +310,7 @@ fn cmd_render(args: &[String]) {
     let height: u32 = parse_flag(args, "--height", "512").parse().unwrap_or(512);
     let spp: u32 = parse_flag(args, "--spp", "32").parse().unwrap_or(32);
     let output = parse_flag(args, "-o", "render.ppm");
+    let exposure: f32 = parse_flag(args, "--exposure", "2.0").parse().unwrap_or(2.0);
 
     let cover = get_cover(&cover_name);
 
@@ -377,7 +378,7 @@ fn cmd_render(args: &[String]) {
         (width * height * spp) as f64 / elapsed.as_secs_f64() / 1_000_000.0);
 
     // Write PPM
-    let ppm_bytes: Vec<u8> = image.to_srgb_bytes()
+    let ppm_bytes: Vec<u8> = image.to_srgb_bytes_with_exposure(exposure)
         .chunks(4)
         .flat_map(|rgba| [rgba[0], rgba[1], rgba[2]])
         .collect();
