@@ -519,7 +519,7 @@ impl GpuTracer {
         for ci in 0..num_c as usize {
             for gi in 0..num_g as usize {
                 let idx = ci * num_g as usize + gi;
-                bins[ci][gi] = raw_bins[idx] as f64 / 1_000_000.0;
+                bins[ci][gi] = raw_bins[idx] as f64 / 1_000.0;
             }
         }
 

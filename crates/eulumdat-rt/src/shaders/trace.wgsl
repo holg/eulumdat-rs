@@ -406,7 +406,9 @@ fn direction_to_bin(dir: vec3<f32>) -> vec2<u32> {
 fn record_detector(dir: vec3<f32>, energy: f32) {
     let bin = direction_to_bin(dir);
     let idx = bin.x * config.detector_g_bins + bin.y;
-    let energy_fixed = u32(energy * 1000000.0);
+    // Fixed-point: use 1000 (not 1M) to avoid u32 overflow at high photon counts.
+    // Max per bin: 4,294,967 photons with energy=1.0 before overflow.
+    let energy_fixed = u32(energy * 1000.0);
     atomicAdd(&detector_bins[idx], energy_fixed);
 }
 
