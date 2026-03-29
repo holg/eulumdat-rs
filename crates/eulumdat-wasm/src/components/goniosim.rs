@@ -452,11 +452,10 @@ pub fn GonioSimDemo(
                         &gpu_prims, &gpu_mats,
                         200.0,
                     ).await;
-                    // Convert to base64 data URI for display in <img>
                     let rgba = image.to_srgb_bytes_with_exposure(3.0);
-                    let ppm = encode_ppm(&rgba, image.width, image.height);
-                    let b64 = base64::engine::general_purpose::STANDARD.encode(&ppm);
-                    set_render_image_uri.set(format!("data:image/x-portable-pixmap;base64,{b64}"));
+                    let bmp = encode_bmp(&rgba, image.width, image.height);
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&bmp);
+                    set_render_image_uri.set(format!("data:image/bmp;base64,{b64}"));
                 }
 
                 set_running.set(false);
@@ -1031,15 +1030,49 @@ fn render_diagram(
     }
 }
 
-/// Encode RGBA bytes as PPM binary.
-fn encode_ppm(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
-    let header = format!("P6\n{} {}\n255\n", width, height);
-    let mut data = header.into_bytes();
-    for chunk in rgba.chunks(4) {
-        data.push(chunk[0]);
-        data.push(chunk[1]);
-        data.push(chunk[2]);
+/// Encode RGBA bytes as BMP (uncompressed, 24-bit, bottom-up).
+/// All browsers support BMP in <img> tags and data URIs.
+fn encode_bmp(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
+    let row_size = ((width * 3 + 3) / 4) * 4; // rows padded to 4-byte boundary
+    let pixel_data_size = row_size * height;
+    let file_size = 54 + pixel_data_size;
+
+    let mut data = Vec::with_capacity(file_size as usize);
+
+    // BMP file header (14 bytes)
+    data.extend_from_slice(b"BM");
+    data.extend_from_slice(&(file_size).to_le_bytes());
+    data.extend_from_slice(&0u16.to_le_bytes()); // reserved
+    data.extend_from_slice(&0u16.to_le_bytes()); // reserved
+    data.extend_from_slice(&54u32.to_le_bytes()); // pixel data offset
+
+    // DIB header (40 bytes — BITMAPINFOHEADER)
+    data.extend_from_slice(&40u32.to_le_bytes()); // header size
+    data.extend_from_slice(&(width as i32).to_le_bytes());
+    data.extend_from_slice(&(height as i32).to_le_bytes()); // positive = bottom-up
+    data.extend_from_slice(&1u16.to_le_bytes()); // color planes
+    data.extend_from_slice(&24u16.to_le_bytes()); // bits per pixel
+    data.extend_from_slice(&0u32.to_le_bytes()); // compression (none)
+    data.extend_from_slice(&pixel_data_size.to_le_bytes());
+    data.extend_from_slice(&2835u32.to_le_bytes()); // H resolution (72 DPI)
+    data.extend_from_slice(&2835u32.to_le_bytes()); // V resolution
+    data.extend_from_slice(&0u32.to_le_bytes()); // colors in palette
+    data.extend_from_slice(&0u32.to_le_bytes()); // important colors
+
+    // Pixel data (bottom-up, BGR)
+    let padding = (row_size - width * 3) as usize;
+    for y in (0..height).rev() {
+        for x in 0..width {
+            let i = ((y * width + x) * 4) as usize;
+            data.push(rgba[i + 2]); // B
+            data.push(rgba[i + 1]); // G
+            data.push(rgba[i]);     // R
+        }
+        for _ in 0..padding {
+            data.push(0);
+        }
     }
+
     data
 }
 
