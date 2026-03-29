@@ -273,6 +273,7 @@ pub fn GonioSimDemo(
             set_running, set_photons_done, set_photons_detected,
             set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
         );
+        set_render_image_uri.set(String::new());
     };
 
     // Build scene from current signals (called inside spawn_local)
@@ -868,23 +869,27 @@ pub fn GonioSimDemo(
                     </div>
                     // Diagrams
                     <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 20px; gap: 20px; overflow: hidden;">
-                        // Original — re-renders when selected_plane changes
+                        // Original — re-renders when source_ldt, selected_plane, or diagram_type changes
                         <div style="flex: 1; max-width: 500px; display: flex; align-items: center; justify-content: center;">
                             {move || {
+                                let dt = diagram_type.get();
                                 let ldt_opt = source_ldt.get();
                                 let cp = selected_plane.get();
+
                                 if ldt_opt.is_none() {
-                                    view! {
+                                    return view! {
                                         <div style="color: #484f58; text-align: center; font-size: 0.9rem;">{move || locale.get().goniosim.select_luminaire.clone()}</div>
-                                    }.into_any()
-                                } else {
-                                    let ldt = ldt_opt.unwrap();
-                                    let theme = SvgTheme::dark();
-                                    let svg = render_diagram(&ldt, diagram_type.get_untracked(), cp, &theme, 450.0, 450.0);
-                                    view! {
-                                        <div style="width: 100%;" inner_html=svg />
-                                    }.into_any()
+                                    }.into_any();
                                 }
+
+                                // For Render3D, original shows the polar diagram (always useful as reference)
+                                let ldt = ldt_opt.unwrap();
+                                let theme = SvgTheme::dark();
+                                let effective_dt = if dt == DiagramType::Render3D { DiagramType::Polar } else { dt };
+                                let svg = render_diagram(&ldt, effective_dt, cp, &theme, 450.0, 450.0);
+                                view! {
+                                    <div style="width: 100%;" inner_html=svg />
+                                }.into_any()
                             }}
                         </div>
                         // Divider
