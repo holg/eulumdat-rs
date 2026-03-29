@@ -32,6 +32,7 @@ eulumdat = { workspace = true, features = ["i18n", "serde"] }
 eulumdat-i18n.workspace = true
 eulumdat-typst.workspace = true
 eulumdat-goniosim = { path = "../eulumdat-goniosim", default-features = false }
+eulumdat-rt = { path = "../eulumdat-rt", default-features = false }
 eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates" }
 getrandom = { version = "0.3", features = ["wasm_js"] }
 gloo.workspace = true

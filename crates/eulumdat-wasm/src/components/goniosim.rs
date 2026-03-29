@@ -179,6 +179,8 @@ pub fn GonioSimDemo(
     let (photons_done, set_photons_done) = signal(0u64);
     let (target_photons, set_target_photons) = signal(1_000_000u64);
     let (diagram_type, set_diagram_type) = signal(DiagramType::Polar);
+    let (use_gpu, set_use_gpu) = signal(false);
+    let (gpu_available, _set_gpu_available) = signal(check_webgpu_available());
     let (photons_detected, set_photons_detected) = signal(0u64);
     let (photons_absorbed, set_photons_absorbed) = signal(0u64);
     let (sim_ldt, set_sim_ldt) = signal::<Option<Eulumdat>>(None);
@@ -333,14 +335,112 @@ pub fn GonioSimDemo(
         let lamp_flux = src.total_luminous_flux().max(1.0);
         let lor = src.light_output_ratio / 100.0;
         let flux = if lor > 0.0 { lamp_flux * lor } else { lamp_flux };
-
-        // Use source LDT's angular resolution for the detector
         let c_res = if src.c_plane_distance > 0.0 { src.c_plane_distance } else { 15.0 };
         let g_res = if src.g_plane_distance > 0.0 { src.g_plane_distance } else { 5.0 };
-
-        // Copy metadata from source LDT for export
         let src_clone = src.clone();
+        let n_photons = target_photons.get_untracked();
 
+        // GPU path
+        if use_gpu.get_untracked() {
+            wasm_bindgen_futures::spawn_local(async move {
+                set_photons_done.set(0);
+
+                // Create GPU tracer
+                let tracer = match eulumdat_rt::GpuTracer::new().await {
+                    Ok(t) => t,
+                    Err(e) => {
+                        web_sys::console::error_1(&format!("GPU tracer failed: {e}").into());
+                        set_running.set(false);
+                        return;
+                    }
+                };
+
+                // Build GPU scene
+                let cp = cover_preset.get_untracked();
+                let (gpu_prims, gpu_mats) = if cp.has_cover() {
+                    let cover_mat = if cp == CoverPreset::Custom {
+                        MaterialParams {
+                            name: "Cover".into(),
+                            reflectance_pct: reflectance_pct.get_untracked(),
+                            ior: ior.get_untracked(),
+                            transmittance_pct: transmittance_pct.get_untracked(),
+                            thickness_mm: thickness_mm.get_untracked(),
+                            diffusion_pct: diffusion_pct.get_untracked(),
+                        }
+                    } else {
+                        cp.to_params().unwrap()
+                    };
+                    let gpu_mat = eulumdat_rt::GpuMaterial::from_material_params(&cover_mat);
+                    let d = cover_distance_mm.get_untracked() as f32 / 1000.0;
+                    let gpu_prim = eulumdat_rt::GpuPrimitive::sheet(
+                        [0.0, 0.0, -d], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
+                        0.5, 0.5, cover_mat.thickness_mm as f32 / 1000.0, 0,
+                    );
+                    (vec![gpu_prim], vec![gpu_mat])
+                } else {
+                    (vec![], vec![])
+                };
+
+                // Trace
+                let result = tracer.trace_with_scene(
+                    n_photons as u32, c_res as f32, g_res as f32,
+                    eulumdat_rt::SourceType::Isotropic, flux as f32,
+                    &gpu_prims, &gpu_mats,
+                ).await;
+
+                let energy = result.total_energy();
+                set_photons_done.set(n_photons);
+                set_photons_detected.set((energy / n_photons as f64 * n_photons as f64) as u64);
+                set_photons_absorbed.set(n_photons - (energy / n_photons as f64 * n_photons as f64) as u64);
+
+                // Convert to Eulumdat
+                let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&src_clone);
+                let export_cfg = ExportConfig {
+                    c_step_deg: c_res,
+                    g_step_deg: g_res,
+                    symmetry: Some(src_clone.symmetry),
+                    luminaire_name: format!("{} (GPU sim)", src_clone.luminaire_name),
+                    manufacturer: src_clone.identification.clone(),
+                    luminaire_dimensions_mm: (src_clone.length, src_clone.width, src_clone.height),
+                    luminous_area_mm: (src_clone.luminous_area_length, src_clone.luminous_area_width),
+                };
+
+                // Build Eulumdat from GPU detector result
+                // Convert GPU bins to CPU detector for reuse of export pipeline
+                let gpu_cd = result.to_candela(calculated_flux);
+                let mut ldt = Eulumdat::new();
+                ldt.luminaire_name = export_cfg.luminaire_name.clone();
+                ldt.identification = export_cfg.manufacturer.clone();
+                ldt.symmetry = src_clone.symmetry;
+                ldt.num_c_planes = gpu_cd.len();
+                ldt.c_plane_distance = c_res;
+                ldt.num_g_planes = if gpu_cd.is_empty() { 0 } else { gpu_cd[0].len() };
+                ldt.g_plane_distance = g_res;
+                ldt.length = src_clone.length;
+                ldt.width = src_clone.width;
+                ldt.height = src_clone.height;
+                ldt.luminous_area_length = src_clone.luminous_area_length;
+                ldt.luminous_area_width = src_clone.luminous_area_width;
+                ldt.lamp_sets = src_clone.lamp_sets.clone();
+                ldt.type_indicator = src_clone.type_indicator;
+                ldt.light_output_ratio = src_clone.light_output_ratio * (energy / n_photons as f64);
+                ldt.downward_flux_fraction = src_clone.downward_flux_fraction;
+                ldt.conversion_factor = 1.0;
+                ldt.direct_ratios = [0.0; 10];
+                ldt.c_angles = (0..gpu_cd.len()).map(|i| i as f64 * c_res).collect();
+                ldt.g_angles = (0..ldt.num_g_planes).map(|i| i as f64 * g_res).collect();
+                // Convert cd to cd/klm
+                let scale = 1000.0 / lamp_flux;
+                ldt.intensities = gpu_cd.iter().map(|cp| cp.iter().map(|&cd| cd * scale).collect()).collect();
+
+                set_export_ldt_string.set(ldt.to_ldt());
+                set_sim_ldt.set(Some(ldt));
+                set_running.set(false);
+            });
+            return;
+        }
+
+        // CPU path (existing code)
         wasm_bindgen_futures::spawn_local(async move {
             use eulumdat_goniosim::rand::Rng;
             use eulumdat_goniosim::rand::SeedableRng;
@@ -596,6 +696,39 @@ pub fn GonioSimDemo(
                         </div>
                     </div>
 
+                    // CPU / GPU toggle
+                    {move || {
+                        if gpu_available.get() {
+                            view! {
+                                <div style="margin-bottom: 16px;">
+                                    <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">"Engine"</label>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button
+                                            style=move || format!(
+                                                "padding: 4px 12px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; border: 1px solid {}; background: {}; color: {};",
+                                                if !use_gpu.get() { "#58a6ff" } else { "#30363d" },
+                                                if !use_gpu.get() { "#1f3a5f" } else { "#161b22" },
+                                                if !use_gpu.get() { "#58a6ff" } else { "#8b949e" },
+                                            )
+                                            on:click=move |_| set_use_gpu.set(false)
+                                        >"CPU"</button>
+                                        <button
+                                            style=move || format!(
+                                                "padding: 4px 12px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; border: 1px solid {}; background: {}; color: {};",
+                                                if use_gpu.get() { "#238636" } else { "#30363d" },
+                                                if use_gpu.get() { "#1a3d1f" } else { "#161b22" },
+                                                if use_gpu.get() { "#3fb950" } else { "#8b949e" },
+                                            )
+                                            on:click=move |_| set_use_gpu.set(true)
+                                        >"GPU"</button>
+                                    </div>
+                                </div>
+                            }.into_any()
+                        } else {
+                            view! { <div /> }.into_any()
+                        }
+                    }}
+
                     // Diagram type
                     <div style="margin-bottom: 16px;">
                         <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">"Diagram"</label>
@@ -849,6 +982,23 @@ fn render_diagram(
         DiagramType::Cartesian => CartesianDiagram::render_svg(ldt, c_plane, w, h, theme),
         DiagramType::Heatmap => HeatmapDiagram::render_svg(ldt, w, h, theme),
         DiagramType::Butterfly => ButterflyDiagram::render_svg(ldt, w, h, 60.0, theme),
+    }
+}
+
+/// Check if WebGPU is available in the browser.
+fn check_webgpu_available() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(window) = web_sys::window() {
+            // Check for navigator.gpu
+            let gpu = js_sys::Reflect::get(&window.navigator(), &"gpu".into()).ok();
+            return gpu.map_or(false, |v| !v.is_undefined() && !v.is_null());
+        }
+        false
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        true // Native always has GPU via wgpu
     }
 }
 

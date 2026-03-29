@@ -10,15 +10,19 @@ keywords = ["lighting", "photometry", "ray-tracing", "wgpu", "gpu"]
 categories = ["rendering", "simulation", "science"]
 
 [features]
-default = []
+default = ["native"]
+native = ["dep:pollster", "dep:env_logger"]
 
 [dependencies]
 eulumdat = { workspace = true }
 eulumdat-goniosim = { workspace = true, default-features = false }
 wgpu = "29"
 bytemuck = { version = "1.14", features = ["derive"] }
-pollster = "0.4"
+pollster = { version = "0.4", optional = true }
 log = "0.4"
-env_logger = "0.11"
+env_logger = { version = "0.11", optional = true }
 flume = "0.11"
 glam = "0.29"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
