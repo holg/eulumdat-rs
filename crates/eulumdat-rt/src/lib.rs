@@ -15,4 +15,6 @@
 
 mod pipeline;
 
-pub use pipeline::{GpuDetectorResult, GpuTracer, GpuTracerConfig, SourceType};
+pub use pipeline::{
+    GpuDetectorResult, GpuMaterial, GpuPrimitive, GpuTracer, GpuTracerConfig, SourceType,
+};
