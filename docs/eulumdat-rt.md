@@ -11,7 +11,8 @@ Neither Unreal nor Unity can output physically correct photometric data from
 ray tracing. Relux, DIALux, and AGi32 use render engines they don't control.
 We build the engine AND the physics.
 
-> "The only ray tracer that outputs an LDT file."
+> "One engine, two outputs: photometric measurement data AND
+> physically correct real-time images. Nobody else has both."
 
 ## Why Not Use Existing Ray Tracers
 
@@ -65,12 +66,17 @@ We build the engine AND the physics.
 | macOS/Metal            | Yes      | Yes         | **No**    | Yes       | Yes         |
 | WebGPU/WASM            | Yes      | No          | No        | No        | **Yes**     |
 | Custom materials       | Limited  | Yes         | No (StdMat)| Yes      | Yes         |
+| Realistic images       | Approx   | Approx      | Yes       | Yes       | **Yes**     |
 | Output photometric data| No       | No          | No        | Possible  | **Yes**     |
 | Outputs LDT/IES        | No       | No          | No        | No        | **Yes**     |
+| Both images AND data   | No       | No          | No        | No        | **Yes**     |
 | CIE validated          | N/A      | N/A         | N/A       | Partial   | **Yes**     |
 
-The fundamental difference: Solari asks "does the image look physically
-plausible?" We ask "is the photometric measurement correct to within 0.1%?"
+The key differentiator: same physically correct engine produces BOTH
+measurement data (LDT/IES) AND realistic images. The photons are the same —
+it's just where you collect them: detector sphere → candela, or camera
+sensor → pixels. DIALux can't render images. Solari can't output LDT files.
+We do both from one tracer because the physics is real, not approximated.
 
 ## Architecture
 
@@ -99,8 +105,16 @@ Solari writes pixels to the screen, we write candela to detector bins.
 │  │   ├── Photon state (position, direction, energy) │
 │  │   ├── Detector bins (atomic u32 array)           │
 │  │   └── RNG state (per-workgroup seeds)            │
+│  ├── Output Mode A: Photometric Measurement         │
+│  │   ├── Detector bins → candela → LDT/IES export   │
+│  │   └── CIE 171:2006 validated                     │
+│  ├── Output Mode B: Realistic Image                 │
+│  │   ├── Camera sensor → pixel accumulation          │
+│  │   ├── Tone mapping → framebuffer                  │
+│  │   └── Same physics, same materials — correct light│
 │  └── Readback + Export                              │
 │      ├── Detector bins → Eulumdat → .ldt            │
+│      ├── Camera → HDR image / screenshot            │
 │      └── Progress reporting to ECS                  │
 ├─────────────────────────────────────────────────────┤
 │  eulumdat-goniosim (CPU reference — validation)     │
@@ -455,19 +469,30 @@ sufficient photon count. If they diverge, the GPU shader has a bug.
 - [ ] CDF-based FromLvk source sampling on GPU
 - [ ] Full CIE 171:2006 test suite on GPU
 
-### Phase 3: Visualization
+### Phase 3: Camera Output (Realistic Images)
+
+- [ ] Camera sensor: accumulate photons hitting a virtual film plane
+- [ ] Tone mapping (Reinhard / ACES) for HDR → displayable image
+- [ ] Progressive rendering: noisy → clean as photons accumulate
+- [ ] Write to Bevy's framebuffer for real-time display
+- [ ] Same compute shader, second output target (camera instead of detector)
+
+### Phase 4: Visualization + Polish
 
 - [ ] Photon trail rendering (instanced line segments)
 - [ ] Detector sphere heatmap (vertex colors)
 - [ ] Live polar diagram overlay
-- [ ] Side-by-side CPU vs GPU comparison
+- [ ] Side-by-side: photometric data view + rendered image view
+- [ ] CPU vs GPU comparison dashboard
 
-### Phase 4: Advanced Features
+### Phase 5: Advanced Features
 
-- [ ] BVH for complex geometry (mesh import)
+- [ ] BVH for complex geometry (mesh/glTF import)
 - [ ] Spectral rendering (wavelength-dependent materials)
 - [ ] Multi-source arrays (LED matrix)
 - [ ] WASM/WebGPU support (runs in browser)
+- [ ] Denoising for image output (optional, for real-time preview)
+- [ ] Environment maps (sky, room reflections)
 
 ## Relationship to Solari
 
