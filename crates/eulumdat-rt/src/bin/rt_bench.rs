@@ -23,6 +23,7 @@ fn main() {
         "bench" => cmd_bench(),
         "trace" => cmd_trace(&args[2..]),
         "compare" => cmd_compare(&args[2..]),
+        "render" => cmd_render(&args[2..]),
         _ => {
             eprintln!("Unknown command: {}", args[1]);
             print_usage();
@@ -37,6 +38,7 @@ fn print_usage() {
     eprintln!("  rt_bench bench");
     eprintln!("  rt_bench trace <input.ldt> [--cover <preset>] [--photons <n>]");
     eprintln!("  rt_bench compare <input.ldt> [--cover <preset>] [--photons <n>]");
+    eprintln!("  rt_bench render [--cover <preset>] [--width <w>] [--height <h>] [--spp <n>] [-o output.ppm]");
 }
 
 fn load_ldt(path: &str) -> Eulumdat {
@@ -296,4 +298,96 @@ fn fmt_num(n: u32) -> String {
     if n >= 1_000_000 { format!("{}M", n / 1_000_000) }
     else if n >= 1_000 { format!("{}K", n / 1_000) }
     else { n.to_string() }
+}
+
+// ============================================================================
+// Render
+// ============================================================================
+
+fn cmd_render(args: &[String]) {
+    let cover_name = parse_flag(args, "--cover", "opal_pmma_3mm");
+    let width: u32 = parse_flag(args, "--width", "512").parse().unwrap_or(512);
+    let height: u32 = parse_flag(args, "--height", "512").parse().unwrap_or(512);
+    let spp: u32 = parse_flag(args, "--spp", "32").parse().unwrap_or(32);
+    let output = parse_flag(args, "-o", "render.ppm");
+
+    let cover = get_cover(&cover_name);
+
+    println!("=== eulumdat-rt Render ===\n");
+    println!("Resolution: {width}x{height}, SPP: {spp}");
+
+    let camera = pollster::block_on(eulumdat_rt::GpuCamera::new()).expect("GPU camera");
+
+    // Build scene: floor + cover + walls
+    let mut prims = Vec::new();
+    let mut mats = Vec::new();
+
+    // Floor (diffuse white, y = -0.2)
+    mats.push(GpuMaterial {
+        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
+        reflectance: 0.7, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
+        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+    });
+    prims.push(GpuPrimitive::sheet(
+        [0.0, -0.2, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],
+        2.0, 2.0, 0.001, 0, // mat 0 = floor
+    ));
+
+    // Back wall (diffuse light grey, z = -1.0)
+    mats.push(GpuMaterial {
+        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
+        reflectance: 0.5, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
+        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+    });
+    prims.push(GpuPrimitive::sheet(
+        [0.0, 0.5, -1.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
+        2.0, 1.0, 0.001, 1, // mat 1 = wall
+    ));
+
+    // Cover sheet (if specified)
+    if let Some(ref c) = cover {
+        println!("Cover: {}", c.name);
+        let cover_mat = GpuMaterial::from_material_params(c);
+        let cover_mat_id = mats.len() as u32;
+        mats.push(cover_mat);
+        prims.push(GpuPrimitive::sheet(
+            [0.0, -0.04, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],
+            0.3, 0.3, c.thickness_mm as f32 / 1000.0, cover_mat_id,
+        ));
+    } else {
+        println!("Cover: none");
+    }
+
+    println!("Primitives: {}, Materials: {}", prims.len(), mats.len());
+    println!();
+
+    let start = Instant::now();
+    let image = pollster::block_on(camera.render(
+        width, height, spp,
+        [0.4, 0.2, 0.6],   // camera
+        [0.0, -0.05, 0.0],  // look at
+        60.0,
+        &prims, &mats,
+        200.0,              // source intensity
+    ));
+    let elapsed = start.elapsed();
+
+    println!("Rendered in {:.1}ms ({:.1}M rays/sec)",
+        elapsed.as_secs_f64() * 1000.0,
+        (width * height * spp) as f64 / elapsed.as_secs_f64() / 1_000_000.0);
+
+    // Write PPM
+    let ppm_bytes: Vec<u8> = image.to_srgb_bytes()
+        .chunks(4)
+        .flat_map(|rgba| [rgba[0], rgba[1], rgba[2]])
+        .collect();
+
+    let mut data = format!("P6\n{} {}\n255\n", width, height).into_bytes();
+    data.extend_from_slice(&ppm_bytes);
+
+    fs::write(&output, &data).unwrap_or_else(|e| {
+        eprintln!("Cannot write {output}: {e}");
+        process::exit(1);
+    });
+    println!("Written: {output} ({} bytes)", data.len());
 }
