@@ -211,8 +211,9 @@ fn build_onb(n: &Unit<Vector3<f64>>) -> (Unit<Vector3<f64>>, Unit<Vector3<f64>>)
 
 /// Pre-computed CDF table for efficient LVK sampling.
 /// Built once per LDT, then sampled in O(log n) via binary search.
+/// Pre-computed CDF table for efficient LVK sampling.
 #[derive(Debug, Clone)]
-struct LvkCdf {
+pub struct LvkCdf {
     /// Gamma angles sampled at 1° resolution
     g_steps: usize,
     /// C angles sampled at 5° resolution
