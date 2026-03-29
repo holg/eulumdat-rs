@@ -1,0 +1,22 @@
+[package]
+name = "eulumdat-rt"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "GPU ray tracing engine for photometric simulation — wgpu compute shaders"
+keywords = ["lighting", "photometry", "ray-tracing", "wgpu", "gpu"]
+categories = ["rendering", "simulation", "science"]
+
+[features]
+default = []
+
+[dependencies]
+eulumdat = { workspace = true }
+eulumdat-goniosim = { workspace = true, default-features = false }
+wgpu = "29"
+bytemuck = { version = "1.14", features = ["derive"] }
+pollster = "0.4"
+log = "0.4"
+flume = "0.11"
