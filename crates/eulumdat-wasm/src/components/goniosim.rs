@@ -385,10 +385,15 @@ pub fn GonioSimDemo(
                     (vec![], vec![])
                 };
 
-                // Trace
-                let result = tracer.trace_with_scene(
+                // Build CDF from source LDT for FromLvk sampling
+                let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&src_clone);
+                let cdf = eulumdat_goniosim::source::LvkCdf::build(&src_clone);
+
+                // Trace with FromLvk source
+                let result = tracer.trace_from_lvk(
                     n_photons as u32, c_res as f32, g_res as f32,
-                    eulumdat_rt::SourceType::Isotropic, flux as f32,
+                    calculated_flux as f32,
+                    &cdf,
                     &gpu_prims, &gpu_mats,
                 ).await;
 
@@ -397,8 +402,7 @@ pub fn GonioSimDemo(
                 set_photons_detected.set((energy / n_photons as f64 * n_photons as f64) as u64);
                 set_photons_absorbed.set(n_photons - (energy / n_photons as f64 * n_photons as f64) as u64);
 
-                // Convert to Eulumdat
-                let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&src_clone);
+                // Convert to Eulumdat (calculated_flux already computed above)
                 let export_cfg = ExportConfig {
                     c_step_deg: c_res,
                     g_step_deg: g_res,
