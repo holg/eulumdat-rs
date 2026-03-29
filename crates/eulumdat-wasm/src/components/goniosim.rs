@@ -14,6 +14,7 @@ use eulumdat::Eulumdat;
 use eulumdat_goniosim::nalgebra::{Point3, Vector3};
 use eulumdat_goniosim::*;
 use leptos::prelude::*;
+use base64::Engine;
 use wasm_bindgen::JsCast;
 
 /// Batch size: photons traced per requestAnimationFrame tick.
@@ -37,11 +38,12 @@ enum DiagramType {
     Cartesian,
     Heatmap,
     Butterfly,
+    Render3D,
 }
 
 impl DiagramType {
     fn all() -> &'static [DiagramType] {
-        &[Self::Polar, Self::Cartesian, Self::Heatmap, Self::Butterfly]
+        &[Self::Polar, Self::Cartesian, Self::Heatmap, Self::Butterfly, Self::Render3D]
     }
     fn label(&self, _g: &eulumdat_i18n::GoniosimLocale) -> &'static str {
         match self {
@@ -49,6 +51,7 @@ impl DiagramType {
             Self::Cartesian => "Cartesian",
             Self::Heatmap => "Heatmap",
             Self::Butterfly => "3D",
+            Self::Render3D => "Render",
         }
     }
 }
@@ -186,6 +189,7 @@ pub fn GonioSimDemo(
     let (sim_ldt, set_sim_ldt) = signal::<Option<Eulumdat>>(None);
     let (generation, set_generation) = signal(0u32);
     let (export_ldt_string, set_export_ldt_string) = signal(String::new());
+    let (render_image_uri, set_render_image_uri) = signal(String::new());
 
     // Apply cover preset params
     Effect::new(move |_| {
@@ -435,6 +439,22 @@ pub fn GonioSimDemo(
 
                 set_export_ldt_string.set(ldt.to_ldt());
                 set_sim_ldt.set(Some(ldt));
+
+                // Also render a 3D camera image
+                if let Ok(camera) = eulumdat_rt::GpuCamera::new().await {
+                    let image = camera.render(
+                        400, 300, 32,
+                        [0.4, 0.2, 0.6], [0.0, -0.05, 0.0], 60.0,
+                        &gpu_prims, &gpu_mats,
+                        200.0,
+                    ).await;
+                    // Convert to base64 data URI for display in <img>
+                    let rgba = image.to_srgb_bytes_with_exposure(3.0);
+                    let ppm = encode_ppm(&rgba, image.width, image.height);
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&ppm);
+                    set_render_image_uri.set(format!("data:image/x-portable-pixmap;base64,{b64}"));
+                }
+
                 set_running.set(false);
             });
             return;
@@ -862,11 +882,29 @@ pub fn GonioSimDemo(
                         </div>
                         // Divider
                         <div style="width: 1px; height: 80%; background: #30363d; flex-shrink: 0;" />
-                        // Simulated — re-renders when sim_ldt or selected_plane changes
+                        // Simulated — re-renders when sim_ldt or selected_plane or diagram_type changes
                         <div style="flex: 1; max-width: 500px; display: flex; align-items: center; justify-content: center;">
                             {move || {
+                                let dt = diagram_type.get();
                                 let ldt_opt = sim_ldt.get();
                                 let cp = selected_plane.get();
+
+                                // Render3D: show camera-rendered image
+                                if dt == DiagramType::Render3D {
+                                    let uri = render_image_uri.get();
+                                    if uri.is_empty() {
+                                        return view! {
+                                            <div style="color: #484f58; text-align: center; font-size: 0.9rem;">
+                                                "Trace with GPU to render 3D scene"
+                                            </div>
+                                        }.into_any();
+                                    }
+                                    return view! {
+                                        <img src=uri style="max-width: 100%; border-radius: 6px; border: 1px solid #30363d;" />
+                                    }.into_any();
+                                }
+
+                                // Standard diagram types
                                 if ldt_opt.is_none() {
                                     view! {
                                         <div style="color: #484f58; text-align: center; font-size: 0.9rem;">
@@ -876,7 +914,7 @@ pub fn GonioSimDemo(
                                 } else {
                                     let ldt = ldt_opt.unwrap();
                                     let theme = SvgTheme::dark();
-                                    let svg = render_diagram(&ldt, diagram_type.get_untracked(), cp, &theme, 450.0, 450.0);
+                                    let svg = render_diagram(&ldt, dt, cp, &theme, 450.0, 450.0);
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
                                     }.into_any()
@@ -982,7 +1020,23 @@ fn render_diagram(
         DiagramType::Cartesian => CartesianDiagram::render_svg(ldt, c_plane, w, h, theme),
         DiagramType::Heatmap => HeatmapDiagram::render_svg(ldt, w, h, theme),
         DiagramType::Butterfly => ButterflyDiagram::render_svg(ldt, w, h, 60.0, theme),
+        DiagramType::Render3D => {
+            // Return empty — the render image is displayed via <img> tag, not inner_html
+            String::new()
+        }
     }
+}
+
+/// Encode RGBA bytes as PPM binary.
+fn encode_ppm(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
+    let header = format!("P6\n{} {}\n255\n", width, height);
+    let mut data = header.into_bytes();
+    for chunk in rgba.chunks(4) {
+        data.push(chunk[0]);
+        data.push(chunk[1]);
+        data.push(chunk[2]);
+    }
+    data
 }
 
 /// Check if WebGPU is available in the browser.
