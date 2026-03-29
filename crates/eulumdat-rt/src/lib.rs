@@ -13,8 +13,10 @@
 //! println!("Detected energy: {}", result.total_energy());
 //! ```
 
+pub mod camera;
 mod pipeline;
 
+pub use camera::{CameraConfig, CameraImage, GpuCamera};
 pub use pipeline::{
     GpuDetectorResult, GpuMaterial, GpuPrimitive, GpuTracer, GpuTracerConfig, SourceType,
 };
