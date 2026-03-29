@@ -97,12 +97,32 @@ impl CoverPreset {
 }
 
 #[component]
-pub fn GonioSimDemo() -> impl IntoView {
+pub fn GonioSimDemo(
+    /// When provided, use this LDT from the editor (tab mode).
+    /// When None, show template selector (standalone mode).
+    #[prop(optional)]
+    ldt: Option<ReadSignal<Eulumdat>>,
+) -> impl IntoView {
     let locale = use_locale();
 
     // --- Input LDT (the source luminaire) ---
-    let (source_ldt, set_source_ldt) = signal::<Option<Eulumdat>>(None);
+    // In tab mode: track the editor's LDT. In standalone: own signal.
+    let (own_ldt, set_own_ldt) = signal::<Option<Eulumdat>>(None);
     let (source_name, set_source_name) = signal(String::new());
+    let standalone = ldt.is_none();
+
+    // Unified source_ldt: reads from editor prop or own signal
+    let source_ldt = Memo::new(move |_| {
+        if let Some(editor_ldt) = ldt {
+            Some(editor_ldt.get())
+        } else {
+            own_ldt.get()
+        }
+    });
+    // Setter only used in standalone mode
+    let set_source_ldt = move |val: Option<Eulumdat>| {
+        set_own_ldt.set(val);
+    };
 
     // --- Cover material ---
     let (cover_preset, set_cover_preset) = signal(CoverPreset::None);
@@ -147,7 +167,7 @@ pub fn GonioSimDemo() -> impl IntoView {
         match Eulumdat::parse(&content) {
             Ok(ldt) => {
                 set_source_name.set(name);
-                set_source_ldt.set(Some(ldt));
+                set_source_ldt(Some(ldt));
                 // Reset simulation
                 reset_sim(
                     set_running, set_photons_done, set_photons_detected,
@@ -158,7 +178,7 @@ pub fn GonioSimDemo() -> impl IntoView {
                 // Try IES
                 if let Ok(ldt) = eulumdat::IesParser::parse(&content) {
                     set_source_name.set(name);
-                    set_source_ldt.set(Some(ldt));
+                    set_source_ldt(Some(ldt));
                     reset_sim(
                         set_running, set_photons_done, set_photons_detected,
                         set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
@@ -443,40 +463,43 @@ pub fn GonioSimDemo() -> impl IntoView {
                 // Left panel: controls
                 <div style="width: 280px; padding: 16px; border-right: 1px solid #30363d; overflow-y: auto; flex-shrink: 0;">
 
-                    // Source LDT input
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{move || locale.get().goniosim.input_luminaire.clone()}</label>
-                        // Template selector
-                        <select
-                            style="width: 100%; padding: 6px; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; margin-bottom: 6px;"
-                            on:change=on_template_select
-                        >
-                            {TEMPLATES.iter().enumerate().map(|(i, (name, _))| {
-                                view! { <option value=i.to_string()>{*name}</option> }
-                            }).collect::<Vec<_>>()}
-                        </select>
-                        // File upload
-                        <label style="display: block; padding: 6px; text-align: center; background: #161b22; border: 1px dashed #30363d; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: #8b949e;">
-                            {move || locale.get().goniosim.upload.clone()}
-                            <input
-                                type="file"
-                                accept=".ldt,.LDT,.ies,.IES"
-                                style="display: none;"
-                                on:change=on_file_input
-                            />
-                        </label>
-                        // Current file name
-                        {move || {
-                            let name = source_name.get();
-                            if !name.is_empty() {
-                                view! {
-                                    <div style="margin-top: 4px; font-size: 0.75rem; color: #58a6ff;">{name}</div>
-                                }.into_any()
-                            } else {
-                                view! { <div /> }.into_any()
-                            }
-                        }}
-                    </div>
+                    // Source LDT input — only in standalone mode
+                    {if standalone {
+                        view! {
+                            <div style="margin-bottom: 16px;">
+                                <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">{move || locale.get().goniosim.input_luminaire.clone()}</label>
+                                <select
+                                    style="width: 100%; padding: 6px; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; margin-bottom: 6px;"
+                                    on:change=on_template_select
+                                >
+                                    {TEMPLATES.iter().enumerate().map(|(i, (name, _))| {
+                                        view! { <option value=i.to_string()>{*name}</option> }
+                                    }).collect::<Vec<_>>()}
+                                </select>
+                                <label style="display: block; padding: 6px; text-align: center; background: #161b22; border: 1px dashed #30363d; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: #8b949e;">
+                                    {move || locale.get().goniosim.upload.clone()}
+                                    <input
+                                        type="file"
+                                        accept=".ldt,.LDT,.ies,.IES"
+                                        style="display: none;"
+                                        on:change=on_file_input
+                                    />
+                                </label>
+                                {move || {
+                                    let name = source_name.get();
+                                    if !name.is_empty() {
+                                        view! {
+                                            <div style="margin-top: 4px; font-size: 0.75rem; color: #58a6ff;">{name}</div>
+                                        }.into_any()
+                                    } else {
+                                        view! { <div /> }.into_any()
+                                    }
+                                }}
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! { <div /> }.into_any()
+                    }}
 
                     // Cover material
                     <div style="margin-bottom: 16px;">

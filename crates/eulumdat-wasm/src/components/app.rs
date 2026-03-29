@@ -1926,7 +1926,7 @@ pub fn App() -> impl IntoView {
                                     </div>
                                 }.into_any(),
                                 Tab::GonioSimTab => view! {
-                                    <GonioSimDemo />
+                                    <GonioSimDemo ldt=ldt />
                                 }.into_any(),
                             }}
                         </div>
