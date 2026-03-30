@@ -56,6 +56,45 @@ impl DiagramType {
     }
 }
 
+/// Camera view presets.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CameraView {
+    Corner,     // Standard room corner view
+    TopDown,    // Looking straight down at floor (shows light pattern)
+    FloorLevel, // Eye-level from floor (dramatic)
+    CloseUp,    // Close to the luminaire/cover
+}
+
+impl CameraView {
+    fn all() -> &'static [CameraView] {
+        &[Self::Corner, Self::TopDown, Self::FloorLevel, Self::CloseUp]
+    }
+    fn label(&self) -> &'static str {
+        match self {
+            Self::Corner => "Corner",
+            Self::TopDown => "Top",
+            Self::FloorLevel => "Floor",
+            Self::CloseUp => "Close",
+        }
+    }
+    fn camera_pos(&self) -> [f32; 3] {
+        match self {
+            Self::Corner => [1.8, 0.8, 2.2],
+            Self::TopDown => [0.0, 2.8, 0.01],     // directly above, looking down
+            Self::FloorLevel => [1.5, 0.15, 1.5],  // sitting on floor
+            Self::CloseUp => [0.4, 1.2, 0.4],      // near the luminaire
+        }
+    }
+    fn look_at(&self) -> [f32; 3] {
+        match self {
+            Self::Corner => [0.0, 0.3, 0.0],
+            Self::TopDown => [0.0, 0.0, 0.0],       // floor center
+            Self::FloorLevel => [0.0, 0.8, 0.0],    // up toward light
+            Self::CloseUp => [0.0, 1.45, 0.0],      // at the cover
+        }
+    }
+}
+
 /// Built-in template LDT files (name, content).
 const TEMPLATES: &[(&str, &str)] = &[
     ("Fluorescent luminaire", include_str!("../../templates/fluorescent_luminaire.ldt")),
@@ -190,6 +229,9 @@ pub fn GonioSimDemo(
     let (generation, set_generation) = signal(0u32);
     let (export_ldt_string, set_export_ldt_string) = signal(String::new());
     let (render_image_uri, set_render_image_uri) = signal(String::new());
+
+    // --- Camera view ---
+    let (cam_view, set_cam_view) = signal(CameraView::Corner);
 
     // Apply cover preset params
     Effect::new(move |_| {
@@ -467,10 +509,11 @@ pub fn GonioSimDemo(
                         }
                     }
 
+                    let cv = cam_view.get_untracked();
                     let mut image = camera.render_with_lvk(
                         512, 384, 64,
-                        [1.8, 0.8, 2.2],
-                        [0.0, 0.3, 0.0],
+                        cv.camera_pos(),
+                        cv.look_at(),
                         55.0,
                         &scene_prims, &scene_mats,
                         500.0,
@@ -797,6 +840,37 @@ pub fn GonioSimDemo(
                             }).collect::<Vec<_>>()}
                         </div>
                     </div>
+
+                    // Camera view (only shown when Render is selected)
+                    {move || {
+                        if diagram_type.get() == DiagramType::Render3D {
+                            view! {
+                                <div style="margin-bottom: 16px;">
+                                    <label style="display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">"Camera"</label>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                        {CameraView::all().iter().map(|&cv| {
+                                            view! {
+                                                <button
+                                                    style=move || format!(
+                                                        "padding: 3px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; border: 1px solid {}; background: {}; color: {};",
+                                                        if cam_view.get() == cv { "#58a6ff" } else { "#30363d" },
+                                                        if cam_view.get() == cv { "#1f3a5f" } else { "#161b22" },
+                                                        if cam_view.get() == cv { "#58a6ff" } else { "#8b949e" },
+                                                    )
+                                                    on:click=move |_| {
+                                                        set_cam_view.set(cv);
+                                                        set_render_image_uri.set(String::new());
+                                                    }
+                                                >{cv.label()}</button>
+                                            }
+                                        }).collect::<Vec<_>>()}
+                                    </div>
+                                </div>
+                            }.into_any()
+                        } else {
+                            view! { <div /> }.into_any()
+                        }
+                    }}
 
                     // Stats
                     <div style="padding: 12px; background: #161b22; border-radius: 6px; border: 1px solid #30363d;">
