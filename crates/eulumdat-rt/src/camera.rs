@@ -25,6 +25,10 @@ pub struct CameraConfig {
     pub seed_offset: u32,
     pub source_intensity: f32,
     pub source_radius: f32,
+    pub lvk_c_steps: u32,
+    pub lvk_g_steps: u32,
+    pub lvk_g_max: f32,
+    pub lvk_max_intensity: f32,
 }
 
 /// Result from a camera render — RGB pixels.
@@ -217,6 +221,17 @@ impl GpuCamera {
                     },
                     count: None,
                 },
+                // lvk_data (read storage — light emission pattern)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -239,6 +254,9 @@ impl GpuCamera {
     }
 
     /// Render an image of the scene.
+    ///
+    /// `lvk_data`: optional flat array of intensity values [c0g0, c0g1, ..., c1g0, ...] for
+    /// LDT-based light emission. If empty, uses uniform emission.
     pub async fn render(
         &self,
         width: u32,
@@ -250,6 +268,28 @@ impl GpuCamera {
         primitives: &[GpuPrimitive],
         materials: &[GpuMaterial],
         source_intensity: f32,
+    ) -> CameraImage {
+        self.render_with_lvk(width, height, samples_per_pixel, camera_pos, look_at, fov_degrees,
+            primitives, materials, source_intensity, &[], 0, 0, 0.0, 0.0).await
+    }
+
+    /// Render with LDT-based light emission pattern.
+    pub async fn render_with_lvk(
+        &self,
+        width: u32,
+        height: u32,
+        samples_per_pixel: u32,
+        camera_pos: [f32; 3],
+        look_at: [f32; 3],
+        fov_degrees: f32,
+        primitives: &[GpuPrimitive],
+        materials: &[GpuMaterial],
+        source_intensity: f32,
+        lvk_data: &[f32],
+        lvk_c_steps: u32,
+        lvk_g_steps: u32,
+        lvk_g_max: f32,
+        lvk_max_intensity: f32,
     ) -> CameraImage {
         // Compute camera basis vectors
         let pos = glam::Vec3::from(camera_pos);
@@ -276,6 +316,10 @@ impl GpuCamera {
             seed_offset: 42,
             source_intensity,
             source_radius: 0.02,
+            lvk_c_steps,
+            lvk_g_steps,
+            lvk_g_max,
+            lvk_max_intensity,
         };
 
         let total_pixels = width * height;
@@ -322,6 +366,14 @@ impl GpuCamera {
             usage: wgpu::BufferUsages::STORAGE,
         });
 
+        // LVK buffer
+        let lvk_buf_data: Vec<f32> = if lvk_data.is_empty() { vec![1.0] } else { lvk_data.to_vec() };
+        let lvk_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("cam_lvk"),
+            contents: bytemuck::cast_slice(&lvk_buf_data),
+            usage: wgpu::BufferUsages::STORAGE,
+        });
+
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("cam_bg"),
             layout: &self.bind_group_layout,
@@ -330,6 +382,7 @@ impl GpuCamera {
                 wgpu::BindGroupEntry { binding: 1, resource: config_buf.as_entire_binding() },
                 wgpu::BindGroupEntry { binding: 2, resource: prim_buf.as_entire_binding() },
                 wgpu::BindGroupEntry { binding: 3, resource: mat_buf.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 4, resource: lvk_buf.as_entire_binding() },
             ],
         });
 

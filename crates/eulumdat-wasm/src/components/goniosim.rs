@@ -445,16 +445,36 @@ pub fn GonioSimDemo(
                 set_export_ldt_string.set(ldt.to_ldt());
                 set_sim_ldt.set(Some(ldt));
 
-                // Render a 3D camera image of a room scene
+                // Render a 3D camera image with LDT-based light emission
                 if let Ok(camera) = eulumdat_rt::GpuCamera::new().await {
                     let (scene_prims, scene_mats) = build_render_scene(&gpu_prims, &gpu_mats);
-                    let mut image = camera.render(
+
+                    // Build LVK intensity lookup table from LDT
+                    let lvk_c_step = 5.0f64;
+                    let lvk_g_step = 1.0f64;
+                    let lvk_g_max = src_clone.g_angles.last().copied().unwrap_or(90.0);
+                    let lvk_c_steps = (360.0 / lvk_c_step) as u32;
+                    let lvk_g_steps = (lvk_g_max / lvk_g_step) as u32 + 1;
+                    let mut lvk_flat = Vec::with_capacity((lvk_c_steps * lvk_g_steps) as usize);
+                    let mut lvk_max = 0.0f32;
+                    for ci in 0..lvk_c_steps {
+                        for gi in 0..lvk_g_steps {
+                            let c = ci as f64 * lvk_c_step;
+                            let g = gi as f64 * lvk_g_step;
+                            let val = src_clone.sample(c, g) as f32;
+                            lvk_flat.push(val);
+                            if val > lvk_max { lvk_max = val; }
+                        }
+                    }
+
+                    let mut image = camera.render_with_lvk(
                         512, 384, 64,
-                        [1.8, 0.8, 2.2],    // camera in corner of room
-                        [0.0, 0.3, 0.0],    // look at center-ceiling area
+                        [1.8, 0.8, 2.2],
+                        [0.0, 0.3, 0.0],
                         55.0,
                         &scene_prims, &scene_mats,
-                        500.0,              // bright source
+                        500.0,
+                        &lvk_flat, lvk_c_steps, lvk_g_steps, lvk_g_max as f32, lvk_max,
                     ).await;
                     image.denoise(3); // bilateral filter, radius 3
                     let rgba = image.to_srgb_bytes_with_exposure(2.5);

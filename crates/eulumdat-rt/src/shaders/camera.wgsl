@@ -22,8 +22,13 @@ struct CameraConfig {
     num_primitives: u32,
     seed_offset: u32,
     // Source (emissive object)
-    source_intensity: f32, // cd
-    source_radius: f32,    // for soft shadows
+    source_intensity: f32,
+    source_radius: f32,
+    // LVK lookup table params
+    lvk_c_steps: u32,
+    lvk_g_steps: u32,
+    lvk_g_max: f32,
+    lvk_max_intensity: f32,  // for normalization
 }
 
 // Reuse material/primitive structs from trace.wgsl
@@ -55,6 +60,8 @@ struct GpuMaterial {
 @group(0) @binding(1) var<uniform> config: CameraConfig;
 @group(0) @binding(2) var<storage, read> primitives: array<GpuPrimitive>;
 @group(0) @binding(3) var<storage, read> materials: array<GpuMaterial>;
+// LVK intensity lookup table for light emission pattern
+@group(0) @binding(4) var<storage, read> lvk_data: array<f32>;
 
 // ============================================================================
 // RNG
@@ -190,6 +197,34 @@ fn intersect_scene(ray_origin: vec3<f32>, ray_dir: vec3<f32>) -> HitRecord {
 // Path tracing: trace a camera ray and return color
 // ============================================================================
 
+/// Look up LVK intensity at a given direction (from source).
+/// Returns normalized intensity 0..1 based on the LDT distribution.
+fn lvk_intensity(dir_from_source: vec3<f32>) -> f32 {
+    if (config.lvk_g_steps == 0u || config.lvk_c_steps == 0u) {
+        return 1.0; // No LVK data — uniform emission
+    }
+
+    // Convert direction to photometric angles
+    // gamma = angle from -Y (nadir in camera Y-up coords)
+    let gamma_rad = acos(clamp(-dir_from_source.y, -1.0, 1.0));
+    let gamma_deg = degrees(gamma_rad);
+
+    // Clamp to LVK range
+    if (gamma_deg > config.lvk_g_max) { return 0.0; }
+
+    // C angle from +X toward +Z
+    var c_deg = degrees(atan2(dir_from_source.z, dir_from_source.x));
+    if (c_deg < 0.0) { c_deg += 360.0; }
+
+    // Nearest bin lookup
+    let ci = u32(c_deg / (360.0 / f32(config.lvk_c_steps))) % config.lvk_c_steps;
+    let gi = min(u32(gamma_deg / (config.lvk_g_max / f32(config.lvk_g_steps - 1u)) + 0.5), config.lvk_g_steps - 1u);
+    let idx = ci * config.lvk_g_steps + gi;
+
+    let intensity = lvk_data[idx];
+    return intensity / max(config.lvk_max_intensity, 0.001);
+}
+
 /// Sample a point on the emissive light source (small sphere at origin).
 fn sample_light_point() -> vec3<f32> {
     // Small area light at origin with radius
@@ -234,10 +269,14 @@ fn direct_lighting(hit_point: vec3<f32>, hit_normal: vec3<f32>) -> vec3<f32> {
 
     let n_dot_l = max(dot(hit_normal, light_dir), 0.0);
 
-    // Light emission: warm white
-    let light_color = vec3<f32>(1.0, 0.95, 0.85) * config.source_intensity;
+    // Light emission weighted by LVK distribution
+    // Direction from source TO the hit point (for LVK lookup)
+    let dir_from_source = -light_dir;
+    let lvk_weight = lvk_intensity(dir_from_source);
 
-    // Inverse square law with area light solid angle
+    let light_color = vec3<f32>(1.0, 0.95, 0.85) * config.source_intensity * lvk_weight;
+
+    // Inverse square law
     let light_area = 4.0 * PI * config.source_radius * config.source_radius;
     let irradiance = light_color * n_dot_l * light_area / (4.0 * PI * dist2);
 
