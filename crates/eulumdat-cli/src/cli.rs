@@ -134,6 +134,20 @@ pub enum Commands {
         overwrite: bool,
     },
 
+    /// Export many LDT/IES files to a single Parquet file (one row per luminaire)
+    #[cfg(feature = "parquet")]
+    ExportParquet {
+        /// Input directory containing .ldt or .ies files
+        input_dir: PathBuf,
+
+        /// Output Parquet file
+        output: PathBuf,
+
+        /// Process subdirectories recursively
+        #[arg(short, long)]
+        recursive: bool,
+    },
+
     /// Display photometric summary with calculated values
     Summary {
         /// Input file (.ldt or .ies)

@@ -1,0 +1,25 @@
+[package]
+name = "eulumdat-parquet"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Apache Parquet export for eulumdat/IES photometric files — one row per luminaire"
+keywords = ["lighting", "photometry", "parquet", "arrow", "eulumdat"]
+categories = ["science", "encoding"]
+readme = "README.md"
+homepage = "https://github.com/holg/eulumdat-rs"
+
+[features]
+default = ["summary"]
+# Include computed metrics (PhotometricSummary) — beam/field angles, efficacy, flux codes, etc.
+summary = []
+# Include raw photometry (c_angles, g_angles, intensities grid). Large — opt-in.
+raw-photometry = []
+
+[dependencies]
+anyhow.workspace = true
+arrow = "58"
+eulumdat = { workspace = true, features = ["serde"] }
+parquet = "58"

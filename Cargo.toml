@@ -19,6 +19,7 @@ eulumdat-bevy = { path = "crates/eulumdat-bevy", version = "0.6.0" }
 eulumdat-bevy-rt = { path = "crates/eulumdat-bevy-rt", version = "0.6.0" }
 eulumdat-goniosim = { path = "crates/eulumdat-goniosim", version = "0.6.0" }
 eulumdat-i18n = { path = "crates/eulumdat-i18n", version = "0.6.0" }
+eulumdat-parquet = { path = "crates/eulumdat-parquet", version = "0.6.0" }
 eulumdat-photweb = { path = "crates/eulumdat-photweb", version = "0.6.0" }
 eulumdat-rt = { path = "crates/eulumdat-rt", version = "0.6.0" }
 eulumdat-typst = { path = "crates/eulumdat-typst", version = "0.6.0" }

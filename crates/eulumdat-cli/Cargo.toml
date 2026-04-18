@@ -14,10 +14,16 @@ categories = ["command-line-utilities", "science"]
 name = "eulumdat"
 path = "src/main.rs"
 
+[features]
+default = []
+# Enables the `export-parquet` subcommand. Adds arrow + parquet as transitive deps.
+parquet = ["dep:eulumdat-parquet"]
+
 [dependencies]
 anyhow.workspace = true
 atla = { workspace = true, features = ["xml", "json", "eulumdat"] }
 clap.workspace = true
 eulumdat.workspace = true
+eulumdat-parquet = { workspace = true, optional = true }
 eulumdat-typst.workspace = true
 walkdir = "2.5.0"

@@ -63,6 +63,12 @@ fn main() -> Result<()> {
             recursive,
             overwrite,
         ),
+        #[cfg(feature = "parquet")]
+        Commands::ExportParquet {
+            input_dir,
+            output,
+            recursive,
+        } => commands::export_parquet(&input_dir, &output, recursive),
         Commands::Summary {
             file,
             format,

@@ -1471,3 +1471,69 @@ pub fn interpolate(
     );
     Ok(())
 }
+
+/// Export all LDT/IES files under `input_dir` into a single Parquet file.
+#[cfg(feature = "parquet")]
+pub fn export_parquet(input_dir: &PathBuf, output: &PathBuf, recursive: bool) -> Result<()> {
+    use eulumdat_parquet::EulumdatParquetWriter;
+
+    if !input_dir.is_dir() {
+        anyhow::bail!("Input path is not a directory: {}", input_dir.display());
+    }
+
+    let walker = if recursive {
+        walkdir::WalkDir::new(input_dir)
+    } else {
+        walkdir::WalkDir::new(input_dir).max_depth(1)
+    };
+
+    let mut writer =
+        EulumdatParquetWriter::create(output).context("Failed to create Parquet file")?;
+
+    let mut written = 0usize;
+    let mut skipped = 0usize;
+
+    for entry in walker.into_iter().filter_map(|e| e.ok()) {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let path = entry.path();
+        let ext = match path.extension().and_then(|e| e.to_str()) {
+            Some(e) => e.to_ascii_lowercase(),
+            None => continue,
+        };
+
+        let ldt = match ext.as_str() {
+            "ldt" => {
+                let content = std::fs::read_to_string(path)
+                    .with_context(|| format!("read {}", path.display()))?;
+                Eulumdat::parse(&content).ok()
+            }
+            "ies" => {
+                let content = std::fs::read_to_string(path)
+                    .with_context(|| format!("read {}", path.display()))?;
+                IesParser::parse(&content).ok()
+            }
+            _ => continue,
+        };
+
+        let Some(ldt) = ldt else {
+            eprintln!("  skip: could not parse {}", path.display());
+            skipped += 1;
+            continue;
+        };
+
+        writer
+            .append(path.to_string_lossy().as_ref(), &ldt)
+            .with_context(|| format!("append {}", path.display()))?;
+        written += 1;
+    }
+
+    writer.finish().context("Failed to finalize Parquet file")?;
+
+    println!(
+        "  Done: {written} row(s) written to {} ({skipped} skipped)",
+        output.display()
+    );
+    Ok(())
+}
