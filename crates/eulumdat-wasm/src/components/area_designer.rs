@@ -487,6 +487,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     // --- URL sync: update hash whenever parameters change ---
     let (link_copied, set_link_copied) = signal(false);
     let (pdf_exporting, set_pdf_exporting) = signal(false);
+    let (show_heatmap_values, set_show_heatmap_values) = signal(false);
     // Unified view tab: "heatmap", "room", "3d"
     let (area_view_tab, set_area_view_tab) = signal("3d".to_string());
     let (_scene_camera_preset, set_scene_camera_preset) = signal(CameraPreset::FrontRight);
@@ -1019,6 +1020,10 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             AreaSvg::iso_view_with_overlays(&result, &overlays, 600.0, 450.0, &svg_theme, u)
         };
 
+        // Sync designer data to localStorage for Bevy 3D viewer
+        let (sync_placements, _) = make_placements();
+        super::bevy_scene::save_designer_exterior_to_storage(&result, &sync_placements);
+
         (result, iso_svg, n_placements)
     };
 
@@ -1027,7 +1032,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             // Toolbar
             <div class="area-toolbar">
                 <div class="area-toolbar-row">
-                    <label>"Layout: "
+                    <label>{move || locale.get().area_designer.layout.label.clone()}
                         <select
                             on:change=move |ev| {
                                 let val = event_target_value(&ev);
@@ -1045,13 +1050,13 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 regenerate_poles();
                             }
                         >
-                            <option value="single">"Single"</option>
-                            <option value="pair">"Pair"</option>
-                            <option value="row3">"Row of 3"</option>
-                            <option value="grid2x2">"2×2 Grid"</option>
-                            <option value="grid2x3" selected>"2×3 Grid"</option>
-                            <option value="grid3x3">"3×3 Grid"</option>
-                            <option value="perimeter">"Perimeter"</option>
+                            <option value="single">{move || locale.get().area_designer.layout.single.clone()}</option>
+                            <option value="pair">{move || locale.get().area_designer.layout.pair.clone()}</option>
+                            <option value="row3">{move || locale.get().area_designer.layout.row_of_3.clone()}</option>
+                            <option value="grid2x2">{move || locale.get().area_designer.layout.grid_2x2.clone()}</option>
+                            <option value="grid2x3" selected>{move || locale.get().area_designer.layout.grid_2x3.clone()}</option>
+                            <option value="grid3x3">{move || locale.get().area_designer.layout.grid_3x3.clone()}</option>
+                            <option value="perimeter">{move || locale.get().area_designer.layout.perimeter.clone()}</option>
                         </select>
                     </label>
                     {move || {
@@ -1061,7 +1066,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 _ => 8,
                             };
                             view! {
-                                <label>"Poles: "
+                                <label>{move || locale.get().area_designer.params.poles.clone()}
                                     <input type="number" min="3" max="30" step="1"
                                         class="area-prop-input"
                                         style="width: 45px;"
@@ -1080,7 +1085,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         }
                     }}
 
-                    <label>"Arrangement: "
+                    <label>{move || locale.get().area_designer.arrangement.label.clone()}
                         <select
                             on:change=move |ev| {
                                 let val = event_target_value(&ev);
@@ -1095,15 +1100,15 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 set_arrangement.set(arr);
                             }
                         >
-                            <option value="single" selected>"Single"</option>
-                            <option value="b2b">"Back-to-Back"</option>
-                            <option value="twin">"Twin Arm"</option>
-                            <option value="quad">"Quad"</option>
-                            <option value="wall">"Wall Mounted"</option>
+                            <option value="single" selected>{move || locale.get().area_designer.arrangement.single.clone()}</option>
+                            <option value="b2b">{move || locale.get().area_designer.arrangement.back_to_back.clone()}</option>
+                            <option value="twin">{move || locale.get().area_designer.arrangement.twin_arm.clone()}</option>
+                            <option value="quad">{move || locale.get().area_designer.arrangement.quad.clone()}</option>
+                            <option value="wall">{move || locale.get().area_designer.arrangement.wall_mounted.clone()}</option>
                         </select>
                     </label>
 
-                    <label>"Height: "
+                    <label>{move || locale.get().designer.height.clone()}
                         <input type="range" min="2" max="20" step="0.5"
                             prop:value=move || mounting_height.get().to_string()
                             on:input=move |ev| {
@@ -1118,7 +1123,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         }}</span>
                     </label>
 
-                    <label>"Arm: "
+                    <label>{move || locale.get().area_designer.params.arm.clone()}
                         <input type="range" min="0" max="3" step="0.1"
                             prop:value=move || arm_length.get().to_string()
                             on:input=move |ev| {
@@ -1133,7 +1138,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         }}</span>
                     </label>
 
-                    <label>"Droop: "
+                    <label>{move || locale.get().area_designer.params.droop.clone()}
                         <input type="range" min="0" max="30" step="1"
                             prop:value=move || arm_droop.get().to_string()
                             on:input=move |ev| {
@@ -1146,7 +1151,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     </label>
                 </div>
                 <div class="area-toolbar-row">
-                    <label>"Area W: "
+                    <label>{move || locale.get().area_designer.params.area_w.clone()}
                         <input type="range" min="5" max="200" step="1"
                             prop:value=move || area_width.get().to_string()
                             on:input=move |ev| {
@@ -1161,7 +1166,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         }}</span>
                     </label>
 
-                    <label>"Area D: "
+                    <label>{move || locale.get().area_designer.params.area_d.clone()}
                         <input type="range" min="5" max="200" step="1"
                             prop:value=move || area_depth.get().to_string()
                             on:input=move |ev| {
@@ -1176,7 +1181,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         }}</span>
                     </label>
 
-                    <label>"Rotation: "
+                    <label>{move || locale.get().designer.rotation.clone()}
                         <input type="range" min="0" max="350" step="10"
                             prop:value=move || base_rotation.get().to_string()
                             on:input=move |ev| {
@@ -1188,7 +1193,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         <span>{move || format!("{:.0}°", base_rotation.get())}</span>
                     </label>
 
-                    <label>"Proration: "
+                    <label>{move || locale.get().area_designer.params.proration.clone()}
                         <input type="range" min="0.3" max="1.0" step="0.05"
                             prop:value=move || proration.get().to_string()
                             on:input=move |ev| {
@@ -1200,7 +1205,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         <span>{move || format!("{:.2}", proration.get())}</span>
                     </label>
 
-                    <label>"Resolution: "
+                    <label>{move || locale.get().designer.resolution.clone()}
                         <select on:change=move |ev| {
                             if let Ok(v) = event_target_value(&ev).parse::<usize>() {
                                 set_grid_resolution.set(v);
@@ -1228,6 +1233,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     {move || {
                         if polygon_drawing.get() {
                             let n = polygon_wip.get().len();
+                            let cancel_label = locale.get().area_designer.polygon.cancel.clone();
                             view! {
                                 <button class="area-export-btn"
                                     style="color: var(--error-color); border-color: var(--error-color);"
@@ -1235,7 +1241,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                         set_polygon_drawing.set(false);
                                         set_polygon_wip.set(Vec::new());
                                     }
-                                >{format!("Cancel ({n} pts)")}</button>
+                                >{format!("{cancel_label} ({n} pts)")}</button>
                             }.into_any()
                         } else if custom_polygon.get().is_some() {
                             view! {
@@ -1245,7 +1251,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                         set_custom_polygon.set(None);
                                         regenerate_poles();
                                     }
-                                >"Clear Polygon"</button>
+                                >{move || locale.get().area_designer.polygon.clear.clone()}</button>
                             }.into_any()
                         } else {
                             view! {
@@ -1255,7 +1261,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                         set_polygon_drawing.set(true);
                                         set_polygon_wip.set(Vec::new());
                                     }
-                                >"Draw Polygon"</button>
+                                >{move || locale.get().area_designer.polygon.draw.clone()}</button>
                             }.into_any()
                         }
                     }}
@@ -1279,7 +1285,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             cb.forget();
                         }
                     >
-                        {move || if link_copied.get() { "Copied!" } else { "Share" }}
+                        {move || if link_copied.get() { locale.get().designer.copied.clone() } else { locale.get().designer.share_link.clone() }}
                     </button>
 
                     <button
@@ -1307,7 +1313,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 }
                             }
                         }
-                    >"Save"</button>
+                    >{move || locale.get().designer.save.clone()}</button>
 
                     <button
                         class="area-export-btn"
@@ -1382,21 +1388,21 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 }
                             }
                         }
-                    >"Load"</button>
+                    >{move || locale.get().designer.load.clone()}</button>
 
                     <button
                         class="area-export-btn"
                         title="Undo last pole change (Ctrl+Z)"
                         disabled=move || undo_stack.get().is_empty()
                         on:click=move |_| do_undo()
-                    >"Undo"</button>
+                    >{move || locale.get().designer.undo.clone()}</button>
 
                     <button
                         class="area-export-btn"
                         title="Redo (Ctrl+Shift+Z)"
                         disabled=move || redo_stack.get().is_empty()
                         on:click=move |_| do_redo()
-                    >"Redo"</button>
+                    >{move || locale.get().designer.redo.clone()}</button>
                 </div>
             </div>
 
@@ -1404,8 +1410,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 if arrangement.get() == ArrangementType::WallMounted {
                     view! {
                         <div class="area-wall-note">
-                            "Wall-mounted mode: luminaires tilted 90° outward. "
-                            "Place poles along wall edge. Height = wall mounting height."
+                            {move || locale.get().area_designer.wall_mounted_hint.clone()}
                         </div>
                     }.into_any()
                 } else {
@@ -1419,33 +1424,33 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 <div class="area-sidebar">
                     // Position presets
                     <div class="area-sidebar-section">
-                        <h4>"Position Presets"</h4>
+                        <h4>{move || locale.get().area_designer.presets.title.clone()}</h4>
                         <div class="area-preset-grid">
-                            <button class="area-preset-btn" title="Top-Left"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.top_left.clone()
                                 on:click=move |_| move_selected_to(Some(0.2), Some(0.2))>"↖"</button>
-                            <button class="area-preset-btn" title="Top"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.top.clone()
                                 on:click=move |_| move_selected_to(None, Some(0.2))>"↑"</button>
-                            <button class="area-preset-btn" title="Top-Right"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.top_right.clone()
                                 on:click=move |_| move_selected_to(Some(0.8), Some(0.2))>"↗"</button>
-                            <button class="area-preset-btn" title="Left"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.left.clone()
                                 on:click=move |_| move_selected_to(Some(0.2), None)>"←"</button>
-                            <button class="area-preset-btn" title="Center"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.center.clone()
                                 on:click=move |_| move_selected_to(Some(0.5), Some(0.5))>"●"</button>
-                            <button class="area-preset-btn" title="Right"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.right.clone()
                                 on:click=move |_| move_selected_to(Some(0.8), None)>"→"</button>
-                            <button class="area-preset-btn" title="Bottom-Left"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.bottom_left.clone()
                                 on:click=move |_| move_selected_to(Some(0.2), Some(0.8))>"↙"</button>
-                            <button class="area-preset-btn" title="Bottom"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.bottom.clone()
                                 on:click=move |_| move_selected_to(None, Some(0.8))>"↓"</button>
-                            <button class="area-preset-btn" title="Bottom-Right"
+                            <button class="area-preset-btn" title=move || locale.get().area_designer.presets.bottom_right.clone()
                                 on:click=move |_| move_selected_to(Some(0.8), Some(0.8))>"↘"</button>
                         </div>
                     </div>
 
                     // Mixed luminaire types
                     <div class="area-sidebar-section">
-                        <h4>"Mixed Luminaires"</h4>
-                        <p class="area-hint">"Load extra LDT files, then assign per pole."</p>
+                        <h4>{move || locale.get().area_designer.mixed.title.clone()}</h4>
+                        <p class="area-hint">{move || locale.get().area_designer.mixed.description.clone()}</p>
                         <input type="file"
                             accept=".ldt,.ies"
                             node_ref=extra_ldts_ref
@@ -1512,7 +1517,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                 <span class="area-extra-ldt-idx">{format!("#{}", i + 1)}</span>
                                                 <span class="area-extra-ldt-name">{name}</span>
                                                 <button class="area-extra-ldt-rm"
-                                                    title="Remove"
+                                                    title=move || locale.get().designer.remove.clone()
                                                     on:click=move |_| {
                                                         push_undo();
                                                         set_extra_ldts.update(|v| {
@@ -1540,18 +1545,18 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                     // Selected pole properties
                     <div class="area-sidebar-section">
-                        <h4>"Selected Pole"</h4>
+                        <h4>{move || locale.get().area_designer.pole.selected.clone()}</h4>
                         {move || {
                             if let Some(pole) = selected_pole_info() {
                                 let pole_id = pole.id;
                                 view! {
                                     <div class="area-pole-props">
                                         <div class="area-prop-row">
-                                            <span class="area-prop-label">"Pole #"</span>
+                                            <span class="area-prop-label">{move || locale.get().area_designer.pole.pole_n.clone()}</span>
                                             <span class="area-prop-value">{pole.id + 1}</span>
                                         </div>
                                         <div class="area-prop-row">
-                                            <span class="area-prop-label">"X:"</span>
+                                            <span class="area-prop-label">{move || locale.get().area_designer.pole.x.clone()}</span>
                                             <input type="number" step="0.5"
                                                 class="area-prop-input"
                                                 prop:value=move || {
@@ -1575,7 +1580,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                             <span class="area-prop-unit">{move || units.get().distance_label()}</span>
                                         </div>
                                         <div class="area-prop-row">
-                                            <span class="area-prop-label">"Y:"</span>
+                                            <span class="area-prop-label">{move || locale.get().area_designer.pole.y.clone()}</span>
                                             <input type="number" step="0.5"
                                                 class="area-prop-input"
                                                 prop:value=move || {
@@ -1599,7 +1604,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                             <span class="area-prop-unit">{move || units.get().distance_label()}</span>
                                         </div>
                                         <div class="area-prop-row">
-                                            <span class="area-prop-label">"Height:"</span>
+                                            <span class="area-prop-label">{move || locale.get().designer.height.clone()}</span>
                                             <input type="number" step="0.5" min="2" max="20"
                                                 class="area-prop-input"
                                                 prop:value=move || {
@@ -1623,7 +1628,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                             <span class="area-prop-unit">{move || units.get().distance_label()}</span>
                                         </div>
                                         <div class="area-prop-row">
-                                            <span class="area-prop-label">"Tilt:"</span>
+                                            <span class="area-prop-label">{move || locale.get().designer.tilt.clone()}</span>
                                             <input type="number" step="1" min="-30" max="90"
                                                 class="area-prop-input"
                                                 prop:value=move || {
@@ -1645,7 +1650,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                             <span class="area-prop-unit">"°"</span>
                                         </div>
                                         <div class="area-prop-row">
-                                            <span class="area-prop-label">"Rotation:"</span>
+                                            <span class="area-prop-label">{move || locale.get().designer.rotation.clone()}</span>
                                             <input type="number" step="10" min="0" max="350"
                                                 class="area-prop-input"
                                                 prop:value=move || {
@@ -1677,7 +1682,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                     .unwrap_or(0);
                                                 view! {
                                                     <div class="area-prop-row">
-                                                        <span class="area-prop-label">"LDT:"</span>
+                                                        <span class="area-prop-label">{move || locale.get().area_designer.pole.ldt.clone()}</span>
                                                         <select class="area-prop-input"
                                                             on:change=move |ev| {
                                                                 if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
@@ -1690,7 +1695,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                                 }
                                                             }
                                                         >
-                                                            <option value="0" selected=move || current_idx == 0>"Primary"</option>
+                                                            <option value="0" selected=move || current_idx == 0>{move || locale.get().area_designer.pole.primary.clone()}</option>
                                                             {extras.iter().enumerate().map(|(i, e)| {
                                                                 let idx = i + 1;
                                                                 let name = e.name.clone();
@@ -1717,12 +1722,12 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                     }
                                                 });
                                             }
-                                        >"Reset Overrides"</button>
+                                        >{move || locale.get().area_designer.pole.reset_overrides.clone()}</button>
                                     </div>
                                 }.into_any()
                             } else {
                                 view! {
-                                    <p class="area-no-selection">"Click a pole in the plan view to select it"</p>
+                                    <p class="area-no-selection">{move || locale.get().area_designer.pole.click_to_select.clone()}</p>
                                 }.into_any()
                             }
                         }}
@@ -1730,10 +1735,10 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                     // Optimizer panel
                     <div class="area-sidebar-section">
-                        <h4>"Spacing Optimizer"</h4>
+                        <h4>{move || locale.get().area_designer.optimizer.title.clone()}</h4>
                         <div class="area-opt-inputs">
                             <div class="area-prop-row">
-                                <span class="area-prop-label">"Target:"</span>
+                                <span class="area-prop-label">{move || locale.get().area_designer.optimizer.target.clone()}</span>
                                 <input type="number" step="1" min="1" max="500"
                                     class="area-prop-input"
                                     prop:value=move || format!("{:.0}", opt_target_lux.get())
@@ -1746,7 +1751,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 <span class="area-prop-unit">{move || format!("{} min", units.get().illuminance_label())}</span>
                             </div>
                             <div class="area-prop-row">
-                                <span class="area-prop-label">"U₀ ≥:"</span>
+                                <span class="area-prop-label">{move || locale.get().area_designer.optimizer.uniformity.clone()}</span>
                                 <input type="number" step="0.05" min="0" max="1"
                                     class="area-prop-input"
                                     prop:value=move || format!("{:.2}", opt_target_u0.get())
@@ -1759,7 +1764,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 <span class="area-prop-unit">"(0=off)"</span>
                             </div>
                             <div class="area-prop-row">
-                                <span class="area-prop-label">"Heights:"</span>
+                                <span class="area-prop-label">{move || locale.get().area_designer.optimizer.heights.clone()}</span>
                                 <input type="number" step="1" min="2" max="20"
                                     class="area-prop-input area-prop-input-sm"
                                     prop:value=move || format!("{:.0}", opt_height_min.get())
@@ -1782,7 +1787,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 <span class="area-prop-unit">{move || units.get().distance_label()}</span>
                             </div>
                             <div class="area-prop-row">
-                                <span class="area-prop-label">"Step:"</span>
+                                <span class="area-prop-label">{move || locale.get().area_designer.optimizer.step.clone()}</span>
                                 <input type="number" step="0.5" min="0.5" max="5"
                                     class="area-prop-input"
                                     prop:value=move || format!("{:.1}", opt_height_step.get())
@@ -1798,7 +1803,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 disabled=move || opt_running.get()
                                 on:click=move |_| run_optimizer()
                             >
-                                {move || if opt_running.get() { "Running..." } else { "▶ Optimize" }}
+                                {move || if opt_running.get() { locale.get().area_designer.optimizer.running.clone() } else { format!("▶ {}", locale.get().area_designer.optimizer.optimize) }}
                             </button>
                         </div>
 
@@ -1813,12 +1818,12 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                     <table class="area-opt-table">
                                         <thead>
                                             <tr>
-                                                <th>"Ht"</th>
-                                                <th>"Spc"</th>
-                                                <th>"Min"</th>
-                                                <th>"Avg"</th>
-                                                <th>"U₀"</th>
-                                                <th>"Poles"</th>
+                                                <th>{move || locale.get().area_designer.optimizer.ht.clone()}</th>
+                                                <th>{move || locale.get().area_designer.optimizer.spc.clone()}</th>
+                                                <th>{move || locale.get().designer.min.clone()}</th>
+                                                <th>{move || locale.get().designer.avg.clone()}</th>
+                                                <th>{move || locale.get().area_designer.stats.u0.clone()}</th>
+                                                <th>{move || locale.get().area_designer.optimizer.poles_col.clone()}</th>
                                                 <th></th>
                                             </tr>
                                         </thead>
@@ -1856,14 +1861,14 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                     // Height comparison cards
                     <div class="area-sidebar-section">
-                        <h4>"Height Compare"</h4>
+                        <h4>{move || locale.get().area_designer.height_compare.title.clone()}</h4>
                         {move || {
                             let results = opt_results.get();
                             let sel = selected_opt_idx.get();
                             let u = units.get();
                             if results.is_empty() {
                                 return view! {
-                                    <p class="area-no-selection">"Run optimizer to compare heights"</p>
+                                    <p class="area-no-selection">{move || locale.get().area_designer.height_compare.run_hint.clone()}</p>
                                 }.into_any();
                             }
                             let ovl = overlay_indices.get();
@@ -1915,10 +1920,10 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                     }}
                                                 </div>
                                                 <div class="area-opt-card-stats">
-                                                    <div><span class="area-opt-card-lbl">"Min"</span><span>{u.format_lux(row.min_lux)}</span></div>
-                                                    <div><span class="area-opt-card-lbl">"Avg"</span><span>{u.format_lux(row.avg_lux)}</span></div>
-                                                    <div><span class="area-opt-card-lbl">"Max"</span><span>{u.format_lux(row.max_lux)}</span></div>
-                                                    <div><span class="area-opt-card-lbl">"U₀"</span><span>{format!("{:.2}", row.uniformity_min_avg)}</span></div>
+                                                    <div><span class="area-opt-card-lbl">{move || locale.get().designer.min.clone()}</span><span>{u.format_lux(row.min_lux)}</span></div>
+                                                    <div><span class="area-opt-card-lbl">{move || locale.get().designer.avg.clone()}</span><span>{u.format_lux(row.avg_lux)}</span></div>
+                                                    <div><span class="area-opt-card-lbl">{move || locale.get().designer.max.clone()}</span><span>{u.format_lux(row.max_lux)}</span></div>
+                                                    <div><span class="area-opt-card-lbl">{move || locale.get().area_designer.stats.u0.clone()}</span><span>{format!("{:.2}", row.uniformity_min_avg)}</span></div>
                                                 </div>
                                                 <div class="area-opt-card-footer">
                                                     {format!("Spacing: {:.0} {} | {} poles", u.convert_meters(row.optimal_spacing), u.distance_label(), row.poles_needed)}
@@ -1936,7 +1941,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 <div class="area-views">
                     // Plan view
                     <div class="area-panel">
-                        <h3>"Plan View"
+                        <h3>{move || locale.get().designer.plan_view.clone()}
                             <span class="area-subtitle">" — click to select, drag to move"</span>
                         </h3>
                         <div class="area-plan-svg"
@@ -1960,29 +1965,42 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                     // ISO view + stats + export
                     <div class="area-panel">
-                        <h3>"Combined Illuminance"</h3>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h3 style="margin: 0;">{move || locale.get().area_designer.combined.clone()}</h3>
+                            <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+                                <input type="checkbox"
+                                    prop:checked=show_heatmap_values
+                                    on:change=move |ev| {
+                                        let input: web_sys::HtmlInputElement = ev.target().unwrap().unchecked_into();
+                                        set_show_heatmap_values.set(input.checked());
+                                    }
+                                />
+                                "Show values"
+                            </label>
+                        </div>
                         {move || {
                             let (result, iso_svg, _n) = area_data();
                             let result_for_csv = result.clone();
                             let u = units.get();
+                            let svg = AreaSvg::iso_view_opts(&result, 600.0, 450.0, &SvgTheme::css_variables_with_locale(&locale.get()), u, show_heatmap_values.get());
                             view! {
-                                <div class="area-iso-svg" inner_html=iso_svg.clone()></div>
+                                <div class="area-iso-svg" inner_html=svg></div>
                                 <div class="area-stats">
                                     <table class="area-stats-table">
                                         <tr>
-                                            <td>"Min"</td>
+                                            <td>{move || locale.get().designer.min.clone()}</td>
                                             <td class="val">{u.format_lux(result.min_lux)}</td>
-                                            <td>"Avg"</td>
+                                            <td>{move || locale.get().designer.avg.clone()}</td>
                                             <td class="val">{u.format_lux(result.avg_lux)}</td>
-                                            <td>"Max"</td>
+                                            <td>{move || locale.get().designer.max.clone()}</td>
                                             <td class="val">{u.format_lux(result.max_lux)}</td>
                                         </tr>
                                         <tr>
-                                            <td>"U₀ (min/avg)"</td>
+                                            <td>{move || locale.get().area_designer.stats.u0.clone()}</td>
                                             <td class="val">{format!("{:.3}", result.uniformity_min_avg)}</td>
-                                            <td>"Ud (min/max)"</td>
+                                            <td>{move || locale.get().area_designer.stats.ud.clone()}</td>
                                             <td class="val">{format!("{:.3}", result.uniformity_min_max)}</td>
-                                            <td>"Avg/Min"</td>
+                                            <td>{move || locale.get().area_designer.stats.avg_min.clone()}</td>
                                             <td class="val">{
                                                 if result.uniformity_avg_min.is_finite() {
                                                     format!("{:.1}", result.uniformity_avg_min)
@@ -2023,19 +2041,19 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                             csv.push_str(&format!("Ud (min/max),{:.3}\n", r.uniformity_min_max));
                                             super::file_handler::download_file("illuminance_grid.csv", &csv, "text/csv");
                                         }
-                                    >"Export CSV"</button>
+                                    >{move || locale.get().designer.export_csv.clone()}</button>
                                     <button class="area-export-btn"
                                         on:click=move |_| {
                                             let svg = iso_svg.clone();
                                             super::file_handler::download_svg("illuminance_iso.svg", &svg);
                                         }
-                                    >"Export ISO SVG"</button>
+                                    >{move || locale.get().area_designer.export_iso_svg.clone()}</button>
                                     <button class="area-export-btn"
                                         on:click=move |_| {
                                             let svg = plan_svg();
                                             super::file_handler::download_svg("area_plan.svg", &svg);
                                         }
-                                    >"Export Plan SVG"</button>
+                                    >{move || locale.get().area_designer.export_plan_svg.clone()}</button>
                                     <button class="area-export-btn"
                                         on:click=move |_| {
                                             let results = opt_results.get();
@@ -2060,7 +2078,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                             }
                                             super::file_handler::download_file("optimizer_results.csv", &csv, "text/csv");
                                         }
-                                    >"Export Optimizer"</button>
+                                    >{move || locale.get().area_designer.export_optimizer.clone()}</button>
                                     <button class="area-export-btn"
                                         disabled=move || pdf_exporting.get()
                                         on:click=move |_| {
@@ -2187,7 +2205,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                 set_pdf_exporting.set(false);
                                             });
                                         }
-                                    >{move || if pdf_exporting.get() { "Exporting PDF..." } else { "Export PDF" }}</button>
+                                    >{move || if pdf_exporting.get() { locale.get().designer.exporting_pdf.clone() } else { locale.get().designer.export_pdf.clone() }}</button>
                                 </div>
                             }
                         }}
@@ -2198,7 +2216,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         <button
                             class=move || if area_view_tab.get() == "room" { "area-view-tab active" } else { "area-view-tab" }
                             on:click=move |_| set_area_view_tab.set("room".to_string())
-                        >"Room View"</button>
+                        >{move || locale.get().designer.room_view.clone()}</button>
                         <button
                             class=move || if area_view_tab.get() == "3d" { "area-view-tab active" } else { "area-view-tab" }
                             on:click=move |_| set_area_view_tab.set("3d".to_string())
@@ -2250,7 +2268,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 );
                                 view! {
                                     <div class="area-panel">
-                                        <h3>"Room View"</h3>
+                                        <h3>{move || locale.get().designer.room_view.clone()}</h3>
                                         <div class="area-iso-svg" inner_html=room_svg.clone()></div>
                                         <div class="area-export-buttons">
                                             <button class="area-export-btn"
@@ -2258,7 +2276,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                     let svg = room_svg.clone();
                                                     super::file_handler::download_svg("area_room.svg", &svg);
                                                 }
-                                            >"Export Room SVG"</button>
+                                            >{move || locale.get().area_designer.export_room_svg.clone()}</button>
                                         </div>
                                     </div>
                                 }.into_any()
@@ -2330,7 +2348,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                     let svg = scene_svg.clone();
                                                     super::file_handler::download_svg("area_3d_scene.svg", &svg);
                                                 }
-                                            >"Export 3D SVG"</button>
+                                            >{move || locale.get().area_designer.export_3d_svg.clone()}</button>
                                         </div>
                                     </div>
                                 }.into_any()

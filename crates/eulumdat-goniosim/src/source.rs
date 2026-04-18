@@ -39,6 +39,18 @@ pub enum Source {
         flux_lm: f64,
     },
 
+    /// Rectangular diffuse area emitter (Lambertian).
+    /// Emits cosine-weighted into the hemisphere defined by `normal`.
+    /// Position is sampled uniformly over the rectangle.
+    AreaSource {
+        center: Point3<f64>,
+        normal: Unit<Vector3<f64>>,
+        u_axis: Unit<Vector3<f64>>,
+        half_width: f64,
+        half_height: f64,
+        flux_lm: f64,
+    },
+
     /// Emit according to an existing LDT/IES distribution (for validation).
     FromLvk {
         position: Point3<f64>,
@@ -75,6 +87,7 @@ impl Source {
             Source::Lambertian { flux_lm, .. } => *flux_lm,
             Source::Led { flux_lm, .. } => *flux_lm,
             Source::LineSource { flux_lm, .. } => *flux_lm,
+            Source::AreaSource { flux_lm, .. } => *flux_lm,
             Source::FromLvk { flux_lm, .. } => *flux_lm,
         }
     }
@@ -115,6 +128,23 @@ impl Source {
                 let t: f64 = rng.random();
                 let origin = start + t * (end - start);
                 let dir = random_cone(normal, *half_angle_deg, rng);
+                Ray::new(origin, dir)
+            }
+
+            Source::AreaSource {
+                center,
+                normal,
+                u_axis,
+                half_width,
+                half_height,
+                ..
+            } => {
+                // Random position on rectangle
+                let u: f64 = (rng.random::<f64>() * 2.0 - 1.0) * half_width;
+                let v_axis = Unit::new_normalize(normal.cross(u_axis.as_ref()));
+                let v: f64 = (rng.random::<f64>() * 2.0 - 1.0) * half_height;
+                let origin = center + u * u_axis.as_ref() + v * v_axis.as_ref();
+                let dir = random_cosine_hemisphere(normal, rng);
                 Ray::new(origin, dir)
             }
 

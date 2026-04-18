@@ -31,7 +31,7 @@ The tool also generates:
 - Cone diagrams showing beam spread at mounting height
 - SVG exports for Wikipedia
 
-All open-source (MIT) - happy to generate custom diagrams if useful for the article!
+All open-source (AGPL-3.0-or-later) - happy to generate custom diagrams if useful for the article!
 ```
 
 ## How to Use eulumdat.icu for Beam Angle Visualization

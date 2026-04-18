@@ -75,7 +75,7 @@ Our web editor at **https://eulumdat.rs** allows users to:
 1. **Accuracy**: Diagrams derived from real photometric calculations, not hand-drawn
 2. **Consistency**: All diagrams use the same coordinate system and color scheme
 3. **Scalability**: SVG format scales perfectly at any resolution
-4. **Reproducibility**: Generated from open-source code (MIT licensed)
+4. **Reproducibility**: Generated from open-source code (AGPL-3.0-or-later)
 5. **Educational value**: Clear labels explaining the 50%/10% thresholds
 6. **IES vs CIE comparison**: Visually demonstrates why definitions matter
 
@@ -100,7 +100,7 @@ Our polar diagrams with overlays could replace or supplement existing images:
 ### Tool: eulumdat-rs
 
 - **Repository**: https://github.com/your-org/eulumdat-rs
-- **License**: MIT (Wikipedia-compatible)
+- **License**: AGPL-3.0-or-later (note: SVG outputs for Wikipedia would need to be separately licensed under a Wikipedia-compatible license such as CC BY-SA)
 - **Language**: Rust
 - **Output**: SVG (vector graphics)
 

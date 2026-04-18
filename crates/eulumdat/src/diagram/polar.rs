@@ -231,11 +231,28 @@ impl PolarDiagram {
         height: f64,
         theme: &SvgTheme,
     ) -> String {
+        Self::render_svg_with_max(ldt, c_plane, width, height, theme, None)
+    }
+
+    /// Render with an optional forced radial maximum (for consistent scaling across diagrams).
+    pub fn render_svg_with_max(
+        ldt: &Eulumdat,
+        c_plane: Option<f64>,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        forced_max: Option<f64>,
+    ) -> String {
         let summary = PhotometricSummary::from_eulumdat(ldt);
-        let polar = match c_plane {
+        let mut polar = match c_plane {
             Some(cp) => Self::from_eulumdat_for_plane(ldt, cp),
             None => Self::from_eulumdat(ldt),
         };
+        if let Some(forced) = forced_max {
+            if forced > polar.scale.max_intensity {
+                polar.scale = DiagramScale::from_max_intensity(forced, 5);
+            }
+        }
         polar.to_svg_with_summary(width, height, theme, &summary)
     }
 }

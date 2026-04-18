@@ -318,6 +318,18 @@ impl AreaSvg {
         theme: &SvgTheme,
         units: UnitSystem,
     ) -> String {
+        Self::iso_view_opts(result, svg_width, svg_height, theme, units, false)
+    }
+
+    /// Render isolux view with optional numeric lux/fc value labels on cells.
+    pub fn iso_view_opts(
+        result: &AreaResult,
+        svg_width: f64,
+        svg_height: f64,
+        theme: &SvgTheme,
+        units: UnitSystem,
+        show_values: bool,
+    ) -> String {
         let margin_left = 50.0;
         let margin_right = 70.0;
         let margin_top = 30.0;
@@ -379,6 +391,7 @@ impl AreaSvg {
                     }
                 }
             }
+
         }
 
         // Contour lines
@@ -421,6 +434,32 @@ impl AreaSvg {
                         r#"<text x="{}" y="{}" fill="{text_color}" font-size="8" text-anchor="middle" dominant-baseline="middle">{label} {illu_label}</text>"#,
                         pos.0, pos.1
                     ));
+                }
+            }
+        }
+
+        // Value labels on top of everything (when show_values enabled)
+        if show_values && max_lux > 0.0 {
+            let label_step = ((n as f64 / 10.0).ceil() as usize).max(1);
+            let font_size = (cell_w * label_step as f64 * 0.35)
+                .min(cell_h * label_step as f64 * 0.4)
+                .clamp(5.0, 11.0);
+            let bg_stroke = if is_dark { "#1e1e1e" } else { "#ffffff" };
+            for (row, grid_row) in result.lux_grid.iter().enumerate() {
+                for (col, &lux) in grid_row.iter().enumerate() {
+                    if row % label_step == label_step / 2 && col % label_step == label_step / 2 {
+                        let is_inside = result.mask.as_ref().map(|m| m[row][col]).unwrap_or(true);
+                        if !is_inside { continue; }
+                        let normalized = lux / max_lux;
+                        let text_fill = if normalized < 0.45 { "white" } else { "#1a1a1a" };
+                        let display_val = units.convert_lux(lux);
+                        let cx = margin_left + (col as f64 + 0.5 * label_step as f64) * cell_w;
+                        let cy = margin_top + (row as f64 + 0.5 * label_step as f64) * cell_h;
+                        svg.push_str(&format!(
+                            r#"<text x="{cx:.1}" y="{cy:.1}" fill="{text_fill}" font-size="{font_size:.1}" text-anchor="middle" dominant-baseline="central" font-family="monospace" stroke="{bg_stroke}" stroke-width="2" paint-order="stroke">{:.0}</text>"#,
+                            display_val
+                        ));
+                    }
                 }
             }
         }

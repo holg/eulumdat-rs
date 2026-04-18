@@ -45,19 +45,25 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             <div class="validation-panel">
                 // ATLA Schema Validation Section
                 <div class="schema-validation-section">
-                    <div class="validation-header">"Schema Validation"</div>
+                    <div class="validation-header">{l.ui.validation_panel.schema_validation.clone()}</div>
 
                     <div class="schema-grid">
                         // ATLA S001 Status
                         <div class={if s001_valid { "schema-card valid" } else { "schema-card invalid" }}>
                             <div class="schema-name">"ATLA S001"</div>
                             <div class="schema-status">
-                                {if s001_valid { "✓ Valid" } else { "✗ Invalid" }}
+                                {if s001_valid {
+                                    format!("✓ {}", l.ui.validation_panel.valid)
+                                } else {
+                                    format!("✗ {}", l.ui.validation_panel.invalid)
+                                }}
                             </div>
                             {if !s001_valid {
+                                let n_errors_str = l.ui.validation_panel.n_errors
+                                    .replace("{0}", &s001_result.errors.len().to_string());
                                 view! {
                                     <div class="schema-count">
-                                        {format!("{} errors", s001_result.errors.len())}
+                                        {n_errors_str}
                                     </div>
                                 }.into_any()
                             } else {
@@ -69,12 +75,18 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         <div class={if tm33_valid { "schema-card valid" } else { "schema-card warning" }}>
                             <div class="schema-name">"TM-33-23"</div>
                             <div class="schema-status">
-                                {if tm33_valid { "✓ Valid" } else { "⚠ Missing fields" }}
+                                {if tm33_valid {
+                                    format!("✓ {}", l.ui.validation_panel.valid)
+                                } else {
+                                    format!("⚠ {}", l.ui.validation_panel.missing_fields)
+                                }}
                             </div>
                             {if !tm33_valid {
+                                let n_errors_str = l.ui.validation_panel.n_errors
+                                    .replace("{0}", &tm33_result.errors.len().to_string());
                                 view! {
                                     <div class="schema-count">
-                                        {format!("{} errors", tm33_result.errors.len())}
+                                        {n_errors_str}
                                     </div>
                                 }.into_any()
                             } else {
@@ -98,14 +110,14 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             <div class="schema-name">"TM-32-24 BIM"</div>
                             <div class="schema-status">
                                 {if tm32_valid {
-                                    "✓ Valid"
+                                    format!("✓ {}", l.ui.validation_panel.valid)
                                 } else if !tm32_errors.is_empty() {
-                                    "✗ Invalid"
+                                    format!("✗ {}", l.ui.validation_panel.invalid)
                                 } else if !tm32_warnings.is_empty() {
-                                    "⚠ Warnings"
+                                    format!("⚠ {}", l.ui.validation_panel.warnings)
                                 } else {
                                     // TM-33-23 has issues
-                                    "⚠ See TM-33-23"
+                                    format!("⚠ {}", l.ui.validation_panel.see_tm33)
                                 }}
                             </div>
                             {if !tm32_errors.is_empty() || !tm32_warnings.is_empty() {
@@ -125,7 +137,7 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         let errors_clone = tm33_result.errors.clone();
                         view! {
                             <details class="validation-details" open>
-                                <summary>"TM-33-23 Issues"</summary>
+                                <summary>{l.ui.validation_panel.tm33_issues.clone()}</summary>
                                 <div class="validation-list">
                                     {errors_clone.into_iter().map(|err| {
                                         view! {
@@ -148,7 +160,7 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         let warnings_clone: Vec<_> = tm32_warnings.iter().map(|w| (w.code.clone(), w.message.clone())).collect();
                         view! {
                             <details class="validation-details" open>
-                                <summary>"TM-32-24 BIM Issues"</summary>
+                                <summary>{l.ui.validation_panel.tm32_issues.clone()}</summary>
                                 <div class="validation-list">
                                     {errors_clone.into_iter().map(|(code, message)| {
                                         view! {
@@ -176,7 +188,7 @@ pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                 // LDT Validation Section
                 <div class="ldt-validation-section">
-                    <div class="validation-header">"LDT/IES Validation"</div>
+                    <div class="validation-header">{l.ui.validation_panel.ldt_validation.clone()}</div>
 
                     {if warnings.is_empty() && !has_errors {
                         view! {

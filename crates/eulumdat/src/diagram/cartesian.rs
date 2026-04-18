@@ -275,11 +275,56 @@ impl CartesianDiagram {
         height: f64,
         theme: &SvgTheme,
     ) -> String {
+        Self::render_svg_with_max(ldt, c_plane, width, height, theme, None)
+    }
+
+    /// Render with an optional forced Y-axis maximum (for consistent scaling across diagrams).
+    pub fn render_svg_with_max(
+        ldt: &Eulumdat,
+        c_plane: Option<f64>,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        forced_max: Option<f64>,
+    ) -> String {
         let summary = PhotometricSummary::from_eulumdat(ldt);
-        let diagram = match c_plane {
+        let mut diagram = match c_plane {
             Some(cp) => Self::from_eulumdat_for_plane(ldt, cp, width, height),
             None => Self::from_eulumdat(ldt, width, height, 8),
         };
+        // Override scale if forced_max is provided and larger than auto-calculated
+        if let Some(forced) = forced_max {
+            if forced > diagram.scale.max_intensity {
+                let step = DiagramScale::nice_step(forced, 5);
+                let mut ticks = Vec::new();
+                let mut v = 0.0;
+                while v <= forced * 1.05 {
+                    ticks.push(v);
+                    v += step;
+                }
+                let y_max = ticks.last().copied().unwrap_or(100.0);
+                diagram.y_ticks = ticks.clone();
+                diagram.scale = DiagramScale {
+                    max_intensity: forced,
+                    scale_max: y_max,
+                    grid_values: ticks,
+                };
+                // Regenerate curves with new y_max
+                let palette = ColorPalette::default();
+                let max_gamma = ldt.g_angles.last().copied().unwrap_or(90.0);
+                diagram.curves = generate_curves(
+                    ldt,
+                    diagram.margin_left,
+                    diagram.margin_top,
+                    diagram.plot_width,
+                    diagram.plot_height,
+                    y_max,
+                    max_gamma,
+                    8,
+                    &palette,
+                );
+            }
+        }
         diagram.to_svg_with_summary(width, height, theme, &summary)
     }
 }

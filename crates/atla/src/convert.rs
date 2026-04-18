@@ -84,11 +84,69 @@ impl From<&Eulumdat> for LuminaireOpticalData {
             });
         }
 
-        // Create emitter from lamp sets and intensity data
-        let emitter = create_emitter_from_ldt(ldt);
-        doc.emitters.push(emitter);
+        // Create emitters — one per lamp set (preserving multi-lamp-set data)
+        if ldt.lamp_sets.len() <= 1 {
+            // Single lamp set: create one emitter with intensity data
+            let emitter = create_emitter_from_ldt(ldt);
+            doc.emitters.push(emitter);
+        } else {
+            // Multiple lamp sets: each gets its own emitter
+            // The first emitter carries the intensity distribution
+            // (it represents the combined output)
+            for (i, ls) in ldt.lamp_sets.iter().enumerate() {
+                let emitter = create_emitter_from_lamp_set(ls, if i == 0 { Some(ldt) } else { None });
+                doc.emitters.push(emitter);
+            }
+        }
 
         doc
+    }
+}
+
+/// Create an emitter from a single LampSet.
+/// If `ldt_for_intensity` is Some, includes the intensity distribution.
+#[cfg(feature = "eulumdat")]
+fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumdat>) -> Emitter {
+    let cct = parse_cct(&ls.color_appearance);
+    let color_rendering = parse_cri(&ls.color_rendering_group).map(|ra| ColorRendering {
+        ra: Some(ra),
+        r9: None,
+        rf: None,
+        rg: None,
+    });
+
+    let intensity_distribution = ldt_for_intensity.and_then(|ldt| {
+        if ldt.intensities.is_empty() {
+            None
+        } else {
+            let num_intensity_rows = ldt.intensities.len();
+            let horizontal_angles = if ldt.c_angles.len() == num_intensity_rows {
+                ldt.c_angles.clone()
+            } else {
+                ldt.c_angles[..num_intensity_rows.min(ldt.c_angles.len())].to_vec()
+            };
+            Some(IntensityDistribution {
+                photometry_type: PhotometryType::TypeC,
+                metric: IntensityMetric::Luminous,
+                units: IntensityUnits::CandelaPerKilolumen,
+                horizontal_angles,
+                vertical_angles: ldt.g_angles.clone(),
+                intensities: ldt.intensities.clone(),
+                ..Default::default()
+            })
+        }
+    });
+
+    Emitter {
+        description: if ls.lamp_type.is_empty() { None } else { Some(ls.lamp_type.clone()) },
+        quantity: ls.num_lamps as u32,
+        rated_lumens: Some(ls.total_luminous_flux),
+        measured_lumens: Some(ls.total_luminous_flux),
+        input_watts: Some(ls.wattage_with_ballast),
+        cct,
+        color_rendering,
+        intensity_distribution,
+        ..Default::default()
     }
 }
 
@@ -230,8 +288,8 @@ impl From<&LuminaireOpticalData> for Eulumdat {
         }
 
         // Emitters -> lamp sets and intensity data
-        if let Some(emitter) = doc.emitters.first() {
-            // Create lamp set
+        // Each emitter becomes one lamp set (preserving multi-lamp-set data)
+        for emitter in &doc.emitters {
             let lamp_set = LampSet {
                 num_lamps: emitter.quantity as i32,
                 lamp_type: emitter.description.clone().unwrap_or_default(),
@@ -252,8 +310,10 @@ impl From<&LuminaireOpticalData> for Eulumdat {
                 wattage_with_ballast: emitter.input_watts.unwrap_or(0.0),
             };
             ldt.lamp_sets.push(lamp_set);
+        }
 
-            // Intensity distribution
+        // Intensity distribution — from first emitter that has it
+        if let Some(emitter) = doc.emitters.iter().find(|e| e.intensity_distribution.is_some()) {
             if let Some(ref dist) = emitter.intensity_distribution {
                 ldt.c_angles = dist.horizontal_angles.clone();
                 ldt.g_angles = dist.vertical_angles.clone();
@@ -298,6 +358,9 @@ impl From<&LuminaireOpticalData> for Eulumdat {
             let (dff, lor) = calculate_flux_fractions(&ldt);
             ldt.downward_flux_fraction = dff;
             ldt.light_output_ratio = lor;
+
+            // Recalculate direct ratios from intensity data (SHR 1.25 is standard)
+            ldt.direct_ratios = eulumdat::PhotometricCalculations::calculate_direct_ratios(&ldt, "1.25");
         }
 
         // Set type indicator based on dimensions

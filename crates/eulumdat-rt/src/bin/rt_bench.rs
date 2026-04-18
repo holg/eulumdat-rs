@@ -385,6 +385,8 @@ fn cmd_render(args: &[String]) {
     let denoise: u32 = parse_flag(args, "--denoise", "0").parse().unwrap_or(0);
 
     let start = Instant::now();
+    // Source at ceiling (near cover position)
+    let source_pos = [0.0, room_h - 0.04, 0.0];
     let mut image = pollster::block_on(camera.render(
         width, height, spp,
         [1.8, 0.8, 2.2],
@@ -392,6 +394,7 @@ fn cmd_render(args: &[String]) {
         55.0,
         &prims, &mats,
         500.0,
+        source_pos,
     ));
     let render_ms = start.elapsed().as_secs_f64() * 1000.0;
 

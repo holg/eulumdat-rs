@@ -18,6 +18,12 @@ const LDT_TIMESTAMP_KEY: &str = "eulumdat_ldt_timestamp";
 const VIEWER_SETTINGS_KEY: &str = "eulumdat_viewer_settings";
 #[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
 const VIEWER_SETTINGS_TIMESTAMP_KEY: &str = "eulumdat_viewer_settings_timestamp";
+#[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
+const DESIGNER_EXTERIOR_KEY: &str = "eulumdat_designer_exterior";
+#[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
+const DESIGNER_INTERIOR_KEY: &str = "eulumdat_designer_interior";
+#[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
+const DESIGNER_TIMESTAMP_KEY: &str = "eulumdat_designer_timestamp";
 
 /// Resource to track localStorage timestamp for hot-reload.
 #[derive(Resource, Default)]
@@ -26,6 +32,10 @@ pub struct LdtTimestamp(pub String);
 /// Resource to track ViewerSettings timestamp for sync.
 #[derive(Resource, Default)]
 pub struct ViewerSettingsTimestamp(pub String);
+
+/// Resource to track designer data timestamp for sync.
+#[derive(Resource, Default)]
+pub struct DesignerTimestamp(pub String);
 
 /// Load LDT from localStorage (WASM only).
 #[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
@@ -225,6 +235,8 @@ fn parse_viewer_settings_json(json: &str, current: &ViewerSettings) -> Option<Vi
         1 => SceneType::Road,
         2 => SceneType::Parking,
         3 => SceneType::Outdoor,
+        4 => SceneType::DesignerExterior,
+        5 => SceneType::DesignerInterior,
         _ => SceneType::Room,
     };
 
@@ -247,6 +259,16 @@ fn parse_viewer_settings_json(json: &str, current: &ViewerSettings) -> Option<Vi
         num_lanes: get_u8("num_lanes").unwrap_or(current.num_lanes as u8) as u32,
         sidewalk_width: get_f32("sidewalk_width").unwrap_or(current.sidewalk_width),
         pole_spacing: get_f32("pole_spacing").unwrap_or(current.pole_spacing),
+        // Preserve designer data - synced separately via designer keys
+        area_result: current.area_result.clone(),
+        area_placements: current.area_placements.clone(),
+        designer_room: current.designer_room.clone(),
+        designer_layout: current.designer_layout.clone(),
+        designer_reflectances: current.designer_reflectances.clone(),
+        designer_cavity: current.designer_cavity.clone(),
+        designer_ppb: current.designer_ppb.clone(),
+        show_light_cones: get_bool("show_light_cones").unwrap_or(current.show_light_cones),
+        show_cavities: get_bool("show_cavities").unwrap_or(current.show_cavities),
     })
 }
 
@@ -279,4 +301,97 @@ pub fn poll_viewer_settings_changes(
     mut last_timestamp: ResMut<ViewerSettingsTimestamp>,
 ) {
     // No-op when wasm-sync feature is disabled
+}
+
+/// Get designer data timestamp from localStorage.
+#[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
+pub fn get_designer_timestamp() -> Option<String> {
+    let window = web_sys::window()?;
+    let storage = window.local_storage().ok()??;
+    storage.get_item(DESIGNER_TIMESTAMP_KEY).ok()?
+}
+
+#[cfg(not(all(target_arch = "wasm32", feature = "wasm-sync")))]
+pub fn get_designer_timestamp() -> Option<String> {
+    None
+}
+
+/// Poll localStorage for designer data changes (exterior + interior).
+#[cfg(feature = "wasm-sync")]
+#[allow(unused_mut, unused_variables)]
+pub fn poll_designer_changes(
+    mut settings: ResMut<ViewerSettings>,
+    mut last_timestamp: ResMut<DesignerTimestamp>,
+) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(new_timestamp) = get_designer_timestamp() {
+            if new_timestamp != last_timestamp.0 {
+                let window = web_sys::window();
+                let storage = window.as_ref().and_then(|w| w.local_storage().ok().flatten());
+
+                if let Some(storage) = storage {
+                    // Try exterior designer data
+                    if let Ok(Some(json)) = storage.get_item(DESIGNER_EXTERIOR_KEY) {
+                        if let Ok(data) = serde_json::from_str::<DesignerExteriorData>(&json) {
+                            settings.area_result = Some(data.area_result);
+                            settings.area_placements = data.placements;
+                            web_sys::console::log_1(
+                                &format!(
+                                    "[Bevy] Loaded exterior designer: {} placements",
+                                    settings.area_placements.len()
+                                )
+                                .into(),
+                            );
+                        }
+                    }
+
+                    // Try interior designer data
+                    if let Ok(Some(json)) = storage.get_item(DESIGNER_INTERIOR_KEY) {
+                        if let Ok(data) = serde_json::from_str::<DesignerInteriorData>(&json) {
+                            settings.designer_room = Some(data.room);
+                            settings.designer_layout = Some(data.layout);
+                            settings.designer_reflectances = Some(data.reflectances);
+                            settings.designer_cavity = Some(data.cavity);
+                            settings.designer_ppb = data.ppb;
+                            web_sys::console::log_1(
+                                &"[Bevy] Loaded interior designer data".into(),
+                            );
+                        }
+                    }
+                }
+
+                last_timestamp.0 = new_timestamp;
+            }
+        }
+    }
+}
+
+// Stub for when wasm-sync is disabled
+#[cfg(not(feature = "wasm-sync"))]
+#[allow(unused_mut, unused_variables, dead_code)]
+pub fn poll_designer_changes(
+    mut settings: ResMut<ViewerSettings>,
+    mut last_timestamp: ResMut<DesignerTimestamp>,
+) {
+    // No-op when wasm-sync feature is disabled
+}
+
+/// Serializable container for exterior designer data.
+#[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
+#[derive(serde::Deserialize)]
+struct DesignerExteriorData {
+    area_result: eulumdat::area::AreaResult,
+    placements: Vec<eulumdat::area::LuminairePlace>,
+}
+
+/// Serializable container for interior designer data.
+#[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
+#[derive(serde::Deserialize)]
+struct DesignerInteriorData {
+    room: eulumdat::zonal::Room,
+    layout: eulumdat::zonal::LuminaireLayout,
+    reflectances: eulumdat::zonal::Reflectances,
+    cavity: eulumdat::zonal::CavityResults,
+    ppb: Option<eulumdat::zonal::PpbResult>,
 }

@@ -27,6 +27,7 @@ fn render_opal_cover_scene() {
         &[gpu_prim],
         &[gpu_mat],
         100.0,              // source intensity
+        [0.0, 0.0, 0.0],   // source at origin
     ));
 
     assert_eq!(image.width, 256);
@@ -63,7 +64,7 @@ fn render_empty_scene() {
     let image = pollster::block_on(camera.render(
         64, 64, 1,
         [0.0, 0.0, 2.0], [0.0, 0.0, 0.0],
-        60.0, &[], &[], 0.0,
+        60.0, &[], &[], 0.0, [0.0, 0.0, 0.0],
     ));
 
     assert_eq!(image.pixels.len(), 64 * 64);

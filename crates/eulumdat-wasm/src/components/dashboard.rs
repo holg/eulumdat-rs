@@ -105,7 +105,7 @@ fn save_dashboard_template(template: DashboardTemplate) {
 
 #[derive(Clone)]
 struct ColumnDef {
-    label: &'static str,
+    label: String,
     min_width: &'static str,
     extract: fn(&Eulumdat) -> String,
 }
@@ -185,17 +185,17 @@ struct DashboardConfig {
     default_diagrams: Vec<DiagramSlot>,
 }
 
-fn default_config() -> DashboardConfig {
+fn default_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
     DashboardConfig {
         columns: vec![
-            ColumnDef { label: "Name",   min_width: "150px", extract: extract_name },
-            ColumnDef { label: "CCT",    min_width: "70px",  extract: extract_cct },
-            ColumnDef { label: "Power",  min_width: "60px",  extract: extract_power },
-            ColumnDef { label: "Lumens", min_width: "80px",  extract: extract_lumens },
-            ColumnDef { label: "LOR",    min_width: "55px",  extract: extract_lor },
-            ColumnDef { label: "BUG",    min_width: "80px",  extract: extract_bug },
-            ColumnDef { label: "CRI",    min_width: "50px",  extract: extract_cri },
-            ColumnDef { label: "Beam",   min_width: "60px",  extract: extract_beam },
+            ColumnDef { label: cols.name.clone(),   min_width: "150px", extract: extract_name },
+            ColumnDef { label: cols.cct.clone(),    min_width: "70px",  extract: extract_cct },
+            ColumnDef { label: cols.power.clone(),  min_width: "60px",  extract: extract_power },
+            ColumnDef { label: cols.lumens.clone(), min_width: "80px",  extract: extract_lumens },
+            ColumnDef { label: cols.lor.clone(),    min_width: "55px",  extract: extract_lor },
+            ColumnDef { label: cols.bug.clone(),    min_width: "80px",  extract: extract_bug },
+            ColumnDef { label: cols.cri.clone(),    min_width: "50px",  extract: extract_cri },
+            ColumnDef { label: cols.beam.clone(),   min_width: "60px",  extract: extract_beam },
         ],
         has_diagram_modes: false,
         default_diagrams: vec![
@@ -208,16 +208,16 @@ fn default_config() -> DashboardConfig {
     }
 }
 
-fn aec_config() -> DashboardConfig {
+fn aec_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
     DashboardConfig {
         columns: vec![
-            ColumnDef { label: "Light Distribution", min_width: "150px", extract: extract_name },
-            ColumnDef { label: "Optics",    min_width: "60px",  extract: extract_optics },
-            ColumnDef { label: "CCT",       min_width: "55px",  extract: extract_cct },
-            ColumnDef { label: "Power",     min_width: "55px",  extract: extract_power },
-            ColumnDef { label: "Lumens",    min_width: "70px",  extract: extract_lumens },
-            ColumnDef { label: "BUG Rating", min_width: "75px", extract: extract_bug },
-            ColumnDef { label: "CRI",       min_width: "40px",  extract: extract_cri },
+            ColumnDef { label: cols.light_dist.clone(), min_width: "150px", extract: extract_name },
+            ColumnDef { label: cols.optics.clone(),     min_width: "60px",  extract: extract_optics },
+            ColumnDef { label: cols.cct.clone(),        min_width: "55px",  extract: extract_cct },
+            ColumnDef { label: cols.power.clone(),      min_width: "55px",  extract: extract_power },
+            ColumnDef { label: cols.lumens.clone(),     min_width: "70px",  extract: extract_lumens },
+            ColumnDef { label: cols.bug.clone(),        min_width: "75px",  extract: extract_bug },
+            ColumnDef { label: cols.cri.clone(),        min_width: "40px",  extract: extract_cri },
         ],
         has_diagram_modes: true,
         default_diagrams: vec![
@@ -229,23 +229,23 @@ fn aec_config() -> DashboardConfig {
     }
 }
 
-fn alternative_config() -> DashboardConfig {
+fn alternative_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
     DashboardConfig {
         columns: vec![
-            ColumnDef { label: "Light Distribution", min_width: "150px", extract: extract_name },
-            ColumnDef { label: "Optics",    min_width: "60px",  extract: extract_optics },
-            ColumnDef { label: "Modules",   min_width: "55px",  extract: extract_modules },
-            ColumnDef { label: "CCT",       min_width: "55px",  extract: extract_cct },
-            ColumnDef { label: "Current",   min_width: "60px",  extract: extract_current },
-            ColumnDef { label: "Power",     min_width: "55px",  extract: extract_power },
-            ColumnDef { label: "Lumens",    min_width: "70px",  extract: extract_lumens },
-            ColumnDef { label: "BUG Rating", min_width: "75px", extract: extract_bug },
-            ColumnDef { label: "CRI",       min_width: "40px",  extract: extract_cri },
+            ColumnDef { label: cols.light_dist.clone(), min_width: "150px", extract: extract_name },
+            ColumnDef { label: cols.optics.clone(),     min_width: "60px",  extract: extract_optics },
+            ColumnDef { label: cols.modules.clone(),    min_width: "55px",  extract: extract_modules },
+            ColumnDef { label: cols.cct.clone(),        min_width: "55px",  extract: extract_cct },
+            ColumnDef { label: cols.current.clone(),    min_width: "60px",  extract: extract_current },
+            ColumnDef { label: cols.power.clone(),      min_width: "55px",  extract: extract_power },
+            ColumnDef { label: cols.lumens.clone(),     min_width: "70px",  extract: extract_lumens },
+            ColumnDef { label: cols.bug.clone(),        min_width: "75px",  extract: extract_bug },
+            ColumnDef { label: cols.cri.clone(),        min_width: "40px",  extract: extract_cri },
             // Icon-style download columns (values shown as badges)
-            ColumnDef { label: "Spec",      min_width: "35px",  extract: extract_spec_badge },
-            ColumnDef { label: "IES",       min_width: "35px",  extract: extract_ies_badge },
-            ColumnDef { label: "CAD",       min_width: "35px",  extract: extract_cad_badge },
-            ColumnDef { label: "BIM",       min_width: "35px",  extract: extract_bim_badge },
+            ColumnDef { label: cols.spec.clone(),       min_width: "35px",  extract: extract_spec_badge },
+            ColumnDef { label: cols.ies.clone(),        min_width: "35px",  extract: extract_ies_badge },
+            ColumnDef { label: cols.cad.clone(),        min_width: "35px",  extract: extract_cad_badge },
+            ColumnDef { label: cols.bim.clone(),        min_width: "35px",  extract: extract_bim_badge },
         ],
         has_diagram_modes: true,
         default_diagrams: vec![
@@ -381,16 +381,19 @@ pub fn Dashboard(
     on_export_pdf: Callback<Eulumdat>,
     on_designer: Callback<()>,
 ) -> impl IntoView {
-    let _locale = use_locale();
+    let locale = use_locale();
 
     // ── Template selection ──────────────────────────────────────
     let (template, set_template) = signal(load_dashboard_template());
     Effect::new(move |_| save_dashboard_template(template.get()));
 
-    let config = Memo::new(move |_| match template.get() {
-        DashboardTemplate::Default => default_config(),
-        DashboardTemplate::Aec => aec_config(),
-        DashboardTemplate::Alternative => alternative_config(),
+    let config = Memo::new(move |_| {
+        let cols = locale.get().dashboard.columns;
+        match template.get() {
+            DashboardTemplate::Default => default_config(&cols),
+            DashboardTemplate::Aec => aec_config(&cols),
+            DashboardTemplate::Alternative => alternative_config(&cols),
+        }
     });
 
     let grid_style = Memo::new(move |_| {
@@ -559,12 +562,20 @@ pub fn Dashboard(
                         }
                     >
                         {DashboardTemplate::all().iter().map(|&t| {
+                            let label = move || {
+                                let d = locale.get().dashboard;
+                                match t {
+                                    DashboardTemplate::Default => d.templates.standard.clone(),
+                                    DashboardTemplate::Aec => d.templates.aec.clone(),
+                                    DashboardTemplate::Alternative => d.templates.alternative.clone(),
+                                }
+                            };
                             view! {
                                 <option
                                     value=t.storage_key()
                                     selected=move || template.get() == t
                                 >
-                                    {t.label()}
+                                    {label}
                                 </option>
                             }
                         }).collect_view()}
@@ -574,7 +585,7 @@ pub fn Dashboard(
                 // Column headers
                 <div class="params-header" style=move || grid_style.get()>
                     <div class="params-col params-col-expand"></div>
-                    {move || config.get().columns.iter().map(|col| {
+                    {move || config.get().columns.into_iter().map(|col| {
                         let lbl = col.label;
                         view! { <div class="params-col">{lbl}</div> }
                     }).collect_view()}
@@ -594,7 +605,7 @@ pub fn Dashboard(
                         let is_selected = selected_idx.get() == Some(USER_FILE_ROW);
                         let is_compare = compare_idx.get() == Some(USER_FILE_ROW);
                         let user_ldt = ldt.get();
-                        let label = "(loaded file)".to_string();
+                        let label = locale.get().dashboard.loaded_file.clone();
                         let cfg = config.get();
                         let mut cells: Vec<String> = cfg.columns.iter()
                             .map(|c| (c.extract)(&user_ldt))
@@ -624,7 +635,7 @@ pub fn Dashboard(
                 // Loading
                 {move || loading.get().then(|| view! {
                     <div class="dashboard-loading">
-                        <span class="loading-text">"Loading templates..."</span>
+                        <span class="loading-text">{move || locale.get().dashboard.loading_templates.clone()}</span>
                     </div>
                 })}
 
@@ -672,11 +683,14 @@ pub fn Dashboard(
                 {move || {
                     if !loading.get() {
                         let count = entries.get().len();
+                        let luminaires_text = locale.get().dashboard.luminaires_count
+                            .replace("{}", &count.to_string());
+                        let click_text = locale.get().dashboard.click_to_select.clone();
                         Some(view! {
                             <div class="dashboard-footer">
-                                {format!("{} luminaires", count)}
+                                {luminaires_text}
                                 <span class="dashboard-hint">
-                                    " \u{2022} Click to select \u{2022} "
+                                    " \u{2022} "{click_text}" \u{2022} "
                                     <kbd>"Ctrl"</kbd>" / "<kbd>"\u{2318}"</kbd>" + click to compare"
                                 </span>
                             </div>
@@ -725,12 +739,14 @@ fn DashboardSidebar(
     on_print: Callback<()>,
     on_designer: Callback<()>,
 ) -> impl IntoView {
+    let locale = use_locale();
+
     view! {
         <aside class="dashboard-sidebar">
             // Edit
             <button
                 class="sidebar-icon-btn"
-                title="Edit luminaire data"
+                title=move || locale.get().dashboard.edit_data.clone()
                 on:click=move |_| on_edit.run(())
             >
                 "\u{270F}"
@@ -739,7 +755,7 @@ fn DashboardSidebar(
             // Zoom overlay
             <button
                 class=move || format!("sidebar-icon-btn{}", if has_selection.get() { "" } else { " disabled" })
-                title="Zoom active diagram"
+                title=move || locale.get().dashboard.zoom_diagram.clone()
                 disabled=move || !has_selection.get()
                 on:click=move |_| on_zoom.run(())
             >
@@ -753,10 +769,19 @@ fn DashboardSidebar(
                         <div class="sidebar-divider"></div>
                         {DiagramMode::all().iter().map(|&mode| {
                             let is_active = move || diagram_mode.get() == mode;
+                            let mode_title = move || {
+                                let m = locale.get().dashboard.modes;
+                                match mode {
+                                    DiagramMode::Overview => m.overview.clone(),
+                                    DiagramMode::BeamAngles => m.beam_angles.clone(),
+                                    DiagramMode::BeamIntensities => m.beam_intensities.clone(),
+                                    DiagramMode::UgrTable => m.ugr_table.clone(),
+                                }
+                            };
                             view! {
                                 <button
                                     class=move || format!("sidebar-icon-btn{}", if is_active() { " active" } else { "" })
-                                    title=mode.title()
+                                    title=mode_title
                                     on:click=move |_| set_diagram_mode.set(mode)
                                 >
                                     {mode.icon()}
@@ -773,7 +798,7 @@ fn DashboardSidebar(
             // Compare
             <button
                 class=move || format!("sidebar-icon-btn{}", if has_compare_pair.get() { "" } else { " disabled" })
-                title="Open compare view"
+                title=move || locale.get().dashboard.open_compare.clone()
                 disabled=move || !has_compare_pair.get()
                 on:click=move |_| on_compare_view.run(())
             >
@@ -783,7 +808,7 @@ fn DashboardSidebar(
             // Area Designer
             <button
                 class="sidebar-icon-btn"
-                title="Area Lighting Designer"
+                title=move || locale.get().dashboard.area_designer.clone()
                 on:click=move |_| on_designer.run(())
             >
                 "\u{1F4D0}"  // triangular ruler 📐
@@ -792,7 +817,7 @@ fn DashboardSidebar(
             // Print / Export PDF
             <button
                 class=move || format!("sidebar-icon-btn{}", if has_selection.get() { "" } else { " disabled" })
-                title="Export PDF report"
+                title=move || locale.get().dashboard.export_pdf.clone()
                 disabled=move || !has_selection.get()
                 on:click=move |_| on_print.run(())
             >
@@ -897,6 +922,7 @@ fn LuminaireRowStatic(
 #[component]
 fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl IntoView {
     let (ldt_sig, _) = signal(ldt);
+    let locale = use_locale();
 
     view! {
         <div class="luminaire-detail">
@@ -904,43 +930,43 @@ fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl Into
                 match slot {
                     DiagramSlot::Polar => view! {
                         <div class="detail-diagram">
-                            <h4>"Polar light distribution"</h4>
+                            <h4>{move || locale.get().dashboard.polar_title.clone()}</h4>
                             <PolarDiagram ldt=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::Cartesian => view! {
                         <div class="detail-diagram">
-                            <h4>"Cartesian Distribution"</h4>
+                            <h4>{move || locale.get().dashboard.cartesian_title.clone()}</h4>
                             <CartesianDiagram ldt=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::Isolux => view! {
                         <div class="detail-diagram">
-                            <h4>"ISO \u{2013} Illuminance Diagram (ISO-LUX)"</h4>
+                            <h4>{move || locale.get().dashboard.iso_lux_title.clone()}</h4>
                             <IsoluxFootprint ldt=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::IsoluxAec => view! {
                         <div class="detail-diagram">
-                            <h4>"ISO \u{2013} Illuminance Diagram (ISO-LUX)"</h4>
+                            <h4>{move || locale.get().dashboard.iso_lux_title.clone()}</h4>
                             <IsoluxAec ldt=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::IsoluxIso => view! {
                         <div class="detail-diagram">
-                            <h4>"ISO View"</h4>
+                            <h4>{move || locale.get().dashboard.iso_view_title.clone()}</h4>
                             <IsoluxIsometric ldt=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::BugRating => view! {
                         <div class="detail-diagram">
-                            <h4>"BUG Rating"</h4>
+                            <h4>{move || locale.get().dashboard.bug_title.clone()}</h4>
                             <BugRating ldt=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::Isocandela => view! {
                         <div class="detail-diagram">
-                            <h4>"ISO Curve"</h4>
+                            <h4>{move || locale.get().dashboard.iso_curve_title.clone()}</h4>
                             <IsocandelaDiagramView ldt=ldt_sig />
                         </div>
                     }.into_any(),
@@ -949,14 +975,14 @@ fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl Into
                         let (cp, _) = signal(None::<f64>);
                         view! {
                             <div class="detail-diagram">
-                                <h4>"Beam Intensities"</h4>
+                                <h4>{move || locale.get().dashboard.beam_intensities_title.clone()}</h4>
                                 <ConeDiagramView ldt=ldt_sig mounting_height=mh c_plane=cp />
                             </div>
                         }.into_any()
                     },
                     DiagramSlot::BeamAngle => view! {
                         <div class="detail-diagram">
-                            <h4>"Beam Angle"</h4>
+                            <h4>{move || locale.get().dashboard.beam_angle_title.clone()}</h4>
                             <BeamAngleDiagram ldt=ldt_sig />
                         </div>
                     }.into_any(),

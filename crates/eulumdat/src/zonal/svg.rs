@@ -376,6 +376,17 @@ impl ZonalSvg {
         theme: &SvgTheme,
         units: UnitSystem,
     ) -> String {
+        Self::illuminance_view_opts(ppb, room, theme, units, false)
+    }
+
+    /// Render illuminance heatmap with optional numeric value labels.
+    pub fn illuminance_view_opts(
+        ppb: &PpbResult,
+        room: &Room,
+        theme: &SvgTheme,
+        units: UnitSystem,
+        show_values: bool,
+    ) -> String {
         let svg_w = 550.0_f64;
         let svg_h = 450.0_f64;
         let margin_left = 50.0;
@@ -412,6 +423,12 @@ impl ZonalSvg {
             r#"<rect width="{svg_w}" height="{svg_h}" fill="{bg}"/>"#
         ));
 
+        // Value label density (when show_values enabled)
+        let label_step = ((n as f64 / 10.0).ceil() as usize).max(1);
+        let font_size = (cell_w * label_step as f64 * 0.35)
+            .min(cell_h * label_step as f64 * 0.4)
+            .clamp(5.0, 11.0);
+
         // Heatmap cells
         for (row, grid_row) in ppb.lux_grid.iter().enumerate() {
             for (col, &lux) in grid_row.iter().enumerate() {
@@ -425,6 +442,7 @@ impl ZonalSvg {
                     cell_h + 0.5,
                     color.to_rgb_string()
                 ));
+
             }
         }
 
@@ -475,6 +493,25 @@ impl ZonalSvg {
             r#"<rect x="{ox}" y="{oy}" width="{room_px_w}" height="{room_px_h}" fill="none" stroke="{fg}" stroke-width="1.5"/>"#
         ));
 
+        // Value labels (rendered on top of contours and outline)
+        if show_values {
+            for (row, grid_row) in ppb.lux_grid.iter().enumerate() {
+                for (col, &lux) in grid_row.iter().enumerate() {
+                    if row % label_step == label_step / 2 && col % label_step == label_step / 2 {
+                        let normalized = lux / max_lux;
+                        let display_val = units.convert_lux(lux);
+                        let text_color = if normalized < 0.45 { "white" } else { "#1a1a1a" };
+                        let cx = ox + (col as f64 + label_step as f64 / 2.0) * cell_w;
+                        let cy = oy + (row as f64 + label_step as f64 / 2.0) * cell_h;
+                        svg.push_str(&format!(
+                            r#"<text x="{cx:.1}" y="{cy:.1}" fill="{text_color}" font-size="{font_size:.1}" text-anchor="middle" dominant-baseline="central" font-family="monospace" stroke="{bg}" stroke-width="2" paint-order="stroke">{:.0}</text>"#,
+                            display_val
+                        ));
+                    }
+                }
+            }
+        }
+
         // Color legend
         let legend_x = ox + room_px_w + 15.0;
         let legend_h = room_px_h * 0.7;
@@ -519,6 +556,116 @@ impl ZonalSvg {
             max_d,
             ppb.uniformity_min_avg,
             ppb.uniformity_min_max
+        ));
+
+        svg.push_str("</svg>");
+        svg
+    }
+
+    /// Render a spreadsheet-style illuminance table as SVG.
+    ///
+    /// Shows numeric lux/fc values in a grid with colored cell backgrounds.
+    /// Required for US standards compliance (IES LM-83, ASHRAE 90.1).
+    pub fn illuminance_table(
+        ppb: &PpbResult,
+        room: &Room,
+        theme: &SvgTheme,
+        units: UnitSystem,
+    ) -> String {
+        let n = ppb.grid_resolution;
+        // Downsample for readable table: max ~10×10 cells
+        let step = ((n as f64 / 10.0).ceil() as usize).max(1);
+        let cols = (n + step - 1) / step;
+        let rows = (n + step - 1) / step;
+
+        let cell_px = 48.0;
+        let header_w = 40.0;
+        let header_h = 22.0;
+        let svg_w = header_w + cols as f64 * cell_px + 10.0;
+        let svg_h = header_h + rows as f64 * cell_px * 0.5 + 30.0;
+
+        let bg = &theme.background;
+        let fg = &theme.text;
+        let max_lux = ppb.max_lux.max(1.0);
+        let illu_label = units.illuminance_label();
+
+        let mut svg = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {svg_w} {svg_h}" preserveAspectRatio="xMidYMid meet">"#
+        );
+        svg.push_str(&format!(
+            r#"<rect width="{svg_w}" height="{svg_h}" fill="{bg}"/>"#
+        ));
+
+        // Column headers (room width positions in meters)
+        for ci in 0..cols {
+            let src_col = (ci * step + step / 2).min(n - 1);
+            let x_m = (src_col as f64 + 0.5) / n as f64 * room.width;
+            let x = header_w + ci as f64 * cell_px + cell_px / 2.0;
+            svg.push_str(&format!(
+                r#"<text x="{x}" y="{}" fill="{fg}" font-size="7" text-anchor="middle">{:.1}m</text>"#,
+                header_h - 4.0, x_m
+            ));
+        }
+
+        // Row headers + data cells
+        let cell_h = cell_px * 0.5;
+        for ri in 0..rows {
+            let src_row = (ri * step + step / 2).min(n - 1);
+            let y_m = (src_row as f64 + 0.5) / n as f64 * room.length;
+            let y = header_h + ri as f64 * cell_h;
+
+            // Row header
+            svg.push_str(&format!(
+                r#"<text x="{}" y="{}" fill="{fg}" font-size="7" text-anchor="end" dominant-baseline="central">{:.1}m</text>"#,
+                header_w - 4.0, y + cell_h / 2.0, y_m
+            ));
+
+            for ci in 0..cols {
+                // Average over the step×step block for more representative values
+                let mut sum = 0.0;
+                let mut count = 0;
+                for dr in 0..step {
+                    for dc in 0..step {
+                        let r = ri * step + dr;
+                        let c = ci * step + dc;
+                        if r < n && c < n {
+                            sum += ppb.lux_grid[r][c];
+                            count += 1;
+                        }
+                    }
+                }
+                let lux = if count > 0 { sum / count as f64 } else { 0.0 };
+                let normalized = lux / max_lux;
+                let color = heatmap_color(normalized);
+                let text_color = if normalized < 0.45 { "white" } else { "#1a1a1a" };
+                let display_val = units.convert_lux(lux);
+
+                let x = header_w + ci as f64 * cell_px;
+
+                // Cell background
+                svg.push_str(&format!(
+                    r#"<rect x="{x}" y="{y}" width="{cell_px}" height="{cell_h}" fill="{}" stroke="{fg}" stroke-width="0.3"/>"#,
+                    color.to_rgb_string()
+                ));
+                // Value
+                svg.push_str(&format!(
+                    r#"<text x="{}" y="{}" fill="{text_color}" font-size="9" text-anchor="middle" dominant-baseline="central" font-family="monospace">{:.0}</text>"#,
+                    x + cell_px / 2.0,
+                    y + cell_h / 2.0,
+                    display_val
+                ));
+            }
+        }
+
+        // Statistics footer
+        let stats_y = svg_h - 8.0;
+        let min_d = units.convert_lux(ppb.min_lux);
+        let avg_d = units.convert_lux(ppb.avg_lux);
+        let max_d = units.convert_lux(ppb.max_lux);
+        svg.push_str(&format!(
+            r#"<text x="5" y="{stats_y}" fill="{fg}" font-size="8">Min: {:.0}  Avg: {:.0}  Max: {:.0} {illu_label}  |  U₀: {:.2}  Ud: {:.2}</text>"#,
+            min_d, avg_d, max_d,
+            ppb.uniformity_min_avg, ppb.uniformity_min_max
         ));
 
         svg.push_str("</svg>");

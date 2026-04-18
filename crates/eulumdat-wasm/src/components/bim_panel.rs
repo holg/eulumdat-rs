@@ -4,6 +4,7 @@
 //! ATLA/TM-33 photometric files when available.
 
 use atla::{BimParameters, LuminaireOpticalData};
+use crate::i18n::use_locale;
 use leptos::prelude::*;
 
 /// Check if an ATLA document has meaningful BIM data
@@ -17,10 +18,11 @@ pub fn has_bim_data(doc: &LuminaireOpticalData) -> bool {
 /// BIM Panel component for displaying TM-32-24 parameters
 #[component]
 pub fn BimPanel(atla_doc: ReadSignal<LuminaireOpticalData>) -> impl IntoView {
+    let locale = use_locale();
     view! {
         <div class="bim-panel">
             <div class="bim-header">
-                <h3>"TM-32-24 BIM Parameters"</h3>
+                <h3>{move || locale.get().ui.bim.title.clone()}</h3>
                 <span class="bim-count">
                     {move || {
                         let params = BimParameters::from_atla(&atla_doc.get());
@@ -100,7 +102,7 @@ pub fn BimPanel(atla_doc: ReadSignal<LuminaireOpticalData>) -> impl IntoView {
                         super::file_handler::download_file("bim_parameters.csv", &csv, "text/csv");
                     }
                 >
-                    "Export CSV"
+                    {move || locale.get().ui.bim.export_csv.clone()}
                 </button>
                 <button
                     class="btn btn-secondary"
@@ -110,14 +112,14 @@ pub fn BimPanel(atla_doc: ReadSignal<LuminaireOpticalData>) -> impl IntoView {
                         super::file_handler::download_file("bim_parameters.txt", &report, "text/plain");
                     }
                 >
-                    "Export Report"
+                    {move || locale.get().ui.bim.export_report.clone()}
                 </button>
             </div>
 
             // Info note
             <div class="bim-info">
                 <p class="text-muted">
-                    "BIM parameters follow ANSI/IES TM-32-24 standard for Building Information Modeling."
+                    {move || locale.get().ui.bim.info_text.clone()}
                 </p>
             </div>
         </div>
@@ -127,16 +129,16 @@ pub fn BimPanel(atla_doc: ReadSignal<LuminaireOpticalData>) -> impl IntoView {
 /// Empty BIM panel shown when no BIM data is available
 #[component]
 pub fn BimPanelEmpty() -> impl IntoView {
+    let locale = use_locale();
     view! {
         <div class="bim-panel bim-empty">
             <div class="bim-empty-message">
-                <h3>"No BIM Data Available"</h3>
+                <h3>{move || locale.get().ui.bim.no_data_title.clone()}</h3>
                 <p>
-                    "This file does not contain TM-32-24 BIM parameters. "
-                    "BIM data is typically found in TM-33-23 XML files with CustomData sections."
+                    {move || locale.get().ui.bim.no_data_text.clone()}
                 </p>
                 <p class="text-muted">
-                    "Try loading one of the TM-32-24 BIM templates from the Templates menu."
+                    {move || locale.get().ui.bim.template_hint.clone()}
                 </p>
             </div>
         </div>

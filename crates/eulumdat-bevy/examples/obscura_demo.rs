@@ -4,13 +4,18 @@
 //! Built as a pitch demo for L'Observatoire de la Nuit.
 //!
 //! Controls:
-//!   Space       — Toggle simulation mode
-//!   WASD/Arrows — Move camera
+//!   Space       — Toggle simulation mode (pollution ↔ preserved)
+//!   WASD        — Move camera
+//!   Arrow keys  — Rotate camera (look around)
 //!   Q / E       — Up / Down
-//!   Right-click + drag — Look around
+//!   Right-click + drag — Look around (mouse)
 //!   Scroll      — Zoom
 //!   R           — Reset camera
 //!   P           — Toggle photometric solid visualization
+//!   1 / 2 / 3   — Switch scene (Sponza / Urban / Bistro)
+//!   [ / ]       — Decrease / increase uplight %
+//!   - / =       — Decrease / increase intensity
+//!   9 / 0       — Decrease / increase haze
 //!
 //! Run:
 //!   cargo run --example obscura_demo -p eulumdat-bevy --features post-process,bevy-ui --release
@@ -298,7 +303,14 @@ fn main() {
     };
     #[cfg(target_arch = "wasm32")]
     let (debug_flags, scene) = {
-        (DebugFlags { no_sky: false, no_matfix: false, no_lights: false }, None::<String>)
+        // Read scene from URL: ?wasm=obscura_demo&scene=sponza (or bistro)
+        #[cfg(feature = "wasm-bindgen")]
+        let scene: Option<String> = js_sys::eval(
+            "new URLSearchParams(window.location.search).get('scene')"
+        ).ok().and_then(|v| v.as_string());
+        #[cfg(not(feature = "wasm-bindgen"))]
+        let scene: Option<String> = None;
+        (DebugFlags { no_sky: false, no_matfix: false, no_lights: false }, scene)
     };
 
     let pollution_ldt =
@@ -362,6 +374,7 @@ fn main() {
             (
                 toggle_mode,
                 toggle_solid,
+                keyboard_shortcuts,
                 update_fog,
                 update_ambient,
                 update_star_visibility,
@@ -1124,6 +1137,60 @@ fn toggle_mode(
 
     if !flags.no_lights {
         spawn_lamps(&mut commands, &state);
+    }
+}
+
+/// Keyboard shortcuts for scene switching and slider adjustments.
+///   1 = Sponza, 2 = Urban Street, 3 = Bistro Exterior
+///   [ = decrease uplight %, ] = increase uplight %
+///   - = decrease intensity, = = increase intensity
+///   9 = decrease haze, 0 = increase haze
+fn keyboard_shortcuts(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut state: ResMut<SimulationState>,
+) {
+    let mut scene_changed = false;
+
+    // Scene switching: 1, 2, 3
+    if keys.just_pressed(KeyCode::Digit1) && state.scene != SceneChoice::Sponza {
+        state.scene = SceneChoice::Sponza;
+        scene_changed = true;
+    }
+    if keys.just_pressed(KeyCode::Digit2) && state.scene != SceneChoice::UrbanStreet {
+        state.scene = SceneChoice::UrbanStreet;
+        scene_changed = true;
+    }
+    if keys.just_pressed(KeyCode::Digit3) && state.scene != SceneChoice::BistroExterior {
+        state.scene = SceneChoice::BistroExterior;
+        scene_changed = true;
+    }
+
+    if scene_changed {
+        state.lights_dirty = true;
+    }
+
+    // Uplight adjustment: [ and ]
+    if keys.just_pressed(KeyCode::BracketLeft) {
+        state.uplight_pct = (state.uplight_pct - 10.0).max(0.0);
+    }
+    if keys.just_pressed(KeyCode::BracketRight) {
+        state.uplight_pct = (state.uplight_pct + 10.0).min(100.0);
+    }
+
+    // Intensity adjustment: - and =
+    if keys.just_pressed(KeyCode::Minus) {
+        state.intensity_scale = (state.intensity_scale - 0.2).max(0.05);
+    }
+    if keys.just_pressed(KeyCode::Equal) {
+        state.intensity_scale = (state.intensity_scale + 0.2).min(3.0);
+    }
+
+    // Haze adjustment: 9 and 0
+    if keys.just_pressed(KeyCode::Digit9) {
+        state.haze_density = (state.haze_density - 0.01).max(0.001);
+    }
+    if keys.just_pressed(KeyCode::Digit0) {
+        state.haze_density = (state.haze_density + 0.01).min(0.15);
     }
 }
 
@@ -1949,17 +2016,31 @@ fn fly_camera_look(
     mut query: Query<(&mut Transform, &mut FlyCamera)>,
     accumulated: Res<bevy::input::mouse::AccumulatedMouseMotion>,
     mouse_button: Res<ButtonInput<MouseButton>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
     #[cfg(feature = "bevy-ui")] panel: Query<&Interaction, With<DashboardPanel>>,
 ) {
-    #[cfg(feature = "bevy-ui")]
-    if ui_wants_pointer(&panel) {
-        return;
-    }
-    if !mouse_button.pressed(MouseButton::Right) {
-        return;
-    }
+    // Arrow keys rotate the camera (same as right-click drag)
+    // This enables keyboard-only camera control for automated recording.
+    let mut key_delta = Vec2::ZERO;
+    let rotate_speed = 1.5; // radians per second
+    let dt = time.delta_secs();
+    if keys.pressed(KeyCode::ArrowLeft)  { key_delta.x -= rotate_speed * dt / 0.003; }
+    if keys.pressed(KeyCode::ArrowRight) { key_delta.x += rotate_speed * dt / 0.003; }
+    if keys.pressed(KeyCode::ArrowUp)    { key_delta.y -= rotate_speed * dt / 0.003; }
+    if keys.pressed(KeyCode::ArrowDown)  { key_delta.y += rotate_speed * dt / 0.003; }
 
-    let delta = accumulated.delta;
+    // Mouse look (right-click drag)
+    let mouse_delta = if mouse_button.pressed(MouseButton::Right) {
+        #[cfg(feature = "bevy-ui")]
+        if ui_wants_pointer(&panel) { Vec2::ZERO } else { accumulated.delta }
+        #[cfg(not(feature = "bevy-ui"))]
+        { accumulated.delta }
+    } else {
+        Vec2::ZERO
+    };
+
+    let delta = mouse_delta + key_delta;
     if delta == Vec2::ZERO {
         return;
     }
@@ -1984,16 +2065,17 @@ fn fly_camera_move(
         let right = transform.right();
         let right_flat = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
 
-        if keys.pressed(KeyCode::KeyW) || keys.pressed(KeyCode::ArrowUp) {
+        // WASD for movement, Arrow keys for camera rotation (see fly_camera_look)
+        if keys.pressed(KeyCode::KeyW) {
             dir += fwd_flat;
         }
-        if keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown) {
+        if keys.pressed(KeyCode::KeyS) {
             dir -= fwd_flat;
         }
-        if keys.pressed(KeyCode::KeyA) || keys.pressed(KeyCode::ArrowLeft) {
+        if keys.pressed(KeyCode::KeyA) {
             dir -= right_flat;
         }
-        if keys.pressed(KeyCode::KeyD) || keys.pressed(KeyCode::ArrowRight) {
+        if keys.pressed(KeyCode::KeyD) {
             dir += right_flat;
         }
         if keys.pressed(KeyCode::KeyQ) {

@@ -4614,3 +4614,197 @@ tr.delta-major .metric-percent {
         gap: 0.5rem;
     }
 }
+
+/* ============================================
+   ZONAL DESIGNER
+   ============================================ */
+.zonal-layout {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+}
+
+.zonal-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.zonal-sidebar-section {
+    margin-bottom: 16px;
+}
+
+.zonal-sidebar-section h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+}
+
+.zonal-info-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 8px;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+}
+
+.zonal-info-grid .label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.zonal-view-tabs {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.zonal-view-tab {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.zonal-view-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.zonal-view-tab:hover:not(.active) {
+    background: var(--surface-elevated);
+}
+
+.zonal-panel {
+    flex: 1;
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 0;
+}
+
+.zonal-panel h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.zonal-prop-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.zonal-prop-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    min-width: 80px;
+}
+
+.zonal-prop-row input[type="range"] {
+    flex: 1;
+}
+
+.zonal-prop-row input[type="number"],
+.zonal-prop-row select {
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+}
+
+.zonal-flux-summary {
+    margin-top: 8px;
+    font-size: 0.75rem;
+}
+
+.zonal-flux-row,
+.zonal-flux-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+    color: var(--text-primary);
+}
+
+.zonal-flux-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.zonal-flux-zone {
+    width: 50px;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+.zonal-flux-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.zonal-flux-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.zonal-flux-bar-fill.zonal-flux-down {
+    background: var(--primary-color);
+}
+
+.zonal-flux-bar-fill.zonal-flux-up {
+    background: var(--warning-color);
+}
+
+.zonal-flux-pct {
+    width: 40px;
+    text-align: right;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+}
+
+.zonal-flux-val {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.zonal-stats-table {
+    width: 100%;
+    font-size: 0.8rem;
+    border-collapse: collapse;
+    color: var(--text-primary);
+}
+
+.zonal-stats-table td {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+}
+
+.zonal-stats-table .val {
+    font-weight: 600;
+    color: var(--primary-color);
+}

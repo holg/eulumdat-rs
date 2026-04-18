@@ -1,5 +1,9 @@
 # Cargo configuration for cross-compilation
 
+# WASM: allow up to 4 GB memory (Bistro GLB is ~180 MB, decoded textures need more)
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-args=--initial-memory=268435456 --max-memory=4294967296"]
+
 [target.aarch64-unknown-linux-ohos]
 linker = "/Users/htr/Library/OpenHarmony/Sdk/20/native/llvm/bin/aarch64-unknown-linux-ohos-clang"
 ar = "/Users/htr/Library/OpenHarmony/Sdk/20/native/llvm/bin/llvm-ar"

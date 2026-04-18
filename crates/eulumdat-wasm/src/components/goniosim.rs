@@ -78,19 +78,20 @@ impl CameraView {
         }
     }
     fn camera_pos(&self) -> [f32; 3] {
+        // Room: 4m×4m×1.5m, source at y=1.46 (near ceiling)
         match self {
-            Self::Corner => [1.8, 0.8, 2.2],
-            Self::TopDown => [0.0, 2.8, 0.01],     // directly above, looking down
-            Self::FloorLevel => [1.5, 0.15, 1.5],  // sitting on floor
-            Self::CloseUp => [0.4, 1.2, 0.4],      // near the luminaire
+            Self::Corner => [1.8, 0.8, 2.2],       // classic room corner
+            Self::TopDown => [0.0, 1.45, 1.8],     // near ceiling, looking down at floor
+            Self::FloorLevel => [1.5, 0.15, 1.5],  // sitting on floor, looking up
+            Self::CloseUp => [0.3, 1.2, 0.3],      // close to the luminaire
         }
     }
     fn look_at(&self) -> [f32; 3] {
         match self {
-            Self::Corner => [0.0, 0.3, 0.0],
+            Self::Corner => [0.0, 0.5, 0.0],        // mid-room
             Self::TopDown => [0.0, 0.0, 0.0],       // floor center
-            Self::FloorLevel => [0.0, 0.8, 0.0],    // up toward light
-            Self::CloseUp => [0.0, 1.45, 0.0],      // at the cover
+            Self::FloorLevel => [0.0, 1.46, 0.0],   // up toward light source
+            Self::CloseUp => [0.0, 1.46, 0.0],      // at the source/cover
         }
     }
 }
@@ -457,15 +458,22 @@ pub fn GonioSimDemo(
                 };
 
                 // Build Eulumdat from GPU detector result
-                // Convert GPU bins to CPU detector for reuse of export pipeline
-                let gpu_cd = result.to_candela(calculated_flux);
+                // Match CPU path: to_candela(source_flux) gives actual candela,
+                // then scale by 1000/lamp_flux to get cd/klm.
+                // source_flux = lamp_flux * LOR (same as CPU `flux` variable)
+                let gpu_cd = result.to_candela(flux);
+                let scale = 1000.0 / lamp_flux;
+                // Use source LDT's gamma range (not full 0-180°) so diagrams align
+                let src_g_max = src_clone.g_angles.last().copied().unwrap_or(180.0);
+                let src_num_g = (src_g_max / g_res).round() as usize + 1;
+
                 let mut ldt = Eulumdat::new();
                 ldt.luminaire_name = export_cfg.luminaire_name.clone();
                 ldt.identification = export_cfg.manufacturer.clone();
                 ldt.symmetry = src_clone.symmetry;
                 ldt.num_c_planes = gpu_cd.len();
                 ldt.c_plane_distance = c_res;
-                ldt.num_g_planes = if gpu_cd.is_empty() { 0 } else { gpu_cd[0].len() };
+                ldt.num_g_planes = src_num_g;
                 ldt.g_plane_distance = g_res;
                 ldt.length = src_clone.length;
                 ldt.width = src_clone.width;
@@ -479,17 +487,57 @@ pub fn GonioSimDemo(
                 ldt.conversion_factor = 1.0;
                 ldt.direct_ratios = [0.0; 10];
                 ldt.c_angles = (0..gpu_cd.len()).map(|i| i as f64 * c_res).collect();
-                ldt.g_angles = (0..ldt.num_g_planes).map(|i| i as f64 * g_res).collect();
-                // Convert cd to cd/klm
-                let scale = 1000.0 / lamp_flux;
-                ldt.intensities = gpu_cd.iter().map(|cp| cp.iter().map(|&cd| cd * scale).collect()).collect();
+                ldt.g_angles = (0..src_num_g).map(|i| i as f64 * g_res).collect();
+                // Trim gamma bins to source range and convert cd to cd/klm
+                let raw_intensities: Vec<Vec<f64>> = gpu_cd.iter().map(|cp| {
+                    cp.iter().take(src_num_g).map(|&cd| cd * scale).collect()
+                }).collect();
+
+                // Apply symmetry reduction (same as CPU export path):
+                // For symmetric sources, average C-planes to reduce Monte Carlo noise.
+                let num_c_raw = raw_intensities.len();
+                let (final_c_angles, final_intensities) = match src_clone.symmetry {
+                    eulumdat::Symmetry::VerticalAxis => {
+                        // Average ALL C-planes into one (noise reduction by sqrt(num_c))
+                        let mut avg = vec![0.0; src_num_g];
+                        for gi in 0..src_num_g {
+                            let sum: f64 = raw_intensities.iter().map(|cp| cp[gi]).sum();
+                            avg[gi] = sum / num_c_raw as f64;
+                        }
+                        (vec![0.0], vec![avg])
+                    }
+                    eulumdat::Symmetry::PlaneC0C180 => {
+                        // Average C and (360-C) pairs
+                        let half = num_c_raw / 2 + 1;
+                        let mut result = Vec::with_capacity(half);
+                        let mut angles = Vec::with_capacity(half);
+                        for ci in 0..half {
+                            let mirror_ci = (num_c_raw - ci) % num_c_raw;
+                            let mut plane = vec![0.0; src_num_g];
+                            for gi in 0..src_num_g {
+                                plane[gi] = (raw_intensities[ci][gi] + raw_intensities[mirror_ci][gi]) / 2.0;
+                            }
+                            result.push(plane);
+                            angles.push(ci as f64 * c_res);
+                        }
+                        (angles, result)
+                    }
+                    _ => {
+                        let angles = (0..num_c_raw).map(|i| i as f64 * c_res).collect();
+                        (angles, raw_intensities)
+                    }
+                };
+
+                ldt.num_c_planes = final_intensities.len();
+                ldt.c_angles = final_c_angles;
+                ldt.intensities = final_intensities;
 
                 set_export_ldt_string.set(ldt.to_ldt());
                 set_sim_ldt.set(Some(ldt));
 
                 // Render a 3D camera image with LDT-based light emission
                 if let Ok(camera) = eulumdat_rt::GpuCamera::new().await {
-                    let (scene_prims, scene_mats) = build_render_scene(&gpu_prims, &gpu_mats);
+                    let (scene_prims, scene_mats, source_pos) = build_render_scene(&gpu_prims, &gpu_mats);
 
                     // Build LVK intensity lookup table from LDT
                     let lvk_c_step = 5.0f64;
@@ -517,6 +565,7 @@ pub fn GonioSimDemo(
                         55.0,
                         &scene_prims, &scene_mats,
                         500.0,
+                        source_pos,
                         &lvk_flat, lvk_c_steps, lvk_g_steps, lvk_g_max as f32, lvk_max,
                     ).await;
                     image.denoise(3); // bilateral filter, radius 3
@@ -980,7 +1029,14 @@ pub fn GonioSimDemo(
                                 let ldt = ldt_opt.unwrap();
                                 let theme = SvgTheme::dark();
                                 let effective_dt = if dt == DiagramType::Render3D { DiagramType::Polar } else { dt };
-                                let svg = render_diagram(&ldt, effective_dt, cp, &theme, 450.0, 450.0);
+                                // Shared scale: use max of original and simulated
+                                let shared_max = {
+                                    let orig_max = ldt.max_intensity();
+                                    let sim_max = sim_ldt.get().map_or(0.0, |s| s.max_intensity());
+                                    if sim_max > 0.0 { orig_max.max(sim_max) } else { orig_max }
+                                };
+                                let forced = if sim_ldt.get().is_some() { Some(shared_max) } else { None };
+                                let svg = render_diagram(&ldt, effective_dt, cp, &theme, 450.0, 450.0, forced);
                                 view! {
                                     <div style="width: 100%;" inner_html=svg />
                                 }.into_any()
@@ -1020,7 +1076,13 @@ pub fn GonioSimDemo(
                                 } else {
                                     let ldt = ldt_opt.unwrap();
                                     let theme = SvgTheme::dark();
-                                    let svg = render_diagram(&ldt, dt, cp, &theme, 450.0, 450.0);
+                                    // Shared scale: use max of original and simulated
+                                    let shared_max = {
+                                        let sim_max = ldt.max_intensity();
+                                        let orig_max = source_ldt.get().map_or(0.0, |s| s.max_intensity());
+                                        sim_max.max(orig_max)
+                                    };
+                                    let svg = render_diagram(&ldt, dt, cp, &theme, 450.0, 450.0, Some(shared_max));
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
                                     }.into_any()
@@ -1120,25 +1182,24 @@ fn render_diagram(
     theme: &SvgTheme,
     w: f64,
     h: f64,
+    forced_max: Option<f64>,
 ) -> String {
     match dtype {
-        DiagramType::Polar => CorePolarDiagram::render_svg(ldt, c_plane, w, h, theme),
-        DiagramType::Cartesian => CartesianDiagram::render_svg(ldt, c_plane, w, h, theme),
+        DiagramType::Polar => CorePolarDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max),
+        DiagramType::Cartesian => CartesianDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max),
         DiagramType::Heatmap => HeatmapDiagram::render_svg(ldt, w, h, theme),
         DiagramType::Butterfly => ButterflyDiagram::render_svg(ldt, w, h, 60.0, theme),
-        DiagramType::Render3D => {
-            // Return empty — the render image is displayed via <img> tag, not inner_html
-            String::new()
-        }
+        DiagramType::Render3D => String::new(),
     }
 }
 
 /// Build a room scene for the 3D render view.
 /// Adds floor, ceiling, walls around the cover/source setup.
+/// Returns (primitives, materials, source_position).
 fn build_render_scene(
     cover_prims: &[eulumdat_rt::GpuPrimitive],
     cover_mats: &[eulumdat_rt::GpuMaterial],
-) -> (Vec<eulumdat_rt::GpuPrimitive>, Vec<eulumdat_rt::GpuMaterial>) {
+) -> (Vec<eulumdat_rt::GpuPrimitive>, Vec<eulumdat_rt::GpuMaterial>, [f32; 3]) {
     use eulumdat_rt::{GpuMaterial, GpuPrimitive};
 
     let mut prims = Vec::new();
@@ -1211,7 +1272,10 @@ fn build_render_scene(
         prims.push(prim);
     }
 
-    (prims, mats)
+    // Source is at the ceiling (where the luminaire would be)
+    let source_pos = [0.0, room_h - 0.04, 0.0];
+
+    (prims, mats, source_pos)
 }
 
 /// Encode RGBA bytes as BMP (uncompressed, 24-bit, bottom-up).

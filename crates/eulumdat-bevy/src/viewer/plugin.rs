@@ -11,7 +11,7 @@ use super::controls::{
     calculate_all_luminaire_transforms, sync_viewer_to_lights, viewer_controls_system,
 };
 use super::scenes::ScenePlugin;
-use super::wasm_sync::{load_default_ldt, LdtTimestamp, ViewerSettingsTimestamp};
+use super::wasm_sync::{load_default_ldt, DesignerTimestamp, LdtTimestamp, ViewerSettingsTimestamp};
 use super::ViewerSettings;
 use crate::eulumdat_impl::EulumdatLightBundle;
 use crate::photometric::PhotometricPlugin;
@@ -92,6 +92,7 @@ impl Plugin for EulumdatViewerPlugin {
         app.insert_resource(settings);
         app.insert_resource(LdtTimestamp::default());
         app.insert_resource(ViewerSettingsTimestamp::default());
+        app.insert_resource(DesignerTimestamp::default());
 
         // Add startup system to spawn the light
         app.add_systems(Startup, setup_viewer_light);
@@ -111,6 +112,7 @@ impl Plugin for EulumdatViewerPlugin {
                 (
                     super::wasm_sync::poll_ldt_changes,
                     super::wasm_sync::poll_viewer_settings_changes,
+                    super::wasm_sync::poll_designer_changes,
                     sync_ldt_to_light,
                     ApplyDeferred,
                     sync_viewer_to_lights,

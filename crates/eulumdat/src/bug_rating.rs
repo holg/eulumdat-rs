@@ -274,6 +274,175 @@ impl std::fmt::Display for BugRating {
     }
 }
 
+// ============================================================================
+// IES/IDA Lighting Zones and MLO Compliance
+// ============================================================================
+
+/// IES/IDA Model Lighting Ordinance (MLO) lighting zone.
+///
+/// Defines the ambient lighting environment where the luminaire will be used.
+/// Each zone has maximum allowed BUG ratings per the MLO.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum LightingZone {
+    /// LZ0: No ambient lighting — wilderness, parks, rural areas.
+    /// Most restrictive: B0 U0 G0.
+    LZ0,
+    /// LZ1: Low ambient lighting — rural, low-density residential.
+    /// B1 U1 G1.
+    LZ1,
+    /// LZ2: Moderate ambient lighting — suburban residential, light commercial.
+    /// B3 U2 G2.
+    LZ2,
+    /// LZ3: Moderately high ambient — urban commercial, industrial.
+    /// B4 U3 G3.
+    LZ3,
+    /// LZ4: High ambient — major city centers, entertainment districts.
+    /// B5 U4 G4.
+    LZ4,
+}
+
+impl std::fmt::Display for LightingZone {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LZ0 => write!(f, "LZ0"),
+            Self::LZ1 => write!(f, "LZ1"),
+            Self::LZ2 => write!(f, "LZ2"),
+            Self::LZ3 => write!(f, "LZ3"),
+            Self::LZ4 => write!(f, "LZ4"),
+        }
+    }
+}
+
+impl LightingZone {
+    /// Maximum allowed BUG rating for this lighting zone per IES/IDA MLO.
+    pub fn max_bug(&self) -> BugRating {
+        match self {
+            Self::LZ0 => BugRating::new(0, 0, 0),
+            Self::LZ1 => BugRating::new(1, 1, 1),
+            Self::LZ2 => BugRating::new(3, 2, 2),
+            Self::LZ3 => BugRating::new(4, 3, 3),
+            Self::LZ4 => BugRating::new(5, 4, 4),
+        }
+    }
+
+    /// Description of the lighting zone environment.
+    pub fn description(&self) -> &'static str {
+        match self {
+            Self::LZ0 => "No ambient lighting (wilderness, parks, rural)",
+            Self::LZ1 => "Low ambient (rural residential)",
+            Self::LZ2 => "Moderate ambient (suburban, light commercial)",
+            Self::LZ3 => "Moderately high ambient (urban, commercial)",
+            Self::LZ4 => "High ambient (city centers, entertainment)",
+        }
+    }
+
+    /// All lighting zones in order.
+    pub fn all() -> &'static [LightingZone] {
+        &[Self::LZ0, Self::LZ1, Self::LZ2, Self::LZ3, Self::LZ4]
+    }
+}
+
+impl BugRating {
+    /// Check if this luminaire is compliant with a given lighting zone.
+    pub fn compliant_with(&self, zone: LightingZone) -> bool {
+        let max = zone.max_bug();
+        self.b <= max.b && self.u <= max.u && self.g <= max.g
+    }
+
+    /// Return the most restrictive lighting zone this luminaire is compliant with.
+    /// Returns `None` if it doesn't comply with any zone (exceeds LZ4).
+    pub fn most_restrictive_zone(&self) -> Option<LightingZone> {
+        for zone in LightingZone::all() {
+            if self.compliant_with(*zone) {
+                return Some(*zone);
+            }
+        }
+        None
+    }
+
+    /// Return all lighting zones this luminaire is compliant with.
+    pub fn compliant_zones(&self) -> Vec<LightingZone> {
+        LightingZone::all()
+            .iter()
+            .copied()
+            .filter(|z| self.compliant_with(*z))
+            .collect()
+    }
+}
+
+// ============================================================================
+// LCS Zone Percentages
+// ============================================================================
+
+/// TM-15 LCS zone lumen percentages — normalized distribution across zones.
+#[derive(Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct LcsZonePercentages {
+    /// Forward Low (0-30°) percentage
+    pub fl_pct: f64,
+    /// Forward Mid (30-60°) percentage
+    pub fm_pct: f64,
+    /// Forward High (60-80°) percentage
+    pub fh_pct: f64,
+    /// Forward Very High (80-90°) percentage
+    pub fvh_pct: f64,
+    /// Back Low (0-30°) percentage
+    pub bl_pct: f64,
+    /// Back Mid (30-60°) percentage
+    pub bm_pct: f64,
+    /// Back High (60-80°) percentage
+    pub bh_pct: f64,
+    /// Back Very High (80-90°) percentage
+    pub bvh_pct: f64,
+    /// Uplight Low (90-100°) percentage
+    pub ul_pct: f64,
+    /// Uplight High (100-180°) percentage
+    pub uh_pct: f64,
+    /// Forward total percentage
+    pub forward_pct: f64,
+    /// Back total percentage
+    pub back_pct: f64,
+    /// Uplight total percentage
+    pub uplight_pct: f64,
+    /// Forward/Back ratio (>1 = more forward throw)
+    pub fb_ratio: f64,
+}
+
+impl LcsZonePercentages {
+    /// Compute LCS zone percentages from zone lumens.
+    pub fn from_zone_lumens(zones: &ZoneLumens) -> Self {
+        let total = zones.total();
+        if total <= 0.0 {
+            return Self::default();
+        }
+        let pct = |v: f64| v / total * 100.0;
+        let forward = zones.forward_total();
+        let back = zones.back_total();
+        Self {
+            fl_pct: pct(zones.fl),
+            fm_pct: pct(zones.fm),
+            fh_pct: pct(zones.fh),
+            fvh_pct: pct(zones.fvh),
+            bl_pct: pct(zones.bl),
+            bm_pct: pct(zones.bm),
+            bh_pct: pct(zones.bh),
+            bvh_pct: pct(zones.bvh),
+            ul_pct: pct(zones.ul),
+            uh_pct: pct(zones.uh),
+            forward_pct: pct(forward),
+            back_pct: pct(back),
+            uplight_pct: pct(zones.uplight_total()),
+            fb_ratio: if back > 0.0 { forward / back } else { f64::INFINITY },
+        }
+    }
+
+    /// Compute directly from Eulumdat data.
+    pub fn from_eulumdat(ldt: &Eulumdat) -> Self {
+        Self::from_zone_lumens(&ZoneLumens::from_eulumdat(ldt))
+    }
+}
+
 /// BUG diagram with SVG rendering support
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -1131,5 +1300,49 @@ mod tests {
         assert_eq!(rating.b, 0);
         assert_eq!(rating.u, 0);
         assert_eq!(rating.g, 0);
+    }
+
+    #[test]
+    fn test_lighting_zone_compliance() {
+        // B0 U0 G0 — compliant with all zones
+        let dark_sky = BugRating::new(0, 0, 0);
+        assert!(dark_sky.compliant_with(LightingZone::LZ0));
+        assert!(dark_sky.compliant_with(LightingZone::LZ4));
+        assert_eq!(dark_sky.most_restrictive_zone(), Some(LightingZone::LZ0));
+        assert_eq!(dark_sky.compliant_zones().len(), 5);
+
+        // B3 U2 G2 — compliant with LZ2-LZ4
+        let suburban = BugRating::new(3, 2, 2);
+        assert!(!suburban.compliant_with(LightingZone::LZ0));
+        assert!(!suburban.compliant_with(LightingZone::LZ1));
+        assert!(suburban.compliant_with(LightingZone::LZ2));
+        assert!(suburban.compliant_with(LightingZone::LZ3));
+        assert_eq!(suburban.most_restrictive_zone(), Some(LightingZone::LZ2));
+
+        // B5 U5 G5 — exceeds all zones
+        let worst = BugRating::new(5, 5, 5);
+        assert!(!worst.compliant_with(LightingZone::LZ4));
+        assert_eq!(worst.most_restrictive_zone(), None);
+    }
+
+    #[test]
+    fn test_lcs_zone_percentages() {
+        let zones = ZoneLumens {
+            fl: 400.0, fm: 300.0, fh: 100.0, fvh: 10.0,
+            bl: 100.0, bm: 50.0, bh: 20.0, bvh: 5.0,
+            ul: 10.0, uh: 5.0,
+        };
+        let pct = LcsZonePercentages::from_zone_lumens(&zones);
+        assert!((pct.forward_pct - 81.0).abs() < 0.1);
+        assert!((pct.back_pct - 17.5).abs() < 0.1);
+        assert!((pct.uplight_pct - 1.5).abs() < 0.1);
+        assert!(pct.fb_ratio > 4.0); // 810/175 ≈ 4.6
+    }
+
+    #[test]
+    fn test_lighting_zone_descriptions() {
+        assert_eq!(LightingZone::LZ0.to_string(), "LZ0");
+        assert!(LightingZone::LZ0.description().contains("wilderness"));
+        assert_eq!(LightingZone::all().len(), 5);
     }
 }

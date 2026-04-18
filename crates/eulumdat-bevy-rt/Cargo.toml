@@ -1,0 +1,68 @@
+[package]
+name = "eulumdat-bevy-rt"
+version = "0.6.0"
+edition = "2021"
+authors = ["Holger Trahe <trahe@mac.com>"]
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/holg/eulumdat-rs"
+description = "Bevy render plugin for photometric raytracing — compute shader based, WASM/WebGPU compatible"
+keywords = ["lighting", "photometry", "ray-tracing", "bevy", "wgpu"]
+categories = ["rendering", "simulation", "game-development"]
+
+[features]
+default = []
+detector_readback = []
+
+[dependencies]
+eulumdat = { path = "../eulumdat" }
+eulumdat-goniosim = { path = "../eulumdat-goniosim", default-features = false }
+eulumdat-rt = { path = "../eulumdat-rt", default-features = false }
+bevy_app = { path = "../../../bevy/crates/bevy_app" }
+bevy_asset = { path = "../../../bevy/crates/bevy_asset" }
+bevy_camera = { path = "../../../bevy/crates/bevy_camera" }
+bevy_core_pipeline = { path = "../../../bevy/crates/bevy_core_pipeline" }
+bevy_ecs = { path = "../../../bevy/crates/bevy_ecs" }
+bevy_math = { path = "../../../bevy/crates/bevy_math" }
+bevy_reflect = { path = "../../../bevy/crates/bevy_reflect" }
+bevy_render = { path = "../../../bevy/crates/bevy_render" }
+bevy_shader = { path = "../../../bevy/crates/bevy_shader" }
+bevy_transform = { path = "../../../bevy/crates/bevy_transform" }
+bevy_utils = { path = "../../../bevy/crates/bevy_utils" }
+bytemuck = { version = "1.14", features = ["derive"] }
+tracing = "0.1"
+
+# Full bevy for examples only
+[dev-dependencies]
+pollster = "0.4"
+eulumdat-goniosim = { path = "../eulumdat-goniosim", default-features = false }
+bevy = { path = "../../../bevy", default-features = false, features = [
+    "bevy_asset",
+    "bevy_winit",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_log",
+    "multi_threaded",
+    "tonemapping_luts",
+    "x11",
+    "wayland",
+    "zstd_rust",
+] }
+
+[[example]]
+name = "rt-demo"
+path = "examples/rt_demo.rs"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+bevy = { path = "../../../bevy", default-features = false, features = [
+    "bevy_asset",
+    "bevy_winit",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_log",
+    "webgpu",
+    "tonemapping_luts",
+] }

@@ -341,17 +341,17 @@ if [[ "$BUILD_BEVY" == "true" ]]; then
         if command -v bevy &> /dev/null; then
             echo "  Using bevy-cli..."
             # Answer 'n' to wasm-opt install prompt - we run wasm-opt ourselves afterwards
-            echo "n" | bevy build --release $FEATURE_FLAG web || true
+            echo "n" | bevy build --release --bin "$BEVY_BINARY" $FEATURE_FLAG web || true
 
             if [[ ! -f "$BEVY_OUTPUT/${BEVY_BINARY}.js" ]]; then
                 echo "  bevy-cli didn't produce output, falling back to cargo..."
-                cargo build --release $FEATURE_FLAG --target wasm32-unknown-unknown
+                cargo build --release --bin "$BEVY_BINARY" $FEATURE_FLAG --target wasm32-unknown-unknown
                 wasm-bindgen --out-dir "$BEVY_OUTPUT" --target web \
                     "$ROOT_DIR/target/wasm32-unknown-unknown/release/${BEVY_BINARY}.wasm"
             fi
         else
             echo "  bevy-cli not found, using cargo + wasm-bindgen..."
-            cargo build --release $FEATURE_FLAG --target wasm32-unknown-unknown
+            cargo build --release --bin "$BEVY_BINARY" $FEATURE_FLAG --target wasm32-unknown-unknown
             mkdir -p "$BEVY_OUTPUT"
             wasm-bindgen --out-dir "$BEVY_OUTPUT" --target web \
                 "$ROOT_DIR/target/wasm32-unknown-unknown/release/${BEVY_BINARY}.wasm"
@@ -396,7 +396,7 @@ if [[ "$BUILD_OBSCURA" == "true" ]]; then
         # Build the obscura-demo binary for wasm32
         cargo build --release --target wasm32-unknown-unknown \
             --bin obscura-demo \
-            --features bevy-ui,post-process \
+            --features bevy-ui,post-process,wasm-bindgen,js-sys \
             -p eulumdat-bevy
 
         # Run wasm-bindgen to generate JS glue

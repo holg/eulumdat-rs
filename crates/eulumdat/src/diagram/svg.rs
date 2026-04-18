@@ -2350,6 +2350,13 @@ impl HeatmapDiagram {
         ));
 
         // Heatmap cells
+        let num_c = self.c_angles.len().max(1);
+        let num_g = self.g_angles.len().max(1);
+        let val_step = ((num_c.max(num_g) as f64 / 8.0).ceil() as usize).max(1);
+        let val_font = (self.plot_width / num_c as f64 * val_step as f64 * 0.3)
+            .min(self.plot_height / num_g as f64 * val_step as f64 * 0.35)
+            .clamp(5.0, 11.0);
+
         for cell in &self.cells {
             svg.push_str(&format!(
                 r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}"><title>C{:.0}° γ{:.0}°: {:.1} cd ({:.1} cd/klm)</title></rect>"#,
@@ -2363,6 +2370,19 @@ impl HeatmapDiagram {
                 cell.candela,
                 cell.intensity
             ));
+
+            if self.show_values
+                && cell.c_index % val_step == val_step / 2
+                && cell.g_index % val_step == val_step / 2
+            {
+                let text_color = if cell.normalized < 0.45 { "#ffffff" } else { "#1a1a1a" };
+                let cx = cell.x + cell.width * val_step as f64 / 2.0;
+                let cy = cell.y + cell.height * val_step as f64 / 2.0;
+                svg.push_str(&format!(
+                    r#"<text x="{cx:.1}" y="{cy:.1}" fill="{text_color}" font-size="{val_font:.1}" text-anchor="middle" dominant-baseline="central" font-family="monospace">{:.0}</text>"#,
+                    cell.intensity
+                ));
+            }
         }
 
         // === ZONE BOUNDARY LINES ===

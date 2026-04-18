@@ -71,6 +71,10 @@ pub enum SceneType {
     Parking,
     /// Outdoor/garden scene (10×15m)
     Outdoor,
+    /// Exterior designer scene (from Area Lighting Designer)
+    DesignerExterior,
+    /// Interior designer scene (from Zonal Cavity Designer)
+    DesignerInterior,
 }
 
 impl SceneType {
@@ -84,6 +88,8 @@ impl SceneType {
             SceneType::Road => (11.0, 100.0, 0.0, 8.0),
             SceneType::Parking => (20.0, 30.0, 0.0, 6.0),
             SceneType::Outdoor => (10.0, 15.0, 0.0, 3.0),
+            SceneType::DesignerExterior => (20.0, 20.0, 0.0, 8.0),
+            SceneType::DesignerInterior => (4.0, 5.0, 2.8, 2.5),
         }
     }
 }
@@ -96,15 +102,17 @@ fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
     settings: Res<ViewerSettings>,
 ) {
-    build_scene(&mut commands, &mut meshes, &mut materials, &settings);
+    build_scene(&mut commands, &mut meshes, &mut materials, &mut images, &settings);
 }
 
 fn rebuild_scene_on_change(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
     settings: Res<ViewerSettings>,
     query: Query<Entity, With<SceneGeometry>>,
 ) {
@@ -118,13 +126,14 @@ fn rebuild_scene_on_change(
     }
 
     // Build new scene
-    build_scene(&mut commands, &mut meshes, &mut materials, &settings);
+    build_scene(&mut commands, &mut meshes, &mut materials, &mut images, &settings);
 }
 
 fn build_scene(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
+    images: &mut ResMut<Assets<Image>>,
     settings: &ViewerSettings,
 ) {
     match settings.scene_type {
@@ -132,6 +141,12 @@ fn build_scene(
         SceneType::Road => build_road(commands, meshes, materials, settings),
         SceneType::Parking => build_parking(commands, meshes, materials, settings),
         SceneType::Outdoor => build_outdoor(commands, meshes, materials, settings),
+        SceneType::DesignerExterior => {
+            super::designer_scenes::build_designer_exterior(commands, meshes, materials, images, settings);
+        }
+        SceneType::DesignerInterior => {
+            super::designer_scenes::build_designer_interior(commands, meshes, materials, images, settings);
+        }
     }
 
     // Add ambient light - keep low so luminaire effect is visible

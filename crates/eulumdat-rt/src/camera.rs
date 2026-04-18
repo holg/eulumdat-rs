@@ -25,6 +25,8 @@ pub struct CameraConfig {
     pub seed_offset: u32,
     pub source_intensity: f32,
     pub source_radius: f32,
+    pub source_pos: [f32; 3],
+    pub _pad3: f32,
     pub lvk_c_steps: u32,
     pub lvk_g_steps: u32,
     pub lvk_g_max: f32,
@@ -268,9 +270,10 @@ impl GpuCamera {
         primitives: &[GpuPrimitive],
         materials: &[GpuMaterial],
         source_intensity: f32,
+        source_pos: [f32; 3],
     ) -> CameraImage {
         self.render_with_lvk(width, height, samples_per_pixel, camera_pos, look_at, fov_degrees,
-            primitives, materials, source_intensity, &[], 0, 0, 0.0, 0.0).await
+            primitives, materials, source_intensity, source_pos, &[], 0, 0, 0.0, 0.0).await
     }
 
     /// Render with LDT-based light emission pattern.
@@ -285,6 +288,7 @@ impl GpuCamera {
         primitives: &[GpuPrimitive],
         materials: &[GpuMaterial],
         source_intensity: f32,
+        source_pos: [f32; 3],
         lvk_data: &[f32],
         lvk_c_steps: u32,
         lvk_g_steps: u32,
@@ -316,6 +320,8 @@ impl GpuCamera {
             seed_offset: 42,
             source_intensity,
             source_radius: 0.02,
+            source_pos,
+            _pad3: 0.0,
             lvk_c_steps,
             lvk_g_steps,
             lvk_g_max,

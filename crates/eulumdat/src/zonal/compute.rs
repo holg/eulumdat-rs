@@ -9,6 +9,7 @@ use crate::Eulumdat;
 
 /// Rectangular room parameters for zonal cavity calculation.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Room {
     /// Length in meters
     pub length: f64,
@@ -67,6 +68,7 @@ impl Room {
 
 /// Surface reflectances (0.0 to 1.0).
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Reflectances {
     /// Ceiling reflectance
     pub ceiling: f64,
@@ -117,6 +119,7 @@ impl LightLossFactor {
 
 /// Cavity ratio results.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CavityResults {
     /// Room Cavity Ratio
     pub rcr: f64,
@@ -132,6 +135,7 @@ pub struct CavityResults {
 
 /// Luminaire layout on the ceiling grid.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LuminaireLayout {
     /// Number of luminaires along length
     pub rows: usize,
@@ -168,6 +172,7 @@ pub enum SolveMode {
 
 /// Point-by-point overlay result.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PpbResult {
     /// Illuminance grid (row-major)
     pub lux_grid: Vec<Vec<f64>>,

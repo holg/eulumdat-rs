@@ -178,6 +178,7 @@ mod eulumdat;
 mod ies;
 mod parser;
 mod symmetry;
+pub mod iesna_classification;
 pub mod type_b_conversion;
 pub mod scene3d;
 pub mod units;
@@ -186,7 +187,7 @@ mod writer;
 pub mod zonal;
 
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
-pub use bug_rating::{BugDiagram, BugRating, ZoneLumens};
+pub use bug_rating::{BugDiagram, BugRating, LcsZonePercentages, LightingZone, ZoneLumens};
 pub use calculations::{
     BeamFieldAnalysis, CandelaEntry, CandelaTabulation, CieFluxCodes, ComprehensiveBeamAnalysis,
     CuTable, DistributionType, GldfPhotometricData, IesMetadata, LightDirection,
@@ -195,6 +196,10 @@ pub use calculations::{
     UGR_ROOM_SIZES,
 };
 pub use compare::{ComparisonMetric, PhotometricComparison, Significance};
+pub use iesna_classification::{
+    Applicability as IesnaApplicability, IesnaClassification, LateralType, LongitudinalClass,
+    CutoffClass, classify as iesna_classify,
+};
 // i18n re-exports for comparison are available via PhotometricComparison methods
 pub use error::{Error, Result};
 pub use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};

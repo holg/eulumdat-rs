@@ -5,7 +5,7 @@
 use super::scenes::SceneType;
 use super::ViewerSettings;
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiPrimaryContextPass};
 
 /// Plugin that adds the egui settings panel.
 pub struct EguiSettingsPlugin;
@@ -13,7 +13,7 @@ pub struct EguiSettingsPlugin;
 impl Plugin for EguiSettingsPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(EguiPlugin::default())
-            .add_systems(Update, settings_panel_system);
+            .add_systems(EguiPrimaryContextPass, settings_panel_system);
     }
 }
 
@@ -22,6 +22,14 @@ fn settings_panel_system(mut contexts: EguiContexts, mut settings: ResMut<Viewer
     let Ok(ctx) = contexts.ctx_mut() else {
         return;
     };
+    // available_rect panics if begin_pass hasn't run yet (first frame race).
+    // Check by reading pass state safely.
+    if !ctx.is_pointer_over_area()
+        && std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ctx.available_rect()))
+            .is_err()
+    {
+        return;
+    }
     egui::SidePanel::left("settings_panel")
         .default_width(240.0)
         .resizable(true)
@@ -37,12 +45,16 @@ fn settings_panel_system(mut contexts: EguiContexts, mut settings: ResMut<Viewer
                     SceneType::Road => "Road",
                     SceneType::Parking => "Parking",
                     SceneType::Outdoor => "Outdoor",
+                    SceneType::DesignerExterior => "Designer: Exterior",
+                    SceneType::DesignerInterior => "Designer: Interior",
                 })
                 .show_ui(ui, |ui| {
                     ui.selectable_value(&mut settings.scene_type, SceneType::Room, "Room");
                     ui.selectable_value(&mut settings.scene_type, SceneType::Road, "Road");
                     ui.selectable_value(&mut settings.scene_type, SceneType::Parking, "Parking");
                     ui.selectable_value(&mut settings.scene_type, SceneType::Outdoor, "Outdoor");
+                    ui.selectable_value(&mut settings.scene_type, SceneType::DesignerExterior, "Designer: Exterior");
+                    ui.selectable_value(&mut settings.scene_type, SceneType::DesignerInterior, "Designer: Interior");
                 });
 
             ui.add_space(12.0);
@@ -162,6 +174,41 @@ fn settings_panel_system(mut contexts: EguiContexts, mut settings: ResMut<Viewer
                         num_poles.max(1),
                         spacing
                     ));
+                }
+                SceneType::DesignerExterior => {
+                    ui.label("Exterior Designer Scene");
+                    if settings.area_result.is_some() {
+                        let n = settings.area_placements.len();
+                        ui.small(format!("{} luminaire(s)", n));
+                        if let Some(ref ar) = settings.area_result {
+                            ui.small(format!(
+                                "{:.1} x {:.1} m | {:.0}-{:.0} lux",
+                                ar.area_width, ar.area_depth, ar.min_lux, ar.max_lux,
+                            ));
+                        }
+                    } else {
+                        ui.small("No data. Load from Area Designer.");
+                    }
+                    ui.checkbox(&mut settings.show_light_cones, "Show Light Cones (V)");
+                }
+                SceneType::DesignerInterior => {
+                    ui.label("Interior Designer Scene");
+                    if let Some(ref room) = settings.designer_room {
+                        ui.small(format!(
+                            "{:.1} x {:.1} x {:.1} m",
+                            room.length, room.width, room.height,
+                        ));
+                        if let Some(ref layout) = settings.designer_layout {
+                            ui.small(format!(
+                                "{}x{} = {} luminaires",
+                                layout.rows, layout.cols, layout.count,
+                            ));
+                        }
+                    } else {
+                        ui.small("No data. Load from Zonal Designer.");
+                    }
+                    ui.checkbox(&mut settings.show_light_cones, "Show Light Cones (V)");
+                    ui.checkbox(&mut settings.show_cavities, "Show Cavities (C)");
                 }
                 SceneType::Parking | SceneType::Outdoor => {
                     ui.label("Area Dimensions");

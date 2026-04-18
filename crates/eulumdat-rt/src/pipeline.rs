@@ -22,8 +22,20 @@ pub struct GpuTracerConfig {
     pub cdf_g_steps: u32,
     pub cdf_c_steps: u32,
     pub cdf_g_max: f32,
-    pub _pad0: u32,
-    pub _pad1: u32,
+    // Padding to align area_center to 16-byte boundary (WGSL vec3 alignment)
+    pub _align_pad0: u32,
+    pub _align_pad1: u32,
+    // Area source params (source_type=3)
+    pub area_center: [f32; 3],
+    pub _pad0: f32,
+    pub area_normal: [f32; 3],
+    pub _pad1: f32,
+    pub area_u_axis: [f32; 3],
+    pub area_half_width: f32,
+    pub area_half_height: f32,
+    pub _pad2: u32,
+    pub _pad3: u32,
+    pub _pad4: u32,
 }
 
 /// GPU primitive — matches GpuPrimitive in WGSL.
@@ -138,6 +150,7 @@ pub enum SourceType {
     Isotropic = 0,
     Lambertian = 1,
     FromLvk = 2,
+    AreaSource = 3,
 }
 
 /// Result from a GPU trace — detector bins as f64.
@@ -364,6 +377,54 @@ impl GpuTracer {
         ).await
     }
 
+    /// Trace from a rectangular diffuse area source in free space.
+    pub async fn trace_area_source(
+        &self,
+        num_photons: u32,
+        c_res_deg: f32,
+        g_res_deg: f32,
+        source_flux: f32,
+        center: [f32; 3],
+        normal: [f32; 3],
+        u_axis: [f32; 3],
+        half_width: f32,
+        half_height: f32,
+    ) -> GpuDetectorResult {
+        let num_c = (360.0 / c_res_deg).round() as u32;
+        let num_g = (180.0 / g_res_deg).round() as u32 + 1;
+
+        let config = GpuTracerConfig {
+            detector_c_bins: num_c,
+            detector_g_bins: num_g,
+            detector_c_res: c_res_deg,
+            detector_g_res: g_res_deg,
+            seed_offset: 42,
+            num_photons,
+            source_type: SourceType::AreaSource as u32,
+            source_flux,
+            num_primitives: 0,
+            max_bounces: 50,
+            rr_threshold: 0.01,
+            cdf_g_steps: 0,
+            cdf_c_steps: 0,
+            cdf_g_max: 0.0,
+            _align_pad0: 0,
+            _align_pad1: 0,
+            area_center: center,
+            _pad0: 0.0,
+            area_normal: normal,
+            _pad1: 0.0,
+            area_u_axis: u_axis,
+            area_half_width: half_width,
+            area_half_height: half_height,
+            _pad2: 0,
+            _pad3: 0,
+            _pad4: 0,
+        };
+
+        self.dispatch_config(config, num_c, num_g, &[], &[], &[]).await
+    }
+
     /// Trace from an LDT source (FromLvk) with optional cover geometry.
     pub async fn trace_from_lvk(
         &self,
@@ -431,7 +492,6 @@ impl GpuTracer {
     ) -> GpuDetectorResult {
         let num_c = (360.0 / c_res_deg).round() as u32;
         let num_g = (180.0 / g_res_deg).round() as u32 + 1;
-        let total_bins = num_c * num_g;
 
         let config = GpuTracerConfig {
             detector_c_bins: num_c,
@@ -448,9 +508,37 @@ impl GpuTracer {
             cdf_g_steps,
             cdf_c_steps,
             cdf_g_max,
-            _pad0: 0,
-            _pad1: 0,
+            _align_pad0: 0,
+            _align_pad1: 0,
+            area_center: [0.0; 3],
+            _pad0: 0.0,
+            area_normal: [0.0, 0.0, -1.0],
+            _pad1: 0.0,
+            area_u_axis: [1.0, 0.0, 0.0],
+            area_half_width: 0.0,
+            area_half_height: 0.0,
+            _pad2: 0,
+            _pad3: 0,
+            _pad4: 0,
         };
+
+        self.dispatch_config(config, num_c, num_g, primitives_data, materials_data, cdf_data).await
+    }
+
+    /// Core dispatch: creates GPU buffers, runs compute, reads back results.
+    async fn dispatch_config(
+        &self,
+        config: GpuTracerConfig,
+        num_c: u32,
+        num_g: u32,
+        primitives_data: &[GpuPrimitive],
+        materials_data: &[GpuMaterial],
+        cdf_data: &[f32],
+    ) -> GpuDetectorResult {
+        let total_bins = num_c * num_g;
+        let num_photons = config.num_photons;
+        let c_res_deg = config.detector_c_res;
+        let g_res_deg = config.detector_g_res;
 
         let config_buffer = self
             .device

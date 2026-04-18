@@ -261,6 +261,44 @@ pub fn GeneralTab(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> 
                 </div>
             </div>
 
+            <h5 class="subsection-header">"IES Distribution"</h5>
+            <div class="info-grid-wide">
+                {move || {
+                    let l = ldt.get();
+                    let cls = eulumdat::iesna_classify(&l);
+                    let bug = eulumdat::BugRating::from_eulumdat(&l);
+                    let zone_str = bug.most_restrictive_zone()
+                        .map(|z| format!("{} — {}", z, z.description()))
+                        .unwrap_or_else(|| "Exceeds LZ4".to_string());
+                    let applicable = cls.applicability == eulumdat::IesnaApplicability::Applicable;
+                    view! {
+                        <div class="info-item">
+                            <div class="info-label">"IES Type"</div>
+                            <div class="info-value">
+                                {format!("{}", cls.lateral_type)}
+                                {if !applicable { view! { <span class="text-muted text-small">" (indoor)"</span> }.into_any() } else { view! { <span></span> }.into_any() }}
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">"Longitudinal"</div>
+                            <div class="info-value">{format!("{}", cls.longitudinal)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">"Cutoff"</div>
+                            <div class="info-value">{format!("{}", cls.cutoff)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">"BUG Rating"</div>
+                            <div class="info-value">{format!("{}", bug)}</div>
+                        </div>
+                        <div class="info-item" style="grid-column: span 2;">
+                            <div class="info-label">"Dark-Sky Zone"</div>
+                            <div class="info-value text-small">{zone_str}</div>
+                        </div>
+                    }
+                }}
+            </div>
+
             <h5 class="subsection-header">{move || locale.get().luminaire.summary.zonal_lumens.clone()}</h5>
             <div class="info-grid-wide">
                 <div class="info-item">

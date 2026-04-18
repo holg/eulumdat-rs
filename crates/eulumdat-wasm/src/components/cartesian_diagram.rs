@@ -74,7 +74,7 @@ pub fn CartesianDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                 set_slider_idx.set(0);
                                             }
                                         >
-                                            "C-Plane ▸"
+                                            {move || locale.get().ui.butterfly.c_plane_selector.clone()}
                                         </button>
                                     }.into_any()
                                 }

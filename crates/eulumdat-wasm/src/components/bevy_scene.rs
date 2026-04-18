@@ -37,6 +37,9 @@ pub struct ViewerSettings {
     pub num_lanes: u8,       // Number of lanes
     pub sidewalk_width: f32, // Sidewalk width in meters
     pub pole_spacing: f32,   // Pole spacing (0=auto)
+    // Designer scene toggles
+    pub show_light_cones: bool,
+    pub show_cavities: bool,
 }
 
 impl Default for ViewerSettings {
@@ -57,6 +60,9 @@ impl Default for ViewerSettings {
             num_lanes: 2,
             sidewalk_width: 2.0,
             pole_spacing: 0.0, // Auto-calculate
+            // Designer toggles
+            show_light_cones: true,
+            show_cavities: false,
         }
     }
 }
@@ -65,7 +71,7 @@ impl ViewerSettings {
     /// Convert to JSON string for localStorage
     pub fn to_json(&self) -> String {
         format!(
-            r#"{{"scene_type":{},"room_width":{},"room_length":{},"room_height":{},"mounting_height":{},"pendulum_length":{},"show_luminaire":{},"show_photometric_solid":{},"show_shadows":{},"luminaire_tilt":{},"lane_width":{},"num_lanes":{},"sidewalk_width":{},"pole_spacing":{}}}"#,
+            r#"{{"scene_type":{},"room_width":{},"room_length":{},"room_height":{},"mounting_height":{},"pendulum_length":{},"show_luminaire":{},"show_photometric_solid":{},"show_shadows":{},"luminaire_tilt":{},"lane_width":{},"num_lanes":{},"sidewalk_width":{},"pole_spacing":{},"show_light_cones":{},"show_cavities":{}}}"#,
             self.scene_type,
             self.room_width,
             self.room_length,
@@ -79,7 +85,9 @@ impl ViewerSettings {
             self.lane_width,
             self.num_lanes,
             self.sidewalk_width,
-            self.pole_spacing
+            self.pole_spacing,
+            self.show_light_cones,
+            self.show_cavities
         )
     }
 
@@ -97,6 +105,55 @@ impl ViewerSettings {
     /// Calculate total road width from lane and sidewalk settings
     pub fn total_road_width(&self) -> f32 {
         self.num_lanes as f32 * self.lane_width + 2.0 * self.sidewalk_width
+    }
+}
+
+/// Save exterior designer data (AreaResult + placements) to localStorage for Bevy sync.
+pub fn save_designer_exterior_to_storage(
+    area_result: &eulumdat::area::AreaResult,
+    placements: &[eulumdat::area::LuminairePlace],
+) {
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            let placements_json = serde_json::to_string(placements).unwrap_or_default();
+            let result_json = serde_json::to_string(area_result).unwrap_or_default();
+            let json = format!(
+                r#"{{"area_result":{},"placements":{}}}"#,
+                result_json, placements_json
+            );
+            let _ = storage.set_item("eulumdat_designer_exterior", &json);
+            let timestamp = js_sys::Date::now().to_string();
+            let _ = storage.set_item("eulumdat_designer_timestamp", &timestamp);
+        }
+    }
+}
+
+/// Save interior designer data (Room + Layout + Reflectances + Cavity + PPB) to localStorage for Bevy sync.
+pub fn save_designer_interior_to_storage(
+    room: &eulumdat::zonal::Room,
+    layout: &eulumdat::zonal::LuminaireLayout,
+    reflectances: &eulumdat::zonal::Reflectances,
+    cavity: &eulumdat::zonal::CavityResults,
+    ppb: Option<&eulumdat::zonal::PpbResult>,
+) {
+    if let Some(window) = web_sys::window() {
+        if let Ok(Some(storage)) = window.local_storage() {
+            let room_json = serde_json::to_string(room).unwrap_or_default();
+            let layout_json = serde_json::to_string(layout).unwrap_or_default();
+            let refl_json = serde_json::to_string(reflectances).unwrap_or_default();
+            let cavity_json = serde_json::to_string(cavity).unwrap_or_default();
+            let ppb_json = match ppb {
+                Some(p) => serde_json::to_string(p).unwrap_or("null".to_string()),
+                None => "null".to_string(),
+            };
+            let json = format!(
+                r#"{{"room":{},"layout":{},"reflectances":{},"cavity":{},"ppb":{}}}"#,
+                room_json, layout_json, refl_json, cavity_json, ppb_json
+            );
+            let _ = storage.set_item("eulumdat_designer_interior", &json);
+            let timestamp = js_sys::Date::now().to_string();
+            let _ = storage.set_item("eulumdat_designer_timestamp", &timestamp);
+        }
     }
 }
 

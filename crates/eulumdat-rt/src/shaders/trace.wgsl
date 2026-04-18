@@ -10,7 +10,7 @@ struct TraceConfig {
     detector_g_res: f32,
     seed_offset: u32,
     num_photons: u32,
-    source_type: u32,       // 0=isotropic, 1=lambertian, 2=from_lvk
+    source_type: u32,       // 0=isotropic, 1=lambertian, 2=from_lvk, 3=area_source
     source_flux: f32,
     num_primitives: u32,
     max_bounces: u32,
@@ -19,8 +19,17 @@ struct TraceConfig {
     cdf_g_steps: u32,       // number of gamma steps in CDF
     cdf_c_steps: u32,       // number of C steps in CDF
     cdf_g_max: f32,         // max gamma angle (degrees)
-    _pad0: u32,
-    _pad1: u32,
+    // Area source parameters (source_type=3)
+    area_center: vec3<f32>,
+    _pad0: f32,
+    area_normal: vec3<f32>,
+    _pad1: f32,
+    area_u_axis: vec3<f32>,
+    area_half_width: f32,
+    area_half_height: f32,
+    _pad2: u32,
+    _pad3: u32,
+    _pad4: u32,
 }
 
 // Material types
@@ -464,16 +473,30 @@ fn trace_photons(@builtin(global_invocation_id) id: vec3<u32>) {
 
     pcg_init(photon_idx, config.seed_offset);
 
-    // Sample source direction
+    // Sample source direction and origin
     var dir: vec3<f32>;
+    var origin = vec3<f32>(0.0, 0.0, 0.0);
     switch (config.source_type) {
         case 0u: { dir = random_sphere(); }
         case 1u: { dir = random_cosine_hemisphere_down(); }
         case 2u: { dir = sample_from_lvk_cdf(); }
+        case 3u: {
+            // Area source: random position on rectangle, cosine-weighted hemisphere emission
+            let u = (random_f32() * 2.0 - 1.0) * config.area_half_width;
+            let v_axis = cross(config.area_normal, config.area_u_axis);
+            let v = (random_f32() * 2.0 - 1.0) * config.area_half_height;
+            origin = config.area_center + u * config.area_u_axis + v * v_axis;
+            // Cosine-weighted hemisphere around area_normal
+            let onb = build_onb(config.area_normal);
+            let u1 = random_f32();
+            let u2 = random_f32();
+            let r = sqrt(u1);
+            let theta = 2.0 * PI * u2;
+            let local = vec3<f32>(r * cos(theta), r * sin(theta), sqrt(max(1.0 - u1, 0.0)));
+            dir = normalize(onb * local);
+        }
         default: { dir = random_sphere(); }
     }
-
-    var origin = vec3<f32>(0.0, 0.0, 0.0);
     var energy: f32 = 1.0;
 
     // Trace loop

@@ -26,6 +26,7 @@
 
 pub mod camera;
 pub mod controls;
+pub mod designer_scenes;
 #[cfg(feature = "egui-ui")]
 pub mod egui_panel;
 pub mod plugin;
@@ -39,8 +40,8 @@ pub use controls::{
 pub use plugin::EulumdatViewerPlugin;
 pub use scenes::{SceneGeometry, ScenePlugin, SceneType};
 pub use wasm_sync::{
-    load_default_ldt, load_from_local_storage, poll_viewer_settings_changes, LdtTimestamp,
-    ViewerSettingsTimestamp,
+    load_default_ldt, load_from_local_storage, poll_viewer_settings_changes, DesignerTimestamp,
+    LdtTimestamp, ViewerSettingsTimestamp,
 };
 
 use bevy::prelude::*;
@@ -90,6 +91,25 @@ pub struct ViewerSettings {
     /// Pole spacing in meters. Calculated based on mounting height if 0.
     /// Typical: 3-4x mounting height for good uniformity.
     pub pole_spacing: f32,
+    // --- Designer scene fields ---
+    /// Exterior designer: area computation result (heatmap, stats)
+    pub area_result: Option<eulumdat::area::AreaResult>,
+    /// Exterior designer: luminaire placements
+    pub area_placements: Vec<eulumdat::area::LuminairePlace>,
+    /// Interior designer: room parameters
+    pub designer_room: Option<eulumdat::zonal::Room>,
+    /// Interior designer: luminaire layout grid
+    pub designer_layout: Option<eulumdat::zonal::LuminaireLayout>,
+    /// Interior designer: surface reflectances
+    pub designer_reflectances: Option<eulumdat::zonal::Reflectances>,
+    /// Interior designer: cavity ratio results
+    pub designer_cavity: Option<eulumdat::zonal::CavityResults>,
+    /// Interior designer: point-by-point illuminance result
+    pub designer_ppb: Option<eulumdat::zonal::PpbResult>,
+    /// Toggle light cone visualization
+    pub show_light_cones: bool,
+    /// Toggle cavity zone overlays (interior scene)
+    pub show_cavities: bool,
 }
 
 impl Default for ViewerSettings {
@@ -111,6 +131,15 @@ impl Default for ViewerSettings {
             num_lanes: 2,         // Two lanes (one per direction)
             sidewalk_width: 2.0,  // Standard sidewalk
             pole_spacing: 0.0,    // 0 = auto-calculate (3.5x mounting height)
+            area_result: None,
+            area_placements: Vec::new(),
+            designer_room: None,
+            designer_layout: None,
+            designer_reflectances: None,
+            designer_cavity: None,
+            designer_ppb: None,
+            show_light_cones: true,
+            show_cavities: false,
         }
     }
 }
@@ -147,11 +176,12 @@ impl ViewerSettings {
         let lum_height = (ldt.height / 1000.0).max(0.05) as f32;
 
         match self.scene_type {
-            SceneType::Room => {
+            SceneType::Room | SceneType::DesignerInterior => {
                 // Ceiling mounted with pendulum
                 self.room_height - self.pendulum_length - lum_height / 2.0
             }
-            SceneType::Road | SceneType::Parking | SceneType::Outdoor => {
+            SceneType::Road | SceneType::Parking | SceneType::Outdoor
+            | SceneType::DesignerExterior => {
                 // Pole mounted - luminaire fixed to arm
                 // Arm is at mounting_height - 0.25, luminaire hangs 0.05m below arm
                 let arm_bottom = self.mounting_height - 0.25;
@@ -164,7 +194,7 @@ impl ViewerSettings {
     /// Only meaningful for Room scene.
     pub fn attachment_height(&self) -> f32 {
         match self.scene_type {
-            SceneType::Room => self.room_height,
+            SceneType::Room | SceneType::DesignerInterior => self.room_height,
             _ => self.mounting_height,
         }
     }

@@ -106,4 +106,4 @@ The app uses the `eulumdat-ffi` Rust crate which provides:
 
 ## License
 
-Apache-2.0 / MIT dual license
+AGPL-3.0-or-later

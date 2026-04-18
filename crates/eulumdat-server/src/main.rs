@@ -125,12 +125,15 @@ async fn serve_static_file(
 ) -> Option<HttpResponse> {
     let file_path = dist.join(path_str);
 
-    // Security: prevent path traversal
-    let canonical = file_path.canonicalize().ok()?;
-    let dist_canonical = dist.canonicalize().ok()?;
-    if !canonical.starts_with(&dist_canonical) {
-        return None;
+    // Security: prevent path traversal (reject ".." components before resolving symlinks)
+    for component in Path::new(path_str).components() {
+        if matches!(component, std::path::Component::ParentDir) {
+            return None;
+        }
     }
+
+    // Resolve symlinks for the actual file
+    let canonical = file_path.canonicalize().ok()?;
 
     // Check Accept-Encoding header
     let accept_encoding = req

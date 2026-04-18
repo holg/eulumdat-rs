@@ -60,6 +60,8 @@ pub struct HeatmapDiagram {
     pub plot_height: f64,
     pub margin_left: f64,
     pub margin_top: f64,
+    /// Whether to render numeric values on cells
+    pub show_values: bool,
 }
 
 impl HeatmapDiagram {
@@ -129,6 +131,7 @@ impl HeatmapDiagram {
             plot_height,
             margin_left,
             margin_top,
+            show_values: false,
         }
     }
 
@@ -150,6 +153,7 @@ impl HeatmapDiagram {
             plot_height: 0.0,
             margin_left: 0.0,
             margin_top: 0.0,
+            show_values: false,
         }
     }
 
@@ -230,8 +234,20 @@ impl HeatmapDiagram {
         height: f64,
         theme: &SvgTheme,
     ) -> String {
+        Self::render_svg_opts(ldt, width, height, theme, false)
+    }
+
+    /// Render with optional numeric cd/klm value labels on cells.
+    pub fn render_svg_opts(
+        ldt: &Eulumdat,
+        width: f64,
+        height: f64,
+        theme: &SvgTheme,
+        show_values: bool,
+    ) -> String {
         let summary = PhotometricSummary::from_eulumdat(ldt);
-        let diagram = Self::from_eulumdat(ldt, width, height);
+        let mut diagram = Self::from_eulumdat(ldt, width, height);
+        diagram.show_values = show_values;
         diagram.to_svg_with_summary(width, height, theme, &summary)
     }
 }

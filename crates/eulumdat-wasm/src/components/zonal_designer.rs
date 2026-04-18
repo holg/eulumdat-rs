@@ -123,7 +123,7 @@ async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
 /// Zonal Cavity Interior Lighting Designer component.
 #[component]
 pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
-    let _locale = use_locale();
+    let locale = use_locale();
     let units = super::app::use_unit_system();
 
     // ─── Parse URL hash for initial values ───────────────────────────────
@@ -207,10 +207,11 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     // Derived booleans for backwards compatibility with computation logic
     let show_ppb = Memo::new(move |_| {
         let tab = view_tab.get();
-        tab == "heatmap" || tab == "3d"
+        tab == "heatmap" || tab == "table" || tab == "3d"
     });
     let show_3d = Memo::new(move |_| view_tab.get() == "3d");
 
+    let (show_heatmap_values, set_show_heatmap_values) = signal(false);
     let (show_cavities_3d, set_show_cavities_3d) = signal(false);
     let (show_light_cones, set_show_light_cones) = signal(true);
     let (camera_preset, set_camera_preset) = signal(CameraPreset::FrontRight);
@@ -319,6 +320,15 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             zr.ppb = Some(ppb);
         }
 
+        // Sync designer data to localStorage for Bevy 3D viewer
+        super::bevy_scene::save_designer_interior_to_storage(
+            &room,
+            &zr.layout,
+            &reflectances,
+            &zr.cavity,
+            zr.ppb.as_ref(),
+        );
+
         zr
     });
 
@@ -352,7 +362,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             <div class="zonal-toolbar">
                 <div class="zonal-toolbar-row">
                     // Room preset
-                    <span class="zonal-toolbar-label">"Room:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.room.clone()}</span>
                     <select class="zonal-toolbar-select" on:change=move |ev| {
                         let idx: usize = event_target_value(&ev).parse().unwrap_or(0);
                         apply_room_preset(RoomPreset::all()[idx]);
@@ -367,7 +377,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     </select>
 
                     // Length
-                    <span class="zonal-toolbar-label">"Length:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().designer.length.clone()}</span>
                     <input type="range" min="2" max="50" step="0.5" class="zonal-toolbar-range"
                         prop:value=move || format!("{:.1}", room_length.get())
                         on:input=move |ev| {
@@ -379,7 +389,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     <span class="zonal-toolbar-val">{move || format!("{:.1}m", room_length.get())}</span>
 
                     // Width
-                    <span class="zonal-toolbar-label">"Width:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().designer.width.clone()}</span>
                     <input type="range" min="2" max="50" step="0.5" class="zonal-toolbar-range"
                         prop:value=move || format!("{:.1}", room_width.get())
                         on:input=move |ev| {
@@ -391,7 +401,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     <span class="zonal-toolbar-val">{move || format!("{:.1}m", room_width.get())}</span>
 
                     // Height
-                    <span class="zonal-toolbar-label">"Height:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().designer.height.clone()}</span>
                     <input type="range" min="2" max="12" step="0.1" class="zonal-toolbar-range"
                         prop:value=move || format!("{:.1}", room_height.get())
                         on:input=move |ev| {
@@ -404,7 +414,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 </div>
                 <div class="zonal-toolbar-row">
                     // Workplane
-                    <span class="zonal-toolbar-label">"Workplane:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.workplane.clone()}</span>
                     <input type="range" min="0" max="1.5" step="0.05" class="zonal-toolbar-range"
                         prop:value=move || format!("{:.2}", workplane_height.get())
                         on:input=move |ev| {
@@ -416,7 +426,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     <span class="zonal-toolbar-val">{move || format!("{:.2}m", workplane_height.get())}</span>
 
                     // Suspension
-                    <span class="zonal-toolbar-label">"Suspension:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.suspension.clone()}</span>
                     <input type="range" min="0" max="1.5" step="0.05" class="zonal-toolbar-range"
                         prop:value=move || format!("{:.2}", suspension_length.get())
                         on:input=move |ev| {
@@ -428,7 +438,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     <span class="zonal-toolbar-val">{move || format!("{:.2}m", suspension_length.get())}</span>
 
                     // Solve mode
-                    <span class="zonal-toolbar-label">"Mode:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.mode.label.clone()}</span>
                     <select class="zonal-toolbar-select" on:change=move |ev| {
                         let v = event_target_value(&ev);
                         set_solve_mode.set(match v.as_str() {
@@ -437,15 +447,15 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             _ => SolveMode::TargetToCount,
                         });
                     }>
-                        <option value="target" selected=move || solve_mode.get() == SolveMode::TargetToCount>"Target \u{2192} Count"</option>
-                        <option value="count" selected=move || solve_mode.get() == SolveMode::CountToIlluminance>"Count \u{2192} Illuminance"</option>
-                        <option value="lpd" selected=move || solve_mode.get() == SolveMode::TargetToLpd>"Target LPD \u{2192} Count"</option>
+                        <option value="target" selected=move || solve_mode.get() == SolveMode::TargetToCount>{move || locale.get().zonal_designer.mode.target_to_count.clone()}</option>
+                        <option value="count" selected=move || solve_mode.get() == SolveMode::CountToIlluminance>{move || locale.get().zonal_designer.mode.count_to_illuminance.clone()}</option>
+                        <option value="lpd" selected=move || solve_mode.get() == SolveMode::TargetToLpd>{move || locale.get().zonal_designer.mode.target_lpd.clone()}</option>
                     </select>
 
                     // Mode-specific input
                     {move || match solve_mode.get() {
                         SolveMode::TargetToCount => view! {
-                            <span class="zonal-toolbar-label">"Target:"</span>
+                            <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.target.clone()}</span>
                             <input type="number" step="25" min="10" max="5000" class="zonal-toolbar-num"
                                 prop:value=move || format!("{:.0}", target_illuminance.get())
                                 on:change=move |ev| {
@@ -457,7 +467,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             <span class="zonal-toolbar-val">"lux"</span>
                         }.into_any(),
                         SolveMode::CountToIlluminance => view! {
-                            <span class="zonal-toolbar-label">"Count:"</span>
+                            <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.count.clone()}</span>
                             <input type="number" step="1" min="1" max="500" class="zonal-toolbar-num"
                                 prop:value=move || format!("{}", fixed_count.get())
                                 on:change=move |ev| {
@@ -468,7 +478,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             />
                         }.into_any(),
                         SolveMode::TargetToLpd => view! {
-                            <span class="zonal-toolbar-label">"LPD:"</span>
+                            <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.lpd.clone()}</span>
                             <input type="number" step="0.5" min="1" max="50" class="zonal-toolbar-num"
                                 prop:value=move || format!("{:.1}", target_lpd.get())
                                 on:change=move |ev| {
@@ -482,7 +492,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     }}
 
                     // Reflectance preset
-                    <span class="zonal-toolbar-label">"Refl:"</span>
+                    <span class="zonal-toolbar-label">{move || locale.get().zonal_designer.reflectances.title.clone()}</span>
                     <select class="zonal-toolbar-select" on:change=move |ev| {
                         let idx: usize = event_target_value(&ev).parse().unwrap_or(0);
                         apply_refl_preset(ReflectancePreset::all()[idx]);
@@ -501,19 +511,23 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         <button
                             class=move || if view_tab.get() == "heatmap" { "zonal-view-tab active" } else { "zonal-view-tab" }
                             on:click=move |_| set_view_tab.set("heatmap".to_string())
-                        >"Heatmap"</button>
+                        >{move || locale.get().zonal_designer.views.heatmap.clone()}</button>
+                        <button
+                            class=move || if view_tab.get() == "table" { "zonal-view-tab active" } else { "zonal-view-tab" }
+                            on:click=move |_| set_view_tab.set("table".to_string())
+                        >"Schedule"</button>
                         <button
                             class=move || if view_tab.get() == "3d" { "zonal-view-tab active" } else { "zonal-view-tab" }
                             on:click=move |_| set_view_tab.set("3d".to_string())
-                        >"3D Room"</button>
+                        >{move || locale.get().zonal_designer.views.room_3d.clone()}</button>
                         <button
                             class=move || if view_tab.get() == "section" { "zonal-view-tab active" } else { "zonal-view-tab" }
                             on:click=move |_| set_view_tab.set("section".to_string())
-                        >"Section"</button>
+                        >{move || locale.get().zonal_designer.views.section.clone()}</button>
                         <button
                             class=move || if view_tab.get() == "cu" { "zonal-view-tab active" } else { "zonal-view-tab" }
                             on:click=move |_| set_view_tab.set("cu".to_string())
-                        >"CU Table"</button>
+                        >{move || locale.get().zonal_designer.views.cu_table.clone()}</button>
                     </div>
                 </div>
             </div>
@@ -524,17 +538,17 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 <div class="zonal-sidebar">
                     // Luminaire info
                     <div class="zonal-sidebar-section">
-                        <h4>"Luminaire"</h4>
+                        <h4>{move || locale.get().designer.luminaire.clone()}</h4>
                         <div class="zonal-info-grid">
-                            <span class="label">"Name:"</span>
+                            <span class="label">{move || locale.get().zonal_designer.info.name.clone()}</span>
                             <span>{move || luminaire_info.get().0}</span>
-                            <span class="label">"Lumens:"</span>
+                            <span class="label">{move || locale.get().zonal_designer.info.lumens.clone()}</span>
                             <span>{move || format!("{:.0} lm", luminaire_info.get().1)}</span>
-                            <span class="label">"Power:"</span>
+                            <span class="label">{move || locale.get().zonal_designer.info.power.clone()}</span>
                             <span>{move || format!("{:.1} W", luminaire_info.get().2)}</span>
-                            <span class="label">"DFF:"</span>
+                            <span class="label">{move || locale.get().zonal_designer.info.dff.clone()}</span>
                             <span>{move || format!("{:.1}%", luminaire_info.get().3)}</span>
-                            <span class="label">"S/MH:"</span>
+                            <span class="label">{move || locale.get().zonal_designer.info.smh.clone()}</span>
                             <span>{move || format!("{:.2}", result.get().spacing_criterion)}</span>
                         </div>
                         // Zonal lumen summary
@@ -602,13 +616,44 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 <span class="zonal-flux-pct">{move || format!("{:.1}%", zonal_lumens.get().zone_150_180)}</span>
                             </div>
                         </div>
+
+                        // IESNA Classification + BUG Rating
+                        <div class="zonal-info-grid" style="margin-top: 8px; font-size: 0.8rem;">
+                            {move || {
+                                let l = ldt.get();
+                                let cls = eulumdat::iesna_classify(&l);
+                                let bug = eulumdat::BugRating::from_eulumdat(&l);
+                                let zone = bug.most_restrictive_zone()
+                                    .map(|z| z.to_string())
+                                    .unwrap_or_else(|| "None".to_string());
+                                view! {
+                                    <>
+                                    <span class="label">"IES Type"</span>
+                                    <span title=format!("{}", cls.applicability)>
+                                        {format!("{}", cls.lateral_type)}
+                                        {if cls.applicability != eulumdat::IesnaApplicability::Applicable {
+                                            " *"
+                                        } else { "" }}
+                                    </span>
+                                    <span class="label">"Throw"</span>
+                                    <span>{format!("{}", cls.longitudinal)}</span>
+                                    <span class="label">"Cutoff"</span>
+                                    <span>{format!("{}", cls.cutoff)}</span>
+                                    <span class="label">"BUG"</span>
+                                    <span>{format!("{}", bug)}</span>
+                                    <span class="label">"LZ min"</span>
+                                    <span>{zone}</span>
+                                    </>
+                                }
+                            }}
+                        </div>
                     </div>
 
                     // Reflectances
                     <div class="zonal-sidebar-section">
-                        <h4>"Reflectances"</h4>
+                        <h4>{move || locale.get().zonal_designer.reflectances.title.clone()}</h4>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label">{move || format!("Ceiling: {:.0}%", rho_ceiling.get() * 100.0)}</span>
+                            <span class="zonal-prop-label">{move || { let l = locale.get(); format!("{} {:.0}%", l.zonal_designer.reflectances.ceiling, rho_ceiling.get() * 100.0) }}</span>
                             <input type="range" min="0" max="100" step="5"
                                 prop:value=move || format!("{}", (rho_ceiling.get() * 100.0).round() as i32)
                                 on:input=move |ev| {
@@ -619,7 +664,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             />
                         </div>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label">{move || format!("Wall: {:.0}%", rho_wall.get() * 100.0)}</span>
+                            <span class="zonal-prop-label">{move || { let l = locale.get(); format!("{} {:.0}%", l.zonal_designer.reflectances.wall, rho_wall.get() * 100.0) }}</span>
                             <input type="range" min="0" max="100" step="5"
                                 prop:value=move || format!("{}", (rho_wall.get() * 100.0).round() as i32)
                                 on:input=move |ev| {
@@ -630,7 +675,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             />
                         </div>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label">{move || format!("Floor: {:.0}%", rho_floor.get() * 100.0)}</span>
+                            <span class="zonal-prop-label">{move || { let l = locale.get(); format!("{} {:.0}%", l.zonal_designer.reflectances.floor, rho_floor.get() * 100.0) }}</span>
                             <input type="range" min="0" max="100" step="5"
                                 prop:value=move || format!("{}", (rho_floor.get() * 100.0).round() as i32)
                                 on:input=move |ev| {
@@ -644,9 +689,9 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                     // LLF
                     <div class="zonal-sidebar-section">
-                        <h4>"Light Loss Factor"</h4>
+                        <h4>{move || locale.get().zonal_designer.llf.title.clone()}</h4>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label">"Preset"</span>
+                            <span class="zonal-prop-label">{move || locale.get().zonal_designer.llf.preset.clone()}</span>
                             <select on:change=move |ev| {
                                 let idx: usize = event_target_value(&ev).parse().unwrap_or(0);
                                 apply_llf_preset(LlfPreset::all()[idx]);
@@ -661,7 +706,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             </select>
                         </div>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label">{move || format!("LLD: {:.0}%", lld.get() * 100.0)}</span>
+                            <span class="zonal-prop-label">{move || { let l = locale.get(); format!("{} {:.0}%", l.zonal_designer.llf.lld, lld.get() * 100.0) }}</span>
                             <input type="range" min="50" max="100" step="1"
                                 prop:value=move || format!("{}", (lld.get() * 100.0).round() as i32)
                                 on:input=move |ev| {
@@ -672,7 +717,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             />
                         </div>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label">{move || format!("LDD: {:.0}%", ldd.get() * 100.0)}</span>
+                            <span class="zonal-prop-label">{move || { let l = locale.get(); format!("{} {:.0}%", l.zonal_designer.llf.ldd, ldd.get() * 100.0) }}</span>
                             <input type="range" min="50" max="100" step="1"
                                 prop:value=move || format!("{}", (ldd.get() * 100.0).round() as i32)
                                 on:input=move |ev| {
@@ -683,7 +728,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             />
                         </div>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label">{move || format!("BF: {:.0}%", bf.get() * 100.0)}</span>
+                            <span class="zonal-prop-label">{move || { let l = locale.get(); format!("{} {:.0}%", l.zonal_designer.llf.bf, bf.get() * 100.0) }}</span>
                             <input type="range" min="50" max="100" step="1"
                                 prop:value=move || format!("{}", (bf.get() * 100.0).round() as i32)
                                 on:input=move |ev| {
@@ -694,28 +739,28 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                             />
                         </div>
                         <div class="zonal-prop-row">
-                            <span class="zonal-prop-label" style="font-weight:bold">{move || format!("Total LLF: {:.3}", lld.get() * ldd.get() * bf.get() * rsdd.get())}</span>
+                            <span class="zonal-prop-label" style="font-weight:bold">{move || { let l = locale.get(); format!("{} {:.3}", l.zonal_designer.llf.total, lld.get() * ldd.get() * bf.get() * rsdd.get()) }}</span>
                         </div>
                     </div>
 
                     // 3D view options (visible when 3D tab is active)
                     {move || (view_tab.get() == "3d").then(|| view! {
                         <div class="zonal-sidebar-section">
-                            <h4>"3D Options"</h4>
+                            <h4>{move || locale.get().zonal_designer.options_3d.clone()}</h4>
                             <label class="zonal-toggle">
                                 <input type="checkbox"
                                     prop:checked=move || show_cavities_3d.get()
                                     on:change=move |ev| set_show_cavities_3d.set(event_target_checked(&ev))
-                                />" Cavity lines"
+                                />{" "}{move || locale.get().zonal_designer.cavity_lines.clone()}
                             </label>
                             <label class="zonal-toggle">
                                 <input type="checkbox"
                                     prop:checked=move || show_light_cones.get()
                                     on:change=move |ev| set_show_light_cones.set(event_target_checked(&ev))
-                                />" Light cones"
+                                />{" "}{move || locale.get().zonal_designer.light_cones.clone()}
                             </label>
                             <div class="zonal-prop-row">
-                                <span class="zonal-prop-label">"Camera"</span>
+                                <span class="zonal-prop-label">{move || locale.get().zonal_designer.camera.clone()}</span>
                                 <select on:change=move |ev| {
                                     let idx: usize = event_target_value(&ev).parse().unwrap_or(0);
                                     let p = CameraPreset::all()[idx];
@@ -743,7 +788,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
                     // Export
                     <div class="zonal-sidebar-section">
-                        <h4>"Export"</h4>
+                        <h4>{move || locale.get().ui.tabs.export.clone()}</h4>
                         <button class="zonal-share-btn"
                             on:click=move |_| {
                                 copy_interior_url_to_clipboard();
@@ -760,7 +805,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 }
                                 cb.forget();
                             }
-                        >{move || if link_copied.get() { "Copied!" } else { "Share Link" }}</button>
+                        >{move || if link_copied.get() { locale.get().designer.copied.clone() } else { locale.get().designer.share_link.clone() }}</button>
                         <button class="zonal-export-btn"
                             disabled=move || pdf_exporting.get()
                             on:click=move |_| {
@@ -905,7 +950,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                     set_pdf_exporting.set(false);
                                 });
                             }
-                        >{move || if pdf_exporting.get() { "Exporting PDF..." } else { "Export PDF" }}</button>
+                        >{move || if pdf_exporting.get() { locale.get().designer.exporting_pdf.clone() } else { locale.get().zonal_designer.export_pdf.clone() }}</button>
                     </div>
                 </div>
 
@@ -913,7 +958,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 <div class="zonal-views">
                     // Results summary + plan view
                     <div class="zonal-panel">
-                        <h3>"Plan View"</h3>
+                        <h3>{move || locale.get().designer.plan_view.clone()}</h3>
                         // Room plan SVG
                         <div class="zonal-plan-svg" inner_html=move || {
                             let r = result.get();
@@ -926,22 +971,22 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         // Results summary table
                         <table class="zonal-stats-table">
                             <tr>
-                                <td>"Luminaires"</td>
+                                <td>{move || locale.get().zonal_designer.results.luminaires.clone()}</td>
                                 <td class="val">{move || {
                                     let r = result.get();
                                     format!("{} ({}×{})", r.layout.count, r.layout.rows, r.layout.cols)
                                 }}</td>
-                                <td>"Achieved"</td>
+                                <td>{move || locale.get().zonal_designer.results.achieved.clone()}</td>
                                 <td class="val">{move || format!("{:.0} lux", result.get().achieved_illuminance)}</td>
-                                <td>"CU"</td>
+                                <td>{move || locale.get().zonal_designer.results.cu.clone()}</td>
                                 <td class="val">{move || format!("{:.1}%", result.get().cu * 100.0)}</td>
                             </tr>
                             <tr>
-                                <td>"RCR"</td>
+                                <td>{move || locale.get().zonal_designer.results.rcr.clone()}</td>
                                 <td class="val">{move || format!("{:.2}", result.get().cavity.rcr)}</td>
-                                <td>"LPD"</td>
+                                <td>{move || locale.get().zonal_designer.results.lpd.clone()}</td>
                                 <td class="val">{move || format!("{:.1} W/m\u{00B2}", result.get().lpd)}</td>
-                                <td>"Spacing"</td>
+                                <td>{move || locale.get().zonal_designer.results.spacing.clone()}</td>
                                 <td class=move || if result.get().layout.spacing_ok { "val zonal-spacing-ok" } else { "val zonal-spacing-warn" }>
                                     {move || {
                                         let r = result.get();
@@ -955,11 +1000,11 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         {move || result.get().ppb.as_ref().map(|ppb| view! {
                             <table class="zonal-stats-table">
                                 <tr>
-                                    <td>"Min"</td>
+                                    <td>{move || locale.get().designer.min.clone()}</td>
                                     <td class="val">{format!("{:.0} lux", ppb.min_lux)}</td>
-                                    <td>"Avg"</td>
+                                    <td>{move || locale.get().designer.avg.clone()}</td>
                                     <td class="val">{format!("{:.0} lux", ppb.avg_lux)}</td>
-                                    <td>"Max"</td>
+                                    <td>{move || locale.get().designer.max.clone()}</td>
                                     <td class="val">{format!("{:.0} lux", ppb.max_lux)}</td>
                                 </tr>
                                 <tr>
@@ -985,22 +1030,51 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         match tab.as_str() {
                             "heatmap" => {
                                 if let Some(ppb) = r.ppb.as_ref() {
-                                    let svg = ZonalSvg::illuminance_view(ppb, &room, &SvgTheme::light(), units.get());
+                                    let ppb = ppb.clone();
+                                    let room = room.clone();
                                     view! {
                                         <div class="zonal-panel">
-                                            <h3>"Illuminance Heatmap"</h3>
+                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                <h3 style="margin: 0;">{move || locale.get().zonal_designer.heatmap_title.clone()}</h3>
+                                                <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+                                                    <input type="checkbox"
+                                                        prop:checked=show_heatmap_values
+                                                        on:change=move |ev| {
+                                                            use wasm_bindgen::JsCast;
+                                                            let input: web_sys::HtmlInputElement = ev.target().unwrap().unchecked_into();
+                                                            set_show_heatmap_values.set(input.checked());
+                                                        }
+                                                    />
+                                                    "Show values"
+                                                </label>
+                                            </div>
+                                            <div class="zonal-iso-svg" inner_html=move || {
+                                                ZonalSvg::illuminance_view_opts(&ppb, &room, &SvgTheme::light(), units.get(), show_heatmap_values.get())
+                                            }></div>
+                                        </div>
+                                    }.into_any()
+                                } else {
+                                    view! { <div class="zonal-panel"><p>{move || locale.get().zonal_designer.computing_heatmap.clone()}</p></div> }.into_any()
+                                }
+                            }
+                            "table" => {
+                                if let Some(ppb) = r.ppb.as_ref() {
+                                    let svg = ZonalSvg::illuminance_table(ppb, &room, &SvgTheme::light(), units.get());
+                                    view! {
+                                        <div class="zonal-panel">
+                                            <h3>"Illuminance Schedule"</h3>
                                             <div class="zonal-iso-svg" inner_html=svg></div>
                                         </div>
                                     }.into_any()
                                 } else {
-                                    view! { <div class="zonal-panel"><p>"Computing heatmap..."</p></div> }.into_any()
+                                    view! { <div class="zonal-panel"><p>"Computing..."</p></div> }.into_any()
                                 }
                             }
                             "section" => {
                                 let svg = ZonalSvg::section_view(&room, &r.cavity, &SvgTheme::light(), units.get());
                                 view! {
                                     <div class="zonal-panel">
-                                        <h3>"Cavity Section"</h3>
+                                        <h3>{move || locale.get().zonal_designer.cavity_section.clone()}</h3>
                                         <div class="zonal-iso-svg" inner_html=svg></div>
                                     </div>
                                 }.into_any()
@@ -1013,7 +1087,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 );
                                 view! {
                                     <div class="zonal-panel">
-                                        <h3>"CU Table"</h3>
+                                        <h3>{move || locale.get().zonal_designer.cu_table_title.clone()}</h3>
                                         <div class="zonal-cu-table-scroll" inner_html=svg></div>
                                     </div>
                                 }.into_any()
@@ -1048,9 +1122,9 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                 let scene_svg = render_scene_svg(&faces, &cam, svg_w, svg_h, "#f8f9fa");
                                 view! {
                                     <div class="zonal-panel">
-                                        <h3>"3D Room View"
+                                        <h3>{move || locale.get().zonal_designer.room_view_3d.clone()}
                                             <span style="font-size:10px; font-weight:normal; opacity:0.5; margin-left:8px;">
-                                                "drag to rotate, scroll to zoom"
+                                                {move || locale.get().zonal_designer.room_view_hint.clone()}
                                             </span>
                                         </h3>
                                         <div class="zonal-3d-interactive"
@@ -1087,7 +1161,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                                     let svg = scene_svg.clone();
                                                     super::file_handler::download_svg("zonal_3d_room.svg", &svg);
                                                 }
-                                            >"Export 3D SVG"</button>
+                                            >{move || locale.get().zonal_designer.export_3d_svg.clone()}</button>
                                         </div>
                                     </div>
                                 }.into_any()
@@ -1113,8 +1187,8 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     flex-direction: column;
     gap: 4px;
     padding: 6px 10px;
-    border-bottom: 1px solid var(--border-color, #ddd);
-    background: var(--toolbar-bg, #f8f9fa);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-elevated);
 }
 .zonal-toolbar-row {
     display: flex;
@@ -1140,19 +1214,19 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 .zonal-toolbar-select {
     font-size: 11px;
     padding: 2px 4px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border);
     border-radius: 3px;
-    background: var(--input-bg, #fff);
-    color: var(--text-color, #333);
+    background: var(--surface);
+    color: var(--text-primary);
 }
 .zonal-toolbar-num {
     width: 60px;
     font-size: 11px;
     padding: 2px 4px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border);
     border-radius: 3px;
-    background: var(--input-bg, #fff);
-    color: var(--text-color, #333);
+    background: var(--surface);
+    color: var(--text-primary);
 }
 .zonal-toolbar-toggle {
     display: inline-flex;
@@ -1164,7 +1238,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 }
 .zonal-view-tabs {
     display: inline-flex;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border);
     border-radius: 4px;
     overflow: hidden;
     margin-left: 4px;
@@ -1173,16 +1247,16 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     padding: 2px 10px;
     font-size: 11px;
     border: none;
-    border-right: 1px solid var(--border-color, #ccc);
-    background: var(--input-bg, #fff);
-    color: var(--text-color, #555);
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
     cursor: pointer;
     white-space: nowrap;
 }
 .zonal-view-tab:last-child { border-right: none; }
-.zonal-view-tab:hover { background: var(--hover-bg, #eef); }
+.zonal-view-tab:hover { background: var(--surface-elevated); }
 .zonal-view-tab.active {
-    background: var(--accent-bg, #4488cc);
+    background: var(--primary-color);
     color: #fff;
     font-weight: 600;
 }
@@ -1201,12 +1275,12 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     overflow-y: auto;
     max-height: 75vh;
     padding: 6px;
-    border-right: 1px solid var(--border-color, #ddd);
+    border-right: 1px solid var(--border);
 }
 .zonal-sidebar-section {
     margin-bottom: 10px;
     padding: 6px;
-    border: 1px solid var(--border-color, #eee);
+    border: 1px solid var(--border);
     border-radius: 5px;
 }
 .zonal-sidebar-section h4 {
@@ -1226,7 +1300,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     flex: 1;
     font-size: 11px;
     padding: 2px 4px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border);
     border-radius: 3px;
 }
 .zonal-prop-row input[type="range"] {
@@ -1265,7 +1339,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 .zonal-panel {
     margin-bottom: 12px;
     padding: 8px;
-    border: 1px solid var(--border-color, #eee);
+    border: 1px solid var(--border);
     border-radius: 6px;
 }
 .zonal-panel h3 {
@@ -1294,7 +1368,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 }
 .zonal-stats-table td {
     padding: 2px 6px;
-    border: 1px solid var(--border-color, #eee);
+    border: 1px solid var(--border);
 }
 .zonal-stats-table .val {
     font-weight: bold;
@@ -1311,9 +1385,9 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     width: 100%;
     padding: 6px 12px;
     font-size: 11px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border);
     border-radius: 4px;
-    background: var(--accent-color, #3b82f6);
+    background: var(--primary-color);
     color: white;
     cursor: pointer;
 }
@@ -1327,32 +1401,32 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 .zonal-export-btn-sm {
     padding: 3px 10px;
     font-size: 11px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border);
     border-radius: 3px;
-    background: var(--input-bg, #fff);
-    color: var(--text-color, #333);
+    background: var(--surface);
+    color: var(--text-primary);
     cursor: pointer;
 }
-.zonal-export-btn-sm:hover { background: var(--hover-bg, #eee); }
+.zonal-export-btn-sm:hover { background: var(--surface-elevated); }
 /* ── Share button ──────────────────────────────── */
 .zonal-share-btn {
     width: 100%;
     padding: 6px 12px;
     font-size: 11px;
-    border: 1px solid var(--border-color, #ccc);
+    border: 1px solid var(--border);
     border-radius: 4px;
-    background: var(--input-bg, #fff);
-    color: var(--text-color, #333);
+    background: var(--surface);
+    color: var(--text-primary);
     cursor: pointer;
     margin-bottom: 6px;
     transition: background 0.15s;
 }
-.zonal-share-btn:hover { background: var(--hover-bg, #eee); }
+.zonal-share-btn:hover { background: var(--surface-elevated); }
 /* ── Zonal flux summary ────────────────────────── */
 .zonal-flux-summary {
     margin-top: 6px;
     padding-top: 4px;
-    border-top: 1px solid var(--border-color, #eee);
+    border-top: 1px solid var(--border);
 }
 .zonal-flux-row {
     display: flex;
@@ -1384,7 +1458,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 .zonal-flux-bar {
     flex: 1;
     height: 8px;
-    background: var(--border-color, #eee);
+    background: var(--border);
     border-radius: 4px;
     overflow: hidden;
 }

@@ -1,0 +1,14 @@
+[build]
+target = "index.html"
+dist = "dist"
+
+[watch]
+watch = ["src", "index.html", "examples"]
+
+[serve]
+port = 8046
+
+[[hooks]]
+stage = "post_build"
+command = "sh"
+command_arguments = ["-c", "cp -r assets dist/ 2>/dev/null || true"]

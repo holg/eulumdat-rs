@@ -23,6 +23,7 @@ pub fn get_template_content(id: &str) -> Option<String> {
         "projector" => include_str!("../../eulumdat-wasm/templates/projector.ldt"),
         "floor-uplight" => include_str!("../../eulumdat-wasm/templates/floor_uplight.ldt"),
         "fluorescent-luminaire" => include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt"),
+        "demo-two-lamp-sets" => include_str!("../../eulumdat-wasm/templates/demo_two_lamp_sets.ldt"),
         "tm-32-24-road-luminaire-bim" => include_str!("../../eulumdat-wasm/templates/tm-32-24_road_luminaire_bim.xml"),
         "atla-fluorescent-json" => include_str!("../../eulumdat-wasm/templates/_atla_fluorescent.json"),
         "atla-fluorescent-xml" => include_str!("../../eulumdat-wasm/templates/_atla_fluorescent.xml"),

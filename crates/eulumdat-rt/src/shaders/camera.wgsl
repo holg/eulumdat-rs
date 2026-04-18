@@ -24,6 +24,8 @@ struct CameraConfig {
     // Source (emissive object)
     source_intensity: f32,
     source_radius: f32,
+    source_pos: vec3<f32>,
+    _pad3: f32,
     // LVK lookup table params
     lvk_c_steps: u32,
     lvk_g_steps: u32,
@@ -225,15 +227,14 @@ fn lvk_intensity(dir_from_source: vec3<f32>) -> f32 {
     return intensity / max(config.lvk_max_intensity, 0.001);
 }
 
-/// Sample a point on the emissive light source (small sphere at origin).
+/// Sample a point on the emissive light source (small sphere at source_pos).
 fn sample_light_point() -> vec3<f32> {
-    // Small area light at origin with radius
     let r = config.source_radius;
     let u = random_f32();
     let v = random_f32();
     let theta = 2.0 * PI * u;
     let phi = acos(2.0 * v - 1.0);
-    return vec3<f32>(
+    return config.source_pos + vec3<f32>(
         r * sin(phi) * cos(theta),
         r * sin(phi) * sin(theta),
         r * cos(phi)
@@ -304,9 +305,9 @@ fn trace_path(ray_origin: vec3<f32>, ray_dir: vec3<f32>) -> vec3<f32> {
             break;
         }
 
-        // Check if we hit the light source directly (sphere at origin)
-        let to_origin = -hit.point;
-        if (length(to_origin) < config.source_radius * 1.5 && bounce == 0u) {
+        // Check if we hit the light source directly (sphere at source_pos)
+        let to_source = config.source_pos - hit.point;
+        if (length(to_source) < config.source_radius * 1.5 && bounce == 0u) {
             color += throughput * vec3<f32>(1.0, 0.95, 0.85) * config.source_intensity * 0.5;
             break;
         }

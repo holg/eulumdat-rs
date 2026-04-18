@@ -131,6 +131,13 @@ pub const FLUORESCENT_LUMINAIRE: Template = Template {
     id: "fluorescent-luminaire",
 };
 
+pub const DEMO_TWO_LAMP_SETS: Template = Template {
+    name: "demo_two_lamp_sets.ldt",
+    description: "Two lamp sets (LED110 + LED120)",
+    format: TemplateFormat::Ldt,
+    id: "demo-two-lamp-sets",
+};
+
 pub const TM_32_24_ROAD_LUMINAIRE_BIM: Template = Template {
     name: "tm-32-24_road_luminaire_bim.xml",
     description: "",
@@ -492,6 +499,7 @@ pub const ALL_TEMPLATES: &[&Template] = &[
     &PROJECTOR,
     &FLOOR_UPLIGHT,
     &FLUORESCENT_LUMINAIRE,
+    &DEMO_TWO_LAMP_SETS,
     &TM_32_24_ROAD_LUMINAIRE_BIM,
     &ATLA_FLUORESCENT_JSON,
     &ATLA_FLUORESCENT_XML,

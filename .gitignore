@@ -191,3 +191,10 @@ scripts/benchmark_wasm.py
 
 # Local temp files
 tmp/
+assets/sponza/
+assets/environment_maps/
+assets/BistroExteriorFakeGI.gltf
+assets/bistro_exterior_ktx2/
+crates/eulumdat-bevy/assets/
+crates/eulumdat-bevy/data/
+scripts/video_scenes/

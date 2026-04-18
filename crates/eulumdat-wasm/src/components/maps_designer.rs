@@ -252,7 +252,7 @@ pub fn MapsDesigner(
             <div
                 class="gmaps-control-panel"
                 style=move || format!(
-                    "width: {}; background: var(--bg-secondary, #2a2a2a); border-right: 1px solid var(--border-color, #444); \
+                    "width: {}; background: var(--surface); border-right: 1px solid var(--border); \
                      padding: {}; overflow-y: auto; transition: width 0.2s, padding 0.2s; display: flex; flex-direction: column; gap: 12px;",
                     if show_controls.get() { "280px" } else { "40px" },
                     if show_controls.get() { "12px" } else { "8px" }
@@ -261,11 +261,11 @@ pub fn MapsDesigner(
                 // Toggle button
                 <button
                     style="width: 100%; padding: 6px; background: var(--bg-tertiary, #333); \
-                           border: 1px solid var(--border-color, #444); border-radius: 4px; color: var(--text-primary, #fff); \
+                           border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); \
                            cursor: pointer; font-size: 14px;"
                     on:click=move |_| set_show_controls.update(|v| *v = !*v)
                 >
-                    {move || if show_controls.get() { "◀ Hide" } else { "▶" }}
+                    {move || if show_controls.get() { format!("◀ {}", locale.get().ui.bevy_scene.hide) } else { "▶".to_string() }}
                 </button>
 
                 {move || {
@@ -273,30 +273,30 @@ pub fn MapsDesigner(
                         return view! { <div></div> }.into_any();
                     }
 
-                    let _l = locale.get();
+                    let l = locale.get();
 
                     view! {
                         <div style="display: flex; flex-direction: column; gap: 12px;">
                             // Instructions
                             <div style="font-size: 12px; color: var(--text-secondary, #aaa); padding: 8px; background: var(--bg-tertiary, #333); border-radius: 4px;">
-                                <div style="font-weight: bold; margin-bottom: 4px;">"Instructions:"</div>
+                                <div style="font-weight: bold; margin-bottom: 4px;">{l.maps_designer.instructions_title.clone()}</div>
                                 <ol style="margin: 0; padding-left: 16px; line-height: 1.6;">
-                                    <li>"Draw a polygon (parking lot area)"</li>
-                                    <li>"Place luminaires (markers)"</li>
-                                    <li>"Click Calculate to see heatmap"</li>
+                                    <li>{l.maps_designer.instruction_polygon.clone()}</li>
+                                    <li>{l.maps_designer.instruction_luminaires.clone()}</li>
+                                    <li>{l.maps_designer.instruction_calculate.clone()}</li>
                                 </ol>
                             </div>
 
                             // Status
                             <div style="font-size: 12px; padding: 8px; background: var(--bg-tertiary, #333); border-radius: 4px;">
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                    <span>"Area defined:"</span>
+                                    <span>{l.maps_designer.area_defined.clone()}</span>
                                     <span style=move || if has_polygon.get() { "color: #4caf50;" } else { "color: #f44336;" }>
                                         {move || if has_polygon.get() { "✓" } else { "✗" }}
                                     </span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between;">
-                                    <span>"Luminaires:"</span>
+                                    <span>{l.maps_designer.luminaires_count.clone()}</span>
                                     <span>{move || luminaire_count.get()}</span>
                                 </div>
                             </div>
@@ -313,8 +313,8 @@ pub fn MapsDesigner(
                                     max="5.0"
                                     step="0.5"
                                     style="width: 100%; padding: 6px; background: var(--bg-tertiary, #333); \
-                                           border: 1px solid var(--border-color, #444); border-radius: 4px; \
-                                           color: var(--text-primary, #fff);"
+                                           border: 1px solid var(--border); border-radius: 4px; \
+                                           color: var(--text-primary);"
                                     on:change=move |ev| {
                                         if let Ok(v) = event_target_value(&ev).parse::<f64>() {
                                             set_grid_spacing.set(v.clamp(0.5, 5.0));
@@ -331,29 +331,29 @@ pub fn MapsDesigner(
                                     disabled=move || !has_polygon.get() || luminaire_count.get() == 0
                                     on:click=calculate
                                 >
-                                    "Calculate Heatmap"
+                                    {move || locale.get().maps_designer.calculate.clone()}
                                 </button>
 
                                 <button
                                     style="width: 100%; padding: 8px; background: var(--bg-tertiary, #555); color: white; \
-                                           border: 1px solid var(--border-color, #666); border-radius: 4px; cursor: pointer;"
+                                           border: 1px solid var(--border); border-radius: 4px; cursor: pointer;"
                                     on:click=move |_| center_on_user_location()
                                 >
-                                    "📍 My Location"
+                                    {move || format!("📍 {}", locale.get().maps_designer.my_location)}
                                 </button>
 
                                 <button
                                     style="width: 100%; padding: 8px; background: var(--bg-tertiary, #555); color: white; \
-                                           border: 1px solid var(--border-color, #666); border-radius: 4px; cursor: pointer;"
+                                           border: 1px solid var(--border); border-radius: 4px; cursor: pointer;"
                                     disabled=move || results.get().is_none()
                                     on:click=export_csv
                                 >
-                                    "📥 Export CSV"
+                                    {move || format!("📥 {}", locale.get().maps_designer.export_csv)}
                                 </button>
 
                                 <button
                                     style=move || format!("width: 100%; padding: 8px; background: {}; color: white; \
-                                           border: 1px solid var(--border-color, #666); border-radius: 4px; cursor: pointer;",
+                                           border: 1px solid var(--border); border-radius: 4px; cursor: pointer;",
                                            if show_labels.get() { "#2196F3" } else { "var(--bg-tertiary, #555)" })
                                     disabled=move || results.get().is_none()
                                     on:click=move |_| {
@@ -362,7 +362,7 @@ pub fn MapsDesigner(
                                         toggle_gmaps_lux_labels(new_state);
                                     }
                                 >
-                                    {move || if show_labels.get() { "🔢 Hide Values" } else { "🔢 Show Values" }}
+                                    {move || if show_labels.get() { format!("🔢 {}", locale.get().maps_designer.hide_values) } else { format!("🔢 {}", locale.get().maps_designer.show_values) }}
                                 </button>
 
                                 <button
@@ -370,7 +370,7 @@ pub fn MapsDesigner(
                                            border: none; border-radius: 4px; cursor: pointer;"
                                     on:click=clear_all
                                 >
-                                    "🗑 Clear All"
+                                    {move || format!("🗑 {}", locale.get().maps_designer.clear_all)}
                                 </button>
                             </div>
 
@@ -380,24 +380,24 @@ pub fn MapsDesigner(
                                     let units = unit_system.get();
                                     view! {
                                     <div style="padding: 12px; background: var(--bg-tertiary, #333); border-radius: 4px; font-size: 12px;">
-                                        <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-primary, #fff);">
-                                            "Calculation Results"
+                                        <div style="font-weight: bold; margin-bottom: 8px; color: var(--text-primary);">
+                                            {move || locale.get().maps_designer.results_title.clone()}
                                         </div>
                                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                                             <div>
-                                                <div style="color: var(--text-secondary, #888);">"Min"</div>
+                                                <div style="color: var(--text-secondary, #888);">{move || locale.get().maps_designer.min.clone()}</div>
                                                 <div style="font-size: 16px; font-weight: bold;">{units.format_lux(r.min_lux)}</div>
                                             </div>
                                             <div>
-                                                <div style="color: var(--text-secondary, #888);">"Max"</div>
+                                                <div style="color: var(--text-secondary, #888);">{move || locale.get().maps_designer.max.clone()}</div>
                                                 <div style="font-size: 16px; font-weight: bold;">{units.format_lux(r.max_lux)}</div>
                                             </div>
                                             <div>
-                                                <div style="color: var(--text-secondary, #888);">"Average"</div>
+                                                <div style="color: var(--text-secondary, #888);">{move || locale.get().maps_designer.average.clone()}</div>
                                                 <div style="font-size: 16px; font-weight: bold;">{units.format_lux(r.avg_lux)}</div>
                                             </div>
                                             <div>
-                                                <div style="color: var(--text-secondary, #888);">"Uniformity (U₀)"</div>
+                                                <div style="color: var(--text-secondary, #888);">{move || locale.get().maps_designer.uniformity.clone()}</div>
                                                 <div style="font-size: 16px; font-weight: bold;">{format!("{:.2}", r.uniformity)}</div>
                                             </div>
                                         </div>
@@ -409,11 +409,11 @@ pub fn MapsDesigner(
                                         {
                                             let bg_color = if r.uniformity >= 0.4 { "#1b5e20" } else if r.uniformity >= 0.25 { "#f57f17" } else { "#b71c1c" };
                                             let msg = if r.uniformity >= 0.4 {
-                                                "✓ Good uniformity (U₀ ≥ 0.40)"
+                                                locale.get().maps_designer.good_uniformity.clone()
                                             } else if r.uniformity >= 0.25 {
-                                                "⚠ Acceptable uniformity (U₀ ≥ 0.25)"
+                                                locale.get().maps_designer.acceptable_uniformity.clone()
                                             } else {
-                                                "✗ Poor uniformity - add more luminaires"
+                                                locale.get().maps_designer.poor_uniformity.clone()
                                             };
                                             view! {
                                                 <div style=format!("margin-top: 8px; padding: 6px; border-radius: 4px; font-size: 11px; background: {};", bg_color)>
@@ -427,7 +427,7 @@ pub fn MapsDesigner(
 
                             // Legend
                             <div style="padding: 8px; background: var(--bg-tertiary, #333); border-radius: 4px; font-size: 11px;">
-                                <div style="font-weight: bold; margin-bottom: 8px;">"Heatmap Legend"</div>
+                                <div style="font-weight: bold; margin-bottom: 8px;">{move || locale.get().maps_designer.legend_title.clone()}</div>
                                 <div style="display: flex; height: 16px; border-radius: 4px; overflow: hidden;">
                                     <div style="flex: 1; background: #00008b;"></div>
                                     <div style="flex: 1; background: #0000ff;"></div>
@@ -438,8 +438,8 @@ pub fn MapsDesigner(
                                     <div style="flex: 1; background: #ff0000;"></div>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; margin-top: 4px; color: var(--text-secondary, #888);">
-                                    <span>"Low"</span>
-                                    <span>"High"</span>
+                                    <span>{move || locale.get().maps_designer.legend_low.clone()}</span>
+                                    <span>{move || locale.get().maps_designer.legend_high.clone()}</span>
                                 </div>
                             </div>
                         </div>
@@ -457,7 +457,7 @@ pub fn MapsDesigner(
 
                 // Loading overlay
                 {move || {
-                    let _l = locale.get();
+                    let l = locale.get();
                     match load_state.get() {
                         GMapsLoadState::NotLoaded => view! {
                             <div class="gmaps-overlay" style="
@@ -466,15 +466,15 @@ pub fn MapsDesigner(
                                 background: rgba(0,0,0,0.8); color: white; cursor: pointer;
                             " on:click=start_loading>
                                 <div style="font-size: 48px; margin-bottom: 20px;">"🗺️"</div>
-                                <div style="font-size: 18px; margin-bottom: 10px;">"Lighting Designer"</div>
+                                <div style="font-size: 18px; margin-bottom: 10px;">{l.maps_designer.title.clone()}</div>
                                 <div style="font-size: 14px; color: #aaa; margin-bottom: 20px; text-align: center; max-width: 400px;">
-                                    "Design outdoor lighting on real satellite maps. Draw your parking lot, place luminaires, and calculate illuminance."
+                                    {l.maps_designer.loading_description.clone()}
                                 </div>
                                 <button style="
                                     padding: 12px 24px; font-size: 16px;
                                     background: #4a9eff; color: white; border: none;
                                     border-radius: 8px; cursor: pointer;
-                                ">"Load Google Maps"</button>
+                                ">{l.maps_designer.load_maps.clone()}</button>
                             </div>
                         }.into_any(),
 
@@ -489,7 +489,7 @@ pub fn MapsDesigner(
                                     border-top-color: #4a9eff; border-radius: 50%;
                                     animation: spin 1s linear infinite;
                                 "></div>
-                                <div style="margin-top: 20px; font-size: 16px;">"Loading Google Maps..."</div>
+                                <div style="margin-top: 20px; font-size: 16px;">{l.maps_designer.loading_maps.clone()}</div>
                             </div>
                             <style>"@keyframes spin { to { transform: rotate(360deg); } }"</style>
                         }.into_any(),
@@ -501,7 +501,7 @@ pub fn MapsDesigner(
                                 background: rgba(0,0,0,0.7); color: white; padding: 8px 16px;
                                 border-radius: 4px; font-size: 12px; pointer-events: none;
                             ">
-                                "Use toolbar: Polygon to draw area, Marker to place luminaires"
+                                {l.maps_designer.toolbar_hint.clone()}
                             </div>
                         }.into_any(),
 
@@ -512,7 +512,7 @@ pub fn MapsDesigner(
                                 background: rgba(0,0,0,0.8); color: white;
                             ">
                                 <div style="font-size: 48px; margin-bottom: 20px;">"❌"</div>
-                                <div style="font-size: 18px; color: #ff6b6b;">"Failed to load Google Maps"</div>
+                                <div style="font-size: 18px; color: #ff6b6b;">{l.maps_designer.load_failed.clone()}</div>
                                 <div style="margin-top: 10px; font-size: 12px; color: #888; max-width: 400px; text-align: center;">
                                     {move || error_msg.get().unwrap_or_default()}
                                 </div>
@@ -526,7 +526,7 @@ pub fn MapsDesigner(
                                         set_load_state.set(GMapsLoadState::NotLoaded);
                                         set_error_msg.set(None);
                                     }
-                                >"Try Again"</button>
+                                >{l.maps_designer.try_again.clone()}</button>
                             </div>
                         }.into_any(),
                     }

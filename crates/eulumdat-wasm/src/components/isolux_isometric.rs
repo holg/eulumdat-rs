@@ -29,12 +29,13 @@ pub fn IsoluxIsometric(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             IsoluxDiagram::from_eulumdat_with_units(&ldt_val, 600.0, 500.0, params, units);
 
         // Build title from luminaire name
+        let iso_label = locale.get().ui.diagram.title_iso_view.clone();
         let title = if !ldt_val.luminaire_name.is_empty() {
-            format!("ISO view {}", ldt_val.luminaire_name)
+            format!("{} {}", iso_label, ldt_val.luminaire_name)
         } else if !ldt_val.identification.is_empty() {
-            format!("ISO view {}", ldt_val.identification)
+            format!("{} {}", iso_label, ldt_val.identification)
         } else {
-            "ISO view".to_string()
+            iso_label
         };
 
         diagram.to_svg_isometric(600.0, 500.0, &theme, &IsometricConfig::default(), units, &ldt_val, &title)
