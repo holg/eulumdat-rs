@@ -17,9 +17,6 @@
 //!
 //! Template preference is persisted to `localStorage`.
 
-use crate::i18n::use_locale;
-use eulumdat::{Eulumdat, IesParser};
-use leptos::prelude::*;
 use super::beam_angle_diagram::BeamAngleDiagram;
 use super::bug_rating::BugRating;
 use super::cartesian_diagram::CartesianDiagram;
@@ -30,7 +27,9 @@ use super::isolux_footprint::IsoluxFootprint;
 use super::isolux_isometric::IsoluxIsometric;
 use super::polar_diagram::PolarDiagram;
 use super::templates::{TemplateFormat, ALL_TEMPLATES};
-
+use crate::i18n::use_locale;
+use eulumdat::{Eulumdat, IesParser};
+use leptos::prelude::*;
 
 // ── Dashboard Template Config ─────────────────────────────────────
 
@@ -136,8 +135,8 @@ enum DiagramMode {
 impl DiagramMode {
     fn icon(self) -> &'static str {
         match self {
-            Self::Overview => "\u{1F4CA}",       // bar chart
-            Self::BeamAngles => "\u{1F4D0}",     // triangular ruler
+            Self::Overview => "\u{1F4CA}",        // bar chart
+            Self::BeamAngles => "\u{1F4D0}",      // triangular ruler
             Self::BeamIntensities => "\u{1F4A1}", // light bulb
             Self::UgrTable => "\u{1F4CB}",        // clipboard
         }
@@ -188,14 +187,46 @@ struct DashboardConfig {
 fn default_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
     DashboardConfig {
         columns: vec![
-            ColumnDef { label: cols.name.clone(),   min_width: "150px", extract: extract_name },
-            ColumnDef { label: cols.cct.clone(),    min_width: "70px",  extract: extract_cct },
-            ColumnDef { label: cols.power.clone(),  min_width: "60px",  extract: extract_power },
-            ColumnDef { label: cols.lumens.clone(), min_width: "80px",  extract: extract_lumens },
-            ColumnDef { label: cols.lor.clone(),    min_width: "55px",  extract: extract_lor },
-            ColumnDef { label: cols.bug.clone(),    min_width: "80px",  extract: extract_bug },
-            ColumnDef { label: cols.cri.clone(),    min_width: "50px",  extract: extract_cri },
-            ColumnDef { label: cols.beam.clone(),   min_width: "60px",  extract: extract_beam },
+            ColumnDef {
+                label: cols.name.clone(),
+                min_width: "150px",
+                extract: extract_name,
+            },
+            ColumnDef {
+                label: cols.cct.clone(),
+                min_width: "70px",
+                extract: extract_cct,
+            },
+            ColumnDef {
+                label: cols.power.clone(),
+                min_width: "60px",
+                extract: extract_power,
+            },
+            ColumnDef {
+                label: cols.lumens.clone(),
+                min_width: "80px",
+                extract: extract_lumens,
+            },
+            ColumnDef {
+                label: cols.lor.clone(),
+                min_width: "55px",
+                extract: extract_lor,
+            },
+            ColumnDef {
+                label: cols.bug.clone(),
+                min_width: "80px",
+                extract: extract_bug,
+            },
+            ColumnDef {
+                label: cols.cri.clone(),
+                min_width: "50px",
+                extract: extract_cri,
+            },
+            ColumnDef {
+                label: cols.beam.clone(),
+                min_width: "60px",
+                extract: extract_beam,
+            },
         ],
         has_diagram_modes: false,
         default_diagrams: vec![
@@ -211,13 +242,41 @@ fn default_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
 fn aec_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
     DashboardConfig {
         columns: vec![
-            ColumnDef { label: cols.light_dist.clone(), min_width: "150px", extract: extract_name },
-            ColumnDef { label: cols.optics.clone(),     min_width: "60px",  extract: extract_optics },
-            ColumnDef { label: cols.cct.clone(),        min_width: "55px",  extract: extract_cct },
-            ColumnDef { label: cols.power.clone(),      min_width: "55px",  extract: extract_power },
-            ColumnDef { label: cols.lumens.clone(),     min_width: "70px",  extract: extract_lumens },
-            ColumnDef { label: cols.bug.clone(),        min_width: "75px",  extract: extract_bug },
-            ColumnDef { label: cols.cri.clone(),        min_width: "40px",  extract: extract_cri },
+            ColumnDef {
+                label: cols.light_dist.clone(),
+                min_width: "150px",
+                extract: extract_name,
+            },
+            ColumnDef {
+                label: cols.optics.clone(),
+                min_width: "60px",
+                extract: extract_optics,
+            },
+            ColumnDef {
+                label: cols.cct.clone(),
+                min_width: "55px",
+                extract: extract_cct,
+            },
+            ColumnDef {
+                label: cols.power.clone(),
+                min_width: "55px",
+                extract: extract_power,
+            },
+            ColumnDef {
+                label: cols.lumens.clone(),
+                min_width: "70px",
+                extract: extract_lumens,
+            },
+            ColumnDef {
+                label: cols.bug.clone(),
+                min_width: "75px",
+                extract: extract_bug,
+            },
+            ColumnDef {
+                label: cols.cri.clone(),
+                min_width: "40px",
+                extract: extract_cri,
+            },
         ],
         has_diagram_modes: true,
         default_diagrams: vec![
@@ -232,20 +291,72 @@ fn aec_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
 fn alternative_config(cols: &eulumdat_i18n::DashboardColumns) -> DashboardConfig {
     DashboardConfig {
         columns: vec![
-            ColumnDef { label: cols.light_dist.clone(), min_width: "150px", extract: extract_name },
-            ColumnDef { label: cols.optics.clone(),     min_width: "60px",  extract: extract_optics },
-            ColumnDef { label: cols.modules.clone(),    min_width: "55px",  extract: extract_modules },
-            ColumnDef { label: cols.cct.clone(),        min_width: "55px",  extract: extract_cct },
-            ColumnDef { label: cols.current.clone(),    min_width: "60px",  extract: extract_current },
-            ColumnDef { label: cols.power.clone(),      min_width: "55px",  extract: extract_power },
-            ColumnDef { label: cols.lumens.clone(),     min_width: "70px",  extract: extract_lumens },
-            ColumnDef { label: cols.bug.clone(),        min_width: "75px",  extract: extract_bug },
-            ColumnDef { label: cols.cri.clone(),        min_width: "40px",  extract: extract_cri },
+            ColumnDef {
+                label: cols.light_dist.clone(),
+                min_width: "150px",
+                extract: extract_name,
+            },
+            ColumnDef {
+                label: cols.optics.clone(),
+                min_width: "60px",
+                extract: extract_optics,
+            },
+            ColumnDef {
+                label: cols.modules.clone(),
+                min_width: "55px",
+                extract: extract_modules,
+            },
+            ColumnDef {
+                label: cols.cct.clone(),
+                min_width: "55px",
+                extract: extract_cct,
+            },
+            ColumnDef {
+                label: cols.current.clone(),
+                min_width: "60px",
+                extract: extract_current,
+            },
+            ColumnDef {
+                label: cols.power.clone(),
+                min_width: "55px",
+                extract: extract_power,
+            },
+            ColumnDef {
+                label: cols.lumens.clone(),
+                min_width: "70px",
+                extract: extract_lumens,
+            },
+            ColumnDef {
+                label: cols.bug.clone(),
+                min_width: "75px",
+                extract: extract_bug,
+            },
+            ColumnDef {
+                label: cols.cri.clone(),
+                min_width: "40px",
+                extract: extract_cri,
+            },
             // Icon-style download columns (values shown as badges)
-            ColumnDef { label: cols.spec.clone(),       min_width: "35px",  extract: extract_spec_badge },
-            ColumnDef { label: cols.ies.clone(),        min_width: "35px",  extract: extract_ies_badge },
-            ColumnDef { label: cols.cad.clone(),        min_width: "35px",  extract: extract_cad_badge },
-            ColumnDef { label: cols.bim.clone(),        min_width: "35px",  extract: extract_bim_badge },
+            ColumnDef {
+                label: cols.spec.clone(),
+                min_width: "35px",
+                extract: extract_spec_badge,
+            },
+            ColumnDef {
+                label: cols.ies.clone(),
+                min_width: "35px",
+                extract: extract_ies_badge,
+            },
+            ColumnDef {
+                label: cols.cad.clone(),
+                min_width: "35px",
+                extract: extract_cad_badge,
+            },
+            ColumnDef {
+                label: cols.bim.clone(),
+                min_width: "35px",
+                extract: extract_bim_badge,
+            },
         ],
         has_diagram_modes: true,
         default_diagrams: vec![
@@ -266,16 +377,9 @@ fn diagrams_for_mode(mode: DiagramMode) -> Vec<DiagramSlot> {
             DiagramSlot::Isolux,
             DiagramSlot::BugRating,
         ],
-        DiagramMode::BeamAngles => vec![
-            DiagramSlot::BeamAngle,
-            DiagramSlot::BeamAngle,
-        ],
-        DiagramMode::BeamIntensities => vec![
-            DiagramSlot::Cone,
-        ],
-        DiagramMode::UgrTable => vec![
-            DiagramSlot::BugRating,
-        ],
+        DiagramMode::BeamAngles => vec![DiagramSlot::BeamAngle, DiagramSlot::BeamAngle],
+        DiagramMode::BeamIntensities => vec![DiagramSlot::Cone],
+        DiagramMode::UgrTable => vec![DiagramSlot::BugRating],
     }
 }
 
@@ -294,7 +398,10 @@ fn extract_name(ldt: &Eulumdat) -> String {
 }
 
 fn extract_cct(ldt: &Eulumdat) -> String {
-    ldt.lamp_sets.first().map(|ls| ls.color_appearance.clone()).unwrap_or_default()
+    ldt.lamp_sets
+        .first()
+        .map(|ls| ls.color_appearance.clone())
+        .unwrap_or_default()
 }
 
 fn extract_power(ldt: &Eulumdat) -> String {
@@ -315,7 +422,10 @@ fn extract_bug(ldt: &Eulumdat) -> String {
 }
 
 fn extract_cri(ldt: &Eulumdat) -> String {
-    ldt.lamp_sets.first().map(|ls| ls.color_rendering_group.clone()).unwrap_or_default()
+    ldt.lamp_sets
+        .first()
+        .map(|ls| ls.color_rendering_group.clone())
+        .unwrap_or_default()
 }
 
 fn extract_beam(ldt: &Eulumdat) -> String {
@@ -325,27 +435,52 @@ fn extract_beam(ldt: &Eulumdat) -> String {
 
 fn extract_optics(ldt: &Eulumdat) -> String {
     let s = eulumdat::PhotometricSummary::from_eulumdat(ldt);
-    if s.beam_angle < 30.0 { "Narrow".into() }
-    else if s.beam_angle < 60.0 { "Medium".into() }
-    else if s.beam_angle < 100.0 { "Wide".into() }
-    else { "V. Wide".into() }
+    if s.beam_angle < 30.0 {
+        "Narrow".into()
+    } else if s.beam_angle < 60.0 {
+        "Medium".into()
+    } else if s.beam_angle < 100.0 {
+        "Wide".into()
+    } else {
+        "V. Wide".into()
+    }
 }
 
 fn extract_modules(ldt: &Eulumdat) -> String {
-    let n: i32 = ldt.lamp_sets.iter().map(|ls| ls.num_lamps.unsigned_abs() as i32).sum();
-    if n > 0 { format!("{}", n) } else { "-".into() }
+    let n: i32 = ldt
+        .lamp_sets
+        .iter()
+        .map(|ls| ls.num_lamps.unsigned_abs() as i32)
+        .sum();
+    if n > 0 {
+        format!("{}", n)
+    } else {
+        "-".into()
+    }
 }
 
 fn extract_current(ldt: &Eulumdat) -> String {
     let w = ldt.total_wattage();
-    if w > 0.0 { format!("{:.0}mA", (w / 48.0) * 1000.0) } else { "-".into() }
+    if w > 0.0 {
+        format!("{:.0}mA", (w / 48.0) * 1000.0)
+    } else {
+        "-".into()
+    }
 }
 
 // AEC badge columns — show colored dot to indicate availability
-fn extract_spec_badge(_ldt: &Eulumdat) -> String { "\u{1F7E1}".into() } // yellow circle
-fn extract_ies_badge(_ldt: &Eulumdat) -> String { "\u{1F7E2}".into() }  // green circle
-fn extract_cad_badge(_ldt: &Eulumdat) -> String { "\u{1F535}".into() }  // blue circle
-fn extract_bim_badge(_ldt: &Eulumdat) -> String { "\u{1F7E0}".into() }  // orange circle
+fn extract_spec_badge(_ldt: &Eulumdat) -> String {
+    "\u{1F7E1}".into()
+} // yellow circle
+fn extract_ies_badge(_ldt: &Eulumdat) -> String {
+    "\u{1F7E2}".into()
+} // green circle
+fn extract_cad_badge(_ldt: &Eulumdat) -> String {
+    "\u{1F535}".into()
+} // blue circle
+fn extract_bim_badge(_ldt: &Eulumdat) -> String {
+    "\u{1F7E0}".into()
+} // orange circle
 
 // ── Grid CSS helpers ──────────────────────────────────────────────
 
@@ -397,7 +532,10 @@ pub fn Dashboard(
     });
 
     let grid_style = Memo::new(move |_| {
-        format!("grid-template-columns: {}", grid_template_columns(&config.get()))
+        format!(
+            "grid-template-columns: {}",
+            grid_template_columns(&config.get())
+        )
     });
 
     // ── Diagram mode (sidebar-driven for AEC) ───────────────────
@@ -432,7 +570,10 @@ pub fn Dashboard(
                     _ => None,
                 };
                 if let Some(ldt) = parsed {
-                    loaded.push(LuminaireEntry { name: tpl.name.to_string(), ldt });
+                    loaded.push(LuminaireEntry {
+                        name: tpl.name.to_string(),
+                        ldt,
+                    });
                 }
             }
         }
@@ -455,7 +596,11 @@ pub fn Dashboard(
                 let current = selected_idx.get_untracked();
                 if current == Some(row_id) {
                     set_expanded_idx.update(|v| {
-                        *v = if *v == Some(row_id) { None } else { Some(row_id) };
+                        *v = if *v == Some(row_id) {
+                            None
+                        } else {
+                            Some(row_id)
+                        };
                     });
                 } else {
                     set_selected_idx.set(Some(row_id));
@@ -472,9 +617,7 @@ pub fn Dashboard(
 
     Effect::new(move |_| {
         set_has_selection.set(selected_idx.get().is_some());
-        set_has_compare_pair.set(
-            selected_idx.get().is_some() && compare_idx.get().is_some(),
-        );
+        set_has_compare_pair.set(selected_idx.get().is_some() && compare_idx.get().is_some());
     });
 
     // Zoom: open overlay with the first diagram of the active mode for the selected row
@@ -831,11 +974,7 @@ fn DashboardSidebar(
 
 /// Full-screen overlay showing a single diagram at large size.
 #[component]
-fn ZoomOverlay(
-    ldt: Eulumdat,
-    diagram: DiagramSlot,
-    on_close: Callback<()>,
-) -> impl IntoView {
+fn ZoomOverlay(ldt: Eulumdat, diagram: DiagramSlot, on_close: Callback<()>) -> impl IntoView {
     let (ldt_sig, _) = signal(ldt);
 
     // Close on Escape key
@@ -893,11 +1032,21 @@ fn LuminaireRowStatic(
     on_toggle: Callback<bool>,
 ) -> impl IntoView {
     let mut classes = String::from("luminaire-row");
-    if expanded { classes.push_str(" expanded"); }
-    if selected { classes.push_str(" selected"); }
-    if compare  { classes.push_str(" compare-target"); }
+    if expanded {
+        classes.push_str(" expanded");
+    }
+    if selected {
+        classes.push_str(" selected");
+    }
+    if compare {
+        classes.push_str(" compare-target");
+    }
 
-    let arrow_class = if expanded { "expand-arrow open" } else { "expand-arrow" };
+    let arrow_class = if expanded {
+        "expand-arrow open"
+    } else {
+        "expand-arrow"
+    };
 
     view! {
         <div class=classes style=grid_style on:click=move |ev: leptos::ev::MouseEvent| {

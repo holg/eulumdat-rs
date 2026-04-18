@@ -203,15 +203,9 @@ pub enum Interaction {
     /// Photon was absorbed.
     Absorbed,
     /// Photon was reflected with a new ray and energy attenuation.
-    Reflected {
-        new_ray: Ray,
-        attenuation: f64,
-    },
+    Reflected { new_ray: Ray, attenuation: f64 },
     /// Photon was transmitted through the material.
-    Transmitted {
-        new_ray: Ray,
-        attenuation: f64,
-    },
+    Transmitted { new_ray: Ray, attenuation: f64 },
 }
 
 impl Material {
@@ -261,7 +255,11 @@ impl Material {
                 }
             }
 
-            Material::ClearTransmitter { ior, transmittance, min_reflectance } => {
+            Material::ClearTransmitter {
+                ior,
+                transmittance,
+                min_reflectance,
+            } => {
                 interact_clear_transmitter(photon, hit, *ior, *transmittance, *min_reflectance, rng)
             }
 
@@ -330,7 +328,10 @@ fn refract(
 // ---------------------------------------------------------------------------
 
 /// Sample a direction from cosine-weighted hemisphere around a normal.
-fn random_cosine_hemisphere<R: Rng>(normal: &Unit<Vector3<f64>>, rng: &mut R) -> Unit<Vector3<f64>> {
+fn random_cosine_hemisphere<R: Rng>(
+    normal: &Unit<Vector3<f64>>,
+    rng: &mut R,
+) -> Unit<Vector3<f64>> {
     let u1: f64 = rng.random();
     let u2: f64 = rng.random();
     let r = u1.sqrt();
@@ -394,9 +395,19 @@ fn interact_clear_transmitter<R: Rng>(
     rng: &mut R,
 ) -> Interaction {
     let (eta_ratio, cos_i) = if hit.front_face {
-        (1.0 / ior, (-photon.ray.direction.as_ref()).dot(hit.normal.as_ref()).min(1.0))
+        (
+            1.0 / ior,
+            (-photon.ray.direction.as_ref())
+                .dot(hit.normal.as_ref())
+                .min(1.0),
+        )
     } else {
-        (ior, (-photon.ray.direction.as_ref()).dot(hit.normal.as_ref()).min(1.0))
+        (
+            ior,
+            (-photon.ray.direction.as_ref())
+                .dot(hit.normal.as_ref())
+                .min(1.0),
+        )
     };
 
     // Use the higher of Fresnel or user-specified reflectance
@@ -459,9 +470,19 @@ fn interact_diffuse_transmitter<R: Rng>(
     rng: &mut R,
 ) -> Interaction {
     let (eta_ratio, cos_i) = if hit.front_face {
-        (1.0 / ior, (-photon.ray.direction.as_ref()).dot(hit.normal.as_ref()).min(1.0))
+        (
+            1.0 / ior,
+            (-photon.ray.direction.as_ref())
+                .dot(hit.normal.as_ref())
+                .min(1.0),
+        )
     } else {
-        (ior, (-photon.ray.direction.as_ref()).dot(hit.normal.as_ref()).min(1.0))
+        (
+            ior,
+            (-photon.ray.direction.as_ref())
+                .dot(hit.normal.as_ref())
+                .min(1.0),
+        )
     };
 
     // Entry surface: use the higher of Fresnel or user-specified reflectance
@@ -541,7 +562,11 @@ mod tests {
         let params = catalog::clear_pmma_3mm();
         let mat = params.to_material();
         match mat {
-            Material::ClearTransmitter { ior, transmittance, min_reflectance } => {
+            Material::ClearTransmitter {
+                ior,
+                transmittance,
+                min_reflectance,
+            } => {
                 assert!((ior - 1.49).abs() < 0.01);
                 assert!((transmittance - 0.92).abs() < 0.01);
                 assert!((min_reflectance - 0.04).abs() < 0.01);

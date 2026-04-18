@@ -74,7 +74,10 @@ pub struct AreaResult {
     pub grid_resolution: usize,
     /// Optional polygon mask. true = cell is inside the polygon.
     /// Statistics only include masked-in cells. None = rectangular area.
-    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none", default))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(skip_serializing_if = "Option::is_none", default)
+    )]
     pub mask: Option<Vec<Vec<bool>>>,
 }
 
@@ -116,7 +119,13 @@ pub fn compute_area_illuminance(
                 let gx = (col as f64 + 0.5) * dx;
 
                 let lux = compute_single_illuminance(
-                    ldt, gx - lx, gy - ly, h, tilt_rad, rot_rad, flux_scale,
+                    ldt,
+                    gx - lx,
+                    gy - ly,
+                    h,
+                    tilt_rad,
+                    rot_rad,
+                    flux_scale,
                 );
                 *cell_val += lux;
             }
@@ -159,7 +168,11 @@ pub fn compute_area_illuminance_mixed(
     let mut lux_grid = vec![vec![0.0_f64; n]; n];
 
     for (pi, placement) in placements.iter().enumerate() {
-        let ldt_idx = ldt_indices.get(pi).copied().unwrap_or(0).min(ldts.len() - 1);
+        let ldt_idx = ldt_indices
+            .get(pi)
+            .copied()
+            .unwrap_or(0)
+            .min(ldts.len() - 1);
         let ldt = ldts[ldt_idx];
         let fs = flux_scales[ldt_idx];
 
@@ -172,7 +185,8 @@ pub fn compute_area_illuminance_mixed(
             let gy = (row as f64 + 0.5) * dy;
             for (col, cell_val) in grid_row.iter_mut().enumerate() {
                 let gx = (col as f64 + 0.5) * dx;
-                let lux = compute_single_illuminance(ldt, gx - lx, gy - ly, h, tilt_rad, rot_rad, fs);
+                let lux =
+                    compute_single_illuminance(ldt, gx - lx, gy - ly, h, tilt_rad, rot_rad, fs);
                 *cell_val += lux;
             }
         }
@@ -196,23 +210,45 @@ fn finalize_grid(
 
     for row in &lux_grid {
         for &lux in row {
-            if lux < min_lux { min_lux = lux; }
-            if lux > max_lux { max_lux = lux; }
+            if lux < min_lux {
+                min_lux = lux;
+            }
+            if lux > max_lux {
+                max_lux = lux;
+            }
             sum_lux += lux;
         }
     }
 
-    let avg_lux = if total_cells > 0.0 { sum_lux / total_cells } else { 0.0 };
-    if min_lux == f64::MAX { min_lux = 0.0; }
+    let avg_lux = if total_cells > 0.0 {
+        sum_lux / total_cells
+    } else {
+        0.0
+    };
+    if min_lux == f64::MAX {
+        min_lux = 0.0;
+    }
 
     AreaResult {
         lux_grid,
         min_lux,
         avg_lux,
         max_lux,
-        uniformity_min_avg: if avg_lux > 0.0 { min_lux / avg_lux } else { 0.0 },
-        uniformity_avg_min: if min_lux > 0.0 { avg_lux / min_lux } else { f64::INFINITY },
-        uniformity_min_max: if max_lux > 0.0 { min_lux / max_lux } else { 0.0 },
+        uniformity_min_avg: if avg_lux > 0.0 {
+            min_lux / avg_lux
+        } else {
+            0.0
+        },
+        uniformity_avg_min: if min_lux > 0.0 {
+            avg_lux / min_lux
+        } else {
+            f64::INFINITY
+        },
+        uniformity_min_max: if max_lux > 0.0 {
+            min_lux / max_lux
+        } else {
+            0.0
+        },
         area_width,
         area_depth,
         grid_resolution,
@@ -236,25 +272,47 @@ fn finalize_grid_masked(
     for (row_idx, row) in lux_grid.iter().enumerate() {
         for (col_idx, &lux) in row.iter().enumerate() {
             if mask[row_idx][col_idx] {
-                if lux < min_lux { min_lux = lux; }
-                if lux > max_lux { max_lux = lux; }
+                if lux < min_lux {
+                    min_lux = lux;
+                }
+                if lux > max_lux {
+                    max_lux = lux;
+                }
                 sum_lux += lux;
                 count += 1;
             }
         }
     }
 
-    let avg_lux = if count > 0 { sum_lux / count as f64 } else { 0.0 };
-    if min_lux == f64::MAX { min_lux = 0.0; }
+    let avg_lux = if count > 0 {
+        sum_lux / count as f64
+    } else {
+        0.0
+    };
+    if min_lux == f64::MAX {
+        min_lux = 0.0;
+    }
 
     AreaResult {
         lux_grid,
         min_lux,
         avg_lux,
         max_lux,
-        uniformity_min_avg: if avg_lux > 0.0 { min_lux / avg_lux } else { 0.0 },
-        uniformity_avg_min: if min_lux > 0.0 { avg_lux / min_lux } else { f64::INFINITY },
-        uniformity_min_max: if max_lux > 0.0 { min_lux / max_lux } else { 0.0 },
+        uniformity_min_avg: if avg_lux > 0.0 {
+            min_lux / avg_lux
+        } else {
+            0.0
+        },
+        uniformity_avg_min: if min_lux > 0.0 {
+            avg_lux / min_lux
+        } else {
+            f64::INFINITY
+        },
+        uniformity_min_max: if max_lux > 0.0 {
+            min_lux / max_lux
+        } else {
+            0.0
+        },
         area_width,
         area_depth,
         grid_resolution,
@@ -300,7 +358,13 @@ pub fn compute_area_illuminance_polygon(
             for (col, cell_val) in grid_row.iter_mut().enumerate() {
                 let gx = x0 + (col as f64 + 0.5) * dx;
                 let lux = compute_single_illuminance(
-                    ldt, gx - lx, gy - ly, h, tilt_rad, rot_rad, flux_scale,
+                    ldt,
+                    gx - lx,
+                    gy - ly,
+                    h,
+                    tilt_rad,
+                    rot_rad,
+                    flux_scale,
                 );
                 *cell_val += lux;
             }
@@ -546,9 +610,7 @@ mod tests {
         ldt.g_plane_distance = 15.0;
         ldt.c_angles = vec![0.0];
         ldt.g_angles = vec![0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0];
-        ldt.intensities = vec![
-            vec![300.0, 280.0, 220.0, 140.0, 60.0, 15.0, 3.0],
-        ];
+        ldt.intensities = vec![vec![300.0, 280.0, 220.0, 140.0, 60.0, 15.0, 3.0]];
         ldt.lamp_sets = vec![LampSet {
             num_lamps: 1,
             total_luminous_flux: 10000.0,
@@ -563,22 +625,28 @@ mod tests {
         // Check left-right symmetry: grid[r][c] ≈ grid[r][n-1-c]
         let mut max_lr_diff = 0.0_f64;
         for row in 0..n {
-            for col in 0..n/2 {
-                let diff = (r.lux_grid[row][col] - r.lux_grid[row][n-1-col]).abs();
+            for col in 0..n / 2 {
+                let diff = (r.lux_grid[row][col] - r.lux_grid[row][n - 1 - col]).abs();
                 max_lr_diff = max_lr_diff.max(diff);
             }
         }
-        assert!(max_lr_diff < 0.01, "Left-right symmetry broken: max diff = {max_lr_diff:.2}");
+        assert!(
+            max_lr_diff < 0.01,
+            "Left-right symmetry broken: max diff = {max_lr_diff:.2}"
+        );
 
         // Check top-bottom symmetry: grid[r][c] ≈ grid[n-1-r][c]
         let mut max_tb_diff = 0.0_f64;
-        for row in 0..n/2 {
+        for row in 0..n / 2 {
             for col in 0..n {
-                let diff = (r.lux_grid[row][col] - r.lux_grid[n-1-row][col]).abs();
+                let diff = (r.lux_grid[row][col] - r.lux_grid[n - 1 - row][col]).abs();
                 max_tb_diff = max_tb_diff.max(diff);
             }
         }
-        assert!(max_tb_diff < 0.01, "Top-bottom symmetry broken: max diff = {max_tb_diff:.2}");
+        assert!(
+            max_tb_diff < 0.01,
+            "Top-bottom symmetry broken: max diff = {max_tb_diff:.2}"
+        );
 
         // Check diagonal symmetry: grid[r][c] ≈ grid[c][r]
         let mut max_diag_diff = 0.0_f64;
@@ -588,7 +656,10 @@ mod tests {
                 max_diag_diff = max_diag_diff.max(diff);
             }
         }
-        assert!(max_diag_diff < 0.01, "Diagonal symmetry broken: max diff = {max_diag_diff:.2}");
+        assert!(
+            max_diag_diff < 0.01,
+            "Diagonal symmetry broken: max diff = {max_diag_diff:.2}"
+        );
     }
 
     #[test]
@@ -604,22 +675,28 @@ mod tests {
         // Check LR symmetry (C90 == C270 in test_ldt)
         let mut max_lr_diff = 0.0_f64;
         for row in 0..n {
-            for col in 0..n/2 {
-                let diff = (r.lux_grid[row][col] - r.lux_grid[row][n-1-col]).abs();
+            for col in 0..n / 2 {
+                let diff = (r.lux_grid[row][col] - r.lux_grid[row][n - 1 - col]).abs();
                 max_lr_diff = max_lr_diff.max(diff);
             }
         }
-        assert!(max_lr_diff < 0.1, "Left-right symmetry broken: max diff = {max_lr_diff:.2}");
+        assert!(
+            max_lr_diff < 0.1,
+            "Left-right symmetry broken: max diff = {max_lr_diff:.2}"
+        );
 
         // Check TB symmetry (C0 == C180 in test_ldt)
         let mut max_tb_diff = 0.0_f64;
-        for row in 0..n/2 {
+        for row in 0..n / 2 {
             for col in 0..n {
-                let diff = (r.lux_grid[row][col] - r.lux_grid[n-1-row][col]).abs();
+                let diff = (r.lux_grid[row][col] - r.lux_grid[n - 1 - row][col]).abs();
                 max_tb_diff = max_tb_diff.max(diff);
             }
         }
-        assert!(max_tb_diff < 0.1, "Top-bottom symmetry broken: max diff = {max_tb_diff:.2}");
+        assert!(
+            max_tb_diff < 0.1,
+            "Top-bottom symmetry broken: max diff = {max_tb_diff:.2}"
+        );
     }
 
     #[test]
@@ -641,8 +718,14 @@ mod tests {
         let r_l = compute_area_illuminance(&ldt, &left, 40.0, 40.0, 40, 1.0);
         let r_r = compute_area_illuminance(&ldt, &right, 40.0, 40.0, 40, 1.0);
 
-        assert!((r_l.lux_grid[9][9] - r_r.lux_grid[9][29]).abs() < 0.01, "Peak mismatch");
-        assert!((r_l.lux_grid[5][12] - r_r.lux_grid[5][32]).abs() < 0.01, "Offset mismatch");
+        assert!(
+            (r_l.lux_grid[9][9] - r_r.lux_grid[9][29]).abs() < 0.01,
+            "Peak mismatch"
+        );
+        assert!(
+            (r_l.lux_grid[5][12] - r_r.lux_grid[5][32]).abs() < 0.01,
+            "Offset mismatch"
+        );
     }
 
     #[test]
@@ -664,7 +747,10 @@ mod tests {
                 max_diff = max_diff.max(diff);
             }
         }
-        assert!(max_diff < 0.001, "180° symmetry violated: max diff = {max_diff:.6}");
+        assert!(
+            max_diff < 0.001,
+            "180° symmetry violated: max diff = {max_diff:.6}"
+        );
     }
 
     #[test]
@@ -694,14 +780,14 @@ mod tests {
         let indices = vec![0, 0]; // both use same LDT
 
         let r_single = compute_area_illuminance(&ldt, &placements, 40.0, 40.0, 20, 1.0);
-        let r_mixed = compute_area_illuminance_mixed(
-            &[&ldt], &placements, &indices, 40.0, 40.0, 20, 1.0,
-        );
+        let r_mixed =
+            compute_area_illuminance_mixed(&[&ldt], &placements, &indices, 40.0, 40.0, 20, 1.0);
 
         assert!(
             (r_single.avg_lux - r_mixed.avg_lux).abs() < 0.001,
             "Mixed with same LDT should equal single: {} vs {}",
-            r_single.avg_lux, r_mixed.avg_lux,
+            r_single.avg_lux,
+            r_mixed.avg_lux,
         );
     }
 
@@ -725,7 +811,13 @@ mod tests {
         let r_both_bright = compute_area_illuminance(&ldt1, &placements, 40.0, 40.0, 20, 1.0);
         // Mixed: first bright, second dim
         let r_mixed = compute_area_illuminance_mixed(
-            &[&ldt1, &ldt2], &placements, &[0, 1], 40.0, 40.0, 20, 1.0,
+            &[&ldt1, &ldt2],
+            &placements,
+            &[0, 1],
+            40.0,
+            40.0,
+            20,
+            1.0,
         );
         // Both dim
         let r_both_dim = compute_area_illuminance(&ldt2, &placements, 40.0, 40.0, 20, 1.0);
@@ -756,7 +848,8 @@ mod tests {
         assert!(
             (r_rect.avg_lux - r_poly.avg_lux).abs() < 0.01,
             "Polygon rectangle should match standard: {:.2} vs {:.2}",
-            r_rect.avg_lux, r_poly.avg_lux,
+            r_rect.avg_lux,
+            r_poly.avg_lux,
         );
         assert!(r_poly.mask.is_some());
     }

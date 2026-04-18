@@ -180,7 +180,9 @@ impl ViewerSettings {
                 // Ceiling mounted with pendulum
                 self.room_height - self.pendulum_length - lum_height / 2.0
             }
-            SceneType::Road | SceneType::Parking | SceneType::Outdoor
+            SceneType::Road
+            | SceneType::Parking
+            | SceneType::Outdoor
             | SceneType::DesignerExterior => {
                 // Pole mounted - luminaire fixed to arm
                 // Arm is at mounting_height - 0.25, luminaire hangs 0.05m below arm

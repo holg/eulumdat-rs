@@ -307,7 +307,18 @@ impl AreaSvg {
     ) -> String {
         // Convert placements to pole positions (one-to-one)
         let poles: Vec<(usize, f64, f64)> = placements.iter().map(|p| (p.id, p.x, p.y)).collect();
-        Self::plan_view_with_poles(&poles, placements, area_width, area_depth, svg_width, svg_height, theme, selected_id, 1, UnitSystem::default())
+        Self::plan_view_with_poles(
+            &poles,
+            placements,
+            area_width,
+            area_depth,
+            svg_width,
+            svg_height,
+            theme,
+            selected_id,
+            1,
+            UnitSystem::default(),
+        )
     }
 
     /// Render combined illuminance heatmap with contours.
@@ -368,11 +379,7 @@ impl AreaSvg {
                     let sx = margin_left + col as f64 * cell_w;
                     let sy = margin_top + row as f64 * cell_h;
 
-                    let is_inside = result
-                        .mask
-                        .as_ref()
-                        .map(|m| m[row][col])
-                        .unwrap_or(true);
+                    let is_inside = result.mask.as_ref().map(|m| m[row][col]).unwrap_or(true);
 
                     if is_inside {
                         svg.push_str(&format!(
@@ -391,7 +398,6 @@ impl AreaSvg {
                     }
                 }
             }
-
         }
 
         // Contour lines
@@ -449,9 +455,15 @@ impl AreaSvg {
                 for (col, &lux) in grid_row.iter().enumerate() {
                     if row % label_step == label_step / 2 && col % label_step == label_step / 2 {
                         let is_inside = result.mask.as_ref().map(|m| m[row][col]).unwrap_or(true);
-                        if !is_inside { continue; }
+                        if !is_inside {
+                            continue;
+                        }
                         let normalized = lux / max_lux;
-                        let text_fill = if normalized < 0.45 { "white" } else { "#1a1a1a" };
+                        let text_fill = if normalized < 0.45 {
+                            "white"
+                        } else {
+                            "#1a1a1a"
+                        };
                         let display_val = units.convert_lux(lux);
                         let cx = margin_left + (col as f64 + 0.5 * label_step as f64) * cell_w;
                         let cy = margin_top + (row as f64 + 0.5 * label_step as f64) * cell_h;
@@ -586,12 +598,7 @@ impl AreaSvg {
                 if level > max_lux || level <= 0.0 {
                     continue;
                 }
-                let cl = marching_squares(
-                    &overlay.result.lux_grid,
-                    &x_coords,
-                    &y_coords,
-                    level,
-                );
+                let cl = marching_squares(&overlay.result.lux_grid, &x_coords, &y_coords, level);
                 for path in &cl.paths {
                     svg.push_str(&format!(
                         r#"<path d="{path}" fill="none" stroke="{}" stroke-width="1.2" stroke-dasharray="4,3"/>"#,
@@ -680,7 +687,11 @@ impl AreaSvg {
             })
             .collect();
         let back_wall_lux = super::compute::compute_wall_illuminance(
-            ldt, placements, &back_wall_points, (0.0, -1.0, 0.0), proration_factor,
+            ldt,
+            placements,
+            &back_wall_points,
+            (0.0, -1.0, 0.0),
+            proration_factor,
         );
 
         // Left wall: at x = 0, spanning y = [0, area_d], z = [0, mounting_height]
@@ -697,14 +708,24 @@ impl AreaSvg {
             })
             .collect();
         let left_wall_lux = super::compute::compute_wall_illuminance(
-            ldt, placements, &left_wall_points, (1.0, 0.0, 0.0), proration_factor,
+            ldt,
+            placements,
+            &left_wall_points,
+            (1.0, 0.0, 0.0),
+            proration_factor,
         );
 
         // Find global max for consistent color scale across all surfaces
         let floor_max = result.max_lux;
-        let back_max = back_wall_lux.iter().flat_map(|r| r.iter()).cloned()
+        let back_max = back_wall_lux
+            .iter()
+            .flat_map(|r| r.iter())
+            .cloned()
             .fold(0.0_f64, f64::max);
-        let left_max = left_wall_lux.iter().flat_map(|r| r.iter()).cloned()
+        let left_max = left_wall_lux
+            .iter()
+            .flat_map(|r| r.iter())
+            .cloned()
             .fold(0.0_f64, f64::max);
         let global_max = floor_max.max(back_max).max(left_max).max(0.001);
 
@@ -735,7 +756,10 @@ impl AreaSvg {
             wall_res,
             global_max,
             // quad corners: bottom-left, bottom-right, top-left, top-right
-            floor_tl, floor_tr, ceil_tl, ceil_tr,
+            floor_tl,
+            floor_tr,
+            ceil_tl,
+            ceil_tr,
         );
         // Back wall outline
         svg.push_str(&format!(
@@ -752,7 +776,10 @@ impl AreaSvg {
             global_max,
             // quad: near-bottom, far-bottom, near-top, far-top
             // Left wall goes from near (floor_bl) to far (floor_tl)
-            floor_bl, floor_tl, left_ceil_near, ceil_tl,
+            floor_bl,
+            floor_tl,
+            left_ceil_near,
+            ceil_tl,
         );
         // Left wall outline
         svg.push_str(&format!(
@@ -843,13 +870,7 @@ impl AreaSvg {
             let floor_pos = lerp_quad(floor_bl, floor_br, floor_tl, floor_tr, u, v);
 
             let lum_h_frac = (lum.mounting_height / mounting_height).min(1.0);
-            let ceil_pos = lerp_quad(
-                left_ceil_near,
-                right_ceil_near,
-                ceil_tl,
-                ceil_tr,
-                u, v,
-            );
+            let ceil_pos = lerp_quad(left_ceil_near, right_ceil_near, ceil_tl, ceil_tr, u, v);
             let lum_x = floor_pos.0 + (ceil_pos.0 - floor_pos.0) * lum_h_frac;
             let lum_y = floor_pos.1 + (ceil_pos.1 - floor_pos.1) * lum_h_frac;
 
@@ -878,7 +899,10 @@ impl AreaSvg {
             // Floor shadow
             svg.push_str(&format!(
                 r#"<ellipse cx="{:.1}" cy="{:.1}" rx="{:.1}" ry="{:.1}" fill="rgba(0,0,0,0.15)"/>"#,
-                floor_pos.0, floor_pos.1, 4.0 + 3.0 * (1.0 - v), 1.5 + 1.0 * (1.0 - v),
+                floor_pos.0,
+                floor_pos.1,
+                4.0 + 3.0 * (1.0 - v),
+                1.5 + 1.0 * (1.0 - v),
             ));
         }
 
@@ -894,8 +918,13 @@ impl AreaSvg {
             w_mid.0, w_mid.1,
         ));
 
-        let d_mid = ((floor_bl.0 + floor_tl.0) / 2.0 - 12.0, (floor_bl.1 + floor_tl.1) / 2.0);
-        let angle = ((floor_tl.1 - floor_bl.1) / (floor_tl.0 - floor_bl.0)).atan().to_degrees();
+        let d_mid = (
+            (floor_bl.0 + floor_tl.0) / 2.0 - 12.0,
+            (floor_bl.1 + floor_tl.1) / 2.0,
+        );
+        let angle = ((floor_tl.1 - floor_bl.1) / (floor_tl.0 - floor_bl.0))
+            .atan()
+            .to_degrees();
         svg.push_str(&format!(
             r#"<text x="{:.0}" y="{:.0}" text-anchor="middle" fill="{text_color}" font-size="10" transform="rotate({angle:.1}, {:.0}, {:.0})">{d_display:.0} {dl}</text>"#,
             d_mid.0, d_mid.1, d_mid.0, d_mid.1,
@@ -1008,9 +1037,12 @@ fn render_wall_heatmap(
 /// `bl`=bottom-left, `br`=bottom-right, `tl`=top-left(far), `tr`=top-right(far).
 /// `u` goes left→right [0,1], `v` goes near→far [0,1].
 fn lerp_quad(
-    bl: (f64, f64), br: (f64, f64),
-    tl: (f64, f64), tr: (f64, f64),
-    u: f64, v: f64,
+    bl: (f64, f64),
+    br: (f64, f64),
+    tl: (f64, f64),
+    tr: (f64, f64),
+    u: f64,
+    v: f64,
 ) -> (f64, f64) {
     let near_x = bl.0 + (br.0 - bl.0) * u;
     let near_y = bl.1 + (br.1 - bl.1) * u;
@@ -1026,10 +1058,15 @@ fn lerp_line(a: (f64, f64), b: (f64, f64), t: f64) -> (f64, f64) {
 
 /// Choose a grid step that gives ~4-8 lines.
 fn adaptive_grid_step(extent: f64) -> f64 {
-    if extent <= 20.0 { 5.0 }
-    else if extent <= 50.0 { 10.0 }
-    else if extent <= 120.0 { 20.0 }
-    else { 50.0 }
+    if extent <= 20.0 {
+        5.0
+    } else if extent <= 50.0 {
+        10.0
+    } else if extent <= 120.0 {
+        20.0
+    } else {
+        50.0
+    }
 }
 
 /// Format lux/fc value with adaptive precision.

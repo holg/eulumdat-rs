@@ -76,15 +76,28 @@ fn cmd_roundtrip(args: &[String]) {
     // This is the value to use as source flux for FromLvk — it represents the
     // actual luminous output encoded in the cd/klm distribution.
     let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
-    let c_res = if ldt.c_plane_distance > 0.0 { ldt.c_plane_distance } else { 15.0 };
-    let g_res = if ldt.g_plane_distance > 0.0 { ldt.g_plane_distance } else { 5.0 };
+    let c_res = if ldt.c_plane_distance > 0.0 {
+        ldt.c_plane_distance
+    } else {
+        15.0
+    };
+    let g_res = if ldt.g_plane_distance > 0.0 {
+        ldt.g_plane_distance
+    } else {
+        5.0
+    };
 
     println!("Input:  {input_path}");
     println!("  Name: {}", ldt.luminaire_name);
-    println!("  Lamp flux: {:.0} lm, LOR: {:.1}%, Calculated flux: {:.1} lm",
-        lamp_flux, ldt.light_output_ratio, calculated_flux);
+    println!(
+        "  Lamp flux: {:.0} lm, LOR: {:.1}%, Calculated flux: {:.1} lm",
+        lamp_flux, ldt.light_output_ratio, calculated_flux
+    );
     println!("  Max I: {:.1} cd/klm", ldt.max_intensity());
-    println!("  Grid: C={c_res}deg x G={g_res}deg ({} x {} planes)", ldt.num_c_planes, ldt.num_g_planes);
+    println!(
+        "  Grid: C={c_res}deg x G={g_res}deg ({} x {} planes)",
+        ldt.num_c_planes, ldt.num_g_planes
+    );
     println!();
 
     // Trace with the calculated flux (actual output from intensity data)
@@ -105,8 +118,11 @@ fn cmd_roundtrip(args: &[String]) {
     };
 
     let result = Tracer::trace(&scene, &config);
-    println!("  Detected: {} ({:.1}%)", result.stats.photons_detected,
-        result.stats.photons_detected as f64 / result.stats.photons_traced as f64 * 100.0);
+    println!(
+        "  Detected: {} ({:.1}%)",
+        result.stats.photons_detected,
+        result.stats.photons_detected as f64 / result.stats.photons_traced as f64 * 100.0
+    );
     println!("  Elapsed: {:.2}s", result.stats.elapsed.as_secs_f64());
     println!();
 
@@ -167,10 +183,21 @@ fn cmd_trace(args: &[String]) {
     // This is the value to use as source flux for FromLvk — it represents the
     // actual luminous output encoded in the cd/klm distribution.
     let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
-    let c_res = if ldt.c_plane_distance > 0.0 { ldt.c_plane_distance } else { 15.0 };
-    let g_res = if ldt.g_plane_distance > 0.0 { ldt.g_plane_distance } else { 5.0 };
+    let c_res = if ldt.c_plane_distance > 0.0 {
+        ldt.c_plane_distance
+    } else {
+        15.0
+    };
+    let g_res = if ldt.g_plane_distance > 0.0 {
+        ldt.g_plane_distance
+    } else {
+        5.0
+    };
 
-    println!("Input: {input_path} ({}, lamp={:.0} lm, calculated={:.1} lm)", ldt.luminaire_name, lamp_flux, calculated_flux);
+    println!(
+        "Input: {input_path} ({}, lamp={:.0} lm, calculated={:.1} lm)",
+        ldt.luminaire_name, lamp_flux, calculated_flux
+    );
 
     // Build scene
     let mut scene = Scene::new();
@@ -231,9 +258,11 @@ fn cmd_trace(args: &[String]) {
 
     // Use energy ratio, not photon count — ClearTransmitter attenuates energy without killing photons
     let energy_frac = result.stats.total_energy_detected / result.stats.total_energy_emitted;
-    println!("  Energy throughput: {:.1}%, Elapsed: {:.2}s",
+    println!(
+        "  Energy throughput: {:.1}%, Elapsed: {:.2}s",
         energy_frac * 100.0,
-        result.stats.elapsed.as_secs_f64());
+        result.stats.elapsed.as_secs_f64()
+    );
 
     let export_cfg = ExportConfig {
         c_step_deg: c_res,
@@ -247,13 +276,25 @@ fn cmd_trace(args: &[String]) {
     // LOR: scale by energy throughput (not photon count — ClearTransmitter attenuates energy)
     let sim_lor = ldt.light_output_ratio * energy_frac;
 
-    let mut sim_ldt = detector_to_eulumdat_with_lamp_flux(&result.detector, calculated_flux, lamp_flux, &export_cfg);
+    let mut sim_ldt = detector_to_eulumdat_with_lamp_flux(
+        &result.detector,
+        calculated_flux,
+        lamp_flux,
+        &export_cfg,
+    );
     sim_ldt.lamp_sets = ldt.lamp_sets.clone();
     sim_ldt.type_indicator = ldt.type_indicator;
     sim_ldt.light_output_ratio = ldt.light_output_ratio * energy_frac;
 
-    println!("  Simulated max I: {:.1} cd/klm (original: {:.1})", sim_ldt.max_intensity(), ldt.max_intensity());
-    println!("  Simulated LOR: {:.1}% (original: {:.1}%)", sim_lor, ldt.light_output_ratio);
+    println!(
+        "  Simulated max I: {:.1} cd/klm (original: {:.1})",
+        sim_ldt.max_intensity(),
+        ldt.max_intensity()
+    );
+    println!(
+        "  Simulated LOR: {:.1}% (original: {:.1}%)",
+        sim_lor, ldt.light_output_ratio
+    );
     println!();
 
     // Always print comparison
@@ -287,12 +328,16 @@ fn cmd_compare(args: &[String]) {
 
 fn cmd_catalog() {
     println!("Material Catalog:");
-    println!("{:<28} {:>6} {:>5} {:>6} {:>6} {:>8}",
-        "Name", "Refl%", "IOR", "Trans%", "Thick", "Diff%");
+    println!(
+        "{:<28} {:>6} {:>5} {:>6} {:>6} {:>8}",
+        "Name", "Refl%", "IOR", "Trans%", "Thick", "Diff%"
+    );
     println!("{}", "-".repeat(70));
     for m in material_catalog() {
-        println!("{:<28} {:>5.0}% {:>5.2} {:>5.0}% {:>5.1}mm {:>5.0}%",
-            m.name, m.reflectance_pct, m.ior, m.transmittance_pct, m.thickness_mm, m.diffusion_pct);
+        println!(
+            "{:<28} {:>5.0}% {:>5.2} {:>5.0}% {:>5.1}mm {:>5.0}%",
+            m.name, m.reflectance_pct, m.ior, m.transmittance_pct, m.thickness_mm, m.diffusion_pct
+        );
     }
 }
 
@@ -307,10 +352,18 @@ fn parse_flag_str(args: &[String], flag: &str, default: &str) -> String {
 
 fn parse_flag_f64(args: &[String], flag: &str, default: f64) -> f64 {
     let s = parse_flag_str(args, flag, "");
-    if s.is_empty() { default } else { s.parse().unwrap_or(default) }
+    if s.is_empty() {
+        default
+    } else {
+        s.parse().unwrap_or(default)
+    }
 }
 
 fn parse_flag_u64(args: &[String], flag: &str, default: u64) -> u64 {
     let s = parse_flag_str(args, flag, "");
-    if s.is_empty() { default } else { s.parse().unwrap_or(default) }
+    if s.is_empty() {
+        default
+    } else {
+        s.parse().unwrap_or(default)
+    }
 }

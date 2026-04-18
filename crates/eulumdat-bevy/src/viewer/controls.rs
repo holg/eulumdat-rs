@@ -271,14 +271,12 @@ pub fn calculate_all_luminaire_transforms(
         SceneType::DesignerExterior => {
             super::designer_scenes::calculate_exterior_transforms(&settings.area_placements)
         }
-        SceneType::DesignerInterior => {
-            match (&settings.designer_room, &settings.designer_layout) {
-                (Some(room), Some(layout)) => {
-                    super::designer_scenes::calculate_interior_transforms(room, layout)
-                }
-                _ => vec![],
+        SceneType::DesignerInterior => match (&settings.designer_room, &settings.designer_layout) {
+            (Some(room), Some(layout)) => {
+                super::designer_scenes::calculate_interior_transforms(room, layout)
             }
-        }
+            _ => vec![],
+        },
     }
 }
 
@@ -446,7 +444,13 @@ fn populate_interior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
 
     // Compute PPB overlay for workplane heatmap
     let ppb = zonal::compute_ppb_overlay(
-        ldt, &zr.layout, &room, 20, zr.llf_total, zr.cu, zr.achieved_illuminance,
+        ldt,
+        &zr.layout,
+        &room,
+        20,
+        zr.llf_total,
+        zr.cu,
+        zr.achieved_illuminance,
     );
 
     settings.designer_room = Some(room);

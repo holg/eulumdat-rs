@@ -9,8 +9,8 @@ use std::f64::consts::PI;
 #[test]
 fn isotropic_free_space_gpu_vs_cpu() {
     // GPU trace
-    let tracer = pollster::block_on(eulumdat_rt::GpuTracer::new())
-        .expect("Failed to create GPU tracer");
+    let tracer =
+        pollster::block_on(eulumdat_rt::GpuTracer::new()).expect("Failed to create GPU tracer");
 
     let gpu_result = pollster::block_on(tracer.trace_isotropic(1_000_000, 10.0, 5.0));
 
@@ -38,7 +38,10 @@ fn isotropic_free_space_gpu_vs_cpu() {
         gpu_avg_90 /= n as f64;
     }
     let gpu_err = (gpu_avg_90 - expected_cd).abs() / expected_cd;
-    eprintln!("GPU candela at g=90: {gpu_avg_90:.1} (expected {expected_cd:.1}, error {:.1}%)", gpu_err * 100.0);
+    eprintln!(
+        "GPU candela at g=90: {gpu_avg_90:.1} (expected {expected_cd:.1}, error {:.1}%)",
+        gpu_err * 100.0
+    );
 
     // CPU trace for comparison
     let cpu_scene = eulumdat_goniosim::bare_isotropic(1000.0);
@@ -76,30 +79,37 @@ fn isotropic_free_space_gpu_vs_cpu() {
 #[test]
 fn isotropic_with_opal_cover_gpu_vs_cpu() {
     // GPU trace with opal PMMA cover
-    let tracer = pollster::block_on(eulumdat_rt::GpuTracer::new())
-        .expect("Failed to create GPU tracer");
+    let tracer =
+        pollster::block_on(eulumdat_rt::GpuTracer::new()).expect("Failed to create GPU tracer");
 
     let cover_params = eulumdat_goniosim::catalog::opal_pmma_3mm();
     let gpu_material = GpuMaterial::from_material_params(&cover_params);
     let gpu_primitive = GpuPrimitive::sheet(
-        [0.0, 0.0, -0.04],  // center: 40mm below source
-        [0.0, 0.0, 1.0],    // normal: +Z (facing up)
-        [1.0, 0.0, 0.0],    // u_axis: +X
-        0.5, 0.5,           // half_width, half_height
-        0.003,              // thickness 3mm
-        0,                  // material_id
+        [0.0, 0.0, -0.04], // center: 40mm below source
+        [0.0, 0.0, 1.0],   // normal: +Z (facing up)
+        [1.0, 0.0, 0.0],   // u_axis: +X
+        0.5,
+        0.5,   // half_width, half_height
+        0.003, // thickness 3mm
+        0,     // material_id
     );
 
     let gpu_result = pollster::block_on(tracer.trace_with_scene(
-        500_000, 10.0, 5.0,
-        eulumdat_rt::SourceType::Isotropic, 1000.0,
+        500_000,
+        10.0,
+        5.0,
+        eulumdat_rt::SourceType::Isotropic,
+        1000.0,
         &[gpu_primitive],
         &[gpu_material],
     ));
 
     let gpu_energy = gpu_result.total_energy();
     eprintln!("GPU with opal cover: total_energy = {gpu_energy:.1}");
-    eprintln!("GPU energy fraction: {:.1}%", gpu_energy / 500_000.0 * 100.0);
+    eprintln!(
+        "GPU energy fraction: {:.1}%",
+        gpu_energy / 500_000.0 * 100.0
+    );
 
     // Should absorb significant fraction (opal PMMA 50% transmittance)
     let throughput = gpu_energy / 500_000.0;
@@ -138,9 +148,13 @@ fn isotropic_with_opal_cover_gpu_vs_cpu() {
         ..eulumdat_goniosim::TracerConfig::default()
     };
     let cpu_result = eulumdat_goniosim::Tracer::trace(&cpu_scene, &cpu_config);
-    let cpu_throughput = cpu_result.stats.total_energy_detected / cpu_result.stats.total_energy_emitted;
+    let cpu_throughput =
+        cpu_result.stats.total_energy_detected / cpu_result.stats.total_energy_emitted;
     eprintln!("CPU throughput: {cpu_throughput:.3}");
-    eprintln!("GPU/CPU throughput ratio: {:.3}", throughput / cpu_throughput);
+    eprintln!(
+        "GPU/CPU throughput ratio: {:.3}",
+        throughput / cpu_throughput
+    );
 
     // GPU and CPU throughput should be in the same ballpark (within 30%)
     let ratio = throughput / cpu_throughput;
@@ -164,8 +178,13 @@ fn from_lvk_free_space_gpu_vs_cpu() {
     // GPU trace
     let tracer = pollster::block_on(eulumdat_rt::GpuTracer::new()).unwrap();
     let gpu_result = pollster::block_on(tracer.trace_from_lvk(
-        1_000_000, 10.0, 5.0, calculated_flux as f32,
-        &cdf, &[], &[],
+        1_000_000,
+        10.0,
+        5.0,
+        calculated_flux as f32,
+        &cdf,
+        &[],
+        &[],
     ));
     let gpu_energy = gpu_result.total_energy();
     let gpu_ratio = gpu_energy / 1_000_000.0;

@@ -433,7 +433,11 @@ impl LcsZonePercentages {
             forward_pct: pct(forward),
             back_pct: pct(back),
             uplight_pct: pct(zones.uplight_total()),
-            fb_ratio: if back > 0.0 { forward / back } else { f64::INFINITY },
+            fb_ratio: if back > 0.0 {
+                forward / back
+            } else {
+                f64::INFINITY
+            },
         }
     }
 
@@ -1328,9 +1332,16 @@ mod tests {
     #[test]
     fn test_lcs_zone_percentages() {
         let zones = ZoneLumens {
-            fl: 400.0, fm: 300.0, fh: 100.0, fvh: 10.0,
-            bl: 100.0, bm: 50.0, bh: 20.0, bvh: 5.0,
-            ul: 10.0, uh: 5.0,
+            fl: 400.0,
+            fm: 300.0,
+            fh: 100.0,
+            fvh: 10.0,
+            bl: 100.0,
+            bm: 50.0,
+            bh: 20.0,
+            bvh: 5.0,
+            ul: 10.0,
+            uh: 5.0,
         };
         let pct = LcsZonePercentages::from_zone_lumens(&zones);
         assert!((pct.forward_pct - 81.0).abs() < 0.1);

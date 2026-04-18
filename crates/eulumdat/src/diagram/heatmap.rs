@@ -228,12 +228,7 @@ impl HeatmapDiagram {
     /// Render a heatmap SVG for a given LDT.
     ///
     /// Universal entry point — usable from any frontend.
-    pub fn render_svg(
-        ldt: &Eulumdat,
-        width: f64,
-        height: f64,
-        theme: &SvgTheme,
-    ) -> String {
+    pub fn render_svg(ldt: &Eulumdat, width: f64, height: f64, theme: &SvgTheme) -> String {
         Self::render_svg_opts(ldt, width, height, theme, false)
     }
 

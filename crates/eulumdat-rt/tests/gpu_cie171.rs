@@ -58,12 +58,21 @@ fn cie_tc_5_2_lambertian_gpu() {
                 n += 1;
             }
         }
-        if n > 0 { avg /= n as f64; }
+        if n > 0 {
+            avg /= n as f64;
+        }
         let measured_ratio = avg / i_max;
         let err = (measured_ratio - expected_ratio).abs();
-        eprintln!("TC 5.2 GPU: gamma={:.0}, ratio={:.3} (expected {:.3}, err={:.3})",
-            gamma_deg, measured_ratio, expected_ratio, err);
-        assert!(err < 0.15, "Lambertian at gamma={:.0}: error {:.3}", gamma_deg, err);
+        eprintln!(
+            "TC 5.2 GPU: gamma={:.0}, ratio={:.3} (expected {:.3}, err={:.3})",
+            gamma_deg, measured_ratio, expected_ratio, err
+        );
+        assert!(
+            err < 0.15,
+            "Lambertian at gamma={:.0}: error {:.3}",
+            gamma_deg,
+            err
+        );
     }
 
     // No light in upper hemisphere (gamma > 90)
@@ -94,22 +103,38 @@ fn cie_tc_5_5_clear_glass_gpu() {
     };
     let gpu_mat = GpuMaterial::from_material_params(&glass);
     let gpu_prim = GpuPrimitive::sheet(
-        [0.0, 0.0, -0.04], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
-        0.5, 0.5, 0.004, 0,
+        [0.0, 0.0, -0.04],
+        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+        0.5,
+        0.5,
+        0.004,
+        0,
     );
 
     let result = pollster::block_on(tracer.trace_with_scene(
-        500_000, 10.0, 5.0, SourceType::Isotropic, 1000.0,
-        &[gpu_prim], &[gpu_mat],
+        500_000,
+        10.0,
+        5.0,
+        SourceType::Isotropic,
+        1000.0,
+        &[gpu_prim],
+        &[gpu_mat],
     ));
 
     let throughput = result.total_energy() / 500_000.0;
-    eprintln!("TC 5.5 GPU: glass throughput={:.3} (expected ~0.92-0.96)", throughput);
+    eprintln!(
+        "TC 5.5 GPU: glass throughput={:.3} (expected ~0.92-0.96)",
+        throughput
+    );
 
     // Energy conservation: all photons either pass through or reflect back
     // Both escape to detector (no absorption for clear glass)
     // Throughput should be close to 1.0 (photons either go through or reflect)
-    assert!(throughput > 0.90, "Glass throughput too low: {throughput:.3}");
+    assert!(
+        throughput > 0.90,
+        "Glass throughput too low: {throughput:.3}"
+    );
 }
 
 /// TC 5.8: Integrating cube — diffuse inter-reflections.
@@ -122,36 +147,99 @@ fn cie_tc_5_8_diffuse_cube_gpu() {
     let half = 2.0f32; // 4m cube
     let mat = GpuMaterial {
         mtype: 1, // diffuse reflector
-        _pad0: 0, _pad1: 0, _pad2: 0,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
         reflectance: rho,
-        ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     };
 
     let walls = [
         // floor (z=-half, normal +Z)
-        GpuPrimitive::sheet([0.0, 0.0, -half], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [0.0, 0.0, -half],
+            [0.0, 0.0, 1.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
         // ceiling (z=+half, normal -Z)
-        GpuPrimitive::sheet([0.0, 0.0, half], [0.0, 0.0, -1.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [0.0, 0.0, half],
+            [0.0, 0.0, -1.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
         // left (x=-half, normal +X)
-        GpuPrimitive::sheet([-half, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [-half, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
         // right (x=+half, normal -X)
-        GpuPrimitive::sheet([half, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [half, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
         // back (y=-half, normal +Y)
-        GpuPrimitive::sheet([0.0, -half, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [0.0, -half, 0.0],
+            [0.0, 1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
         // front (y=+half, normal -Y)
-        GpuPrimitive::sheet([0.0, half, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [0.0, half, 0.0],
+            [0.0, -1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
     ];
 
     let result = pollster::block_on(tracer.trace_with_scene(
-        500_000, 10.0, 5.0, SourceType::Isotropic, 1000.0,
-        &walls, &[mat],
+        500_000,
+        10.0,
+        5.0,
+        SourceType::Isotropic,
+        1000.0,
+        &walls,
+        &[mat],
     ));
 
     // In a closed box, NO photons should escape (all absorbed)
     let escaped = result.total_energy() / 500_000.0;
     eprintln!("TC 5.8 GPU: escaped fraction={:.4} (should be ~0)", escaped);
-    assert!(escaped < 0.05, "Closed box should absorb nearly all photons, got {escaped:.4}");
+    assert!(
+        escaped < 0.05,
+        "Closed box should absorb nearly all photons, got {escaped:.4}"
+    );
 }
 
 /// TC 5.3: Rectangular diffuse area source — far-field cosine distribution.
@@ -160,22 +248,29 @@ fn cie_tc_5_3_area_source_gpu() {
     let tracer = pollster::block_on(GpuTracer::new()).unwrap();
 
     let luminance = 1000.0f64; // cd/m²
-    let area = 2.0 * 1.0;     // m²
+    let area = 2.0 * 1.0; // m²
     let flux = (luminance * area * PI) as f32;
     let i_max = (luminance * area) as f64; // 2000 cd at nadir
 
     let result = pollster::block_on(tracer.trace_area_source(
-        2_000_000, 10.0, 5.0, flux,
-        [0.0, 0.0, 0.0],       // center
-        [0.0, 0.0, -1.0],      // normal (emit downward = nadir)
-        [1.0, 0.0, 0.0],       // u_axis
-        1.0, 0.5,              // half_width=1m, half_height=0.5m → 2m×1m
+        2_000_000,
+        10.0,
+        5.0,
+        flux,
+        [0.0, 0.0, 0.0],  // center
+        [0.0, 0.0, -1.0], // normal (emit downward = nadir)
+        [1.0, 0.0, 0.0],  // u_axis
+        1.0,
+        0.5, // half_width=1m, half_height=0.5m → 2m×1m
     ));
 
     // Energy conservation
     let energy_ratio = result.total_energy() / 2_000_000.0;
     eprintln!("TC 5.3 GPU: energy ratio={:.6}", energy_ratio);
-    assert!((energy_ratio - 1.0).abs() < 0.001, "Energy conservation: {energy_ratio:.6}");
+    assert!(
+        (energy_ratio - 1.0).abs() < 0.001,
+        "Energy conservation: {energy_ratio:.6}"
+    );
 
     // Far-field cosine pattern: I(γ) = L×A×cos(γ)
     let candela = result.to_candela(flux as f64);
@@ -192,11 +287,23 @@ fn cie_tc_5_3_area_source_gpu() {
                 n += 1;
             }
         }
-        if n > 0 { avg /= n as f64; }
+        if n > 0 {
+            avg /= n as f64;
+        }
         let rel_err = (avg - expected_cd).abs() / expected_cd;
-        eprintln!("TC 5.3 GPU: gamma={:.0}, cd={:.1} (expected {:.1}, err={:.1}%)",
-            gamma_deg, avg, expected_cd, rel_err * 100.0);
-        assert!(rel_err < 0.15, "TC 5.3 GPU: error {:.1}% at gamma={:.0}", rel_err * 100.0, gamma_deg);
+        eprintln!(
+            "TC 5.3 GPU: gamma={:.0}, cd={:.1} (expected {:.1}, err={:.1}%)",
+            gamma_deg,
+            avg,
+            expected_cd,
+            rel_err * 100.0
+        );
+        assert!(
+            rel_err < 0.15,
+            "TC 5.3 GPU: error {:.1}% at gamma={:.0}",
+            rel_err * 100.0,
+            gamma_deg
+        );
     }
 }
 
@@ -210,38 +317,113 @@ fn cie_tc_5_6_single_reflection_gpu() {
 
     // Material 0: Diffuse reflector (floor, ρ=0.5)
     let floor_mat = GpuMaterial {
-        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: 0.5, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        mtype: 1,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
+        reflectance: 0.5,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     };
     // Material 1: Absorber (walls/ceiling, ρ=0)
     let absorber = GpuMaterial {
-        mtype: 0, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: 0.0, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        mtype: 0,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
+        reflectance: 0.0,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     };
 
     let prims = [
         // Floor (reflective)
-        GpuPrimitive::sheet([0.0, 0.0, -half], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [0.0, 0.0, -half],
+            [0.0, 0.0, 1.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
         // Ceiling (absorber)
-        GpuPrimitive::sheet([0.0, 0.0, half], [0.0, 0.0, -1.0], [1.0, 0.0, 0.0], half, half, 0.001, 1),
+        GpuPrimitive::sheet(
+            [0.0, 0.0, half],
+            [0.0, 0.0, -1.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            1,
+        ),
         // 4 walls (absorber)
-        GpuPrimitive::sheet([-half, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], half, half, 0.001, 1),
-        GpuPrimitive::sheet([half, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], half, half, 0.001, 1),
-        GpuPrimitive::sheet([0.0, -half, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], half, half, 0.001, 1),
-        GpuPrimitive::sheet([0.0, half, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], half, half, 0.001, 1),
+        GpuPrimitive::sheet(
+            [-half, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            half,
+            half,
+            0.001,
+            1,
+        ),
+        GpuPrimitive::sheet(
+            [half, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            half,
+            half,
+            0.001,
+            1,
+        ),
+        GpuPrimitive::sheet(
+            [0.0, -half, 0.0],
+            [0.0, 1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            1,
+        ),
+        GpuPrimitive::sheet(
+            [0.0, half, 0.0],
+            [0.0, -1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            1,
+        ),
     ];
 
     let result = pollster::block_on(tracer.trace_with_scene(
-        500_000, 10.0, 5.0, SourceType::Isotropic, 1000.0,
-        &prims, &[floor_mat, absorber],
+        500_000,
+        10.0,
+        5.0,
+        SourceType::Isotropic,
+        1000.0,
+        &prims,
+        &[floor_mat, absorber],
     ));
 
     // Closed room: no photons escape
     let escaped = result.total_energy() / 500_000.0;
     eprintln!("TC 5.6 GPU: escaped fraction={:.4} (should be ~0)", escaped);
-    assert!(escaped < 0.01, "TC 5.6 GPU: {:.2}% escaped closed room", escaped * 100.0);
+    assert!(
+        escaped < 0.01,
+        "TC 5.6 GPU: {:.2}% escaped closed room",
+        escaped * 100.0
+    );
 }
 
 /// TC 5.7: Diffuse room with internal obstruction.
@@ -255,39 +437,122 @@ fn cie_tc_5_7_obstruction_gpu() {
 
     // Material 0: Diffuse walls (ρ=0.5)
     let wall_mat = GpuMaterial {
-        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: rho, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        mtype: 1,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
+        reflectance: rho,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     };
     // Material 1: Absorber (partition)
     let absorber = GpuMaterial {
-        mtype: 0, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: 0.0, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        mtype: 0,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
+        reflectance: 0.0,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     };
 
     // 6 walls + 1 partition = 7 primitives
     let prims = [
         // 6 cube walls (all diffuse ρ=0.5)
-        GpuPrimitive::sheet([0.0, 0.0, -half], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
-        GpuPrimitive::sheet([0.0, 0.0, half], [0.0, 0.0, -1.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
-        GpuPrimitive::sheet([-half, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], half, half, 0.001, 0),
-        GpuPrimitive::sheet([half, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], half, half, 0.001, 0),
-        GpuPrimitive::sheet([0.0, -half, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
-        GpuPrimitive::sheet([0.0, half, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0], half, half, 0.001, 0),
+        GpuPrimitive::sheet(
+            [0.0, 0.0, -half],
+            [0.0, 0.0, 1.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
+        GpuPrimitive::sheet(
+            [0.0, 0.0, half],
+            [0.0, 0.0, -1.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
+        GpuPrimitive::sheet(
+            [-half, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
+        GpuPrimitive::sheet(
+            [half, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
+        GpuPrimitive::sheet(
+            [0.0, -half, 0.0],
+            [0.0, 1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
+        GpuPrimitive::sheet(
+            [0.0, half, 0.0],
+            [0.0, -1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            half,
+            half,
+            0.001,
+            0,
+        ),
         // Absorbing partition at x=0.5
-        GpuPrimitive::sheet([0.5, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], 1.0, 1.5, 0.001, 1),
+        GpuPrimitive::sheet(
+            [0.5, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            1.0,
+            1.5,
+            0.001,
+            1,
+        ),
     ];
 
     let result = pollster::block_on(tracer.trace_with_scene(
-        500_000, 10.0, 5.0, SourceType::Isotropic, 1000.0,
-        &prims, &[wall_mat, absorber],
+        500_000,
+        10.0,
+        5.0,
+        SourceType::Isotropic,
+        1000.0,
+        &prims,
+        &[wall_mat, absorber],
     ));
 
     // Closed room with partition: no photons escape
     let escaped = result.total_energy() / 500_000.0;
     eprintln!("TC 5.7 GPU: escaped fraction={:.4} (should be ~0)", escaped);
-    assert!(escaped < 0.05, "TC 5.7 GPU: {:.2}% escaped closed room with partition", escaped * 100.0);
+    assert!(
+        escaped < 0.05,
+        "TC 5.7 GPU: {:.2}% escaped closed room with partition",
+        escaped * 100.0
+    );
 }
 
 /// Energy conservation: detected energy must match emitted for all configs.
@@ -332,8 +597,15 @@ fn convergence_gpu() {
         }
         let rms = (sum_sq / count as f64).sqrt();
         eprintln!("N={n}: RMS={:.2}%", rms * 100.0);
-        assert!(rms < prev_rms * 1.5, "RMS should decrease with more photons");
+        assert!(
+            rms < prev_rms * 1.5,
+            "RMS should decrease with more photons"
+        );
         prev_rms = rms;
     }
-    assert!(prev_rms < 0.05, "Final RMS {:.2}% should be < 5%", prev_rms * 100.0);
+    assert!(
+        prev_rms < 0.05,
+        "Final RMS {:.2}% should be < 5%",
+        prev_rms * 100.0
+    );
 }

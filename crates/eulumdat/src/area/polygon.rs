@@ -35,10 +35,18 @@ impl AreaPolygon {
         let mut max_x = f64::MIN;
         let mut max_y = f64::MIN;
         for &(x, y) in &self.vertices {
-            if x < min_x { min_x = x; }
-            if y < min_y { min_y = y; }
-            if x > max_x { max_x = x; }
-            if y > max_y { max_y = y; }
+            if x < min_x {
+                min_x = x;
+            }
+            if y < min_y {
+                min_y = y;
+            }
+            if x > max_x {
+                max_x = x;
+            }
+            if y > max_y {
+                max_y = y;
+            }
         }
         (min_x, min_y, max_x, max_y)
     }
@@ -205,7 +213,10 @@ mod tests {
         let total = 20 * 20;
         let ratio = inside as f64 / total as f64;
         // Should be approximately 0.5 (triangle area = 50, bbox area = 100)
-        assert!(ratio > 0.4 && ratio < 0.6, "Triangle mask ratio: {ratio:.2}");
+        assert!(
+            ratio > 0.4 && ratio < 0.6,
+            "Triangle mask ratio: {ratio:.2}"
+        );
     }
 
     #[test]

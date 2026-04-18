@@ -133,8 +133,16 @@ pub fn interpolate_eulumdat(
     // Interpolate lamp set values
     for (i, ls) in result.lamp_sets.iter_mut().enumerate() {
         let ls_b = &b.lamp_sets[i];
-        ls.total_luminous_flux = lerp(a.lamp_sets[i].total_luminous_flux, ls_b.total_luminous_flux, t);
-        ls.wattage_with_ballast = lerp(a.lamp_sets[i].wattage_with_ballast, ls_b.wattage_with_ballast, t);
+        ls.total_luminous_flux = lerp(
+            a.lamp_sets[i].total_luminous_flux,
+            ls_b.total_luminous_flux,
+            t,
+        );
+        ls.wattage_with_ballast = lerp(
+            a.lamp_sets[i].wattage_with_ballast,
+            ls_b.wattage_with_ballast,
+            t,
+        );
     }
 
     // Interpolate optical properties
@@ -168,7 +176,11 @@ pub fn generate_series(
     }
 
     // Sort by operating value
-    let mut sorted: Vec<(usize, f64)> = inputs.iter().enumerate().map(|(i, (_, v))| (i, *v)).collect();
+    let mut sorted: Vec<(usize, f64)> = inputs
+        .iter()
+        .enumerate()
+        .map(|(i, (_, v))| (i, *v))
+        .collect();
     sorted.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
     let mut results = Vec::with_capacity(targets.len());

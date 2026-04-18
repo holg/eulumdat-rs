@@ -25,8 +25,7 @@ fn settings_panel_system(mut contexts: EguiContexts, mut settings: ResMut<Viewer
     // available_rect panics if begin_pass hasn't run yet (first frame race).
     // Check by reading pass state safely.
     if !ctx.is_pointer_over_area()
-        && std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ctx.available_rect()))
-            .is_err()
+        && std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ctx.available_rect())).is_err()
     {
         return;
     }
@@ -53,8 +52,16 @@ fn settings_panel_system(mut contexts: EguiContexts, mut settings: ResMut<Viewer
                     ui.selectable_value(&mut settings.scene_type, SceneType::Road, "Road");
                     ui.selectable_value(&mut settings.scene_type, SceneType::Parking, "Parking");
                     ui.selectable_value(&mut settings.scene_type, SceneType::Outdoor, "Outdoor");
-                    ui.selectable_value(&mut settings.scene_type, SceneType::DesignerExterior, "Designer: Exterior");
-                    ui.selectable_value(&mut settings.scene_type, SceneType::DesignerInterior, "Designer: Interior");
+                    ui.selectable_value(
+                        &mut settings.scene_type,
+                        SceneType::DesignerExterior,
+                        "Designer: Exterior",
+                    );
+                    ui.selectable_value(
+                        &mut settings.scene_type,
+                        SceneType::DesignerInterior,
+                        "Designer: Interior",
+                    );
                 });
 
             ui.add_space(12.0);

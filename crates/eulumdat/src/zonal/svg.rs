@@ -2,7 +2,7 @@
 //!
 //! Generates room plan, section view, CU table, and illuminance heatmap SVGs.
 
-use crate::calculations::{CuTable, CU_REFLECTANCES, CU_RCR_VALUES};
+use crate::calculations::{CuTable, CU_RCR_VALUES, CU_REFLECTANCES};
 use crate::diagram::color::heatmap_color;
 use crate::diagram::contour::marching_squares;
 use crate::diagram::SvgTheme;
@@ -442,7 +442,6 @@ impl ZonalSvg {
                     cell_h + 0.5,
                     color.to_rgb_string()
                 ));
-
             }
         }
 
@@ -457,12 +456,8 @@ impl ZonalSvg {
             }
         };
 
-        let x_coords: Vec<f64> = (0..n)
-            .map(|col| ox + (col as f64 + 0.5) * cell_w)
-            .collect();
-        let y_coords: Vec<f64> = (0..n)
-            .map(|row| oy + (row as f64 + 0.5) * cell_h)
-            .collect();
+        let x_coords: Vec<f64> = (0..n).map(|col| ox + (col as f64 + 0.5) * cell_w).collect();
+        let y_coords: Vec<f64> = (0..n).map(|row| oy + (row as f64 + 0.5) * cell_h).collect();
 
         for &level in &contour_levels {
             if level > max_lux || level <= 0.0 {
@@ -500,7 +495,11 @@ impl ZonalSvg {
                     if row % label_step == label_step / 2 && col % label_step == label_step / 2 {
                         let normalized = lux / max_lux;
                         let display_val = units.convert_lux(lux);
-                        let text_color = if normalized < 0.45 { "white" } else { "#1a1a1a" };
+                        let text_color = if normalized < 0.45 {
+                            "white"
+                        } else {
+                            "#1a1a1a"
+                        };
                         let cx = ox + (col as f64 + label_step as f64 / 2.0) * cell_w;
                         let cy = oy + (row as f64 + label_step as f64 / 2.0) * cell_h;
                         svg.push_str(&format!(
@@ -637,7 +636,11 @@ impl ZonalSvg {
                 let lux = if count > 0 { sum / count as f64 } else { 0.0 };
                 let normalized = lux / max_lux;
                 let color = heatmap_color(normalized);
-                let text_color = if normalized < 0.45 { "white" } else { "#1a1a1a" };
+                let text_color = if normalized < 0.45 {
+                    "white"
+                } else {
+                    "#1a1a1a"
+                };
                 let display_val = units.convert_lux(lux);
 
                 let x = header_w + ci as f64 * cell_px;

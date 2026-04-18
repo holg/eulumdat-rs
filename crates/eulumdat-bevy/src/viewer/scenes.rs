@@ -105,7 +105,13 @@ fn setup_scene(
     mut images: ResMut<Assets<Image>>,
     settings: Res<ViewerSettings>,
 ) {
-    build_scene(&mut commands, &mut meshes, &mut materials, &mut images, &settings);
+    build_scene(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        &mut images,
+        &settings,
+    );
 }
 
 fn rebuild_scene_on_change(
@@ -126,7 +132,13 @@ fn rebuild_scene_on_change(
     }
 
     // Build new scene
-    build_scene(&mut commands, &mut meshes, &mut materials, &mut images, &settings);
+    build_scene(
+        &mut commands,
+        &mut meshes,
+        &mut materials,
+        &mut images,
+        &settings,
+    );
 }
 
 fn build_scene(
@@ -142,10 +154,14 @@ fn build_scene(
         SceneType::Parking => build_parking(commands, meshes, materials, settings),
         SceneType::Outdoor => build_outdoor(commands, meshes, materials, settings),
         SceneType::DesignerExterior => {
-            super::designer_scenes::build_designer_exterior(commands, meshes, materials, images, settings);
+            super::designer_scenes::build_designer_exterior(
+                commands, meshes, materials, images, settings,
+            );
         }
         SceneType::DesignerInterior => {
-            super::designer_scenes::build_designer_interior(commands, meshes, materials, images, settings);
+            super::designer_scenes::build_designer_interior(
+                commands, meshes, materials, images, settings,
+            );
         }
     }
 

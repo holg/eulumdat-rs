@@ -11,7 +11,9 @@ use super::controls::{
     calculate_all_luminaire_transforms, sync_viewer_to_lights, viewer_controls_system,
 };
 use super::scenes::ScenePlugin;
-use super::wasm_sync::{load_default_ldt, DesignerTimestamp, LdtTimestamp, ViewerSettingsTimestamp};
+use super::wasm_sync::{
+    load_default_ldt, DesignerTimestamp, LdtTimestamp, ViewerSettingsTimestamp,
+};
 use super::ViewerSettings;
 use crate::eulumdat_impl::EulumdatLightBundle;
 use crate::photometric::PhotometricPlugin;

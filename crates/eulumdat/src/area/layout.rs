@@ -508,7 +508,7 @@ mod tests {
         assert_eq!(positions.len(), 4);
         // With a square area, 4 poles should be near the corners
         let m = 40.0 * 0.05; // 2.0
-        // First should be near top-left
+                             // First should be near top-left
         assert!((positions[0].0 - m).abs() < 0.1);
         assert!((positions[0].1 - m).abs() < 0.1);
     }

@@ -322,7 +322,8 @@ fn cie_tc_5_8_integrating_cube() {
         // (geometric series: first hit + rho*(second hit) + rho^2*(third) + ...)
         // Key check: total absorbed energy should equal emitted energy
         // (closed box, no escape)
-        let detected_frac = result.stats.photons_detected as f64 / result.stats.photons_traced as f64;
+        let detected_frac =
+            result.stats.photons_detected as f64 / result.stats.photons_traced as f64;
         assert!(
             detected_frac < 0.01,
             "TC 5.8 rho={rho}: {:.1}% photons escaped closed box (should be ~0%)",
@@ -566,7 +567,7 @@ fn monte_carlo_convergence_rate() {
 #[test]
 fn cie_tc_5_3_area_source() {
     let luminance = 1000.0; // cd/m²
-    let area = 2.0 * 1.0;  // m²
+    let area = 2.0 * 1.0; // m²
     let flux = luminance * area * PI; // 6283.2 lm
 
     let mut scene = Scene::new();
@@ -574,8 +575,8 @@ fn cie_tc_5_3_area_source() {
         center: Point3::origin(),
         normal: Unit::new_normalize(Vector3::new(0.0, 0.0, -1.0)), // emit downward (-Z = nadir)
         u_axis: Vector3::x_axis(),
-        half_width: 1.0,   // 2m total width
-        half_height: 0.5,  // 1m total height
+        half_width: 1.0,  // 2m total width
+        half_height: 0.5, // 1m total height
         flux_lm: flux,
     });
 
@@ -736,10 +737,26 @@ fn cie_tc_5_6_single_diffuse_reflection() {
 
     // 4 absorbing walls
     let walls = [
-        (Point3::new(-half, 0.0, 0.0), Vector3::x_axis(), Vector3::y_axis()),
-        (Point3::new(half, 0.0, 0.0), Unit::new_unchecked(Vector3::new(-1.0, 0.0, 0.0)), Vector3::y_axis()),
-        (Point3::new(0.0, -half, 0.0), Vector3::y_axis(), Vector3::x_axis()),
-        (Point3::new(0.0, half, 0.0), Unit::new_unchecked(Vector3::new(0.0, -1.0, 0.0)), Vector3::x_axis()),
+        (
+            Point3::new(-half, 0.0, 0.0),
+            Vector3::x_axis(),
+            Vector3::y_axis(),
+        ),
+        (
+            Point3::new(half, 0.0, 0.0),
+            Unit::new_unchecked(Vector3::new(-1.0, 0.0, 0.0)),
+            Vector3::y_axis(),
+        ),
+        (
+            Point3::new(0.0, -half, 0.0),
+            Vector3::y_axis(),
+            Vector3::x_axis(),
+        ),
+        (
+            Point3::new(0.0, half, 0.0),
+            Unit::new_unchecked(Vector3::new(0.0, -1.0, 0.0)),
+            Vector3::x_axis(),
+        ),
     ];
     for (i, (center, normal, u_axis)) in walls.iter().enumerate() {
         scene.add_object(
@@ -782,9 +799,14 @@ fn cie_tc_5_6_single_diffuse_reflection() {
     //
     // So we need an OPEN room instead. Let's verify energy accounting:
     // Total photons = absorbed + detected
-    let total = result.stats.photons_absorbed + result.stats.photons_detected
-        + result.stats.photons_max_bounces + result.stats.photons_russian_roulette;
-    assert_eq!(total, result.stats.photons_traced, "TC 5.6: photon accounting error");
+    let total = result.stats.photons_absorbed
+        + result.stats.photons_detected
+        + result.stats.photons_max_bounces
+        + result.stats.photons_russian_roulette;
+    assert_eq!(
+        total, result.stats.photons_traced,
+        "TC 5.6: photon accounting error"
+    );
 
     // For a closed room, most photons are absorbed. But with max_bounces=2,
     // some floor-reflected photons may still escape if the box has gaps.
@@ -897,16 +919,20 @@ fn cie_tc_5_7_diffuse_with_obstruction() {
     let result_obstructed = Tracer::trace(&scene_obstructed, &config);
 
     // Both cases: closed box → no photons escape
-    let esc_clear = result_clear.stats.photons_detected as f64 / result_clear.stats.photons_traced as f64;
-    let esc_obstructed = result_obstructed.stats.photons_detected as f64 / result_obstructed.stats.photons_traced as f64;
+    let esc_clear =
+        result_clear.stats.photons_detected as f64 / result_clear.stats.photons_traced as f64;
+    let esc_obstructed = result_obstructed.stats.photons_detected as f64
+        / result_obstructed.stats.photons_traced as f64;
 
     eprintln!(
         "TC 5.7: clear: escaped={:.4}%, absorbed={}",
-        esc_clear * 100.0, result_clear.stats.photons_absorbed,
+        esc_clear * 100.0,
+        result_clear.stats.photons_absorbed,
     );
     eprintln!(
         "TC 5.7: obstructed: escaped={:.4}%, absorbed={}",
-        esc_obstructed * 100.0, result_obstructed.stats.photons_absorbed,
+        esc_obstructed * 100.0,
+        result_obstructed.stats.photons_absorbed,
     );
 
     assert!(
@@ -927,7 +953,8 @@ fn cie_tc_5_7_diffuse_with_obstruction() {
         "TC 5.7: Clear case energy leak"
     );
     assert!(
-        result_obstructed.stats.total_energy_detected < result_obstructed.stats.total_energy_emitted * 0.01,
+        result_obstructed.stats.total_energy_detected
+            < result_obstructed.stats.total_energy_emitted * 0.01,
         "TC 5.7: Obstructed case energy leak"
     );
 

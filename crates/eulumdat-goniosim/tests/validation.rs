@@ -187,7 +187,10 @@ fn scene_builder_led_housing_cover() {
     };
     let result = Tracer::trace(&scene, &config);
     assert!(result.stats.photons_traced == 10_000);
-    assert!(result.stats.photons_detected > 0, "Some photons should escape");
+    assert!(
+        result.stats.photons_detected > 0,
+        "Some photons should escape"
+    );
 }
 
 /// MaterialParams catalog round-trip: all materials should produce valid Material variants.

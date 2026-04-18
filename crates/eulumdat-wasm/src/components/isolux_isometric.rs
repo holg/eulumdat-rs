@@ -5,7 +5,7 @@
 
 use super::app::use_unit_system;
 use crate::i18n::use_locale;
-use eulumdat::diagram::{IsometricConfig, IsoluxDiagram, IsoluxParams, SvgTheme};
+use eulumdat::diagram::{IsoluxDiagram, IsoluxParams, IsometricConfig, SvgTheme};
 use eulumdat::Eulumdat;
 use leptos::prelude::*;
 
@@ -38,7 +38,15 @@ pub fn IsoluxIsometric(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             iso_label
         };
 
-        diagram.to_svg_isometric(600.0, 500.0, &theme, &IsometricConfig::default(), units, &ldt_val, &title)
+        diagram.to_svg_isometric(
+            600.0,
+            500.0,
+            &theme,
+            &IsometricConfig::default(),
+            units,
+            &ldt_val,
+            &title,
+        )
     };
 
     view! {

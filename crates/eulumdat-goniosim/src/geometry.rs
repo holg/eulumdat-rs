@@ -14,10 +14,7 @@ pub enum Primitive {
     },
 
     /// Axis-aligned box.
-    AaBox {
-        min: Point3<f64>,
-        max: Point3<f64>,
-    },
+    AaBox { min: Point3<f64>, max: Point3<f64> },
 
     /// Cylinder (capped or open).
     Cylinder {

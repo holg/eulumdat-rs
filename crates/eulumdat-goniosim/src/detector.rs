@@ -259,13 +259,19 @@ mod tests {
     #[test]
     fn direction_to_cg_zenith() {
         let (_, g) = direction_to_cg(&Vector3::new(0.0, 0.0, 1.0));
-        assert!((g - 180.0).abs() < 1.0, "Zenith should be gamma ~180, got {g}");
+        assert!(
+            (g - 180.0).abs() < 1.0,
+            "Zenith should be gamma ~180, got {g}"
+        );
     }
 
     #[test]
     fn direction_to_cg_horizontal_front() {
         let (c, g) = direction_to_cg(&Vector3::new(1.0, 0.0, 0.0));
-        assert!((g - 90.0).abs() < 1.0, "Horizontal should be gamma ~90, got {g}");
+        assert!(
+            (g - 90.0).abs() < 1.0,
+            "Horizontal should be gamma ~90, got {g}"
+        );
         assert!(c.abs() < 1.0 || (c - 360.0).abs() < 1.0, "C0 = +X, got {c}");
     }
 

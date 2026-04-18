@@ -88,6 +88,6 @@ pub use scene::{
 };
 pub use source::Source;
 pub use tracer::{
-    PhotonTrail, ProgressInfo, TrailEvent, TrailPoint, Tracer, TracerConfig, TracerResult,
-    TracerStats,
+    PhotonTrail, ProgressInfo, Tracer, TracerConfig, TracerResult, TracerStats, TrailEvent,
+    TrailPoint,
 };

@@ -7,6 +7,7 @@
 //! Activated via `?wasm=goniosim` query parameter.
 
 use crate::i18n::{use_locale, LanguageSelectorCompact};
+use base64::Engine;
 use eulumdat::diagram::{
     ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram as CorePolarDiagram, SvgTheme,
 };
@@ -14,7 +15,6 @@ use eulumdat::Eulumdat;
 use eulumdat_goniosim::nalgebra::{Point3, Vector3};
 use eulumdat_goniosim::*;
 use leptos::prelude::*;
-use base64::Engine;
 use wasm_bindgen::JsCast;
 
 /// Batch size: photons traced per requestAnimationFrame tick.
@@ -43,7 +43,13 @@ enum DiagramType {
 
 impl DiagramType {
     fn all() -> &'static [DiagramType] {
-        &[Self::Polar, Self::Cartesian, Self::Heatmap, Self::Butterfly, Self::Render3D]
+        &[
+            Self::Polar,
+            Self::Cartesian,
+            Self::Heatmap,
+            Self::Butterfly,
+            Self::Render3D,
+        ]
     }
     fn label(&self, _g: &eulumdat_i18n::GoniosimLocale) -> &'static str {
         match self {
@@ -80,31 +86,43 @@ impl CameraView {
     fn camera_pos(&self) -> [f32; 3] {
         // Room: 4m×4m×1.5m, source at y=1.46 (near ceiling)
         match self {
-            Self::Corner => [1.8, 0.8, 2.2],       // classic room corner
-            Self::TopDown => [0.0, 1.45, 1.8],     // near ceiling, looking down at floor
-            Self::FloorLevel => [1.5, 0.15, 1.5],  // sitting on floor, looking up
-            Self::CloseUp => [0.3, 1.2, 0.3],      // close to the luminaire
+            Self::Corner => [1.8, 0.8, 2.2],      // classic room corner
+            Self::TopDown => [0.0, 1.45, 1.8],    // near ceiling, looking down at floor
+            Self::FloorLevel => [1.5, 0.15, 1.5], // sitting on floor, looking up
+            Self::CloseUp => [0.3, 1.2, 0.3],     // close to the luminaire
         }
     }
     fn look_at(&self) -> [f32; 3] {
         match self {
-            Self::Corner => [0.0, 0.5, 0.0],        // mid-room
-            Self::TopDown => [0.0, 0.0, 0.0],       // floor center
-            Self::FloorLevel => [0.0, 1.46, 0.0],   // up toward light source
-            Self::CloseUp => [0.0, 1.46, 0.0],      // at the source/cover
+            Self::Corner => [0.0, 0.5, 0.0],      // mid-room
+            Self::TopDown => [0.0, 0.0, 0.0],     // floor center
+            Self::FloorLevel => [0.0, 1.46, 0.0], // up toward light source
+            Self::CloseUp => [0.0, 1.46, 0.0],    // at the source/cover
         }
     }
 }
 
 /// Built-in template LDT files (name, content).
 const TEMPLATES: &[(&str, &str)] = &[
-    ("Fluorescent luminaire", include_str!("../../templates/fluorescent_luminaire.ldt")),
-    ("Road luminaire", include_str!("../../templates/road_luminaire.ldt")),
+    (
+        "Fluorescent luminaire",
+        include_str!("../../templates/fluorescent_luminaire.ldt"),
+    ),
+    (
+        "Road luminaire",
+        include_str!("../../templates/road_luminaire.ldt"),
+    ),
     ("Projector", include_str!("../../templates/projector.ldt")),
-    ("Floor uplight", include_str!("../../templates/floor_uplight.ldt")),
+    (
+        "Floor uplight",
+        include_str!("../../templates/floor_uplight.ldt"),
+    ),
     ("Batwing", include_str!("../../templates/wiki-batwing.ldt")),
     ("Floodlight", include_str!("../../templates/wiki-flood.ldt")),
-    ("Spotlight", include_str!("../../templates/wiki-spotlight.ldt")),
+    (
+        "Spotlight",
+        include_str!("../../templates/wiki-spotlight.ldt"),
+    ),
 ];
 
 /// Cover material presets.
@@ -214,7 +232,9 @@ pub fn GonioSimDemo(
     let (slider_idx, set_slider_idx) = signal(0usize);
 
     let c_planes = Memo::new(move |_| {
-        source_ldt.get().map_or(vec![], |l| CorePolarDiagram::available_c_planes(&l))
+        source_ldt
+            .get()
+            .map_or(vec![], |l| CorePolarDiagram::available_c_planes(&l))
     });
 
     // --- Simulation state ---
@@ -254,8 +274,13 @@ pub fn GonioSimDemo(
                 set_source_ldt(Some(ldt));
                 // Reset simulation
                 reset_sim(
-                    set_running, set_photons_done, set_photons_detected,
-                    set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
+                    set_running,
+                    set_photons_done,
+                    set_photons_detected,
+                    set_photons_absorbed,
+                    set_sim_ldt,
+                    set_export_ldt_string,
+                    set_generation,
                 );
             }
             Err(_) => {
@@ -264,8 +289,13 @@ pub fn GonioSimDemo(
                     set_source_name.set(name);
                     set_source_ldt(Some(ldt));
                     reset_sim(
-                        set_running, set_photons_done, set_photons_detected,
-                        set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
+                        set_running,
+                        set_photons_done,
+                        set_photons_detected,
+                        set_photons_absorbed,
+                        set_sim_ldt,
+                        set_export_ldt_string,
+                        set_generation,
                     );
                 }
             }
@@ -313,8 +343,13 @@ pub fn GonioSimDemo(
     // Reset simulation state
     let reset = move || {
         reset_sim(
-            set_running, set_photons_done, set_photons_detected,
-            set_photons_absorbed, set_sim_ldt, set_export_ldt_string, set_generation,
+            set_running,
+            set_photons_done,
+            set_photons_detected,
+            set_photons_absorbed,
+            set_sim_ldt,
+            set_export_ldt_string,
+            set_generation,
         );
         set_render_image_uri.set(String::new());
     };
@@ -326,7 +361,11 @@ pub fn GonioSimDemo(
         // The LDT intensity values are already scaled by LOR.
         let lamp_flux = ldt.total_luminous_flux().max(1.0);
         let lor = ldt.light_output_ratio / 100.0;
-        let luminaire_flux = if lor > 0.0 { lamp_flux * lor } else { lamp_flux };
+        let luminaire_flux = if lor > 0.0 {
+            lamp_flux * lor
+        } else {
+            lamp_flux
+        };
         let cp = cover_preset.get_untracked();
 
         let mut scene = Scene::new();
@@ -382,9 +421,21 @@ pub fn GonioSimDemo(
         let src = source_ldt.get_untracked().unwrap();
         let lamp_flux = src.total_luminous_flux().max(1.0);
         let lor = src.light_output_ratio / 100.0;
-        let flux = if lor > 0.0 { lamp_flux * lor } else { lamp_flux };
-        let c_res = if src.c_plane_distance > 0.0 { src.c_plane_distance } else { 15.0 };
-        let g_res = if src.g_plane_distance > 0.0 { src.g_plane_distance } else { 5.0 };
+        let flux = if lor > 0.0 {
+            lamp_flux * lor
+        } else {
+            lamp_flux
+        };
+        let c_res = if src.c_plane_distance > 0.0 {
+            src.c_plane_distance
+        } else {
+            15.0
+        };
+        let g_res = if src.g_plane_distance > 0.0 {
+            src.g_plane_distance
+        } else {
+            5.0
+        };
         let src_clone = src.clone();
         let n_photons = target_photons.get_untracked();
 
@@ -421,8 +472,13 @@ pub fn GonioSimDemo(
                     let gpu_mat = eulumdat_rt::GpuMaterial::from_material_params(&cover_mat);
                     let d = cover_distance_mm.get_untracked() as f32 / 1000.0;
                     let gpu_prim = eulumdat_rt::GpuPrimitive::sheet(
-                        [0.0, 0.0, -d], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
-                        0.5, 0.5, cover_mat.thickness_mm as f32 / 1000.0, 0,
+                        [0.0, 0.0, -d],
+                        [0.0, 0.0, 1.0],
+                        [1.0, 0.0, 0.0],
+                        0.5,
+                        0.5,
+                        cover_mat.thickness_mm as f32 / 1000.0,
+                        0,
                     );
                     (vec![gpu_prim], vec![gpu_mat])
                 } else {
@@ -430,21 +486,28 @@ pub fn GonioSimDemo(
                 };
 
                 // Build CDF from source LDT for FromLvk sampling
-                let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&src_clone);
+                let calculated_flux =
+                    eulumdat::PhotometricCalculations::calculated_luminous_flux(&src_clone);
                 let cdf = eulumdat_goniosim::source::LvkCdf::build(&src_clone);
 
                 // Trace with FromLvk source
-                let result = tracer.trace_from_lvk(
-                    n_photons as u32, c_res as f32, g_res as f32,
-                    calculated_flux as f32,
-                    &cdf,
-                    &gpu_prims, &gpu_mats,
-                ).await;
+                let result = tracer
+                    .trace_from_lvk(
+                        n_photons as u32,
+                        c_res as f32,
+                        g_res as f32,
+                        calculated_flux as f32,
+                        &cdf,
+                        &gpu_prims,
+                        &gpu_mats,
+                    )
+                    .await;
 
                 let energy = result.total_energy();
                 set_photons_done.set(n_photons);
                 set_photons_detected.set((energy / n_photons as f64 * n_photons as f64) as u64);
-                set_photons_absorbed.set(n_photons - (energy / n_photons as f64 * n_photons as f64) as u64);
+                set_photons_absorbed
+                    .set(n_photons - (energy / n_photons as f64 * n_photons as f64) as u64);
 
                 // Convert to Eulumdat (calculated_flux already computed above)
                 let export_cfg = ExportConfig {
@@ -454,7 +517,10 @@ pub fn GonioSimDemo(
                     luminaire_name: format!("{} (GPU sim)", src_clone.luminaire_name),
                     manufacturer: src_clone.identification.clone(),
                     luminaire_dimensions_mm: (src_clone.length, src_clone.width, src_clone.height),
-                    luminous_area_mm: (src_clone.luminous_area_length, src_clone.luminous_area_width),
+                    luminous_area_mm: (
+                        src_clone.luminous_area_length,
+                        src_clone.luminous_area_width,
+                    ),
                 };
 
                 // Build Eulumdat from GPU detector result
@@ -489,9 +555,10 @@ pub fn GonioSimDemo(
                 ldt.c_angles = (0..gpu_cd.len()).map(|i| i as f64 * c_res).collect();
                 ldt.g_angles = (0..src_num_g).map(|i| i as f64 * g_res).collect();
                 // Trim gamma bins to source range and convert cd to cd/klm
-                let raw_intensities: Vec<Vec<f64>> = gpu_cd.iter().map(|cp| {
-                    cp.iter().take(src_num_g).map(|&cd| cd * scale).collect()
-                }).collect();
+                let raw_intensities: Vec<Vec<f64>> = gpu_cd
+                    .iter()
+                    .map(|cp| cp.iter().take(src_num_g).map(|&cd| cd * scale).collect())
+                    .collect();
 
                 // Apply symmetry reduction (same as CPU export path):
                 // For symmetric sources, average C-planes to reduce Monte Carlo noise.
@@ -515,7 +582,9 @@ pub fn GonioSimDemo(
                             let mirror_ci = (num_c_raw - ci) % num_c_raw;
                             let mut plane = vec![0.0; src_num_g];
                             for gi in 0..src_num_g {
-                                plane[gi] = (raw_intensities[ci][gi] + raw_intensities[mirror_ci][gi]) / 2.0;
+                                plane[gi] = (raw_intensities[ci][gi]
+                                    + raw_intensities[mirror_ci][gi])
+                                    / 2.0;
                             }
                             result.push(plane);
                             angles.push(ci as f64 * c_res);
@@ -537,7 +606,8 @@ pub fn GonioSimDemo(
 
                 // Render a 3D camera image with LDT-based light emission
                 if let Ok(camera) = eulumdat_rt::GpuCamera::new().await {
-                    let (scene_prims, scene_mats, source_pos) = build_render_scene(&gpu_prims, &gpu_mats);
+                    let (scene_prims, scene_mats, source_pos) =
+                        build_render_scene(&gpu_prims, &gpu_mats);
 
                     // Build LVK intensity lookup table from LDT
                     let lvk_c_step = 5.0f64;
@@ -553,21 +623,32 @@ pub fn GonioSimDemo(
                             let g = gi as f64 * lvk_g_step;
                             let val = src_clone.sample(c, g) as f32;
                             lvk_flat.push(val);
-                            if val > lvk_max { lvk_max = val; }
+                            if val > lvk_max {
+                                lvk_max = val;
+                            }
                         }
                     }
 
                     let cv = cam_view.get_untracked();
-                    let mut image = camera.render_with_lvk(
-                        512, 384, 64,
-                        cv.camera_pos(),
-                        cv.look_at(),
-                        55.0,
-                        &scene_prims, &scene_mats,
-                        500.0,
-                        source_pos,
-                        &lvk_flat, lvk_c_steps, lvk_g_steps, lvk_g_max as f32, lvk_max,
-                    ).await;
+                    let mut image = camera
+                        .render_with_lvk(
+                            512,
+                            384,
+                            64,
+                            cv.camera_pos(),
+                            cv.look_at(),
+                            55.0,
+                            &scene_prims,
+                            &scene_mats,
+                            500.0,
+                            source_pos,
+                            &lvk_flat,
+                            lvk_c_steps,
+                            lvk_g_steps,
+                            lvk_g_max as f32,
+                            lvk_max,
+                        )
+                        .await;
                     image.denoise(3); // bilateral filter, radius 3
                     let rgba = image.to_srgb_bytes_with_exposure(2.5);
                     let bmp = encode_bmp(&rgba, image.width, image.height);
@@ -625,12 +706,18 @@ pub fn GonioSimDemo(
                                         escaped = true;
                                         break;
                                     }
-                                    Interaction::Reflected { new_ray, attenuation } => {
+                                    Interaction::Reflected {
+                                        new_ray,
+                                        attenuation,
+                                    } => {
                                         photon.ray = new_ray;
                                         photon.energy *= attenuation;
                                         photon.bounces += 1;
                                     }
-                                    Interaction::Transmitted { new_ray, attenuation } => {
+                                    Interaction::Transmitted {
+                                        new_ray,
+                                        attenuation,
+                                    } => {
                                         photon.ray = new_ray;
                                         photon.energy *= attenuation;
                                         photon.bounces += 1;
@@ -665,10 +752,14 @@ pub fn GonioSimDemo(
                     luminaire_name: format!("{} (simulated)", src_clone.luminaire_name),
                     manufacturer: src_clone.identification.clone(),
                     luminaire_dimensions_mm: (src_clone.length, src_clone.width, src_clone.height),
-                    luminous_area_mm: (src_clone.luminous_area_length, src_clone.luminous_area_width),
+                    luminous_area_mm: (
+                        src_clone.luminous_area_length,
+                        src_clone.luminous_area_width,
+                    ),
                     ..ExportConfig::default()
                 };
-                let mut ldt = detector_to_eulumdat_with_lamp_flux(&det, flux, lamp_flux, &export_cfg);
+                let mut ldt =
+                    detector_to_eulumdat_with_lamp_flux(&det, flux, lamp_flux, &export_cfg);
                 // Copy lamp data from source
                 ldt.lamp_sets = src_clone.lamp_sets.clone();
                 ldt.type_indicator = src_clone.type_indicator;
@@ -1185,8 +1276,12 @@ fn render_diagram(
     forced_max: Option<f64>,
 ) -> String {
     match dtype {
-        DiagramType::Polar => CorePolarDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max),
-        DiagramType::Cartesian => CartesianDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max),
+        DiagramType::Polar => {
+            CorePolarDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max)
+        }
+        DiagramType::Cartesian => {
+            CartesianDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max)
+        }
         DiagramType::Heatmap => HeatmapDiagram::render_svg(ldt, w, h, theme),
         DiagramType::Butterfly => ButterflyDiagram::render_svg(ldt, w, h, 60.0, theme),
         DiagramType::Render3D => String::new(),
@@ -1199,7 +1294,11 @@ fn render_diagram(
 fn build_render_scene(
     cover_prims: &[eulumdat_rt::GpuPrimitive],
     cover_mats: &[eulumdat_rt::GpuMaterial],
-) -> (Vec<eulumdat_rt::GpuPrimitive>, Vec<eulumdat_rt::GpuMaterial>, [f32; 3]) {
+) -> (
+    Vec<eulumdat_rt::GpuPrimitive>,
+    Vec<eulumdat_rt::GpuMaterial>,
+    [f32; 3],
+) {
     use eulumdat_rt::{GpuMaterial, GpuPrimitive};
 
     let mut prims = Vec::new();
@@ -1207,21 +1306,48 @@ fn build_render_scene(
 
     // Material 0: white diffuse floor
     mats.push(GpuMaterial {
-        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: 0.75, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        mtype: 1,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
+        reflectance: 0.75,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     });
     // Material 1: light grey walls
     mats.push(GpuMaterial {
-        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: 0.6, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        mtype: 1,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
+        reflectance: 0.6,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     });
     // Material 2: ceiling (slightly darker)
     mats.push(GpuMaterial {
-        mtype: 1, _pad0: 0, _pad1: 0, _pad2: 0,
-        reflectance: 0.5, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-        absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
+        mtype: 1,
+        _pad0: 0,
+        _pad1: 0,
+        _pad2: 0,
+        reflectance: 0.5,
+        ior: 1.0,
+        transmittance: 0.0,
+        min_reflectance: 0.0,
+        absorption_coeff: 0.0,
+        scattering_coeff: 0.0,
+        asymmetry: 0.0,
+        thickness: 0.0,
     });
 
     let room_w = 2.0f32; // half-width of room
@@ -1229,28 +1355,53 @@ fn build_render_scene(
 
     // Floor (y = 0)
     prims.push(GpuPrimitive::sheet(
-        [0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0],
-        room_w, room_w, 0.001, 0,
+        [0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [1.0, 0.0, 0.0],
+        room_w,
+        room_w,
+        0.001,
+        0,
     ));
     // Ceiling (y = room_h)
     prims.push(GpuPrimitive::sheet(
-        [0.0, room_h, 0.0], [0.0, -1.0, 0.0], [1.0, 0.0, 0.0],
-        room_w, room_w, 0.001, 2,
+        [0.0, room_h, 0.0],
+        [0.0, -1.0, 0.0],
+        [1.0, 0.0, 0.0],
+        room_w,
+        room_w,
+        0.001,
+        2,
     ));
     // Back wall (z = -room_w)
     prims.push(GpuPrimitive::sheet(
-        [0.0, room_h * 0.5, -room_w], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
-        room_w, room_h * 0.5, 0.001, 1,
+        [0.0, room_h * 0.5, -room_w],
+        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+        room_w,
+        room_h * 0.5,
+        0.001,
+        1,
     ));
     // Left wall (x = -room_w)
     prims.push(GpuPrimitive::sheet(
-        [-room_w, room_h * 0.5, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
-        room_w, room_h * 0.5, 0.001, 1,
+        [-room_w, room_h * 0.5, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+        room_w,
+        room_h * 0.5,
+        0.001,
+        1,
     ));
     // Right wall (x = room_w)
     prims.push(GpuPrimitive::sheet(
-        [room_w, room_h * 0.5, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0],
-        room_w, room_h * 0.5, 0.001, 1,
+        [room_w, room_h * 0.5, 0.0],
+        [-1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+        room_w,
+        room_h * 0.5,
+        0.001,
+        1,
     ));
 
     // Add cover primitives with adjusted material IDs
@@ -1265,10 +1416,10 @@ fn build_render_scene(
         // Move from z=-distance to y=(room_h - distance) — remap coordinate
         // The cover in the goniosim uses z-down, but the camera uses y-up
         let cover_y = room_h - 0.04; // near ceiling
-        prim.params[1] = cover_y;    // y position
-        prim.params[3] = 0.0;       // normal x
-        prim.params[4] = -1.0;      // normal y (facing down)
-        prim.params[5] = 0.0;       // normal z
+        prim.params[1] = cover_y; // y position
+        prim.params[3] = 0.0; // normal x
+        prim.params[4] = -1.0; // normal y (facing down)
+        prim.params[5] = 0.0; // normal z
         prims.push(prim);
     }
 
@@ -1314,7 +1465,7 @@ fn encode_bmp(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
             let i = ((y * width + x) * 4) as usize;
             data.push(rgba[i + 2]); // B
             data.push(rgba[i + 1]); // G
-            data.push(rgba[i]);     // R
+            data.push(rgba[i]); // R
         }
         for _ in 0..padding {
             data.push(0);

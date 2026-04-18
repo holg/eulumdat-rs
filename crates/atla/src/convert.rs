@@ -94,7 +94,8 @@ impl From<&Eulumdat> for LuminaireOpticalData {
             // The first emitter carries the intensity distribution
             // (it represents the combined output)
             for (i, ls) in ldt.lamp_sets.iter().enumerate() {
-                let emitter = create_emitter_from_lamp_set(ls, if i == 0 { Some(ldt) } else { None });
+                let emitter =
+                    create_emitter_from_lamp_set(ls, if i == 0 { Some(ldt) } else { None });
                 doc.emitters.push(emitter);
             }
         }
@@ -138,7 +139,11 @@ fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumda
     });
 
     Emitter {
-        description: if ls.lamp_type.is_empty() { None } else { Some(ls.lamp_type.clone()) },
+        description: if ls.lamp_type.is_empty() {
+            None
+        } else {
+            Some(ls.lamp_type.clone())
+        },
         quantity: ls.num_lamps as u32,
         rated_lumens: Some(ls.total_luminous_flux),
         measured_lumens: Some(ls.total_luminous_flux),
@@ -313,7 +318,11 @@ impl From<&LuminaireOpticalData> for Eulumdat {
         }
 
         // Intensity distribution — from first emitter that has it
-        if let Some(emitter) = doc.emitters.iter().find(|e| e.intensity_distribution.is_some()) {
+        if let Some(emitter) = doc
+            .emitters
+            .iter()
+            .find(|e| e.intensity_distribution.is_some())
+        {
             if let Some(ref dist) = emitter.intensity_distribution {
                 ldt.c_angles = dist.horizontal_angles.clone();
                 ldt.g_angles = dist.vertical_angles.clone();
@@ -360,7 +369,8 @@ impl From<&LuminaireOpticalData> for Eulumdat {
             ldt.light_output_ratio = lor;
 
             // Recalculate direct ratios from intensity data (SHR 1.25 is standard)
-            ldt.direct_ratios = eulumdat::PhotometricCalculations::calculate_direct_ratios(&ldt, "1.25");
+            ldt.direct_ratios =
+                eulumdat::PhotometricCalculations::calculate_direct_ratios(&ldt, "1.25");
         }
 
         // Set type indicator based on dimensions

@@ -26,12 +26,7 @@ impl Default for UastcOptions {
 /// The output is a valid KTX2 container that Bevy can load and transcode to
 /// the GPU's native format (BC7 on desktop, ASTC on Apple, ETC2 on mobile).
 /// Textures stay compressed in VRAM — no 18GB RAM explosion.
-pub fn encode_uastc(
-    rgba: &[u8],
-    width: u32,
-    height: u32,
-    opts: &UastcOptions,
-) -> Result<Vec<u8>> {
+pub fn encode_uastc(rgba: &[u8], width: u32, height: u32, opts: &UastcOptions) -> Result<Vec<u8>> {
     let vk_format = if opts.srgb {
         VkFormat::R8G8B8A8Srgb
     } else {
@@ -76,5 +71,7 @@ pub fn encode_uastc(
         .compress_basis(&params)
         .context("UASTC compression failed")?;
 
-    texture.write_to_memory().context("Failed to write KTX2 to memory")
+    texture
+        .write_to_memory()
+        .context("Failed to write KTX2 to memory")
 }

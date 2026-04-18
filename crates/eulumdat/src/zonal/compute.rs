@@ -249,10 +249,8 @@ pub fn compute_cavity_ratios(room: &Room, reflectances: &Reflectances) -> Cavity
     let ccr = cavity_ratio(room.hcc(), room.length, room.width);
     let fcr = cavity_ratio(room.hfc(), room.length, room.width);
 
-    let rho_cc_eff =
-        effective_cavity_reflectance(reflectances.ceiling, reflectances.wall, ccr);
-    let rho_fc_eff =
-        effective_cavity_reflectance(reflectances.floor, reflectances.wall, fcr);
+    let rho_cc_eff = effective_cavity_reflectance(reflectances.ceiling, reflectances.wall, ccr);
+    let rho_fc_eff = effective_cavity_reflectance(reflectances.floor, reflectances.wall, fcr);
 
     CavityResults {
         rcr,
@@ -409,16 +407,8 @@ pub fn find_best_layout(
     let offset_x = spacing_x / 2.0;
     let offset_y = spacing_y / 2.0;
 
-    let s_mh_x = if hrc > 0.0 {
-        spacing_x / hrc
-    } else {
-        0.0
-    };
-    let s_mh_y = if hrc > 0.0 {
-        spacing_y / hrc
-    } else {
-        0.0
-    };
+    let s_mh_x = if hrc > 0.0 { spacing_x / hrc } else { 0.0 };
+    let s_mh_y = if hrc > 0.0 { spacing_y / hrc } else { 0.0 };
 
     let spacing_ok = s_mh_x <= spacing_criterion && s_mh_y <= spacing_criterion;
 
@@ -687,8 +677,7 @@ mod tests {
         assert_eq!(layout.count, 27);
         // 27 = 3×9 or 9×3
         assert!(
-            (layout.rows == 9 && layout.cols == 3)
-                || (layout.rows == 3 && layout.cols == 9),
+            (layout.rows == 9 && layout.cols == 3) || (layout.rows == 3 && layout.cols == 9),
             "Got {}x{}",
             layout.rows,
             layout.cols
@@ -729,8 +718,8 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/../eulumdat-wasm/templates/fluorescent_luminaire.ldt"
         );
-        let ldt = crate::Eulumdat::from_file(ldt_path)
-            .expect("Failed to load fluorescent_luminaire.ldt");
+        let ldt =
+            crate::Eulumdat::from_file(ldt_path).expect("Failed to load fluorescent_luminaire.ldt");
 
         let room = Room::new(10.0, 8.0, 3.0, 0.80, 0.0);
         let reflectances = Reflectances::new(0.70, 0.50, 0.20);
@@ -789,8 +778,8 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/../eulumdat-wasm/templates/fluorescent_luminaire.ldt"
         );
-        let ldt = crate::Eulumdat::from_file(ldt_path)
-            .expect("Failed to load fluorescent_luminaire.ldt");
+        let ldt =
+            crate::Eulumdat::from_file(ldt_path).expect("Failed to load fluorescent_luminaire.ldt");
 
         let room = Room::new(10.0, 8.0, 3.0, 0.80, 0.0);
         let reflectances = Reflectances::new(0.70, 0.50, 0.20);

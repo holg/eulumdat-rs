@@ -33,16 +33,12 @@ fn create_heatmap_image(
     for row in (0..rows).rev() {
         for col in 0..cols {
             let lux = lux_grid[row][col];
-            let normalized = if max_lux > 0.0 {
-                lux / max_lux
-            } else {
-                0.0
-            };
+            let normalized = if max_lux > 0.0 { lux / max_lux } else { 0.0 };
             let color = heatmap_color(normalized);
 
             let alpha = match mask {
                 Some(m) if row < m.len() && col < m[row].len() && !m[row][col] => 38, // ~15%
-                _ => 200, // ~78%
+                _ => 200,                                                             // ~78%
             };
 
             data.push(color.r);
@@ -203,7 +199,13 @@ pub fn build_designer_exterior(
 
         // Light cones (4 triangle meshes, warm yellow, semi-transparent)
         if settings.show_light_cones {
-            spawn_light_cone(commands, meshes, materials, Vec3::new(px, mh - 0.08, pz), mh);
+            spawn_light_cone(
+                commands,
+                meshes,
+                materials,
+                Vec3::new(px, mh - 0.08, pz),
+                mh,
+            );
         }
     }
 }

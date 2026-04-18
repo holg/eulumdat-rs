@@ -328,7 +328,9 @@ pub fn poll_designer_changes(
         if let Some(new_timestamp) = get_designer_timestamp() {
             if new_timestamp != last_timestamp.0 {
                 let window = web_sys::window();
-                let storage = window.as_ref().and_then(|w| w.local_storage().ok().flatten());
+                let storage = window
+                    .as_ref()
+                    .and_then(|w| w.local_storage().ok().flatten());
 
                 if let Some(storage) = storage {
                     // Try exterior designer data
@@ -354,9 +356,7 @@ pub fn poll_designer_changes(
                             settings.designer_reflectances = Some(data.reflectances);
                             settings.designer_cavity = Some(data.cavity);
                             settings.designer_ppb = data.ppb;
-                            web_sys::console::log_1(
-                                &"[Bevy] Loaded interior designer data".into(),
-                            );
+                            web_sys::console::log_1(&"[Bevy] Loaded interior designer data".into());
                         }
                     }
                 }

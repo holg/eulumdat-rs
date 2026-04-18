@@ -32,8 +32,16 @@ fn roundtrip(content: &str, name: &str, num_photons: u64) -> RoundtripResult {
     // calculated_luminous_flux returns lm/klm, multiply by lamp_flux/1000 for actual lm.
     let calc_flux_klm = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
     let calculated_flux = calc_flux_klm * lamp_flux / 1000.0;
-    let c_res = if ldt.c_plane_distance > 0.0 { ldt.c_plane_distance } else { 15.0 };
-    let g_res = if ldt.g_plane_distance > 0.0 { ldt.g_plane_distance } else { 5.0 };
+    let c_res = if ldt.c_plane_distance > 0.0 {
+        ldt.c_plane_distance
+    } else {
+        15.0
+    };
+    let g_res = if ldt.g_plane_distance > 0.0 {
+        ldt.g_plane_distance
+    } else {
+        5.0
+    };
 
     let mut scene = Scene::new();
     scene.add_source(Source::from_lvk(
@@ -75,8 +83,16 @@ fn roundtrip(content: &str, name: &str, num_photons: u64) -> RoundtripResult {
         &result.detector,
         calculated_flux,
         lamp_flux,
-        if use_source_c { Some(&ldt.c_angles) } else { None },
-        if use_source_g { Some(&ldt.g_angles) } else { None },
+        if use_source_c {
+            Some(&ldt.c_angles)
+        } else {
+            None
+        },
+        if use_source_g {
+            Some(&ldt.g_angles)
+        } else {
+            None
+        },
         &export_cfg,
     );
     sim_ldt.lamp_sets = ldt.lamp_sets.clone();
@@ -111,11 +127,19 @@ macro_rules! template_roundtrip {
 
             eprintln!("\n=== {} ===", r.name);
             eprintln!("  Similarity: {:.1}%", r.similarity * 100.0);
-            eprintln!("  Flux: {:.1} -> {:.1} ({:.1}%)", r.flux_orig, r.flux_sim,
-                (r.flux_sim - r.flux_orig) / r.flux_orig.max(0.1) * 100.0);
+            eprintln!(
+                "  Flux: {:.1} -> {:.1} ({:.1}%)",
+                r.flux_orig,
+                r.flux_sim,
+                (r.flux_sim - r.flux_orig) / r.flux_orig.max(0.1) * 100.0
+            );
             eprintln!("  LOR: {:.1}% -> {:.1}%", r.lor_orig, r.lor_sim);
-            eprintln!("  Max I: {:.1} -> {:.1} ({:.1}%)", r.max_i_orig, r.max_i_sim,
-                (r.max_i_sim - r.max_i_orig) / r.max_i_orig.max(0.1) * 100.0);
+            eprintln!(
+                "  Max I: {:.1} -> {:.1} ({:.1}%)",
+                r.max_i_orig,
+                r.max_i_sim,
+                (r.max_i_sim - r.max_i_orig) / r.max_i_orig.max(0.1) * 100.0
+            );
             eprintln!("  DLOR: {:.1}% -> {:.1}%", r.dlor_orig, r.dlor_sim);
             eprintln!("  ULOR (sim): {:.1}%", r.ulor_sim);
 
@@ -123,7 +147,9 @@ macro_rules! template_roundtrip {
             assert!(
                 r.lor_sim <= r.lor_orig * 1.01,
                 "{}: LOR increased from {:.1}% to {:.1}% — simulation cannot create energy",
-                r.name, r.lor_orig, r.lor_sim
+                r.name,
+                r.lor_orig,
+                r.lor_sim
             );
 
             // Flux: the comparison's "Calculated Flux" depends on symmetry handling.
@@ -134,7 +160,10 @@ macro_rules! template_roundtrip {
             assert!(
                 flux_err < 0.50,
                 "{}: Calculated flux off by {:.1}% ({:.1} vs {:.1})",
-                r.name, flux_err * 100.0, r.flux_orig, r.flux_sim
+                r.name,
+                flux_err * 100.0,
+                r.flux_orig,
+                r.flux_sim
             );
 
             // No upward light for downlights (DLOR=100% originally)
@@ -142,7 +171,8 @@ macro_rules! template_roundtrip {
                 assert!(
                     r.ulor_sim < 1.0,
                     "{}: ULOR={:.1}% — downlight must not produce upward light",
-                    r.name, r.ulor_sim
+                    r.name,
+                    r.ulor_sim
                 );
             }
 
@@ -154,7 +184,10 @@ macro_rules! template_roundtrip {
             assert!(
                 max_i_err < 1.0,
                 "{}: Max intensity off by {:.1}% ({:.1} vs {:.1})",
-                r.name, max_i_err * 100.0, r.max_i_orig, r.max_i_sim
+                r.name,
+                max_i_err * 100.0,
+                r.max_i_orig,
+                r.max_i_sim
             );
         }
     };
@@ -226,8 +259,13 @@ fn cover_reduces_efficiency() {
         let result = Tracer::trace(&scene, &config);
         let throughput = result.stats.total_energy_detected / result.stats.total_energy_emitted;
 
-        eprintln!("  {name}: throughput={:.1}% (trans={:.0}%, refl={:.0}%, diff={:.0}%)",
-            throughput * 100.0, cover.transmittance_pct, cover.reflectance_pct, cover.diffusion_pct);
+        eprintln!(
+            "  {name}: throughput={:.1}% (trans={:.0}%, refl={:.0}%, diff={:.0}%)",
+            throughput * 100.0,
+            cover.transmittance_pct,
+            cover.reflectance_pct,
+            cover.diffusion_pct
+        );
 
         assert!(
             throughput < 1.0,
@@ -361,7 +399,8 @@ fn reflectance_increases_loss() {
         assert!(
             throughput <= prev_throughput + 0.02, // small tolerance for statistical noise
             "Higher reflectance should reduce throughput: refl={refl}% gave {:.1}% > prev {:.1}%",
-            throughput * 100.0, prev_throughput * 100.0
+            throughput * 100.0,
+            prev_throughput * 100.0
         );
         prev_throughput = throughput;
     }

@@ -488,8 +488,14 @@ mod tests {
         let i_0 = SymmetryHandler::get_intensity_at(&ldt, 0.0, 45.0);
         let i_315 = SymmetryHandler::get_intensity_at(&ldt, 315.0, 45.0);
         let i_350 = SymmetryHandler::get_intensity_at(&ldt, 350.0, 45.0);
-        assert!((i_0 - i_315).abs() < 0.001, "C315 should equal C0 when all planes identical");
-        assert!((i_0 - i_350).abs() < 0.001, "C350 should equal C0 when all planes identical");
+        assert!(
+            (i_0 - i_315).abs() < 0.001,
+            "C315 should equal C0 when all planes identical"
+        );
+        assert!(
+            (i_0 - i_350).abs() < 0.001,
+            "C350 should equal C0 when all planes identical"
+        );
 
         // Now test with different C0 and C270 to verify proper interpolation
         let ldt2 = Eulumdat {
@@ -497,9 +503,9 @@ mod tests {
             c_angles: vec![0.0, 90.0, 180.0, 270.0],
             g_angles: vec![0.0, 90.0],
             intensities: vec![
-                vec![100.0, 50.0], // C0
-                vec![100.0, 50.0], // C90
-                vec![100.0, 50.0], // C180
+                vec![100.0, 50.0],  // C0
+                vec![100.0, 50.0],  // C90
+                vec![100.0, 50.0],  // C180
                 vec![200.0, 100.0], // C270
             ],
             ..Default::default()
@@ -508,14 +514,18 @@ mod tests {
         // C315 = midpoint between C270 and C0(=C360)
         let i_c315 = SymmetryHandler::get_intensity_at(&ldt2, 315.0, 0.0);
         // Should be average of C270(200) and C0(100) = 150
-        assert!((i_c315 - 150.0).abs() < 0.01,
-            "C315 at gamma=0 should be 150, got {i_c315}");
+        assert!(
+            (i_c315 - 150.0).abs() < 0.01,
+            "C315 at gamma=0 should be 150, got {i_c315}"
+        );
 
         // C-angle symmetry: sample(45°) should mirror sample(315°)
         // when C0=C90 and C270 wraps to C0
         let i_c45 = SymmetryHandler::get_intensity_at(&ldt2, 45.0, 0.0);
         // C45 = midpoint between C0(100) and C90(100) = 100
-        assert!((i_c45 - 100.0).abs() < 0.01,
-            "C45 at gamma=0 should be 100, got {i_c45}");
+        assert!(
+            (i_c45 - 100.0).abs() < 0.01,
+            "C45 at gamma=0 should be 100, got {i_c45}"
+        );
     }
 }

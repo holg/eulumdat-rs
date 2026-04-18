@@ -99,8 +99,7 @@ impl TemplateLuminaires {
             17006 | 17012 => {
                 let svg_sym =
                     PolarDiagram::from_eulumdat(&self.fluorescent).to_svg(250.0, 250.0, &theme);
-                let svg_asym =
-                    PolarDiagram::from_eulumdat(&self.road).to_svg(250.0, 250.0, &theme);
+                let svg_asym = PolarDiagram::from_eulumdat(&self.road).to_svg(250.0, 250.0, &theme);
                 let sym_label = &locale.ui.symmetric;
                 let asym_label = &locale.ui.asymmetric;
                 Some(format!(
@@ -117,8 +116,7 @@ impl TemplateLuminaires {
             }
             // Projector (narrow beam)
             17008 | 17011 => {
-                let svg =
-                    PolarDiagram::from_eulumdat(&self.projector).to_svg(300.0, 300.0, &theme);
+                let svg = PolarDiagram::from_eulumdat(&self.projector).to_svg(300.0, 300.0, &theme);
                 let label = &locale.ui.projector_narrow;
                 Some(format!(
                     r#"<div class="diagram-single"><div class="diagram-label">{label}</div>{svg}</div>"#

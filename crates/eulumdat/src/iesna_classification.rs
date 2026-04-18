@@ -201,8 +201,16 @@ pub fn classify(ldt: &Eulumdat) -> IesnaClassification {
     let i_at_80 = sample_max_across_c_planes(ldt, 80.0);
     let i_at_90 = sample_max_across_c_planes(ldt, 90.0);
 
-    let pct_at_80 = if max_candela > 0.0 { i_at_80 / max_candela * 100.0 } else { 0.0 };
-    let pct_at_90 = if max_candela > 0.0 { i_at_90 / max_candela * 100.0 } else { 0.0 };
+    let pct_at_80 = if max_candela > 0.0 {
+        i_at_80 / max_candela * 100.0
+    } else {
+        0.0
+    };
+    let pct_at_90 = if max_candela > 0.0 {
+        i_at_90 / max_candela * 100.0
+    } else {
+        0.0
+    };
 
     let lateral = classify_lateral(ldt);
     let longitudinal = classify_longitudinal(max_candela_gamma);
@@ -214,7 +222,10 @@ pub fn classify(ldt: &Eulumdat) -> IesnaClassification {
     let designation = if applicability == Applicability::Applicable {
         format!("{} {} {}", lateral, longitudinal, cutoff)
     } else {
-        format!("{} {} {} ({})", lateral, longitudinal, cutoff, applicability)
+        format!(
+            "{} {} {} ({})",
+            lateral, longitudinal, cutoff, applicability
+        )
     };
 
     IesnaClassification {
@@ -231,11 +242,7 @@ pub fn classify(ldt: &Eulumdat) -> IesnaClassification {
 }
 
 /// Determine whether the IESNA roadway classification is meaningful.
-fn determine_applicability(
-    ldt: &Eulumdat,
-    lateral: &LateralType,
-    max_gamma: f64,
-) -> Applicability {
+fn determine_applicability(ldt: &Eulumdat, lateral: &LateralType, max_gamma: f64) -> Applicability {
     // Check if primarily uplight: downward_flux_fraction < 50%
     if ldt.downward_flux_fraction < 50.0 {
         return Applicability::Uplight;
@@ -395,13 +402,22 @@ mod tests {
 
         eprintln!("Road luminaire: {}", cls.designation);
         eprintln!("  Lateral: {}", cls.lateral_type);
-        eprintln!("  Longitudinal: {} (peak gamma={:.1}°)", cls.longitudinal, cls.max_candela_gamma);
-        eprintln!("  Cutoff: {} (80°={:.1}%, 90°={:.1}%)", cls.cutoff, cls.intensity_at_80, cls.intensity_at_90);
+        eprintln!(
+            "  Longitudinal: {} (peak gamma={:.1}°)",
+            cls.longitudinal, cls.max_candela_gamma
+        );
+        eprintln!(
+            "  Cutoff: {} (80°={:.1}%, 90°={:.1}%)",
+            cls.cutoff, cls.intensity_at_80, cls.intensity_at_90
+        );
         eprintln!("  Max cd/klm: {:.1}", cls.max_candela);
 
         // Road luminaires are typically Type II-IV, Medium-Long throw
         assert!(
-            matches!(cls.lateral_type, LateralType::TypeII | LateralType::TypeIII | LateralType::TypeIV),
+            matches!(
+                cls.lateral_type,
+                LateralType::TypeII | LateralType::TypeIII | LateralType::TypeIV
+            ),
             "Road luminaire should be Type II-IV, got {}",
             cls.lateral_type
         );
@@ -415,12 +431,22 @@ mod tests {
 
         eprintln!("Fluorescent: {}", cls.designation);
         eprintln!("  Lateral: {}", cls.lateral_type);
-        eprintln!("  Longitudinal: {} (peak gamma={:.1}°)", cls.longitudinal, cls.max_candela_gamma);
-        eprintln!("  Cutoff: {} (80°={:.1}%, 90°={:.1}%)", cls.cutoff, cls.intensity_at_80, cls.intensity_at_90);
+        eprintln!(
+            "  Longitudinal: {} (peak gamma={:.1}°)",
+            cls.longitudinal, cls.max_candela_gamma
+        );
+        eprintln!(
+            "  Cutoff: {} (80°={:.1}%, 90°={:.1}%)",
+            cls.cutoff, cls.intensity_at_80, cls.intensity_at_90
+        );
 
         // Indoor fluorescent: typically Type V (symmetric), Short throw
-        assert_eq!(cls.longitudinal, LongitudinalClass::Short,
-            "Fluorescent should be Short throw, got {}", cls.longitudinal);
+        assert_eq!(
+            cls.longitudinal,
+            LongitudinalClass::Short,
+            "Fluorescent should be Short throw, got {}",
+            cls.longitudinal
+        );
     }
 
     #[test]
@@ -431,8 +457,14 @@ mod tests {
 
         eprintln!("Projector: {}", cls.designation);
         eprintln!("  Lateral: {}", cls.lateral_type);
-        eprintln!("  Longitudinal: {} (peak gamma={:.1}°)", cls.longitudinal, cls.max_candela_gamma);
-        eprintln!("  Cutoff: {} (80°={:.1}%, 90°={:.1}%)", cls.cutoff, cls.intensity_at_80, cls.intensity_at_90);
+        eprintln!(
+            "  Longitudinal: {} (peak gamma={:.1}°)",
+            cls.longitudinal, cls.max_candela_gamma
+        );
+        eprintln!(
+            "  Cutoff: {} (80°={:.1}%, 90°={:.1}%)",
+            cls.cutoff, cls.intensity_at_80, cls.intensity_at_90
+        );
     }
 
     #[test]

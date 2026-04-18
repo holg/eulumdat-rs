@@ -1357,8 +1357,7 @@ pub fn interpolate(
             .with_context(|| format!("cannot parse '{}' as a number in '{}'", value, spec))?;
 
         let path = PathBuf::from(path_str);
-        let ldt = load_file(&path)
-            .with_context(|| format!("failed to load '{}'", path_str))?;
+        let ldt = load_file(&path).with_context(|| format!("failed to load '{}'", path_str))?;
 
         if i == 0 {
             base_name = path
@@ -1369,7 +1368,12 @@ pub fn interpolate(
             // Strip trailing operating-point suffix if present (e.g., "_350mA")
             if let Some(pos) = base_name.rfind('_') {
                 let suffix = &base_name[pos + 1..];
-                if suffix.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+                if suffix
+                    .chars()
+                    .next()
+                    .map(|c| c.is_ascii_digit())
+                    .unwrap_or(false)
+                {
                     base_name.truncate(pos);
                 }
             }
@@ -1393,16 +1397,22 @@ pub fn interpolate(
     } else if let Some(step_vals) = steps {
         step_vals.to_vec()
     } else if let Some(range_str) = range {
-        let (start_str, end_str) = range_str
-            .split_once(':')
-            .with_context(|| format!("invalid --range '{}' — expected format: 350:700", range_str))?;
+        let (start_str, end_str) = range_str.split_once(':').with_context(|| {
+            format!("invalid --range '{}' — expected format: 350:700", range_str)
+        })?;
         let start: f64 = start_str.parse().context("invalid range start")?;
         let end: f64 = end_str.parse().context("invalid range end")?;
         eulumdat::interpolate::linspace(start, end, count)
     } else {
         // Default: infer range from inputs, generate `count` steps
-        let min = parsed_inputs.iter().map(|(_, v)| *v).fold(f64::INFINITY, f64::min);
-        let max = parsed_inputs.iter().map(|(_, v)| *v).fold(f64::NEG_INFINITY, f64::max);
+        let min = parsed_inputs
+            .iter()
+            .map(|(_, v)| *v)
+            .fold(f64::INFINITY, f64::min);
+        let max = parsed_inputs
+            .iter()
+            .map(|(_, v)| *v)
+            .fold(f64::NEG_INFINITY, f64::max);
         eulumdat::interpolate::linspace(min, max, count)
     };
 
@@ -1453,6 +1463,10 @@ pub fn interpolate(
         written += 1;
     }
 
-    println!("\n  Done: {} file(s) written to {}", written, output_dir.display());
+    println!(
+        "\n  Done: {} file(s) written to {}",
+        written,
+        output_dir.display()
+    );
     Ok(())
 }

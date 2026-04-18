@@ -35,11 +35,16 @@ pub fn pack_gltf(input: &Path, output: &Path, opts: &PackOptions) -> Result<()> 
         .context("Input path has no parent directory")?;
 
     if opts.gpu_compress {
-        println!("Mode: GPU-compressed (UASTC quality={}, mipmaps={})",
+        println!(
+            "Mode: GPU-compressed (UASTC quality={}, mipmaps={})",
             opts.uastc_quality,
-            if opts.mipmaps { "on" } else { "off" });
+            if opts.mipmaps { "on" } else { "off" }
+        );
     } else {
-        println!("Mode: CPU textures (JPEG q={}, PNG for alpha)", opts.jpeg_quality);
+        println!(
+            "Mode: CPU textures (JPEG q={}, PNG for alpha)",
+            opts.jpeg_quality
+        );
     }
 
     // Parse the source glTF
@@ -91,7 +96,11 @@ pub fn pack_gltf(input: &Path, output: &Path, opts: &PackOptions) -> Result<()> 
             );
             image_blobs.push(ImageBlob {
                 data: Vec::new(),
-                mime: if opts.gpu_compress { "image/ktx2" } else { "image/jpeg" },
+                mime: if opts.gpu_compress {
+                    "image/ktx2"
+                } else {
+                    "image/jpeg"
+                },
             });
             continue;
         }
@@ -134,7 +143,8 @@ pub fn pack_gltf(input: &Path, output: &Path, opts: &PackOptions) -> Result<()> 
     }
 
     // Build the output glTF JSON with embedded images
-    let (json_root, bin_chunk) = build_output_json(source, image_blobs, bin_chunk, opts.gpu_compress)?;
+    let (json_root, bin_chunk) =
+        build_output_json(source, image_blobs, bin_chunk, opts.gpu_compress)?;
 
     // Serialize JSON
     let json_str = serde_json::to_string(&json_root).context("Failed to serialize glTF JSON")?;
@@ -281,9 +291,30 @@ fn convert_image(
     let (final_w, final_h, final_rgba) = resize_if_needed(w, h, rgba, opts.max_texture_size)?;
 
     if opts.gpu_compress {
-        encode_uastc_and_log(name, index, total, w, h, final_w, final_h, &final_rgba, is_normal, opts)
+        encode_uastc_and_log(
+            name,
+            index,
+            total,
+            w,
+            h,
+            final_w,
+            final_h,
+            &final_rgba,
+            is_normal,
+            opts,
+        )
     } else {
-        encode_cpu_and_log(name, index, total, w, h, final_w, final_h, &final_rgba, opts)
+        encode_cpu_and_log(
+            name,
+            index,
+            total,
+            w,
+            h,
+            final_w,
+            final_h,
+            &final_rgba,
+            opts,
+        )
     }
 }
 
@@ -346,14 +377,8 @@ fn encode_cpu_and_log(
         // Encode as PNG to preserve alpha
         let mut buf = Vec::new();
         let encoder = image::codecs::png::PngEncoder::new(&mut buf);
-        image::ImageEncoder::write_image(
-            encoder,
-            rgba,
-            w,
-            h,
-            image::ExtendedColorType::Rgba8,
-        )
-        .with_context(|| format!("PNG encode failed for '{name}'"))?;
+        image::ImageEncoder::write_image(encoder, rgba, w, h, image::ExtendedColorType::Rgba8)
+            .with_context(|| format!("PNG encode failed for '{name}'"))?;
         ImageBlob {
             data: buf,
             mime: "image/png",
@@ -393,12 +418,7 @@ fn encode_cpu_and_log(
     Ok(blob)
 }
 
-fn resize_if_needed(
-    w: u32,
-    h: u32,
-    rgba: Vec<u8>,
-    max_size: u32,
-) -> Result<(u32, u32, Vec<u8>)> {
+fn resize_if_needed(w: u32, h: u32, rgba: Vec<u8>, max_size: u32) -> Result<(u32, u32, Vec<u8>)> {
     if w > max_size || h > max_size {
         let scale = max_size as f64 / w.max(h) as f64;
         let new_w = ((w as f64 * scale).round() as u32).max(1);
@@ -493,8 +513,7 @@ fn build_output_json(
     // (see https://github.com/bevyengine/bevy/issues/19104).
     // Instead, we embed KTX2/UASTC images directly with mimeType "image/ktx2".
     // Bevy's KTX2 loader handles basis-universal transcoding natively.
-    root.extensions_used
-        .retain(|e| e != "KHR_texture_basisu");
+    root.extensions_used.retain(|e| e != "KHR_texture_basisu");
     root.extensions_required
         .retain(|e| e != "KHR_texture_basisu");
 

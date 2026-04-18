@@ -2375,7 +2375,11 @@ impl HeatmapDiagram {
                 && cell.c_index % val_step == val_step / 2
                 && cell.g_index % val_step == val_step / 2
             {
-                let text_color = if cell.normalized < 0.45 { "#ffffff" } else { "#1a1a1a" };
+                let text_color = if cell.normalized < 0.45 {
+                    "#ffffff"
+                } else {
+                    "#1a1a1a"
+                };
                 let cx = cell.x + cell.width * val_step as f64 / 2.0;
                 let cy = cell.y + cell.height * val_step as f64 / 2.0;
                 svg.push_str(&format!(
@@ -3652,7 +3656,10 @@ impl IsoluxDiagram {
             ),
             (
                 0.5,
-                format!("{} {illu_label}", fmt_lux(units.convert_lux(self.max_lux * 0.5))),
+                format!(
+                    "{} {illu_label}",
+                    fmt_lux(units.convert_lux(self.max_lux * 0.5))
+                ),
             ),
             (1.0, format!("0 {illu_label}")),
         ];
@@ -3720,12 +3727,12 @@ impl IsoluxDiagram {
 
         // AEC contour band definitions: (percentage of max, color, label)
         let bands: &[(f64, &str, &str)] = &[
-            (0.50, "rgba(220,50,50,0.55)",   "50.0 %"),
-            (0.30, "rgba(240,140,40,0.55)",   "30.0 %"),
-            (0.10, "rgba(240,220,60,0.55)",   "10.0 %"),
-            (0.06, "rgba(80,200,80,0.55)",    "6.0 %"),
-            (0.03, "rgba(80,180,220,0.55)",   "3.0 %"),
-            (0.01, "rgba(160,80,200,0.45)",   "1.0 %"),
+            (0.50, "rgba(220,50,50,0.55)", "50.0 %"),
+            (0.30, "rgba(240,140,40,0.55)", "30.0 %"),
+            (0.10, "rgba(240,220,60,0.55)", "10.0 %"),
+            (0.06, "rgba(80,200,80,0.55)", "6.0 %"),
+            (0.03, "rgba(80,180,220,0.55)", "3.0 %"),
+            (0.01, "rgba(160,80,200,0.45)", "1.0 %"),
         ];
 
         // Build lux grid from cells
@@ -4002,7 +4009,11 @@ impl IsoluxDiagram {
                 let (x3, y3) = iso(wx0, wy1);
 
                 let lux = lux_grid[row][col];
-                let norm = if self.max_lux > 0.0 { lux / self.max_lux } else { 0.0 };
+                let norm = if self.max_lux > 0.0 {
+                    lux / self.max_lux
+                } else {
+                    0.0
+                };
                 // Grayscale: bright center (white) → dark edges (gray)
                 let gray = (255.0 * (1.0 - norm * config.grayscale_max_darken)) as u8;
                 let fill = format!("rgb({gray},{gray},{gray})");
@@ -4040,7 +4051,11 @@ impl IsoluxDiagram {
         // Re-trace contour paths: for each contour level, sample lux_grid and
         // draw isometric ellipses approximating the iso-illuminance curves.
         let contour_levels: Vec<f64> = if self.max_lux > 0.0 {
-            config.contour_fractions.iter().map(|f| self.max_lux * f).collect()
+            config
+                .contour_fractions
+                .iter()
+                .map(|f| self.max_lux * f)
+                .collect()
         } else {
             vec![]
         };
@@ -4084,13 +4099,16 @@ impl IsoluxDiagram {
             if contour_pts.len() > 3 {
                 let norm = level / self.max_lux;
                 // Darker lines for higher lux (inner contours)
-                let gray = (config.contour_gray_min + config.contour_gray_range * (1.0 - norm)) as u8;
+                let gray =
+                    (config.contour_gray_min + config.contour_gray_range * (1.0 - norm)) as u8;
                 let stroke = format!("rgb({gray},{gray},{gray})");
                 let sw = config.contour_stroke_width_min + config.contour_stroke_width_range * norm;
 
                 let mut path = String::from("M ");
                 for (i, &(px, py)) in contour_pts.iter().enumerate() {
-                    if i > 0 { path.push_str(" L "); }
+                    if i > 0 {
+                        path.push_str(" L ");
+                    }
                     path.push_str(&format!("{px:.1} {py:.1}"));
                 }
                 path.push_str(" Z");
@@ -4149,7 +4167,9 @@ impl IsoluxDiagram {
                 let r = max_r * si as f64 / steps as f64;
                 let wx = dir_x * r;
                 let wy = dir_y * r;
-                if wx.abs() > hw || wy.abs() > hd { break; }
+                if wx.abs() > hw || wy.abs() > hd {
+                    break;
+                }
                 let col = ((wx + hw) / (2.0 * hw) * (n - 1) as f64) as usize;
                 let row = ((wy + hd) / (2.0 * hd) * (n - 1) as f64) as usize;
                 if col < n && row < n && lux_grid[row][col] < level {
@@ -4241,13 +4261,20 @@ impl IsoluxDiagram {
             let c0_idx = 0;
             let intensities_c0 = &ldt.intensities[c0_idx.min(ldt.intensities.len() - 1)];
 
-            let c180_idx = ldt.c_angles.iter().position(|&a| (a - 180.0).abs() < 1.0)
+            let c180_idx = ldt
+                .c_angles
+                .iter()
+                .position(|&a| (a - 180.0).abs() < 1.0)
                 .unwrap_or(0);
             let intensities_c180 = &ldt.intensities[c180_idx.min(ldt.intensities.len() - 1)];
 
             let mut pts_right: Vec<(f64, f64)> = Vec::new();
             for (gi, &gamma) in g_angles.iter().enumerate() {
-                let intensity = if gi < intensities_c0.len() { intensities_c0[gi] } else { 0.0 };
+                let intensity = if gi < intensities_c0.len() {
+                    intensities_c0[gi]
+                } else {
+                    0.0
+                };
                 let r = intensity / max_i * polar_radius;
                 let angle_rad = (gamma - 90.0).to_radians();
                 let px = polar_cx + r * angle_rad.cos();
@@ -4257,7 +4284,11 @@ impl IsoluxDiagram {
 
             let mut pts_left: Vec<(f64, f64)> = Vec::new();
             for (gi, &gamma) in g_angles.iter().enumerate() {
-                let intensity = if gi < intensities_c180.len() { intensities_c180[gi] } else { 0.0 };
+                let intensity = if gi < intensities_c180.len() {
+                    intensities_c180[gi]
+                } else {
+                    0.0
+                };
                 let r = intensity / max_i * polar_radius;
                 let angle_rad = (gamma - 90.0).to_radians();
                 let px = polar_cx - r * angle_rad.cos();

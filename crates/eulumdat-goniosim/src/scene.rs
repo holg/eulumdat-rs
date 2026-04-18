@@ -44,12 +44,7 @@ impl Scene {
     }
 
     /// Add a scene object with a primitive, material, and label.
-    pub fn add_object(
-        &mut self,
-        primitive: Primitive,
-        material: MaterialId,
-        label: &str,
-    ) -> usize {
+    pub fn add_object(&mut self, primitive: Primitive, material: MaterialId, label: &str) -> usize {
         let idx = self.objects.len();
         self.objects.push(SceneObject {
             primitive,
@@ -212,7 +207,8 @@ impl SceneBuilder {
             ReflectorSide::Right => {
                 let u_axis = perpendicular_axis(&self.source_direction);
                 let normal = Unit::new_normalize(-u_axis.into_inner());
-                let center = self.source_position + u_axis.as_ref() * d
+                let center = self.source_position
+                    + u_axis.as_ref() * d
                     + self.source_direction.as_ref() * (l / 2.0);
                 let prim = Primitive::Sheet {
                     center,

@@ -62,7 +62,9 @@ impl CameraImage {
                     for dx in -radius..=radius {
                         let nx = x + dx;
                         let ny = y + dy;
-                        if nx < 0 || nx >= w || ny < 0 || ny >= h { continue; }
+                        if nx < 0 || nx >= w || ny < 0 || ny >= h {
+                            continue;
+                        }
 
                         let ni = (ny * w + nx) as usize;
                         let neighbor = src[ni];
@@ -252,7 +254,12 @@ impl GpuCamera {
             cache: None,
         });
 
-        Ok(Self { device, queue, pipeline, bind_group_layout })
+        Ok(Self {
+            device,
+            queue,
+            pipeline,
+            bind_group_layout,
+        })
     }
 
     /// Render an image of the scene.
@@ -272,8 +279,24 @@ impl GpuCamera {
         source_intensity: f32,
         source_pos: [f32; 3],
     ) -> CameraImage {
-        self.render_with_lvk(width, height, samples_per_pixel, camera_pos, look_at, fov_degrees,
-            primitives, materials, source_intensity, source_pos, &[], 0, 0, 0.0, 0.0).await
+        self.render_with_lvk(
+            width,
+            height,
+            samples_per_pixel,
+            camera_pos,
+            look_at,
+            fov_degrees,
+            primitives,
+            materials,
+            source_intensity,
+            source_pos,
+            &[],
+            0,
+            0,
+            0.0,
+            0.0,
+        )
+        .await
     }
 
     /// Render with LDT-based light emission pattern.
@@ -332,11 +355,13 @@ impl GpuCamera {
         // 4 u32 per pixel: R, G, B, sample_count
         let pixel_buffer_size = (total_pixels * 4) as u64 * 4;
 
-        let config_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("cam_config"),
-            contents: bytemuck::bytes_of(&config),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+        let config_buf = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("cam_config"),
+                contents: bytemuck::bytes_of(&config),
+                usage: wgpu::BufferUsages::UNIFORM,
+            });
 
         let pixel_buf = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("pixel_buf"),
@@ -353,42 +378,92 @@ impl GpuCamera {
         });
 
         // Dummy buffers if no geometry
-        let dummy_prim = GpuPrimitive { ptype: 0, material_id: 0, _pad0: 0, _pad1: 0, params: [0.0; 12] };
-        let dummy_mat = GpuMaterial { mtype: 0, _pad0: 0, _pad1: 0, _pad2: 0,
-            reflectance: 0.0, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-            absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0 };
+        let dummy_prim = GpuPrimitive {
+            ptype: 0,
+            material_id: 0,
+            _pad0: 0,
+            _pad1: 0,
+            params: [0.0; 12],
+        };
+        let dummy_mat = GpuMaterial {
+            mtype: 0,
+            _pad0: 0,
+            _pad1: 0,
+            _pad2: 0,
+            reflectance: 0.0,
+            ior: 1.0,
+            transmittance: 0.0,
+            min_reflectance: 0.0,
+            absorption_coeff: 0.0,
+            scattering_coeff: 0.0,
+            asymmetry: 0.0,
+            thickness: 0.0,
+        };
 
-        let prim_data: Vec<GpuPrimitive> = if primitives.is_empty() { vec![dummy_prim] } else { primitives.to_vec() };
-        let mat_data: Vec<GpuMaterial> = if materials.is_empty() { vec![dummy_mat] } else { materials.to_vec() };
+        let prim_data: Vec<GpuPrimitive> = if primitives.is_empty() {
+            vec![dummy_prim]
+        } else {
+            primitives.to_vec()
+        };
+        let mat_data: Vec<GpuMaterial> = if materials.is_empty() {
+            vec![dummy_mat]
+        } else {
+            materials.to_vec()
+        };
 
-        let prim_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("cam_prims"),
-            contents: bytemuck::cast_slice(&prim_data),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
-        let mat_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("cam_mats"),
-            contents: bytemuck::cast_slice(&mat_data),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+        let prim_buf = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("cam_prims"),
+                contents: bytemuck::cast_slice(&prim_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
+        let mat_buf = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("cam_mats"),
+                contents: bytemuck::cast_slice(&mat_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
 
         // LVK buffer
-        let lvk_buf_data: Vec<f32> = if lvk_data.is_empty() { vec![1.0] } else { lvk_data.to_vec() };
-        let lvk_buf = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("cam_lvk"),
-            contents: bytemuck::cast_slice(&lvk_buf_data),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+        let lvk_buf_data: Vec<f32> = if lvk_data.is_empty() {
+            vec![1.0]
+        } else {
+            lvk_data.to_vec()
+        };
+        let lvk_buf = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("cam_lvk"),
+                contents: bytemuck::cast_slice(&lvk_buf_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("cam_bg"),
             layout: &self.bind_group_layout,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: pixel_buf.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 1, resource: config_buf.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 2, resource: prim_buf.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 3, resource: mat_buf.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 4, resource: lvk_buf.as_entire_binding() },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: pixel_buf.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: config_buf.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: prim_buf.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: mat_buf.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: lvk_buf.as_entire_binding(),
+                },
             ],
         });
 
@@ -396,9 +471,11 @@ impl GpuCamera {
         let wg_x = (width + 15) / 16;
         let wg_y = (height + 15) / 16;
 
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("cam_encoder"),
-        });
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("cam_encoder"),
+            });
 
         {
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -416,7 +493,9 @@ impl GpuCamera {
         // Readback
         let slice = readback_buf.slice(..);
         let (tx, rx) = flume::bounded(1);
-        slice.map_async(wgpu::MapMode::Read, move |r| { tx.send(r).unwrap(); });
+        slice.map_async(wgpu::MapMode::Read, move |r| {
+            tx.send(r).unwrap();
+        });
         self.device.poll(wgpu::PollType::wait_indefinitely()).ok();
         rx.recv_async().await.unwrap().unwrap();
 
@@ -435,7 +514,11 @@ impl GpuCamera {
         drop(data);
         readback_buf.unmap();
 
-        CameraImage { width, height, pixels }
+        CameraImage {
+            width,
+            height,
+            pixels,
+        }
     }
 }
 

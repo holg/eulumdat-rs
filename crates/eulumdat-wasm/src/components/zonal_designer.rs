@@ -1,16 +1,14 @@
 //! Zonal Cavity Interior Lighting Designer — Leptos WASM component.
 
-use eulumdat::CuTable;
-use eulumdat::PhotometricCalculations;
 use eulumdat::diagram::SvgTheme;
-use eulumdat::scene3d::{
-    build_interior_scene, fit_scale, render_scene_svg, CameraPreset,
-};
+use eulumdat::scene3d::{build_interior_scene, fit_scale, render_scene_svg, CameraPreset};
 use eulumdat::zonal::{
     compute_cavity_ratios, compute_ppb_overlay, compute_zonal, LightLossFactor, LlfPreset,
     ReflectancePreset, Reflectances, Room, RoomPreset, SolveMode, ZonalSvg,
 };
+use eulumdat::CuTable;
 use eulumdat::Eulumdat;
+use eulumdat::PhotometricCalculations;
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -22,12 +20,20 @@ use crate::i18n::use_locale;
 /// Build a URL hash string from zonal designer params.
 fn zonal_params_to_hash(
     preset: usize,
-    l: f64, w: f64, h: f64,
-    wp: f64, sus: f64,
+    l: f64,
+    w: f64,
+    h: f64,
+    wp: f64,
+    sus: f64,
     target: f64,
-    refl: usize, rc: f64, rw: f64, rf: f64,
+    refl: usize,
+    rc: f64,
+    rw: f64,
+    rf: f64,
     llf: usize,
-    mode: &SolveMode, count: usize, lpd: f64,
+    mode: &SolveMode,
+    count: usize,
+    lpd: f64,
     view: &str,
 ) -> String {
     let mut parts = vec![
@@ -86,11 +92,7 @@ fn parse_interior_hash_params() -> Option<std::collections::HashMap<String, Stri
 fn set_interior_url_hash(hash: &str) {
     if let Some(window) = web_sys::window() {
         if let Ok(history) = window.history() {
-            let _ = history.replace_state_with_url(
-                &wasm_bindgen::JsValue::NULL,
-                "",
-                Some(hash),
-            );
+            let _ = history.replace_state_with_url(&wasm_bindgen::JsValue::NULL, "", Some(hash));
         }
     }
 }
@@ -128,9 +130,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // ─── Parse URL hash for initial values ───────────────────────────────
     let url_params = parse_interior_hash_params();
-    let url_get = |key: &str| -> Option<String> {
-        url_params.as_ref()?.get(key).cloned()
-    };
+    let url_get = |key: &str| -> Option<String> { url_params.as_ref()?.get(key).cloned() };
     let url_f64 = {
         let url_params_ref = url_params.as_ref();
         move |key: &str, default: f64| -> f64 {
@@ -152,9 +152,12 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     let (room_length, set_room_length) = signal(url_f64("l", default_room.length));
     let (room_width, set_room_width) = signal(url_f64("w", default_room.width));
     let (room_height, set_room_height) = signal(url_f64("h", default_room.height));
-    let (workplane_height, set_workplane_height) = signal(url_f64("wp", default_room.workplane_height));
-    let (suspension_length, set_suspension_length) = signal(url_f64("sus", default_room.suspension_length));
-    let (target_illuminance, set_target_illuminance) = signal(url_f64("target", init_room_preset.target_lux()));
+    let (workplane_height, set_workplane_height) =
+        signal(url_f64("wp", default_room.workplane_height));
+    let (suspension_length, set_suspension_length) =
+        signal(url_f64("sus", default_room.suspension_length));
+    let (target_illuminance, set_target_illuminance) =
+        signal(url_f64("target", init_room_preset.target_lux()));
 
     // ─── Reflectances ───────────────────────────────────────────────────
     let url_refl_idx = url_get("refl").and_then(|v| v.parse::<usize>().ok());
@@ -164,7 +167,8 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     let default_refl = init_refl_preset.to_reflectances();
 
     let (refl_preset, set_refl_preset) = signal(init_refl_preset);
-    let (rho_ceiling, set_rho_ceiling) = signal(url_f64("rc", default_refl.ceiling * 100.0) / 100.0);
+    let (rho_ceiling, set_rho_ceiling) =
+        signal(url_f64("rc", default_refl.ceiling * 100.0) / 100.0);
     let (rho_wall, set_rho_wall) = signal(url_f64("rw", default_refl.wall * 100.0) / 100.0);
     let (rho_floor, set_rho_floor) = signal(url_f64("rf", default_refl.floor * 100.0) / 100.0);
 
@@ -189,7 +193,9 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     };
     let (solve_mode, set_solve_mode) = signal(init_solve_mode);
     let (fixed_count, set_fixed_count) = signal(
-        url_get("count").and_then(|v| v.parse().ok()).unwrap_or(12_usize)
+        url_get("count")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(12_usize),
     );
     let (target_lpd, set_target_lpd) = signal(url_f64("lpd", 10.0));
 
@@ -231,17 +237,34 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // ─── URL sync: update hash whenever parameters change ────────────────
     Effect::new(move |_| {
-        let preset_idx = RoomPreset::all().iter().position(|p| *p == room_preset.get()).unwrap_or(0);
-        let refl_idx = ReflectancePreset::all().iter().position(|p| *p == refl_preset.get()).unwrap_or(0);
-        let llf_idx = LlfPreset::all().iter().position(|p| *p == llf_preset.get()).unwrap_or(0);
+        let preset_idx = RoomPreset::all()
+            .iter()
+            .position(|p| *p == room_preset.get())
+            .unwrap_or(0);
+        let refl_idx = ReflectancePreset::all()
+            .iter()
+            .position(|p| *p == refl_preset.get())
+            .unwrap_or(0);
+        let llf_idx = LlfPreset::all()
+            .iter()
+            .position(|p| *p == llf_preset.get())
+            .unwrap_or(0);
         let hash = zonal_params_to_hash(
             preset_idx,
-            room_length.get(), room_width.get(), room_height.get(),
-            workplane_height.get(), suspension_length.get(),
+            room_length.get(),
+            room_width.get(),
+            room_height.get(),
+            workplane_height.get(),
+            suspension_length.get(),
             target_illuminance.get(),
-            refl_idx, rho_ceiling.get(), rho_wall.get(), rho_floor.get(),
+            refl_idx,
+            rho_ceiling.get(),
+            rho_wall.get(),
+            rho_floor.get(),
             llf_idx,
-            &solve_mode.get(), fixed_count.get(), target_lpd.get(),
+            &solve_mode.get(),
+            fixed_count.get(),
+            target_lpd.get(),
             &view_tab.get(),
         );
         set_interior_url_hash(&hash);
@@ -351,9 +374,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     });
 
     // ─── Zonal lumen summary ────────────────────────────────────────────
-    let zonal_lumens = Memo::new(move |_| {
-        PhotometricCalculations::zonal_lumens_30deg(&ldt.get())
-    });
+    let zonal_lumens = Memo::new(move |_| PhotometricCalculations::zonal_lumens_30deg(&ldt.get()));
 
     // ─── Render ─────────────────────────────────────────────────────────
     view! {

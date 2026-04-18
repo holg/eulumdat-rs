@@ -235,8 +235,7 @@ fn trace_parallel(
                     ((thread_idx as u64 * photons_per_thread + i) as usize) % num_sources;
                 let source = &scene.sources[source_idx];
                 let ray = source.sample(&mut rng);
-                let record_trail =
-                    thread_idx == 0 && trails.len() < config.max_trails;
+                let record_trail = thread_idx == 0 && trails.len() < config.max_trails;
 
                 let result = trace_one_photon(scene, config, ray, &mut rng, record_trail);
 

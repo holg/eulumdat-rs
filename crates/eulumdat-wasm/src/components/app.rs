@@ -32,35 +32,35 @@ async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
 use crate::i18n::{use_locale, LanguageSelectorCompact};
 use eulumdat_i18n::Locale;
 
-use super::dashboard::Dashboard;
+use super::area_designer::AreaDesigner;
 use super::beam_angle_diagram::BeamAngleDiagram;
 use super::bevy_scene::BevySceneViewer;
-use super::goniosim::GonioSimDemo;
-use super::obscura_demo::ObscuraDemo;
 use super::bim_panel::{has_bim_data, BimPanel, BimPanelEmpty};
 use super::bug_rating::BugRating;
 use super::butterfly_3d::Butterfly3D;
 use super::cartesian_diagram::CartesianDiagram;
 use super::compare_panel::ComparePanel;
 use super::cone_diagram::{ConeDiagramView, ConeIlluminanceTableView};
+use super::dashboard::Dashboard;
 use super::data_table::DataTable;
 use super::diagram_zoom::DiagramZoom;
 use super::floodlight_cartesian::FloodlightCartesian;
+use super::goniosim::GonioSimDemo;
 use super::greenhouse_diagram::GreenhouseDiagramView;
 use super::intensity_heatmap::IntensityHeatmap;
 use super::isocandela_diagram::IsocandelaDiagramView;
 use super::isolux_footprint::IsoluxFootprint;
 use super::isolux_isometric::IsoluxIsometric;
 use super::lcs_classification::LcsClassification;
-use super::area_designer::AreaDesigner;
 use super::maps_designer::MapsDesigner;
-use super::zonal_designer::ZonalDesigner;
+use super::obscura_demo::ObscuraDemo;
 use super::polar_diagram::PolarDiagram;
 use super::spectral_diagram::SpectralDiagramView;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
 use super::templates::ALL_TEMPLATES;
 use super::theme::{ThemeMode, ThemeProvider};
 use super::validation_panel::ValidationPanel;
+use super::zonal_designer::ZonalDesigner;
 
 // Storage keys - must match eulumdat-bevy/src/viewer/wasm_sync.rs
 const LDT_STORAGE_KEY: &str = "eulumdat_current_ldt";
@@ -476,9 +476,7 @@ fn load_template(
             }
         }
     } else {
-        web_sys::console::error_1(
-            &format!("Template '{}' not found", id).into(),
-        );
+        web_sys::console::error_1(&format!("Template '{}' not found", id).into());
     }
     set_templates_loading.set(false);
 }
@@ -989,14 +987,23 @@ pub fn App() -> impl IntoView {
                     area_half_depth: 15.0,
                     ..eulumdat::diagram::IsoluxParams::default()
                 };
-                let diagram =
-                    eulumdat::diagram::IsoluxDiagram::from_eulumdat(&ldt_val, 1200.0, 500.0, params);
+                let diagram = eulumdat::diagram::IsoluxDiagram::from_eulumdat(
+                    &ldt_val, 1200.0, 500.0, params,
+                );
                 let title = if !ldt_val.luminaire_name.is_empty() {
                     format!("ISO view {}", ldt_val.luminaire_name)
                 } else {
                     "ISO view".to_string()
                 };
-                let svg = diagram.to_svg_isometric(1200.0, 500.0, &theme, &eulumdat::diagram::IsometricConfig::default(), UnitSystem::default(), &ldt_val, &title);
+                let svg = diagram.to_svg_isometric(
+                    1200.0,
+                    500.0,
+                    &theme,
+                    &eulumdat::diagram::IsometricConfig::default(),
+                    UnitSystem::default(),
+                    &ldt_val,
+                    &title,
+                );
                 Some((svg, "iso_view.svg".to_string()))
             }
             Tab::FloodlightIsocandela => {

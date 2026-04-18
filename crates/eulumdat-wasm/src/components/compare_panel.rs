@@ -13,7 +13,6 @@ use super::app::use_unit_system;
 use super::templates::{TemplateFormat, ALL_TEMPLATES};
 use crate::i18n::use_locale;
 
-
 /// Compare diagram mode
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 enum CompareDiagramMode {

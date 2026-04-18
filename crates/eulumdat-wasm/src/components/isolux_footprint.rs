@@ -20,16 +20,32 @@ struct SliderRange {
 /// Return slider range for mounting height in the user's native unit.
 fn height_range(units: UnitSystem) -> SliderRange {
     match units {
-        UnitSystem::Metric   => SliderRange { min: 3.0,  max: 30.0,  step: 0.5 },
-        UnitSystem::Imperial => SliderRange { min: 10.0, max: 100.0, step: 1.0 },
+        UnitSystem::Metric => SliderRange {
+            min: 3.0,
+            max: 30.0,
+            step: 0.5,
+        },
+        UnitSystem::Imperial => SliderRange {
+            min: 10.0,
+            max: 100.0,
+            step: 1.0,
+        },
     }
 }
 
 /// Return slider range for area half-size in the user's native unit.
 fn area_range(units: UnitSystem) -> SliderRange {
     match units {
-        UnitSystem::Metric   => SliderRange { min: 10.0,  max: 100.0, step: 5.0  },
-        UnitSystem::Imperial => SliderRange { min: 30.0,  max: 300.0, step: 10.0 },
+        UnitSystem::Metric => SliderRange {
+            min: 10.0,
+            max: 100.0,
+            step: 5.0,
+        },
+        UnitSystem::Imperial => SliderRange {
+            min: 30.0,
+            max: 300.0,
+            step: 10.0,
+        },
     }
 }
 

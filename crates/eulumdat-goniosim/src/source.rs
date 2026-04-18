@@ -10,10 +10,7 @@ use std::f64::consts::PI;
 #[derive(Debug, Clone)]
 pub enum Source {
     /// Uniform emission in all directions (4pi steradians).
-    Isotropic {
-        position: Point3<f64>,
-        flux_lm: f64,
-    },
+    Isotropic { position: Point3<f64>, flux_lm: f64 },
 
     /// Cosine-weighted hemisphere (ideal diffuse emitter).
     Lambertian {
@@ -277,9 +274,7 @@ impl LvkCdf {
         }
 
         // Marginal over gamma: sum over C for each g
-        let marginal_unnorm: Vec<f64> = pdf.iter()
-            .map(|row| row.iter().sum::<f64>())
-            .collect();
+        let marginal_unnorm: Vec<f64> = pdf.iter().map(|row| row.iter().sum::<f64>()).collect();
 
         // Build marginal CDF
         let mut marginal_g = vec![0.0; g_steps];
@@ -302,7 +297,11 @@ impl LvkCdf {
             let mut ccum = 0.0;
             for ci in 0..c_steps {
                 ccum += pdf[gi][ci];
-                conditional_c[gi][ci] = if row_sum > 0.0 { ccum / row_sum } else { (ci + 1) as f64 / c_steps as f64 };
+                conditional_c[gi][ci] = if row_sum > 0.0 {
+                    ccum / row_sum
+                } else {
+                    (ci + 1) as f64 / c_steps as f64
+                };
             }
         }
 
@@ -318,7 +317,10 @@ impl LvkCdf {
     fn sample<R: Rng>(&self, rng: &mut R) -> (f64, f64) {
         // Sample gamma from marginal CDF
         let u_g: f64 = rng.random();
-        let gi = match self.marginal_g.binary_search_by(|v| v.partial_cmp(&u_g).unwrap()) {
+        let gi = match self
+            .marginal_g
+            .binary_search_by(|v| v.partial_cmp(&u_g).unwrap())
+        {
             Ok(i) => i,
             Err(i) => i.min(self.g_steps - 1),
         };

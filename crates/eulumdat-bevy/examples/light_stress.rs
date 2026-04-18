@@ -7,8 +7,8 @@
 
 use bevy::camera::Hdr;
 use bevy::core_pipeline::tonemapping::Tonemapping;
-use bevy::post_process::bloom::Bloom;
 use bevy::input::mouse::MouseMotion;
+use bevy::post_process::bloom::Bloom;
 use bevy::prelude::*;
 use bevy::render::view::NoIndirectDrawing;
 
@@ -57,12 +57,24 @@ fn simple_cam_move(
         let speed = 5.0 * time.delta_secs();
         let fwd = tf.forward();
         let right = tf.right();
-        if keys.pressed(KeyCode::KeyW) { tf.translation += fwd * speed; }
-        if keys.pressed(KeyCode::KeyS) { tf.translation -= fwd * speed; }
-        if keys.pressed(KeyCode::KeyA) { tf.translation -= right * speed; }
-        if keys.pressed(KeyCode::KeyD) { tf.translation += right * speed; }
-        if keys.pressed(KeyCode::KeyQ) { tf.translation += Vec3::Y * speed; }
-        if keys.pressed(KeyCode::KeyE) { tf.translation -= Vec3::Y * speed; }
+        if keys.pressed(KeyCode::KeyW) {
+            tf.translation += fwd * speed;
+        }
+        if keys.pressed(KeyCode::KeyS) {
+            tf.translation -= fwd * speed;
+        }
+        if keys.pressed(KeyCode::KeyA) {
+            tf.translation -= right * speed;
+        }
+        if keys.pressed(KeyCode::KeyD) {
+            tf.translation += right * speed;
+        }
+        if keys.pressed(KeyCode::KeyQ) {
+            tf.translation += Vec3::Y * speed;
+        }
+        if keys.pressed(KeyCode::KeyE) {
+            tf.translation -= Vec3::Y * speed;
+        }
     }
 }
 
@@ -105,7 +117,10 @@ fn setup(
         Camera3d::default(),
         Hdr,
         Tonemapping::AgX,
-        Bloom { intensity: 0.08, ..default() },
+        Bloom {
+            intensity: 0.08,
+            ..default()
+        },
         EnvironmentMapLight {
             diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
             specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
@@ -139,43 +154,71 @@ fn setup(
 
     // 12 street lamps — 1 PointLight + 3 SpotLights each (same as photometric system)
     let street_positions: &[(f32, f32, f32)] = &[
-        (-6.93, 6.92, -6.70), (5.98, 6.93, -34.01), (78.92, 6.93, 54.97),
-        (56.16, 6.93, 29.31), (-33.31, 6.93, -29.18), (-15.44, 6.93, 3.34),
-        (-3.34, 6.93, 7.44), (-2.81, 6.93, 16.06), (12.50, 6.93, 13.85),
-        (34.53, 6.93, 30.11), (53.29, 6.93, 38.56), (62.08, 6.93, 54.31),
+        (-6.93, 6.92, -6.70),
+        (5.98, 6.93, -34.01),
+        (78.92, 6.93, 54.97),
+        (56.16, 6.93, 29.31),
+        (-33.31, 6.93, -29.18),
+        (-15.44, 6.93, 3.34),
+        (-3.34, 6.93, 7.44),
+        (-2.81, 6.93, 16.06),
+        (12.50, 6.93, 13.85),
+        (34.53, 6.93, 30.11),
+        (53.29, 6.93, 38.56),
+        (62.08, 6.93, 54.31),
     ];
 
     // 16 wall lights
     let wall_positions: &[(f32, f32, f32)] = &[
-        (-21.44, 6.33, 1.94), (-27.61, 6.33, -6.06), (28.84, 7.04, -66.51),
-        (28.25, 7.04, -55.05), (14.37, 7.15, -32.13), (48.01, 6.35, 21.60),
-        (39.14, 7.24, 37.07), (33.22, 6.35, 20.41), (-32.27, 6.33, -11.50),
-        (-39.34, 6.31, -18.89), (-45.62, 5.14, -27.51), (-43.03, 5.14, -33.70),
-        (-28.37, 6.33, -23.91), (-19.10, 6.33, -15.39), (-13.49, 6.37, -18.26),
+        (-21.44, 6.33, 1.94),
+        (-27.61, 6.33, -6.06),
+        (28.84, 7.04, -66.51),
+        (28.25, 7.04, -55.05),
+        (14.37, 7.15, -32.13),
+        (48.01, 6.35, 21.60),
+        (39.14, 7.24, 37.07),
+        (33.22, 6.35, 20.41),
+        (-32.27, 6.33, -11.50),
+        (-39.34, 6.31, -18.89),
+        (-45.62, 5.14, -27.51),
+        (-43.03, 5.14, -33.70),
+        (-28.37, 6.33, -23.91),
+        (-19.10, 6.33, -15.39),
+        (-13.49, 6.37, -18.26),
         (-3.39, 6.63, -29.25),
     ];
 
     // 5 spotlights
     let spot_positions: &[(f32, f32, f32)] = &[
-        (-26.19, 11.98, -22.00), (15.72, 5.55, -33.45), (-20.12, 13.68, 3.93),
-        (-26.09, 13.68, -3.01), (-29.69, 13.67, -9.11),
+        (-26.19, 11.98, -22.00),
+        (15.72, 5.55, -33.45),
+        (-20.12, 13.68, 3.93),
+        (-26.09, 13.68, -3.01),
+        (-29.69, 13.67, -9.11),
     ];
 
     // 5 lanterns
     let lantern_positions: &[(f32, f32, f32)] = &[
-        (7.33, 4.13, 5.27), (2.91, 4.14, 3.52), (-1.79, 4.13, -7.54),
-        (-0.07, 4.08, -11.55), (11.71, 4.09, 6.69),
+        (7.33, 4.13, 5.27),
+        (2.91, 4.14, 3.52),
+        (-1.79, 4.13, -7.54),
+        (-0.07, 4.08, -11.55),
+        (11.71, 4.09, 6.69),
     ];
 
-    let all_positions: Vec<Vec3> = street_positions.iter()
+    let all_positions: Vec<Vec3> = street_positions
+        .iter()
         .chain(wall_positions)
         .chain(spot_positions)
         .chain(lantern_positions)
         .map(|&(x, y, z)| Vec3::new(x, y, z))
         .collect();
 
-    println!("Spawning {} luminaire positions, each with 1 point + 3 spots = {} total Bevy lights",
-        all_positions.len(), all_positions.len() * 4);
+    println!(
+        "Spawning {} luminaire positions, each with 1 point + 3 spots = {} total Bevy lights",
+        all_positions.len(),
+        all_positions.len() * 4
+    );
 
     for pos in &all_positions {
         let h = pos.y;

@@ -158,7 +158,11 @@ pub fn detector_to_eulumdat_at_angles(
                 }
             }
         }
-        if total > 0.0 { 100.0 * down / total } else { 50.0 }
+        if total > 0.0 {
+            100.0 * down / total
+        } else {
+            50.0
+        }
     };
 
     // Handle symmetry: reduce C-planes for symmetric sources so that
@@ -193,14 +197,22 @@ pub fn detector_to_eulumdat_at_angles(
     // If explicit angles were provided, compute spacing from them (0 = non-uniform)
     ldt.c_plane_distance = if c_angles_opt.is_some() && num_c > 1 {
         let d = c_angles[1] - c_angles[0];
-        if c_angles.windows(2).all(|w| (w[1] - w[0] - d).abs() < 0.01) { d } else { 0.0 }
+        if c_angles.windows(2).all(|w| (w[1] - w[0] - d).abs() < 0.01) {
+            d
+        } else {
+            0.0
+        }
     } else {
         config.c_step_deg
     };
     ldt.num_g_planes = num_g;
     ldt.g_plane_distance = if g_angles_opt.is_some() && num_g > 1 {
         let d = g_angles[1] - g_angles[0];
-        if g_angles.windows(2).all(|w| (w[1] - w[0] - d).abs() < 0.01) { d } else { 0.0 }
+        if g_angles.windows(2).all(|w| (w[1] - w[0] - d).abs() < 0.01) {
+            d
+        } else {
+            0.0
+        }
     } else {
         config.g_step_deg
     };
@@ -244,10 +256,7 @@ mod tests {
         // Simulate some isotropic data
         for ci in 0..detector.num_c() {
             for gi in 0..detector.num_g() {
-                let dir = cg_to_direction(
-                    ci as f64 * 15.0,
-                    gi as f64 * 5.0,
-                );
+                let dir = cg_to_direction(ci as f64 * 15.0, gi as f64 * 5.0);
                 detector.record(&dir, 1.0);
             }
         }

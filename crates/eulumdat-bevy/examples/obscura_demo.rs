@@ -20,18 +20,18 @@
 //! Run:
 //!   cargo run --example obscura_demo -p eulumdat-bevy --features post-process,bevy-ui --release
 
+use bevy::camera::Hdr;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::light::{NotShadowCaster, NotShadowReceiver, TransmittedShadowReceiver};
+use bevy::pbr::{DistanceFog, FogFalloff};
 use bevy::post_process::bloom::Bloom;
 use bevy::prelude::*;
-use bevy::pbr::{DistanceFog, FogFalloff};
-use bevy::camera::Hdr;
 use bevy::render::render_resource::Face;
 use bevy::render::view::NoIndirectDrawing;
 use eulumdat::Eulumdat;
-use eulumdat_bevy::photometric::{PhotometricLight, PhotometricPlugin};
 #[cfg(feature = "bevy-ui")]
 use eulumdat_bevy::photometric::PhotometricData;
+use eulumdat_bevy::photometric::{PhotometricLight, PhotometricPlugin};
 use eulumdat_bevy::EulumdatLightBundle;
 
 #[cfg(feature = "bevy-ui")]
@@ -43,24 +43,19 @@ use bevy::input_focus::{
 use bevy::picking::hover::Hovered;
 #[cfg(feature = "bevy-ui")]
 use bevy::ui_widgets::{
-    observe, slider_self_update, Activate, Button as UiButton,
-    Slider, SliderRange, SliderThumb, SliderValue, TrackClick, UiWidgetsPlugins, ValueChange,
+    observe, slider_self_update, Activate, Button as UiButton, Slider, SliderRange, SliderThumb,
+    SliderValue, TrackClick, UiWidgetsPlugins, ValueChange,
 };
 
 // ---------------------------------------------------------------------------
 // Embedded LDT data
 // ---------------------------------------------------------------------------
 
-const POLLUTION_LDT: &str =
-    include_str!("../../eulumdat-wasm/templates/road_luminaire.ldt");
-const PRESERVED_LDT: &str =
-    include_str!("../../eulumdat-wasm/templates/projector.ldt");
-const FLOOD_LDT: &str =
-    include_str!("../../eulumdat-wasm/templates/wiki-flood.ldt");
-const SPOTLIGHT_LDT: &str =
-    include_str!("../../eulumdat-wasm/templates/wiki-spotlight.ldt");
-const UPLIGHT_LDT: &str =
-    include_str!("../../eulumdat-wasm/templates/floor_uplight.ldt");
+const POLLUTION_LDT: &str = include_str!("../../eulumdat-wasm/templates/road_luminaire.ldt");
+const PRESERVED_LDT: &str = include_str!("../../eulumdat-wasm/templates/projector.ldt");
+const FLOOD_LDT: &str = include_str!("../../eulumdat-wasm/templates/wiki-flood.ldt");
+const SPOTLIGHT_LDT: &str = include_str!("../../eulumdat-wasm/templates/wiki-spotlight.ldt");
+const UPLIGHT_LDT: &str = include_str!("../../eulumdat-wasm/templates/floor_uplight.ldt");
 
 // ---------------------------------------------------------------------------
 // UI colors (bevy-ui feature only)
@@ -212,7 +207,10 @@ impl Rng {
     }
 
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 33) as f32) / (u32::MAX as f32)
     }
 
@@ -293,35 +291,43 @@ fn main() {
             no_matfix: args.iter().any(|a| a == "--no-matfix"),
             no_lights: args.iter().any(|a| a == "--no-lights"),
         };
-        let scene = args.iter().skip(1)
-            .find(|a| !a.starts_with("--"))
-            .cloned();
-        if flags.no_sky { println!("DEBUG: --no-sky — sky objects disabled"); }
-        if flags.no_matfix { println!("DEBUG: --no-matfix — material fixes disabled"); }
-        if flags.no_lights { println!("DEBUG: --no-lights — photometric lights disabled"); }
+        let scene = args.iter().skip(1).find(|a| !a.starts_with("--")).cloned();
+        if flags.no_sky {
+            println!("DEBUG: --no-sky — sky objects disabled");
+        }
+        if flags.no_matfix {
+            println!("DEBUG: --no-matfix — material fixes disabled");
+        }
+        if flags.no_lights {
+            println!("DEBUG: --no-lights — photometric lights disabled");
+        }
         (flags, scene)
     };
     #[cfg(target_arch = "wasm32")]
     let (debug_flags, scene) = {
         // Read scene from URL: ?wasm=obscura_demo&scene=sponza (or bistro)
         #[cfg(feature = "wasm-bindgen")]
-        let scene: Option<String> = js_sys::eval(
-            "new URLSearchParams(window.location.search).get('scene')"
-        ).ok().and_then(|v| v.as_string());
+        let scene: Option<String> =
+            js_sys::eval("new URLSearchParams(window.location.search).get('scene')")
+                .ok()
+                .and_then(|v| v.as_string());
         #[cfg(not(feature = "wasm-bindgen"))]
         let scene: Option<String> = None;
-        (DebugFlags { no_sky: false, no_matfix: false, no_lights: false }, scene)
+        (
+            DebugFlags {
+                no_sky: false,
+                no_matfix: false,
+                no_lights: false,
+            },
+            scene,
+        )
     };
 
-    let pollution_ldt =
-        Eulumdat::parse(POLLUTION_LDT).expect("Failed to parse road_luminaire.ldt");
-    let preserved_ldt =
-        Eulumdat::parse(PRESERVED_LDT).expect("Failed to parse projector.ldt");
+    let pollution_ldt = Eulumdat::parse(POLLUTION_LDT).expect("Failed to parse road_luminaire.ldt");
+    let preserved_ldt = Eulumdat::parse(PRESERVED_LDT).expect("Failed to parse projector.ldt");
     let flood_ldt = Eulumdat::parse(FLOOD_LDT).expect("Failed to parse wiki-flood.ldt");
-    let spotlight_ldt =
-        Eulumdat::parse(SPOTLIGHT_LDT).expect("Failed to parse wiki-spotlight.ldt");
-    let uplight_ldt =
-        Eulumdat::parse(UPLIGHT_LDT).expect("Failed to parse floor_uplight.ldt");
+    let spotlight_ldt = Eulumdat::parse(SPOTLIGHT_LDT).expect("Failed to parse wiki-spotlight.ldt");
+    let uplight_ldt = Eulumdat::parse(UPLIGHT_LDT).expect("Failed to parse floor_uplight.ldt");
 
     #[allow(unused_mut)]
     let mut window = Window {
@@ -338,53 +344,62 @@ fn main() {
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(window),
-            ..default()
-        }))
-        .add_plugins(PhotometricPlugin::<Eulumdat>::default())
-        .insert_resource(SimulationState {
-            mode: Mode::StandardPollution,
-            scene: match scene.as_deref() {
-                Some("sponza") => SceneChoice::Sponza,
-                Some("bistro") => SceneChoice::BistroExterior,
-                _ => SceneChoice::UrbanStreet,
-            },
-            haze_density: 0.04,
-            intensity_scale: 2.0,
-            ambient_brightness: 8.0,
-            uplight_pct: 45.0,
-            show_solid: false,
-            lights_dirty: false,
-            pollution_ldt,
-            preserved_ldt,
-            flood_ldt,
-            spotlight_ldt,
-            uplight_ldt,
-        })
-        .insert_resource(debug_flags)
-        .init_resource::<MaterialFixState>()
-        .init_resource::<PreviousScene>()
-        .init_resource::<SceneLoadState>()
-        .init_resource::<PendingCameraReset>()
-        .insert_resource(FrameCounter(0))
-        .add_systems(Startup, (setup_scene, setup_stars, setup_lights))
-        .add_systems(Update, fix_scene_materials)
-        .add_systems(
-            Update,
-            (
-                toggle_mode,
-                toggle_solid,
-                keyboard_shortcuts,
-                update_fog,
-                update_ambient,
-                update_star_visibility,
-                sync_lights,
-                check_loading_progress,
-                count_frames,
-            ),
+        primary_window: Some(window),
+        ..default()
+    }))
+    .add_plugins(PhotometricPlugin::<Eulumdat>::default())
+    .insert_resource(SimulationState {
+        mode: Mode::StandardPollution,
+        scene: match scene.as_deref() {
+            Some("sponza") => SceneChoice::Sponza,
+            Some("bistro") => SceneChoice::BistroExterior,
+            _ => SceneChoice::UrbanStreet,
+        },
+        haze_density: 0.04,
+        intensity_scale: 2.0,
+        ambient_brightness: 8.0,
+        uplight_pct: 45.0,
+        show_solid: false,
+        lights_dirty: false,
+        pollution_ldt,
+        preserved_ldt,
+        flood_ldt,
+        spotlight_ldt,
+        uplight_ldt,
+    })
+    .insert_resource(debug_flags)
+    .init_resource::<MaterialFixState>()
+    .init_resource::<PreviousScene>()
+    .init_resource::<SceneLoadState>()
+    .init_resource::<PendingCameraReset>()
+    .insert_resource(FrameCounter(0))
+    .add_systems(Startup, (setup_scene, setup_stars, setup_lights))
+    .add_systems(Update, fix_scene_materials)
+    .add_systems(
+        Update,
+        (
+            toggle_mode,
+            toggle_solid,
+            keyboard_shortcuts,
+            update_fog,
+            update_ambient,
+            update_star_visibility,
+            sync_lights,
+            check_loading_progress,
+            count_frames,
+        ),
+    )
+    .add_systems(
+        Update,
+        (
+            fly_camera_look,
+            fly_camera_move,
+            fly_camera_zoom,
+            fly_camera_reset,
         )
-        .add_systems(Update, (fly_camera_look, fly_camera_move, fly_camera_zoom, fly_camera_reset).chain())
-        .add_systems(PostUpdate, track_sky_to_camera);
+            .chain(),
+    )
+    .add_systems(PostUpdate, track_sky_to_camera);
 
     #[cfg(feature = "bevy-ui")]
     {
@@ -466,17 +481,17 @@ fn setup_scene(
             ..default()
         },
         EnvironmentMapLight {
-            diffuse_map: asset_server
-                .load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
-            specular_map: asset_server
-                .load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
+            diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
+            specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
             intensity: 600.0,
             ..default()
         },
         cam_transform,
         DistanceFog {
             color: Color::srgb(0.05, 0.04, 0.06),
-            falloff: FogFalloff::Exponential { density: state.haze_density },
+            falloff: FogFalloff::Exponential {
+                density: state.haze_density,
+            },
             ..default()
         },
         FlyCamera::from_look_direction(state.scene.cam_start(), state.scene.cam_look_at()),
@@ -490,7 +505,15 @@ fn setup_scene(
         },
     ));
 
-    spawn_scene_geometry(&mut commands, &asset_server, &state, &mut meshes, &mut materials, &mut load_state, 0);
+    spawn_scene_geometry(
+        &mut commands,
+        &asset_server,
+        &state,
+        &mut meshes,
+        &mut materials,
+        &mut load_state,
+        0,
+    );
 }
 
 fn spawn_scene_geometry(
@@ -684,11 +707,21 @@ fn build_urban_street(
             Transform::from_xyz(cx, bh / 2.0, cz),
             SceneGeometry,
         ));
-        let face_x = if cx > 0.0 { cx - bw / 2.0 - 0.02 } else { cx + bw / 2.0 + 0.02 };
+        let face_x = if cx > 0.0 {
+            cx - bw / 2.0 - 0.02
+        } else {
+            cx + bw / 2.0 + 0.02
+        };
         for floor in 0..((bh / 3.2) as i32) {
             for col in 0..((bd / 2.5) as i32) {
-                if rng.next_f32() < 0.3 { continue; }
-                let emissive = if rng.next_f32() > 0.3 { window_warm } else { window_cool };
+                if rng.next_f32() < 0.3 {
+                    continue;
+                }
+                let emissive = if rng.next_f32() > 0.3 {
+                    window_warm
+                } else {
+                    window_cool
+                };
                 commands.spawn((
                     Mesh3d(meshes.add(Cuboid::new(0.02, 1.4, 1.0))),
                     MeshMaterial3d(materials.add(StandardMaterial {
@@ -696,7 +729,11 @@ fn build_urban_street(
                         emissive,
                         ..default()
                     })),
-                    Transform::from_xyz(face_x, 2.0 + floor as f32 * 3.2, cz - bd / 2.0 + 1.5 + col as f32 * 2.5),
+                    Transform::from_xyz(
+                        face_x,
+                        2.0 + floor as f32 * 3.2,
+                        cz - bd / 2.0 + 1.5 + col as f32 * 2.5,
+                    ),
                     SceneGeometry,
                 ));
             }
@@ -706,18 +743,32 @@ fn build_urban_street(
     let tree_canopy = Color::srgb(0.04, 0.12, 0.04);
     let trunk_color = Color::srgb(0.18, 0.12, 0.05);
     for &(tx, tz, r, th) in &[
-        (-7.0_f32, 10.0, 2.0, 4.5), (-8.5, 20.0, 1.6, 3.8), (-6.0, 35.0, 2.2, 5.0),
-        (-9.0, 48.0, 1.8, 4.2), (-7.5, 62.0, 2.0, 4.8), (8.0, 30.0, 1.4, 3.5),
+        (-7.0_f32, 10.0, 2.0, 4.5),
+        (-8.5, 20.0, 1.6, 3.8),
+        (-6.0, 35.0, 2.2, 5.0),
+        (-9.0, 48.0, 1.8, 4.2),
+        (-7.5, 62.0, 2.0, 4.8),
+        (8.0, 30.0, 1.4, 3.5),
     ] {
         commands.spawn((
             Mesh3d(meshes.add(Cylinder::new(0.12, th))),
-            MeshMaterial3d(materials.add(StandardMaterial { base_color: trunk_color, perceptual_roughness: 0.95, ..default() })),
-            Transform::from_xyz(tx, th / 2.0, tz), SceneGeometry,
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: trunk_color,
+                perceptual_roughness: 0.95,
+                ..default()
+            })),
+            Transform::from_xyz(tx, th / 2.0, tz),
+            SceneGeometry,
         ));
         commands.spawn((
             Mesh3d(meshes.add(Sphere::new(r))),
-            MeshMaterial3d(materials.add(StandardMaterial { base_color: tree_canopy, perceptual_roughness: 0.9, ..default() })),
-            Transform::from_xyz(tx, th + r * 0.6, tz), SceneGeometry,
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: tree_canopy,
+                perceptual_roughness: 0.9,
+                ..default()
+            })),
+            Transform::from_xyz(tx, th + r * 0.6, tz),
+            SceneGeometry,
         ));
     }
 }
@@ -929,7 +980,9 @@ fn setup_stars(
     mut materials: ResMut<Assets<StandardMaterial>>,
     flags: Res<DebugFlags>,
 ) {
-    if flags.no_sky { return; }
+    if flags.no_sky {
+        return;
+    }
     let star_mesh = meshes.add(Sphere::new(0.25));
     let radius = 90.0_f32;
 
@@ -950,12 +1003,7 @@ fn setup_stars(
 
         let star_mat = materials.add(StandardMaterial {
             base_color: Color::BLACK,
-            emissive: LinearRgba::new(
-                brightness * r,
-                brightness * g,
-                brightness * b,
-                1.0,
-            ),
+            emissive: LinearRgba::new(brightness * r, brightness * g, brightness * b, 1.0),
             perceptual_roughness: 1.0,
             metallic: 0.0,
             reflectance: 0.0,
@@ -997,10 +1045,12 @@ fn setup_stars(
     ));
 
     let planets = [
-        ("Venus",   -4.40_f32, 5200.0_f32, 25.0_f32, 245.0_f32, 0.60_f32),
-        ("Jupiter", -2.50,     5500.0,      55.0,     190.0,     0.50),
-        ("Mars",    -1.50,     3600.0,      40.0,     135.0,     0.45),
-        ("Saturn",   0.50,     5400.0,      30.0,     210.0,     0.40),
+        (
+            "Venus", -4.40_f32, 5200.0_f32, 25.0_f32, 245.0_f32, 0.60_f32,
+        ),
+        ("Jupiter", -2.50, 5500.0, 55.0, 190.0, 0.50),
+        ("Mars", -1.50, 3600.0, 40.0, 135.0, 0.45),
+        ("Saturn", 0.50, 5400.0, 30.0, 210.0, 0.40),
     ];
 
     for &(_name, mag, temp, alt, az, sphere_r) in &planets {
@@ -1010,12 +1060,7 @@ fn setup_stars(
 
         let mat = materials.add(StandardMaterial {
             base_color: Color::BLACK,
-            emissive: LinearRgba::new(
-                brightness * r,
-                brightness * g,
-                brightness * b,
-                1.0,
-            ),
+            emissive: LinearRgba::new(brightness * r, brightness * g, brightness * b, 1.0),
             perceptual_roughness: 1.0,
             metallic: 0.0,
             reflectance: 0.0,
@@ -1076,9 +1121,7 @@ fn spawn_lamps(commands: &mut Commands, state: &SimulationState) {
             for (pos, rotation) in lamp_light_positions(state.scene) {
                 commands.spawn((
                     EulumdatLightBundle::new(ldt.clone())
-                        .with_transform(
-                            Transform::from_translation(pos).with_rotation(rotation),
-                        )
+                        .with_transform(Transform::from_translation(pos).with_rotation(rotation))
                         .with_intensity_scale(intensity_scale)
                         .with_model(true)
                         .with_solid(state.show_solid),
@@ -1145,10 +1188,7 @@ fn toggle_mode(
 ///   [ = decrease uplight %, ] = increase uplight %
 ///   - = decrease intensity, = = increase intensity
 ///   9 = decrease haze, 0 = increase haze
-fn keyboard_shortcuts(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut state: ResMut<SimulationState>,
-) {
+fn keyboard_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<SimulationState>) {
     let mut scene_changed = false;
 
     // Scene switching: 1, 2, 3
@@ -1216,11 +1256,7 @@ fn update_fog(state: Res<SimulationState>, mut fog_query: Query<&mut DistanceFog
         fog.falloff = FogFalloff::Exponential {
             density: state.haze_density,
         };
-        fog.color = Color::srgb(
-            0.01 + glow * 0.8,
-            0.01 + glow * 0.55,
-            0.03 + glow * 0.4,
-        );
+        fog.color = Color::srgb(0.01 + glow * 0.8, 0.01 + glow * 0.55, 0.03 + glow * 0.4);
     }
 }
 
@@ -1297,7 +1333,15 @@ fn sync_lights(
         }
         prev_scene.0 = Some(state.scene);
 
-        spawn_scene_geometry(&mut commands, &asset_server, &state, &mut meshes, &mut materials, &mut load_state, frame_count.0);
+        spawn_scene_geometry(
+            &mut commands,
+            &asset_server,
+            &state,
+            &mut meshes,
+            &mut materials,
+            &mut load_state,
+            frame_count.0,
+        );
         if !flags.no_lights {
             spawn_lamps(&mut commands, &state);
         }
@@ -1310,12 +1354,12 @@ fn sync_lights(
     let target = state.intensity_scale;
     for (light, entity) in lights.iter() {
         if (light.intensity_scale - target).abs() > 0.001 {
-            commands.entity(entity).insert(
-                eulumdat_bevy::photometric::PhotometricLight {
+            commands
+                .entity(entity)
+                .insert(eulumdat_bevy::photometric::PhotometricLight {
                     intensity_scale: target,
                     ..light.clone()
-                },
-            );
+                });
         }
     }
 }
@@ -1324,16 +1368,14 @@ fn sync_lights(
 #[derive(Resource, Default)]
 struct PendingCameraReset(Option<SceneChoice>);
 
-fn check_loading_progress(
-    asset_server: Res<AssetServer>,
-    mut load_state: ResMut<SceneLoadState>,
-) {
+fn check_loading_progress(asset_server: Res<AssetServer>, mut load_state: ResMut<SceneLoadState>) {
     if load_state.loaded || load_state.handles.is_empty() {
         return;
     }
-    let all_loaded = load_state.handles.iter().all(|h| {
-        asset_server.is_loaded_with_dependencies(h.id())
-    });
+    let all_loaded = load_state
+        .handles
+        .iter()
+        .all(|h| asset_server.is_loaded_with_dependencies(h.id()));
     if all_loaded {
         load_state.loaded = true;
     }
@@ -1391,7 +1433,9 @@ fn track_sky_to_camera(
     cam: Query<&Transform, With<FlyCamera>>,
     mut sky: Query<(&mut Transform, &SkyObject), Without<FlyCamera>>,
 ) {
-    if flags.no_sky { return; }
+    if flags.no_sky {
+        return;
+    }
     let Ok(cam_tf) = cam.single() else { return };
     let cam_pos = cam_tf.translation;
     for (mut tf, offset) in sky.iter_mut() {
@@ -1487,7 +1531,10 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
             // Title
             panel.spawn((
                 Text::new("Obscura Analysis"),
-                TextFont { font_size: FontSize::Px(14.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(14.0),
+                    ..default()
+                },
                 TextColor(LABEL_COLOR),
             ));
 
@@ -1495,7 +1542,10 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
             mode_text = panel
                 .spawn((
                     Text::new("STANDARD POLLUTION"),
-                    TextFont { font_size: FontSize::Px(16.0), ..default() },
+                    TextFont {
+                        font_size: FontSize::Px(16.0),
+                        ..default()
+                    },
                     TextColor(Color::srgb(1.0, 0.35, 0.35)),
                 ))
                 .id();
@@ -1504,21 +1554,30 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
             hints_text = panel
                 .spawn((
                     Text::new("[Space] toggle  [P] solid  [R] reset"),
-                    TextFont { font_size: FontSize::Px(10.0), ..default() },
+                    TextFont {
+                        font_size: FontSize::Px(10.0),
+                        ..default()
+                    },
                     TextColor(Color::srgb(0.5, 0.5, 0.5)),
                 ))
                 .id();
 
             // Separator
             panel.spawn((
-                Node { height: Val::Px(1.0), ..default() },
+                Node {
+                    height: Val::Px(1.0),
+                    ..default()
+                },
                 BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
             ));
 
             // Scene selector
             panel.spawn((
                 Text::new("Scene"),
-                TextFont { font_size: FontSize::Px(12.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(12.0),
+                    ..default()
+                },
                 TextColor(LABEL_COLOR),
             ));
 
@@ -1552,7 +1611,10 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
                                 observe(on_scene_button_activate),
                                 children![(
                                     Text::new(*label),
-                                    TextFont { font_size: FontSize::Px(11.0), ..default() },
+                                    TextFont {
+                                        font_size: FontSize::Px(11.0),
+                                        ..default()
+                                    },
                                     TextColor(VALUE_COLOR),
                                 )],
                             ))
@@ -1562,14 +1624,20 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
 
             // Separator
             panel.spawn((
-                Node { height: Val::Px(1.0), ..default() },
+                Node {
+                    height: Val::Px(1.0),
+                    ..default()
+                },
                 BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
             ));
 
             // Active luminaire info
             panel.spawn((
                 Text::new("Active Luminaire"),
-                TextFont { font_size: FontSize::Px(12.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(12.0),
+                    ..default()
+                },
                 TextColor(LABEL_COLOR),
             ));
 
@@ -1587,25 +1655,51 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
                 .with_children(|info| {
                     ldt_name = spawn_kv_row(info, "Name:", &ldt.luminaire_name);
                     ldt_manufacturer = spawn_kv_row(info, "Mfr:", &ldt.identification);
-                    ldt_flux = spawn_kv_row(info, "Flux:", &format!("{:.0} lm", ldt.total_luminous_flux()));
-                    ldt_cct = spawn_kv_row(info, "CCT:", &ldt.color_temperature().map_or("N/A".into(), |c| format!("{:.0} K", c)));
-                    ldt_lor = spawn_kv_row(info, "LOR:", &format!("{:.1}%", ldt.light_output_ratio * 100.0));
+                    ldt_flux = spawn_kv_row(
+                        info,
+                        "Flux:",
+                        &format!("{:.0} lm", ldt.total_luminous_flux()),
+                    );
+                    ldt_cct = spawn_kv_row(
+                        info,
+                        "CCT:",
+                        &ldt.color_temperature()
+                            .map_or("N/A".into(), |c| format!("{:.0} K", c)),
+                    );
+                    ldt_lor = spawn_kv_row(
+                        info,
+                        "LOR:",
+                        &format!("{:.1}%", ldt.light_output_ratio * 100.0),
+                    );
                 });
 
             // Separator
             panel.spawn((
-                Node { height: Val::Px(1.0), ..default() },
+                Node {
+                    height: Val::Px(1.0),
+                    ..default()
+                },
                 BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
             ));
 
             // Environmental impact
             panel.spawn((
                 Text::new("Environmental Impact"),
-                TextFont { font_size: FontSize::Px(12.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(12.0),
+                    ..default()
+                },
                 TextColor(LABEL_COLOR),
             ));
 
-            uplight_slider = spawn_labeled_slider(panel, "Uplight %", state.uplight_pct, 0.0, 100.0, SliderBinding::Uplight);
+            uplight_slider = spawn_labeled_slider(
+                panel,
+                "Uplight %",
+                state.uplight_pct,
+                0.0,
+                100.0,
+                SliderBinding::Uplight,
+            );
 
             // Grade display
             panel
@@ -1618,64 +1712,99 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
                     grade_text = col
                         .spawn((
                             Text::new("Sky Glow: D  (Poor)"),
-                            TextFont { font_size: FontSize::Px(12.0), ..default() },
+                            TextFont {
+                                font_size: FontSize::Px(12.0),
+                                ..default()
+                            },
                             TextColor(Color::srgb(0.86, 0.47, 0.2)),
                         ))
                         .id();
 
                     // Progress bar
-                    col
-                        .spawn((
-                            Node {
-                                height: Val::Px(6.0),
-                                border_radius: BorderRadius::all(Val::Px(3.0)),
-                                ..default()
-                            },
-                            BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
-                        ))
-                        .with_children(|track| {
-                            grade_bar = track
-                                .spawn((
-                                    Node {
-                                        width: Val::Percent(45.0),
-                                        height: Val::Percent(100.0),
-                                        border_radius: BorderRadius::all(Val::Px(3.0)),
-                                        ..default()
-                                    },
-                                    BackgroundColor(Color::srgb(0.86, 0.47, 0.2)),
-                                ))
-                                .id();
-                        });
+                    col.spawn((
+                        Node {
+                            height: Val::Px(6.0),
+                            border_radius: BorderRadius::all(Val::Px(3.0)),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
+                    ))
+                    .with_children(|track| {
+                        grade_bar = track
+                            .spawn((
+                                Node {
+                                    width: Val::Percent(45.0),
+                                    height: Val::Percent(100.0),
+                                    border_radius: BorderRadius::all(Val::Px(3.0)),
+                                    ..default()
+                                },
+                                BackgroundColor(Color::srgb(0.86, 0.47, 0.2)),
+                            ))
+                            .id();
+                    });
                 });
 
             // Separator
             panel.spawn((
-                Node { height: Val::Px(1.0), ..default() },
+                Node {
+                    height: Val::Px(1.0),
+                    ..default()
+                },
                 BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
             ));
 
             // Lighting controls
             panel.spawn((
                 Text::new("Lighting"),
-                TextFont { font_size: FontSize::Px(12.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(12.0),
+                    ..default()
+                },
                 TextColor(LABEL_COLOR),
             ));
-            intensity_slider = spawn_labeled_slider(panel, "Intensity", state.intensity_scale, 0.05, 3.0, SliderBinding::Intensity);
-            ambient_slider = spawn_labeled_slider(panel, "Ambient", state.ambient_brightness, 0.0, 500.0, SliderBinding::Ambient);
+            intensity_slider = spawn_labeled_slider(
+                panel,
+                "Intensity",
+                state.intensity_scale,
+                0.05,
+                3.0,
+                SliderBinding::Intensity,
+            );
+            ambient_slider = spawn_labeled_slider(
+                panel,
+                "Ambient",
+                state.ambient_brightness,
+                0.0,
+                500.0,
+                SliderBinding::Ambient,
+            );
 
             // Separator
             panel.spawn((
-                Node { height: Val::Px(1.0), ..default() },
+                Node {
+                    height: Val::Px(1.0),
+                    ..default()
+                },
                 BackgroundColor(Color::srgb(0.3, 0.3, 0.3)),
             ));
 
             // Atmosphere
             panel.spawn((
                 Text::new("Atmosphere"),
-                TextFont { font_size: FontSize::Px(12.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(12.0),
+                    ..default()
+                },
                 TextColor(LABEL_COLOR),
             ));
-            haze_slider = spawn_labeled_slider(panel, "Haze", state.haze_density, 0.001, 0.15, SliderBinding::Haze);
+            haze_slider = spawn_labeled_slider(
+                panel,
+                "Haze",
+                state.haze_density,
+                0.001,
+                0.15,
+                SliderBinding::Haze,
+            );
         });
 
     commands.insert_resource(UiEntities {
@@ -1711,14 +1840,23 @@ fn spawn_kv_row(parent: &mut ChildSpawnerCommands, key: &str, value: &str) -> En
         .with_children(|row| {
             row.spawn((
                 Text::new(key),
-                TextFont { font_size: FontSize::Px(11.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(11.0),
+                    ..default()
+                },
                 TextColor(LABEL_COLOR),
-                Node { width: Val::Px(40.0), ..default() },
+                Node {
+                    width: Val::Px(40.0),
+                    ..default()
+                },
             ));
             val_entity = row
                 .spawn((
                     Text::new(value),
-                    TextFont { font_size: FontSize::Px(11.0), ..default() },
+                    TextFont {
+                        font_size: FontSize::Px(11.0),
+                        ..default()
+                    },
                     TextColor(VALUE_COLOR),
                 ))
                 .id();
@@ -1746,7 +1884,10 @@ fn spawn_labeled_slider(
         .with_children(|col| {
             col.spawn((
                 Text::new(format!("{label}: {initial:.2}")),
-                TextFont { font_size: FontSize::Px(11.0), ..default() },
+                TextFont {
+                    font_size: FontSize::Px(11.0),
+                    ..default()
+                },
                 TextColor(VALUE_COLOR),
             ));
 
@@ -1874,13 +2015,23 @@ fn update_ui_from_state(
 
     // LDT info
     let ldt = state.active_ldt();
-    if let Ok(mut t) = texts.get_mut(ui.ldt_name) { **t = ldt.luminaire_name.clone(); }
-    if let Ok(mut t) = texts.get_mut(ui.ldt_manufacturer) { **t = ldt.identification.clone(); }
-    if let Ok(mut t) = texts.get_mut(ui.ldt_flux) { **t = format!("{:.0} lm", ldt.total_luminous_flux()); }
-    if let Ok(mut t) = texts.get_mut(ui.ldt_cct) {
-        **t = ldt.color_temperature().map_or("N/A".into(), |c| format!("{:.0} K", c));
+    if let Ok(mut t) = texts.get_mut(ui.ldt_name) {
+        **t = ldt.luminaire_name.clone();
     }
-    if let Ok(mut t) = texts.get_mut(ui.ldt_lor) { **t = format!("{:.1}%", ldt.light_output_ratio * 100.0); }
+    if let Ok(mut t) = texts.get_mut(ui.ldt_manufacturer) {
+        **t = ldt.identification.clone();
+    }
+    if let Ok(mut t) = texts.get_mut(ui.ldt_flux) {
+        **t = format!("{:.0} lm", ldt.total_luminous_flux());
+    }
+    if let Ok(mut t) = texts.get_mut(ui.ldt_cct) {
+        **t = ldt
+            .color_temperature()
+            .map_or("N/A".into(), |c| format!("{:.0} K", c));
+    }
+    if let Ok(mut t) = texts.get_mut(ui.ldt_lor) {
+        **t = format!("{:.1}%", ldt.light_output_ratio * 100.0);
+    }
 
     // Sky glow grade
     let score = state.uplight_pct / 100.0;
@@ -1912,10 +2063,18 @@ fn update_ui_from_state(
     }
 
     // Sync slider values back (when mode toggle changes them externally)
-    commands.entity(ui.uplight_slider).insert(SliderValue(state.uplight_pct));
-    commands.entity(ui.intensity_slider).insert(SliderValue(state.intensity_scale));
-    commands.entity(ui.ambient_slider).insert(SliderValue(state.ambient_brightness));
-    commands.entity(ui.haze_slider).insert(SliderValue(state.haze_density));
+    commands
+        .entity(ui.uplight_slider)
+        .insert(SliderValue(state.uplight_pct));
+    commands
+        .entity(ui.intensity_slider)
+        .insert(SliderValue(state.intensity_scale));
+    commands
+        .entity(ui.ambient_slider)
+        .insert(SliderValue(state.ambient_brightness));
+    commands
+        .entity(ui.haze_slider)
+        .insert(SliderValue(state.haze_density));
 }
 
 /// Update scene button background colors to highlight active scene.
@@ -1932,7 +2091,11 @@ fn update_scene_button_visuals(
     for &btn_entity in &ui.scene_buttons {
         if let Ok(btn) = scene_btns.get(btn_entity) {
             if let Ok(mut bg) = bg.get_mut(btn_entity) {
-                bg.0 = if btn.0 == state.scene { BTN_ACTIVE } else { BTN_NORMAL };
+                bg.0 = if btn.0 == state.scene {
+                    BTN_ACTIVE
+                } else {
+                    BTN_NORMAL
+                };
             }
         }
     }
@@ -1997,7 +2160,11 @@ fn update_loading_overlay(
 ) {
     let should_show = !load_state.loaded && !load_state.handles.is_empty();
     if let Ok(mut vis) = visibility.get_mut(ui.loading_overlay) {
-        *vis = if should_show { Visibility::Visible } else { Visibility::Hidden };
+        *vis = if should_show {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
     }
     if should_show {
         let elapsed = frame_count.0.saturating_sub(load_state.start_frame);
@@ -2025,17 +2192,31 @@ fn fly_camera_look(
     let mut key_delta = Vec2::ZERO;
     let rotate_speed = 1.5; // radians per second
     let dt = time.delta_secs();
-    if keys.pressed(KeyCode::ArrowLeft)  { key_delta.x -= rotate_speed * dt / 0.003; }
-    if keys.pressed(KeyCode::ArrowRight) { key_delta.x += rotate_speed * dt / 0.003; }
-    if keys.pressed(KeyCode::ArrowUp)    { key_delta.y -= rotate_speed * dt / 0.003; }
-    if keys.pressed(KeyCode::ArrowDown)  { key_delta.y += rotate_speed * dt / 0.003; }
+    if keys.pressed(KeyCode::ArrowLeft) {
+        key_delta.x -= rotate_speed * dt / 0.003;
+    }
+    if keys.pressed(KeyCode::ArrowRight) {
+        key_delta.x += rotate_speed * dt / 0.003;
+    }
+    if keys.pressed(KeyCode::ArrowUp) {
+        key_delta.y -= rotate_speed * dt / 0.003;
+    }
+    if keys.pressed(KeyCode::ArrowDown) {
+        key_delta.y += rotate_speed * dt / 0.003;
+    }
 
     // Mouse look (right-click drag)
     let mouse_delta = if mouse_button.pressed(MouseButton::Right) {
         #[cfg(feature = "bevy-ui")]
-        if ui_wants_pointer(&panel) { Vec2::ZERO } else { accumulated.delta }
+        if ui_wants_pointer(&panel) {
+            Vec2::ZERO
+        } else {
+            accumulated.delta
+        }
         #[cfg(not(feature = "bevy-ui"))]
-        { accumulated.delta }
+        {
+            accumulated.delta
+        }
     } else {
         Vec2::ZERO
     };

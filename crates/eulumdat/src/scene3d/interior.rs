@@ -216,13 +216,29 @@ pub fn build_interior_scene(
                 let cone_r = (lum_z - wp_z) * 0.45;
                 let cone_faces = [
                     // Front
-                    [(lx, ly, lum_z), (lx - cone_r, ly - cone_r, wp_z), (lx + cone_r, ly - cone_r, wp_z)],
+                    [
+                        (lx, ly, lum_z),
+                        (lx - cone_r, ly - cone_r, wp_z),
+                        (lx + cone_r, ly - cone_r, wp_z),
+                    ],
                     // Back
-                    [(lx, ly, lum_z), (lx - cone_r, ly + cone_r, wp_z), (lx + cone_r, ly + cone_r, wp_z)],
+                    [
+                        (lx, ly, lum_z),
+                        (lx - cone_r, ly + cone_r, wp_z),
+                        (lx + cone_r, ly + cone_r, wp_z),
+                    ],
                     // Left
-                    [(lx, ly, lum_z), (lx - cone_r, ly - cone_r, wp_z), (lx - cone_r, ly + cone_r, wp_z)],
+                    [
+                        (lx, ly, lum_z),
+                        (lx - cone_r, ly - cone_r, wp_z),
+                        (lx - cone_r, ly + cone_r, wp_z),
+                    ],
                     // Right
-                    [(lx, ly, lum_z), (lx + cone_r, ly - cone_r, wp_z), (lx + cone_r, ly + cone_r, wp_z)],
+                    [
+                        (lx, ly, lum_z),
+                        (lx + cone_r, ly - cone_r, wp_z),
+                        (lx + cone_r, ly + cone_r, wp_z),
+                    ],
                 ];
                 for tri in &cone_faces {
                     faces.push(SceneFace {
@@ -397,7 +413,11 @@ pub fn build_interior_scene(
         }
 
         // Room cavity zone on back wall (workplane to luminaire plane) — subtle tint
-        let rc_top = if room.suspension_length > 0.05 { lum_z } else { h };
+        let rc_top = if room.suspension_length > 0.05 {
+            lum_z
+        } else {
+            h
+        };
         faces.push(
             SceneFace::quad(
                 (-hx, hy, wp_z),
@@ -534,7 +554,8 @@ mod tests {
         let reflectances = Reflectances::new(0.70, 0.50, 0.20);
         let cavity = crate::zonal::compute_cavity_ratios(&room, &reflectances);
 
-        let faces = build_interior_scene(&room, &layout, &reflectances, &cavity, None, false, false);
+        let faces =
+            build_interior_scene(&room, &layout, &reflectances, &cavity, None, false, false);
         // floor(1) + 4 walls + ceiling(1) + workplane(1) + 9 luminaires + 3 dim labels = ~20
         assert!(faces.len() >= 15, "got {} faces", faces.len());
     }
@@ -558,18 +579,24 @@ mod tests {
         let reflectances = Reflectances::new(0.70, 0.50, 0.20);
         let cavity = crate::zonal::compute_cavity_ratios(&room, &reflectances);
 
-        let faces = build_interior_scene(&room, &layout, &reflectances, &cavity, None, false, false);
+        let faces =
+            build_interior_scene(&room, &layout, &reflectances, &cavity, None, false, false);
         let svg_w = 600.0;
         let svg_h = 450.0;
         let preset = super::super::CameraPreset::FrontRight;
         let mut cam = preset.to_camera(svg_w, svg_h, 1.0);
-        cam.scale = super::super::fit_scale(room.length, room.width, room.height, svg_w, svg_h, &cam);
+        cam.scale =
+            super::super::fit_scale(room.length, room.width, room.height, svg_w, svg_h, &cam);
 
         assert!(cam.scale > 1.0, "scale should be > 1, got {}", cam.scale);
 
         let svg = super::super::render_scene_svg(&faces, &cam, svg_w, svg_h, "#f8f9fa");
         let poly_count = svg.matches("<polygon").count();
-        assert!(poly_count >= 15, "expected >=15 polygons, got {}", poly_count);
+        assert!(
+            poly_count >= 15,
+            "expected >=15 polygons, got {}",
+            poly_count
+        );
         assert!(svg.contains("rgb("), "should have colored fills");
     }
 }

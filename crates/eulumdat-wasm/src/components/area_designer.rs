@@ -2,10 +2,9 @@
 //! spacing optimizer, export, undo/redo, wall-mounted support.
 
 use eulumdat::area::{
-    compute_area_illuminance, compute_area_illuminance_mixed,
-    compute_area_illuminance_polygon, optimize_spacing,
-    AreaPolygon, ArrangementType, AreaSvg, ContourOverlay, GridPreset, LuminairePlace,
-    OptimizationCriteria, OptimizationRow, PoleConfig,
+    compute_area_illuminance, compute_area_illuminance_mixed, compute_area_illuminance_polygon,
+    optimize_spacing, AreaPolygon, AreaSvg, ArrangementType, ContourOverlay, GridPreset,
+    LuminairePlace, OptimizationCriteria, OptimizationRow, PoleConfig,
 };
 use eulumdat::diagram::SvgTheme;
 use eulumdat::scene3d::{build_exterior_scene, fit_scale, render_scene_svg, CameraPreset};
@@ -134,9 +133,15 @@ fn encode_poles(poles: &[PoleState]) -> String {
                 None => String::new(),
             };
             if p.ldt_index > 0 {
-                format!("{:.2},{:.2},{},{:.0},{:.0},{}", p.x, p.y, h, p.tilt, p.rotation, p.ldt_index)
+                format!(
+                    "{:.2},{:.2},{},{:.0},{:.0},{}",
+                    p.x, p.y, h, p.tilt, p.rotation, p.ldt_index
+                )
             } else {
-                format!("{:.2},{:.2},{},{:.0},{:.0}", p.x, p.y, h, p.tilt, p.rotation)
+                format!(
+                    "{:.2},{:.2},{},{:.0},{:.0}",
+                    p.x, p.y, h, p.tilt, p.rotation
+                )
             }
         })
         .collect::<Vec<_>>()
@@ -195,7 +200,9 @@ fn params_to_hash(p: &DesignerParams) -> String {
         parts.push(format!("poles={}", encode_poles(&p.poles)));
     }
     if let Some(ref poly) = p.polygon {
-        let s: String = poly.vertices.iter()
+        let s: String = poly
+            .vertices
+            .iter()
             .map(|(x, y)| format!("{x:.1},{y:.1}"))
             .collect::<Vec<_>>()
             .join(";");
@@ -231,11 +238,7 @@ fn parse_hash_params() -> Option<std::collections::HashMap<String, String>> {
 fn set_url_hash(hash: &str) {
     if let Some(window) = web_sys::window() {
         if let Ok(history) = window.history() {
-            let _ = history.replace_state_with_url(
-                &wasm_bindgen::JsValue::NULL,
-                "",
-                Some(hash),
-            );
+            let _ = history.replace_state_with_url(&wasm_bindgen::JsValue::NULL, "", Some(hash));
         }
     }
 }
@@ -267,7 +270,11 @@ fn compute_smart_defaults(ldt: &Eulumdat) -> SmartDefaults {
     // Low DFF (< 30%) = mostly uplight → lower mounting height
     let h: f64 = if dff > 0.0 && dff < 30.0 {
         // Uplight or indirect — typically low-mounted
-        if flux < 5000.0 { 2.5 } else { 3.0 }
+        if flux < 5000.0 {
+            2.5
+        } else {
+            3.0
+        }
     } else if max_gamma <= 90.0 && flux < 3000.0 {
         // Small downlight / indoor spot
         3.0
@@ -341,9 +348,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // --- Parse URL hash for initial values ---
     let url_params = parse_hash_params();
-    let url_get = |key: &str| -> Option<String> {
-        url_params.as_ref()?.get(key).cloned()
-    };
+    let url_get = |key: &str| -> Option<String> { url_params.as_ref()?.get(key).cloned() };
     let url_f64 = {
         let url_params_ref = url_params.as_ref();
         move |key: &str, default: f64| -> f64 {
@@ -356,10 +361,14 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // --- Global parameters (URL overrides smart defaults) ---
     let (grid_preset, set_grid_preset) = signal(
-        url_get("layout").map(|s| str_to_grid_preset(&s)).unwrap_or(GridPreset::Grid2x3)
+        url_get("layout")
+            .map(|s| str_to_grid_preset(&s))
+            .unwrap_or(GridPreset::Grid2x3),
     );
     let (arrangement, set_arrangement) = signal(
-        url_get("arr").map(|s| str_to_arrangement(&s)).unwrap_or(ArrangementType::Single)
+        url_get("arr")
+            .map(|s| str_to_arrangement(&s))
+            .unwrap_or(ArrangementType::Single),
     );
     let (mounting_height, set_mounting_height) = signal(url_f64("h", defaults.mounting_height));
     let (arm_length, set_arm_length) = signal(url_f64("arm", 0.0));
@@ -368,23 +377,30 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     let (area_depth, set_area_depth) = signal(url_f64("d", defaults.area_depth));
     let (proration, set_proration) = signal(url_f64("pf", 1.0));
     let (grid_resolution, set_grid_resolution) = signal(
-        url_get("res").and_then(|v| v.parse().ok()).unwrap_or(40_usize)
+        url_get("res")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(40_usize),
     );
     let (base_rotation, set_base_rotation) = signal(url_f64("rot", 0.0));
-    let (bay_view, set_bay_view) = signal(
-        url_get("bay").map(|v| v == "1").unwrap_or(false)
-    );
+    let (bay_view, set_bay_view) = signal(url_get("bay").map(|v| v == "1").unwrap_or(false));
 
     // --- Custom polygon area ---
-    let url_poly = url_get("poly").map(|s| {
-        let verts: Vec<(f64, f64)> = s.split(';')
-            .filter_map(|p| {
-                let mut it = p.split(',');
-                Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
-            })
-            .collect();
-        if verts.len() >= 3 { Some(AreaPolygon::new(verts)) } else { None }
-    }).flatten();
+    let url_poly = url_get("poly")
+        .map(|s| {
+            let verts: Vec<(f64, f64)> = s
+                .split(';')
+                .filter_map(|p| {
+                    let mut it = p.split(',');
+                    Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
+                })
+                .collect();
+            if verts.len() >= 3 {
+                Some(AreaPolygon::new(verts))
+            } else {
+                None
+            }
+        })
+        .flatten();
     let (custom_polygon, set_custom_polygon) = signal(url_poly.clone());
     let (polygon_drawing, set_polygon_drawing) = signal(false);
     let (polygon_wip, set_polygon_wip) = signal(Vec::<(f64, f64)>::new());
@@ -416,7 +432,9 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         if let Some(prev) = stack.last().cloned() {
             let current = poles.get();
             set_redo_stack.update(|rs| rs.push(current));
-            set_undo_stack.update(|us| { us.pop(); });
+            set_undo_stack.update(|us| {
+                us.pop();
+            });
             set_poles.set(prev);
         }
     };
@@ -426,7 +444,9 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         if let Some(next) = stack.last().cloned() {
             let current = poles.get();
             set_undo_stack.update(|us| us.push(current));
-            set_redo_stack.update(|rs| { rs.pop(); });
+            set_redo_stack.update(|rs| {
+                rs.pop();
+            });
             set_poles.set(next);
         }
     };
@@ -581,7 +601,8 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 &pole_positions,
                 &placements,
                 poly,
-                500.0, 400.0,
+                500.0,
+                400.0,
                 &svg_theme,
                 sel,
                 lpp,
@@ -591,8 +612,10 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             AreaSvg::plan_view_with_poles(
                 &pole_positions,
                 &placements,
-                aw, ad,
-                500.0, 400.0,
+                aw,
+                ad,
+                500.0,
+                400.0,
                 &svg_theme,
                 sel,
                 lpp,
@@ -614,7 +637,8 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             let sy = plot_h / ad;
 
             // Draw WIP polyline
-            let pts: String = wip.iter()
+            let pts: String = wip
+                .iter()
                 .map(|&(x, y)| format!("{:.1},{:.1}", margin + x * sx, margin + y * sy))
                 .collect::<Vec<_>>()
                 .join(" ");
@@ -685,7 +709,9 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     };
 
     let on_plan_mousedown = move |ev: web_sys::MouseEvent| {
-        let Some((wx, wy)) = screen_to_world_from_event(&ev) else { return };
+        let Some((wx, wy)) = screen_to_world_from_event(&ev) else {
+            return;
+        };
 
         // Polygon drawing mode: clicks add vertices
         if polygon_drawing.get() {
@@ -744,7 +770,9 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             return;
         }
         if let Some(sel_id) = selected_pole_id.get() {
-            let Some((wx, wy)) = screen_to_world_from_event(&ev) else { return };
+            let Some((wx, wy)) = screen_to_world_from_event(&ev) else {
+                return;
+            };
             set_poles.update(|ps| {
                 if let Some(p) = ps.iter_mut().find(|p| p.id == sel_id) {
                     p.x = wx;
@@ -898,7 +926,16 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 // Need at least 2 poles to determine spacing
                 let (placements, ldt_idx) = make_placements();
                 let np = placements.len();
-                let result = compute_mixed_or_single(&ldt_val, &extra_ldts.get(), &placements, &ldt_idx, aw, ad, gr, pf);
+                let result = compute_mixed_or_single(
+                    &ldt_val,
+                    &extra_ldts.get(),
+                    &placements,
+                    &ldt_idx,
+                    aw,
+                    ad,
+                    gr,
+                    pf,
+                );
                 (result, np)
             } else {
                 // Estimate bay spacing from pole positions
@@ -920,15 +957,22 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     arm_length: arm_length.get(),
                     arm_droop: arm_droop.get(),
                 };
-                let bay_poles = eulumdat::area::layout::generate_pole_positions(
-                    3, 3, bay_w * 3.0, bay_d * 3.0,
-                );
+                let bay_poles =
+                    eulumdat::area::layout::generate_pole_positions(3, 3, bay_w * 3.0, bay_d * 3.0);
                 let bay_placements = eulumdat::area::layout::generate_placements(
-                    &bay_poles, h, &pole_cfg, base_rotation.get(),
+                    &bay_poles,
+                    h,
+                    &pole_cfg,
+                    base_rotation.get(),
                 );
                 let np = bay_placements.len();
                 let full = compute_area_illuminance(
-                    &ldt_val, &bay_placements, bay_w * 3.0, bay_d * 3.0, gr * 3, pf,
+                    &ldt_val,
+                    &bay_placements,
+                    bay_w * 3.0,
+                    bay_d * 3.0,
+                    gr * 3,
+                    pf,
                 );
 
                 // Extract center bay
@@ -946,7 +990,9 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         sum_lux += lux;
                     }
                 }
-                if min_lux == f64::MAX { min_lux = 0.0; }
+                if min_lux == f64::MAX {
+                    min_lux = 0.0;
+                }
                 let count = (n * n) as f64;
                 let avg_lux = if count > 0.0 { sum_lux / count } else { 0.0 };
 
@@ -955,9 +1001,21 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     min_lux,
                     avg_lux,
                     max_lux,
-                    uniformity_min_avg: if avg_lux > 0.0 { min_lux / avg_lux } else { 0.0 },
-                    uniformity_avg_min: if min_lux > 0.0 { avg_lux / min_lux } else { f64::INFINITY },
-                    uniformity_min_max: if max_lux > 0.0 { min_lux / max_lux } else { 0.0 },
+                    uniformity_min_avg: if avg_lux > 0.0 {
+                        min_lux / avg_lux
+                    } else {
+                        0.0
+                    },
+                    uniformity_avg_min: if min_lux > 0.0 {
+                        avg_lux / min_lux
+                    } else {
+                        f64::INFINITY
+                    },
+                    uniformity_min_max: if max_lux > 0.0 {
+                        min_lux / max_lux
+                    } else {
+                        0.0
+                    },
                     area_width: bay_w,
                     area_depth: bay_d,
                     grid_resolution: n,
@@ -972,7 +1030,16 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 // Polygon area: use polygon computation
                 compute_area_illuminance_polygon(&ldt_val, &placements, poly, gr, pf)
             } else {
-                compute_mixed_or_single(&ldt_val, &extra_ldts.get(), &placements, &ldt_idx, aw, ad, gr, pf)
+                compute_mixed_or_single(
+                    &ldt_val,
+                    &extra_ldts.get(),
+                    &placements,
+                    &ldt_idx,
+                    aw,
+                    ad,
+                    gr,
+                    pf,
+                )
             };
             (result, np)
         };
@@ -1000,10 +1067,12 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                     arm_droop: arm_droop.get(),
                 };
                 let ol_placements = eulumdat::area::layout::generate_placements(
-                    &pole_positions, h, &pole_cfg, base_rotation.get(),
+                    &pole_positions,
+                    h,
+                    &pole_cfg,
+                    base_rotation.get(),
                 );
-                let ol_result =
-                    compute_area_illuminance(&ldt_val, &ol_placements, aw, ad, 20, pf);
+                let ol_result = compute_area_illuminance(&ldt_val, &ol_placements, aw, ad, 20, pf);
 
                 let color_idx = idx % OVERLAY_COLORS.len();
                 Some(ContourOverlay {

@@ -66,10 +66,18 @@ impl GpuPrimitive {
             _pad0: 0,
             _pad1: 0,
             params: [
-                center[0], center[1], center[2],
-                normal[0], normal[1], normal[2],
-                u_axis[0], u_axis[1], u_axis[2],
-                half_width, half_height, thickness,
+                center[0],
+                center[1],
+                center[2],
+                normal[0],
+                normal[1],
+                normal[2],
+                u_axis[0],
+                u_axis[1],
+                u_axis[2],
+                half_width,
+                half_height,
+                thickness,
             ],
         }
     }
@@ -100,45 +108,102 @@ impl GpuMaterial {
         let mat = params.to_material();
         match mat {
             Material::Absorber => Self {
-                mtype: 0, reflectance: 0.0, ior: 1.0, transmittance: 0.0,
-                min_reflectance: 0.0, absorption_coeff: 0.0, scattering_coeff: 0.0,
-                asymmetry: 0.0, thickness: 0.0,
-                _pad0: 0, _pad1: 0, _pad2: 0,
+                mtype: 0,
+                reflectance: 0.0,
+                ior: 1.0,
+                transmittance: 0.0,
+                min_reflectance: 0.0,
+                absorption_coeff: 0.0,
+                scattering_coeff: 0.0,
+                asymmetry: 0.0,
+                thickness: 0.0,
+                _pad0: 0,
+                _pad1: 0,
+                _pad2: 0,
             },
             Material::DiffuseReflector { reflectance } => Self {
-                mtype: 1, reflectance: reflectance as f32, ior: 1.0, transmittance: 0.0,
-                min_reflectance: 0.0, absorption_coeff: 0.0, scattering_coeff: 0.0,
-                asymmetry: 0.0, thickness: 0.0,
-                _pad0: 0, _pad1: 0, _pad2: 0,
+                mtype: 1,
+                reflectance: reflectance as f32,
+                ior: 1.0,
+                transmittance: 0.0,
+                min_reflectance: 0.0,
+                absorption_coeff: 0.0,
+                scattering_coeff: 0.0,
+                asymmetry: 0.0,
+                thickness: 0.0,
+                _pad0: 0,
+                _pad1: 0,
+                _pad2: 0,
             },
             Material::SpecularReflector { reflectance } => Self {
-                mtype: 2, reflectance: reflectance as f32, ior: 1.0, transmittance: 0.0,
-                min_reflectance: 0.0, absorption_coeff: 0.0, scattering_coeff: 0.0,
-                asymmetry: 0.0, thickness: 0.0,
-                _pad0: 0, _pad1: 0, _pad2: 0,
+                mtype: 2,
+                reflectance: reflectance as f32,
+                ior: 1.0,
+                transmittance: 0.0,
+                min_reflectance: 0.0,
+                absorption_coeff: 0.0,
+                scattering_coeff: 0.0,
+                asymmetry: 0.0,
+                thickness: 0.0,
+                _pad0: 0,
+                _pad1: 0,
+                _pad2: 0,
             },
-            Material::ClearTransmitter { ior, transmittance, min_reflectance } => Self {
-                mtype: 4, reflectance: 0.0, ior: ior as f32,
-                transmittance: transmittance as f32, min_reflectance: min_reflectance as f32,
-                absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0,
-                _pad0: 0, _pad1: 0, _pad2: 0,
+            Material::ClearTransmitter {
+                ior,
+                transmittance,
+                min_reflectance,
+            } => Self {
+                mtype: 4,
+                reflectance: 0.0,
+                ior: ior as f32,
+                transmittance: transmittance as f32,
+                min_reflectance: min_reflectance as f32,
+                absorption_coeff: 0.0,
+                scattering_coeff: 0.0,
+                asymmetry: 0.0,
+                thickness: 0.0,
+                _pad0: 0,
+                _pad1: 0,
+                _pad2: 0,
             },
             Material::DiffuseTransmitter {
-                ior, scattering_coeff, absorption_coeff, asymmetry, thickness, min_reflectance
+                ior,
+                scattering_coeff,
+                absorption_coeff,
+                asymmetry,
+                thickness,
+                min_reflectance,
             } => Self {
-                mtype: 5, reflectance: 0.0, ior: ior as f32, transmittance: 0.0,
+                mtype: 5,
+                reflectance: 0.0,
+                ior: ior as f32,
+                transmittance: 0.0,
                 min_reflectance: min_reflectance as f32,
                 absorption_coeff: absorption_coeff as f32,
                 scattering_coeff: scattering_coeff as f32,
                 asymmetry: asymmetry as f32,
                 thickness: thickness as f32,
-                _pad0: 0, _pad1: 0, _pad2: 0,
+                _pad0: 0,
+                _pad1: 0,
+                _pad2: 0,
             },
-            Material::MixedReflector { reflectance, specular_fraction: _ } => Self {
-                mtype: 3, reflectance: reflectance as f32, ior: 1.0, transmittance: 0.0,
-                min_reflectance: 0.0, absorption_coeff: 0.0, scattering_coeff: 0.0,
-                asymmetry: 0.0, thickness: 0.0,
-                _pad0: 0, _pad1: 0, _pad2: 0,
+            Material::MixedReflector {
+                reflectance,
+                specular_fraction: _,
+            } => Self {
+                mtype: 3,
+                reflectance: reflectance as f32,
+                ior: 1.0,
+                transmittance: 0.0,
+                min_reflectance: 0.0,
+                absorption_coeff: 0.0,
+                scattering_coeff: 0.0,
+                asymmetry: 0.0,
+                thickness: 0.0,
+                _pad0: 0,
+                _pad1: 0,
+                _pad2: 0,
             },
         }
     }
@@ -198,8 +263,7 @@ impl GpuDetectorResult {
             for gi in 0..self.num_g {
                 let g_rad = (gi as f64 * self.g_res).to_radians();
                 let g_lo = (g_rad - self.g_res.to_radians() / 2.0).max(0.0);
-                let g_hi = (g_rad + self.g_res.to_radians() / 2.0)
-                    .min(std::f64::consts::PI);
+                let g_hi = (g_rad + self.g_res.to_radians() / 2.0).min(std::f64::consts::PI);
                 let solid_angle = dc_rad * (g_lo.cos() - g_hi.cos()).abs();
                 if solid_angle > 0.0 {
                     candela[ci][gi] = self.bins[ci][gi] * flux_per_energy / solid_angle;
@@ -252,67 +316,66 @@ impl GpuTracer {
         });
 
         // Bind group layout
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("rt_bind_group_layout"),
-                entries: &[
-                    // detector_bins: storage buffer (read_write)
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Storage { read_only: false },
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("rt_bind_group_layout"),
+            entries: &[
+                // detector_bins: storage buffer (read_write)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
-                    // config: uniform buffer
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
+                    count: None,
+                },
+                // config: uniform buffer
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
-                    // primitives: storage buffer (read)
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Storage { read_only: true },
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
+                    count: None,
+                },
+                // primitives: storage buffer (read)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
-                    // materials: storage buffer (read)
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 3,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Storage { read_only: true },
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
+                    count: None,
+                },
+                // materials: storage buffer (read)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
-                    // cdf_data: storage buffer (read) for FromLvk source
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 4,
-                        visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Storage { read_only: true },
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
+                    count: None,
+                },
+                // cdf_data: storage buffer (read) for FromLvk source
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
-                ],
-            });
+                    count: None,
+                },
+            ],
+        });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("rt_pipeline_layout"),
@@ -344,8 +407,14 @@ impl GpuTracer {
         c_res_deg: f32,
         g_res_deg: f32,
     ) -> GpuDetectorResult {
-        self.trace(num_photons, c_res_deg, g_res_deg, SourceType::Isotropic, 1000.0)
-            .await
+        self.trace(
+            num_photons,
+            c_res_deg,
+            g_res_deg,
+            SourceType::Isotropic,
+            1000.0,
+        )
+        .await
     }
 
     /// Trace photons from a Lambertian source in free space.
@@ -355,8 +424,14 @@ impl GpuTracer {
         c_res_deg: f32,
         g_res_deg: f32,
     ) -> GpuDetectorResult {
-        self.trace(num_photons, c_res_deg, g_res_deg, SourceType::Lambertian, 1000.0)
-            .await
+        self.trace(
+            num_photons,
+            c_res_deg,
+            g_res_deg,
+            SourceType::Lambertian,
+            1000.0,
+        )
+        .await
     }
 
     /// Trace with scene geometry and materials.
@@ -371,10 +446,21 @@ impl GpuTracer {
         materials: &[GpuMaterial],
     ) -> GpuDetectorResult {
         self.trace_inner(
-            num_photons, c_res_deg, g_res_deg, source_type, source_flux,
-            primitives, materials, &[], 0, 0, 0.0,
-            50, 0.01,
-        ).await
+            num_photons,
+            c_res_deg,
+            g_res_deg,
+            source_type,
+            source_flux,
+            primitives,
+            materials,
+            &[],
+            0,
+            0,
+            0.0,
+            50,
+            0.01,
+        )
+        .await
     }
 
     /// Trace from a rectangular diffuse area source in free space.
@@ -422,7 +508,8 @@ impl GpuTracer {
             _pad4: 0,
         };
 
-        self.dispatch_config(config, num_c, num_g, &[], &[], &[]).await
+        self.dispatch_config(config, num_c, num_g, &[], &[], &[])
+            .await
     }
 
     /// Trace from an LDT source (FromLvk) with optional cover geometry.
@@ -452,10 +539,21 @@ impl GpuTracer {
         }
 
         self.trace_inner(
-            num_photons, c_res_deg, g_res_deg, SourceType::FromLvk, source_flux,
-            primitives, materials, &cdf_flat, g_steps as u32, c_steps as u32, cdf.g_max as f32,
-            50, 0.01,
-        ).await
+            num_photons,
+            c_res_deg,
+            g_res_deg,
+            SourceType::FromLvk,
+            source_flux,
+            primitives,
+            materials,
+            &cdf_flat,
+            g_steps as u32,
+            c_steps as u32,
+            cdf.g_max as f32,
+            50,
+            0.01,
+        )
+        .await
     }
 
     /// Core trace dispatch.
@@ -468,10 +566,21 @@ impl GpuTracer {
         source_flux: f32,
     ) -> GpuDetectorResult {
         self.trace_inner(
-            num_photons, c_res_deg, g_res_deg, source_type, source_flux,
-            &[], &[], &[], 0, 0, 0.0,
-            1, 0.01,
-        ).await
+            num_photons,
+            c_res_deg,
+            g_res_deg,
+            source_type,
+            source_flux,
+            &[],
+            &[],
+            &[],
+            0,
+            0,
+            0.0,
+            1,
+            0.01,
+        )
+        .await
     }
 
     async fn trace_inner(
@@ -522,7 +631,15 @@ impl GpuTracer {
             _pad4: 0,
         };
 
-        self.dispatch_config(config, num_c, num_g, primitives_data, materials_data, cdf_data).await
+        self.dispatch_config(
+            config,
+            num_c,
+            num_g,
+            primitives_data,
+            materials_data,
+            cdf_data,
+        )
+        .await
     }
 
     /// Core dispatch: creates GPU buffers, runs compute, reads back results.
@@ -565,10 +682,27 @@ impl GpuTracer {
         });
 
         // Primitive + material buffers (need at least 1 element for wgpu)
-        let dummy_prim = GpuPrimitive { ptype: 0, material_id: 0, _pad0: 0, _pad1: 0, params: [0.0; 12] };
-        let dummy_mat = GpuMaterial { mtype: 0, _pad0: 0, _pad1: 0, _pad2: 0,
-            reflectance: 0.0, ior: 1.0, transmittance: 0.0, min_reflectance: 0.0,
-            absorption_coeff: 0.0, scattering_coeff: 0.0, asymmetry: 0.0, thickness: 0.0 };
+        let dummy_prim = GpuPrimitive {
+            ptype: 0,
+            material_id: 0,
+            _pad0: 0,
+            _pad1: 0,
+            params: [0.0; 12],
+        };
+        let dummy_mat = GpuMaterial {
+            mtype: 0,
+            _pad0: 0,
+            _pad1: 0,
+            _pad2: 0,
+            reflectance: 0.0,
+            ior: 1.0,
+            transmittance: 0.0,
+            min_reflectance: 0.0,
+            absorption_coeff: 0.0,
+            scattering_coeff: 0.0,
+            asymmetry: 0.0,
+            thickness: 0.0,
+        };
 
         let prim_buf_data: Vec<GpuPrimitive> = if primitives_data.is_empty() {
             vec![dummy_prim]
@@ -581,25 +715,35 @@ impl GpuTracer {
             materials_data.to_vec()
         };
 
-        let primitives_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("primitives_buffer"),
-            contents: bytemuck::cast_slice(&prim_buf_data),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+        let primitives_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("primitives_buffer"),
+                contents: bytemuck::cast_slice(&prim_buf_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
 
-        let materials_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("materials_buffer"),
-            contents: bytemuck::cast_slice(&mat_buf_data),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+        let materials_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("materials_buffer"),
+                contents: bytemuck::cast_slice(&mat_buf_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
 
         // CDF buffer
-        let cdf_buf_data: Vec<f32> = if cdf_data.is_empty() { vec![0.0] } else { cdf_data.to_vec() };
-        let cdf_buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("cdf_buffer"),
-            contents: bytemuck::cast_slice(&cdf_buf_data),
-            usage: wgpu::BufferUsages::STORAGE,
-        });
+        let cdf_buf_data: Vec<f32> = if cdf_data.is_empty() {
+            vec![0.0]
+        } else {
+            cdf_data.to_vec()
+        };
+        let cdf_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("cdf_buffer"),
+                contents: bytemuck::cast_slice(&cdf_buf_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
 
         // Bind group
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {

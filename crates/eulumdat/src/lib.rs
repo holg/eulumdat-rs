@@ -169,18 +169,18 @@
 pub mod area;
 pub mod batch;
 pub mod bug_rating;
-pub mod interpolate;
 mod calculations;
 pub mod compare;
 pub mod diagram;
 mod error;
 mod eulumdat;
 mod ies;
-mod parser;
-mod symmetry;
 pub mod iesna_classification;
-pub mod type_b_conversion;
+pub mod interpolate;
+mod parser;
 pub mod scene3d;
+mod symmetry;
+pub mod type_b_conversion;
 pub mod units;
 mod validation;
 mod writer;
@@ -197,8 +197,8 @@ pub use calculations::{
 };
 pub use compare::{ComparisonMetric, PhotometricComparison, Significance};
 pub use iesna_classification::{
-    Applicability as IesnaApplicability, IesnaClassification, LateralType, LongitudinalClass,
-    CutoffClass, classify as iesna_classify,
+    classify as iesna_classify, Applicability as IesnaApplicability, CutoffClass,
+    IesnaClassification, LateralType, LongitudinalClass,
 };
 // i18n re-exports for comparison are available via PhotometricComparison methods
 pub use error::{Error, Result};

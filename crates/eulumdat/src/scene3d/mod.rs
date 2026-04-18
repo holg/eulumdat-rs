@@ -195,7 +195,8 @@ pub fn render_scene_svg(
             continue;
         }
 
-        let projected: Vec<(f64, f64)> = face.vertices.iter().map(|&v| project(camera, v)).collect();
+        let projected: Vec<(f64, f64)> =
+            face.vertices.iter().map(|&v| project(camera, v)).collect();
 
         // Build points string
         let points: String = projected

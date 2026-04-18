@@ -1504,40 +1504,108 @@ pub struct GoniosimLocale {
     pub mat_satin_glass: String,
 }
 
-fn default_goniosim_title() -> String { "Virtual Goniophotometer".into() }
-fn default_goniosim_subtitle() -> String { "CIE 171:2006 validated".into() }
-fn default_goniosim_trace() -> String { "Trace".into() }
-fn default_goniosim_pause() -> String { "Pause".into() }
-fn default_goniosim_resume() -> String { "Resume".into() }
-fn default_goniosim_reset() -> String { "Reset".into() }
-fn default_goniosim_input() -> String { "Input Luminaire".into() }
-fn default_goniosim_upload() -> String { "Upload .ldt / .ies".into() }
-fn default_goniosim_cover() -> String { "Cover Material".into() }
-fn default_goniosim_no_cover() -> String { "No cover (free space)".into() }
-fn default_goniosim_custom() -> String { "Custom".into() }
-fn default_goniosim_reflectance() -> String { "Reflectance".into() }
-fn default_goniosim_diffusion() -> String { "Diffusion".into() }
-fn default_goniosim_transmittance() -> String { "Transmittance".into() }
-fn default_goniosim_ior() -> String { "Refractive index".into() }
-fn default_goniosim_thickness() -> String { "Thickness".into() }
-fn default_goniosim_distance() -> String { "Distance".into() }
-fn default_goniosim_statistics() -> String { "Statistics".into() }
-fn default_goniosim_photons() -> String { "Photons".into() }
-fn default_goniosim_detected() -> String { "Detected".into() }
-fn default_goniosim_absorbed() -> String { "Absorbed".into() }
-fn default_goniosim_export() -> String { "Export .ldt".into() }
-fn default_goniosim_original() -> String { "Original LVK".into() }
-fn default_goniosim_simulated() -> String { "Simulated (through cover)".into() }
-fn default_goniosim_select() -> String { "Select or upload a luminaire".into() }
-fn default_goniosim_click_trace() -> String { "Click Trace to simulate".into() }
-fn default_goniosim_c_plane() -> String { "C-plane".into() }
-fn default_goniosim_all() -> String { "All".into() }
-fn default_mat_clear_pmma() -> String { "PMMA clear 3mm".into() }
-fn default_mat_satin_pmma() -> String { "PMMA satin 3mm".into() }
-fn default_mat_opal_light_pmma() -> String { "PMMA opal light 3mm".into() }
-fn default_mat_opal_pmma() -> String { "PMMA opal 3mm".into() }
-fn default_mat_clear_glass() -> String { "Glass clear 4mm".into() }
-fn default_mat_satin_glass() -> String { "Glass satin 4mm".into() }
+fn default_goniosim_title() -> String {
+    "Virtual Goniophotometer".into()
+}
+fn default_goniosim_subtitle() -> String {
+    "CIE 171:2006 validated".into()
+}
+fn default_goniosim_trace() -> String {
+    "Trace".into()
+}
+fn default_goniosim_pause() -> String {
+    "Pause".into()
+}
+fn default_goniosim_resume() -> String {
+    "Resume".into()
+}
+fn default_goniosim_reset() -> String {
+    "Reset".into()
+}
+fn default_goniosim_input() -> String {
+    "Input Luminaire".into()
+}
+fn default_goniosim_upload() -> String {
+    "Upload .ldt / .ies".into()
+}
+fn default_goniosim_cover() -> String {
+    "Cover Material".into()
+}
+fn default_goniosim_no_cover() -> String {
+    "No cover (free space)".into()
+}
+fn default_goniosim_custom() -> String {
+    "Custom".into()
+}
+fn default_goniosim_reflectance() -> String {
+    "Reflectance".into()
+}
+fn default_goniosim_diffusion() -> String {
+    "Diffusion".into()
+}
+fn default_goniosim_transmittance() -> String {
+    "Transmittance".into()
+}
+fn default_goniosim_ior() -> String {
+    "Refractive index".into()
+}
+fn default_goniosim_thickness() -> String {
+    "Thickness".into()
+}
+fn default_goniosim_distance() -> String {
+    "Distance".into()
+}
+fn default_goniosim_statistics() -> String {
+    "Statistics".into()
+}
+fn default_goniosim_photons() -> String {
+    "Photons".into()
+}
+fn default_goniosim_detected() -> String {
+    "Detected".into()
+}
+fn default_goniosim_absorbed() -> String {
+    "Absorbed".into()
+}
+fn default_goniosim_export() -> String {
+    "Export .ldt".into()
+}
+fn default_goniosim_original() -> String {
+    "Original LVK".into()
+}
+fn default_goniosim_simulated() -> String {
+    "Simulated (through cover)".into()
+}
+fn default_goniosim_select() -> String {
+    "Select or upload a luminaire".into()
+}
+fn default_goniosim_click_trace() -> String {
+    "Click Trace to simulate".into()
+}
+fn default_goniosim_c_plane() -> String {
+    "C-plane".into()
+}
+fn default_goniosim_all() -> String {
+    "All".into()
+}
+fn default_mat_clear_pmma() -> String {
+    "PMMA clear 3mm".into()
+}
+fn default_mat_satin_pmma() -> String {
+    "PMMA satin 3mm".into()
+}
+fn default_mat_opal_light_pmma() -> String {
+    "PMMA opal light 3mm".into()
+}
+fn default_mat_opal_pmma() -> String {
+    "PMMA opal 3mm".into()
+}
+fn default_mat_clear_glass() -> String {
+    "Glass clear 4mm".into()
+}
+fn default_mat_satin_glass() -> String {
+    "Glass satin 4mm".into()
+}
 
 // Embedded locale JSON files
 const EN_JSON: &str = include_str!("../locales/en.json");

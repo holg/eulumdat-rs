@@ -3,8 +3,8 @@
 //! Displays BIM (Building Information Modeling) parameters extracted from
 //! ATLA/TM-33 photometric files when available.
 
-use atla::{BimParameters, LuminaireOpticalData};
 use crate::i18n::use_locale;
+use atla::{BimParameters, LuminaireOpticalData};
 use leptos::prelude::*;
 
 /// Check if an ATLA document has meaningful BIM data

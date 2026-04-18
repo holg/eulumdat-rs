@@ -87,7 +87,7 @@ pub fn build_exterior_scene(
 
     // ─── Ground slab edges (gives 3D depth) ──────────────────────────
     let slab_h = 0.15; // visual thickness of the ground slab
-    // Front edge (y = -cy)
+                       // Front edge (y = -cy)
     faces.push(
         SceneFace::quad(
             (-cx, -cy, -slab_h),
@@ -242,10 +242,26 @@ pub fn build_exterior_scene(
         if show_cones {
             let cone_r = h * 0.6; // approximate beam spread
             let cone_faces = [
-                [(px, py, h), (px - cone_r, py - cone_r, 0.0), (px + cone_r, py - cone_r, 0.0)],
-                [(px, py, h), (px - cone_r, py + cone_r, 0.0), (px + cone_r, py + cone_r, 0.0)],
-                [(px, py, h), (px - cone_r, py - cone_r, 0.0), (px - cone_r, py + cone_r, 0.0)],
-                [(px, py, h), (px + cone_r, py - cone_r, 0.0), (px + cone_r, py + cone_r, 0.0)],
+                [
+                    (px, py, h),
+                    (px - cone_r, py - cone_r, 0.0),
+                    (px + cone_r, py - cone_r, 0.0),
+                ],
+                [
+                    (px, py, h),
+                    (px - cone_r, py + cone_r, 0.0),
+                    (px + cone_r, py + cone_r, 0.0),
+                ],
+                [
+                    (px, py, h),
+                    (px - cone_r, py - cone_r, 0.0),
+                    (px - cone_r, py + cone_r, 0.0),
+                ],
+                [
+                    (px, py, h),
+                    (px + cone_r, py - cone_r, 0.0),
+                    (px + cone_r, py + cone_r, 0.0),
+                ],
             ];
             for tri in &cone_faces {
                 faces.push(SceneFace {

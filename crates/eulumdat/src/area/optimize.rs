@@ -110,7 +110,14 @@ fn optimize_for_height(
 
     // First check if even the tightest spacing fails
     let tight_result = evaluate_spacing(
-        ldt, pole_config, height, a, area_width, area_depth, grid_resolution, proration_factor,
+        ldt,
+        pole_config,
+        height,
+        a,
+        area_width,
+        area_depth,
+        grid_resolution,
+        proration_factor,
     );
     let tight_meets = meets_criteria(&tight_result, criteria);
 
@@ -121,7 +128,14 @@ fn optimize_for_height(
 
     // Check if widest spacing still works
     let wide_result = evaluate_spacing(
-        ldt, pole_config, height, b, area_width, area_depth, grid_resolution, proration_factor,
+        ldt,
+        pole_config,
+        height,
+        b,
+        area_width,
+        area_depth,
+        grid_resolution,
+        proration_factor,
     );
     let wide_meets = meets_criteria(&wide_result, criteria);
 
@@ -136,12 +150,26 @@ fn optimize_for_height(
         let d = a + (b - a) / gr;
 
         let result_c = evaluate_spacing(
-            ldt, pole_config, height, c, area_width, area_depth, grid_resolution, proration_factor,
+            ldt,
+            pole_config,
+            height,
+            c,
+            area_width,
+            area_depth,
+            grid_resolution,
+            proration_factor,
         );
         let meets_c = meets_criteria(&result_c, criteria);
 
         let result_d = evaluate_spacing(
-            ldt, pole_config, height, d, area_width, area_depth, grid_resolution, proration_factor,
+            ldt,
+            pole_config,
+            height,
+            d,
+            area_width,
+            area_depth,
+            grid_resolution,
+            proration_factor,
         );
         let meets_d = meets_criteria(&result_d, criteria);
 
@@ -160,11 +188,25 @@ fn optimize_for_height(
 
     // Use the last spacing that works (a)
     let final_result = evaluate_spacing(
-        ldt, pole_config, height, a, area_width, area_depth, grid_resolution, proration_factor,
+        ldt,
+        pole_config,
+        height,
+        a,
+        area_width,
+        area_depth,
+        grid_resolution,
+        proration_factor,
     );
     let final_meets = meets_criteria(&final_result, criteria);
 
-    make_row(height, a, &final_result, final_meets, area_width, area_depth)
+    make_row(
+        height,
+        a,
+        &final_result,
+        final_meets,
+        area_width,
+        area_depth,
+    )
 }
 
 /// Evaluate illuminance for a given spacing using a 2×2 bay arrangement.
@@ -222,8 +264,16 @@ fn evaluate_spacing(
     result.min_lux = min_lux;
     result.max_lux = max_lux;
     result.avg_lux = avg_lux;
-    result.uniformity_min_avg = if avg_lux > 0.0 { min_lux / avg_lux } else { 0.0 };
-    result.uniformity_min_max = if max_lux > 0.0 { min_lux / max_lux } else { 0.0 };
+    result.uniformity_min_avg = if avg_lux > 0.0 {
+        min_lux / avg_lux
+    } else {
+        0.0
+    };
+    result.uniformity_min_max = if max_lux > 0.0 {
+        min_lux / max_lux
+    } else {
+        0.0
+    };
 
     result
 }
