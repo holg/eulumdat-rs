@@ -2,6 +2,7 @@
 //!
 //! Traces isotropic source in free space on both GPU and CPU,
 //! compares detector outputs. Must match within statistical tolerance.
+#![allow(clippy::needless_range_loop)]
 
 use eulumdat_rt::{GpuMaterial, GpuPrimitive};
 use std::f64::consts::PI;

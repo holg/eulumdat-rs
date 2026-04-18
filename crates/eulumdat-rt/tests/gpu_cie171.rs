@@ -1,4 +1,5 @@
 //! CIE 171:2006 test cases on GPU — must match CPU reference.
+#![allow(clippy::needless_range_loop, clippy::unnecessary_cast)]
 
 use eulumdat_rt::*;
 use std::f64::consts::PI;

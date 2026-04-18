@@ -1332,6 +1332,7 @@ pub fn compare(
 }
 
 /// Interpolate between photometric files at different LED operating points.
+#[allow(clippy::too_many_arguments)]
 pub fn interpolate(
     inputs: &[String],
     steps: Option<&[f64]>,

@@ -18,6 +18,7 @@ use crate::i18n::use_locale;
 // ── URL state serialization ──────────────────────────────────────────────────
 
 /// Build a URL hash string from zonal designer params.
+#[allow(clippy::too_many_arguments)]
 fn zonal_params_to_hash(
     preset: usize,
     l: f64,

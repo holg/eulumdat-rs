@@ -574,8 +574,8 @@ impl ZonalSvg {
         let n = ppb.grid_resolution;
         // Downsample for readable table: max ~10×10 cells
         let step = ((n as f64 / 10.0).ceil() as usize).max(1);
-        let cols = (n + step - 1) / step;
-        let rows = (n + step - 1) / step;
+        let cols = n.div_ceil(step);
+        let rows = n.div_ceil(step);
 
         let cell_px = 48.0;
         let header_w = 40.0;
@@ -699,7 +699,7 @@ fn parse_first_point(path: &str) -> Option<(f64, f64)> {
     let s = path.strip_prefix('M')?.trim();
     let mut parts = s.split_whitespace();
     let first = parts.next()?;
-    let mut coords = first.split(|c: char| c == ',' || c == ' ');
+    let mut coords = first.split([',', ' ']);
     let x: f64 = coords.next()?.parse().ok()?;
     let y: f64 = coords.next().or_else(|| parts.next())?.parse().ok()?;
     Some((x, y))

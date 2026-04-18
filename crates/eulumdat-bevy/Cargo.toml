@@ -18,6 +18,12 @@ name = "eulumdat-3d"
 path = "src/main.rs"
 required-features = ["standalone"]
 
+# Obscura Demo binary — buildable for native and WASM
+[[bin]]
+name = "obscura-demo"
+path = "examples/obscura_demo.rs"
+required-features = ["post-process"]
+
 [features]
 # Default: full viewer with demo scenes
 default = ["viewer"]
@@ -54,6 +60,9 @@ bevy-ui = [
 # Enable post-processing effects (Bloom, SSAO)
 post-process = ["bevy/bevy_post_process"]
 
+# Enable native egui settings panel (WIP — egui_panel module)
+egui-ui = []
+
 [dependencies]
 bevy = { path = "../../../bevy", default-features = false, features = [
     "bevy_asset",
@@ -72,8 +81,10 @@ bevy = { path = "../../../bevy", default-features = false, features = [
     "png",
     "jpeg",
     "ktx2",
-    "x11",        # Linux
-    "wayland",    # Linux
+    "x11",
+    # Linux
+    "wayland",
+    # Linux
     "zstd_rust",
 ] }
 eulumdat = { workspace = true, features = ["serde"] }
@@ -82,21 +93,10 @@ serde = { workspace = true }
 # JSON parsing for star catalog + designer data sync
 serde_json = "1"
 
-# Obscura Demo binary — buildable for native and WASM
-[[bin]]
-name = "obscura-demo"
-path = "examples/obscura_demo.rs"
-required-features = ["post-process"]
-
-# File dialogs (native only)
-[[example]]
-name = "obscura_demo"
-required-features = ["post-process"]
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-rfd = "0.15"
 # UASTC transcoder for GPU-compressed textures (C++ lib, doesn't compile for wasm32)
 bevy = { path = "../../../bevy", default-features = false, features = ["basis-universal"] }
+rfd = "0.15"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 bevy = { path = "../../../bevy", default-features = false, features = [
@@ -118,8 +118,17 @@ bevy = { path = "../../../bevy", default-features = false, features = [
     "zstd_rust",
 ] }
 getrandom = { version = "0.3", features = ["wasm_js"] }
+js-sys = { version = "0.3", optional = true }
 # Optional WASM dependencies - only needed for standalone/wasm-sync
 wasm-bindgen = { version = "0.2", optional = true }
-js-sys = { version = "0.3", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", features = ["Window", "Storage"], optional = true }
+
+# File dialogs (native only)
+[[example]]
+name = "obscura_demo"
+required-features = ["post-process"]
+
+[[example]]
+name = "light_stress"
+required-features = ["post-process"]

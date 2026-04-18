@@ -434,6 +434,7 @@ pub fn find_best_layout(
 /// - `TargetToCount`: computes N from target illuminance
 /// - `CountToIlluminance`: computes E from fixed count
 /// - `TargetToLpd`: computes N from target LPD, then E
+#[allow(clippy::too_many_arguments)]
 pub fn compute_zonal(
     ldt: &Eulumdat,
     room: &Room,

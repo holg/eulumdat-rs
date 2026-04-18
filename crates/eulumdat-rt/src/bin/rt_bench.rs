@@ -1,11 +1,13 @@
 //! eulumdat-rt CLI: GPU tracing, benchmarks, GPU vs CPU comparison.
 //!
 //! Usage:
+//! ```text
 //!   rt_bench bench                    # GPU vs CPU speed comparison
 //!   rt_bench trace <input.ldt> [--cover <preset>] [--photons <n>]
 //!   rt_bench compare <input.ldt> [--cover <preset>] [--photons <n>]
+//! ```
 
-use eulumdat::{Eulumdat, PhotometricComparison};
+use eulumdat::Eulumdat;
 use eulumdat_goniosim::*;
 use eulumdat_rt::*;
 use std::time::Instant;

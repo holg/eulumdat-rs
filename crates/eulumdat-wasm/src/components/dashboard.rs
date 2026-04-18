@@ -683,8 +683,8 @@ pub fn Dashboard(
         <div class="dashboard-layout">
             <DashboardSidebar
                 on_edit=on_edit
-                has_selection=has_selection.into()
-                has_compare_pair=has_compare_pair.into()
+                has_selection=has_selection
+                has_compare_pair=has_compare_pair
                 has_diagram_modes=Memo::new(move |_| config.get().has_diagram_modes)
                 diagram_mode=diagram_mode
                 set_diagram_mode=set_diagram_mode

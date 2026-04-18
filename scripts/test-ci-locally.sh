@@ -44,7 +44,7 @@ fi
 
 # Run cargo doc
 echo -e "${YELLOW}Step 4: Running cargo doc...${NC}"
-if RUSTDOCFLAGS="-D warnings" cargo doc --workspace $EXCLUDE_PY --document-private-items; then
+if RUSTDOCFLAGS="-D warnings" cargo doc --workspace $EXCLUDE_PY --document-private-items --no-deps; then
     echo -e "${GREEN}✓ doc generation passed${NC}\n"
 else
     echo -e "${RED}✗ doc generation failed${NC}\n"

@@ -3,6 +3,8 @@
 //! Reference: CIE 171:2006 "Test Cases to Assess the Accuracy of Lighting
 //! Computer Programs", Section 5 (Analytical Test Cases).
 //!
+#![allow(clippy::needless_range_loop, clippy::type_complexity)]
+
 //! We implement the test cases relevant to Monte Carlo photon tracing:
 //! - TC 5.1: Point source direct illumination (on-axis)
 //! - TC 5.2: Point source direct illumination (off-axis)

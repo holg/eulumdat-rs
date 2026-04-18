@@ -76,6 +76,7 @@ pub fn detector_to_eulumdat_with_lamp_flux(
 ///
 /// If `c_angles` or `g_angles` is None, uses uniform grid from config.
 /// This enables exact reproduction of non-uniform C-plane spacing from the source LDT.
+#[allow(clippy::needless_range_loop)]
 pub fn detector_to_eulumdat_at_angles(
     detector: &Detector,
     source_flux_lm: f64,
@@ -235,7 +236,6 @@ pub fn detector_to_eulumdat_at_angles(
         color_appearance: "4000K".to_string(),
         color_rendering_group: "1A".to_string(),
         wattage_with_ballast: source_flux_lm / 150.0, // assume ~150 lm/W
-        ..LampSet::default()
     }];
 
     ldt.direct_ratios = [0.0; 10];

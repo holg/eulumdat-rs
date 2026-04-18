@@ -319,6 +319,7 @@ fn convert_image(
 }
 
 /// Encode as UASTC (GPU-compressed, stays compressed in VRAM).
+#[allow(clippy::too_many_arguments)]
 fn encode_uastc_and_log(
     name: &str,
     index: usize,
@@ -362,6 +363,7 @@ fn encode_uastc_and_log(
 }
 
 /// Encode as JPEG (opaque) or PNG (has alpha) — CPU format.
+#[allow(clippy::too_many_arguments)]
 fn encode_cpu_and_log(
     name: &str,
     index: usize,
@@ -479,7 +481,7 @@ fn build_output_json(
         bin_chunk.extend_from_slice(&blob.data);
 
         // Pad to 4-byte boundary
-        while bin_chunk.len() % 4 != 0 {
+        while !bin_chunk.len().is_multiple_of(4) {
             bin_chunk.push(0);
         }
 

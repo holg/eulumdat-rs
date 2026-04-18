@@ -29,10 +29,10 @@ atla = { workspace = true, features = ["xml", "json", "eulumdat", "i18n"] }
 console_error_panic_hook.workspace = true
 # Core library
 eulumdat = { workspace = true, features = ["i18n", "serde"] }
-eulumdat-i18n.workspace = true
-eulumdat-typst.workspace = true
 eulumdat-goniosim = { path = "../eulumdat-goniosim", default-features = false }
+eulumdat-i18n.workspace = true
 eulumdat-rt = { path = "../eulumdat-rt", default-features = false }
+eulumdat-typst.workspace = true
 eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates" }
 getrandom = { version = "0.3", features = ["wasm_js"] }
 gloo.workspace = true

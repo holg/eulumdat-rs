@@ -55,6 +55,7 @@ impl Detector {
     /// Convert accumulated bins to candela values.
     ///
     /// `cd = (energy_in_bin / solid_angle_of_bin) * (source_flux / total_energy)`
+    #[allow(clippy::needless_range_loop)]
     pub fn to_candela(&self, source_flux_lm: f64) -> Vec<Vec<f64>> {
         if self.total_energy <= 0.0 {
             return self.bins.clone();

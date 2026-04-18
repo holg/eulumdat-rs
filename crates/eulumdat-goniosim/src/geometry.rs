@@ -191,6 +191,7 @@ fn intersect_aa_box(
 // Cylinder intersection
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn intersect_cylinder(
     ray: &Ray,
     center: &Point3<f64>,
@@ -208,7 +209,7 @@ fn intersect_cylinder(
 
     // Project onto plane perpendicular to axis
     let d_perp = d - d.dot(a_vec) * a_vec;
-    let oc_perp = &oc - oc.dot(a_vec) * a_vec;
+    let oc_perp = oc - oc.dot(a_vec) * a_vec;
 
     let a = d_perp.dot(&d_perp);
     let b = 2.0 * d_perp.dot(&oc_perp);
@@ -231,12 +232,10 @@ fn intersect_cylinder(
         }
         let p = ray.at(t);
         let h = (p - center).dot(a_vec);
-        if h.abs() <= half_height {
-            if best_t.is_none() || t < best_t.unwrap() {
-                let n = (p - center) - h * a_vec;
-                best_t = Some(t);
-                best_normal = n / radius;
-            }
+        if h.abs() <= half_height && (best_t.is_none() || t < best_t.unwrap()) {
+            let n = (p - center) - h * a_vec;
+            best_t = Some(t);
+            best_normal = n / radius;
         }
     }
 
@@ -256,11 +255,9 @@ fn intersect_cylinder(
             let p = ray.at(t);
             let diff = p - cap_center;
             let dist2 = diff.dot(&diff) - diff.dot(&cap_normal).powi(2);
-            if dist2 <= radius * radius {
-                if best_t.is_none() || t < best_t.unwrap() {
-                    best_t = Some(t);
-                    best_normal = cap_normal;
-                }
+            if dist2 <= radius * radius && (best_t.is_none() || t < best_t.unwrap()) {
+                best_t = Some(t);
+                best_normal = cap_normal;
             }
         }
     }
@@ -282,6 +279,7 @@ fn intersect_cylinder(
 // Sheet (finite plane) intersection
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::too_many_arguments)]
 fn intersect_sheet(
     ray: &Ray,
     center: &Point3<f64>,

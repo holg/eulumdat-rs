@@ -315,6 +315,7 @@ fn compute_smart_defaults(ldt: &Eulumdat) -> SmartDefaults {
 }
 
 /// Use mixed computation if any pole has a non-zero LDT index, else single LDT.
+#[allow(clippy::too_many_arguments)]
 fn compute_mixed_or_single(
     primary: &Eulumdat,
     extras: &[ExtraLdt],
@@ -385,22 +386,20 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     let (bay_view, set_bay_view) = signal(url_get("bay").map(|v| v == "1").unwrap_or(false));
 
     // --- Custom polygon area ---
-    let url_poly = url_get("poly")
-        .map(|s| {
-            let verts: Vec<(f64, f64)> = s
-                .split(';')
-                .filter_map(|p| {
-                    let mut it = p.split(',');
-                    Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
-                })
-                .collect();
-            if verts.len() >= 3 {
-                Some(AreaPolygon::new(verts))
-            } else {
-                None
-            }
-        })
-        .flatten();
+    let url_poly = url_get("poly").and_then(|s| {
+        let verts: Vec<(f64, f64)> = s
+            .split(';')
+            .filter_map(|p| {
+                let mut it = p.split(',');
+                Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
+            })
+            .collect();
+        if verts.len() >= 3 {
+            Some(AreaPolygon::new(verts))
+        } else {
+            None
+        }
+    });
     let (custom_polygon, set_custom_polygon) = signal(url_poly.clone());
     let (polygon_drawing, set_polygon_drawing) = signal(false);
     let (polygon_wip, set_polygon_wip) = signal(Vec::<(f64, f64)>::new());
@@ -981,6 +980,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                 let mut min_lux = f64::MAX;
                 let mut max_lux: f64 = 0.0;
                 let mut sum_lux: f64 = 0.0;
+                #[allow(clippy::needless_range_loop)]
                 for row in 0..n {
                     for col in 0..n {
                         let lux = full.lux_grid[n + row][n + col];

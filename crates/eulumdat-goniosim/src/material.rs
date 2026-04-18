@@ -458,6 +458,7 @@ fn interact_clear_transmitter<R: Rng>(
 ///
 /// This guarantees the specified transmittance is respected exactly,
 /// while the scattering coefficient controls angular spread independently.
+#[allow(clippy::too_many_arguments)]
 fn interact_diffuse_transmitter<R: Rng>(
     photon: &Photon,
     hit: &HitRecord,

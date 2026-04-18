@@ -173,6 +173,7 @@ impl CoverPreset {
         Self::all().get(i).copied().unwrap_or(Self::None)
     }
 
+    #[allow(clippy::wrong_self_convention)]
     fn to_params(&self) -> Option<MaterialParams> {
         match self {
             Self::None | Self::Custom => None,
@@ -303,13 +304,10 @@ pub fn GonioSimDemo(
     };
 
     // Load default template on mount
-    Effect::new({
-        let load_ldt = load_ldt;
-        move |_| {
-            if source_ldt.get_untracked().is_none() {
-                let (name, content) = TEMPLATES[0];
-                load_ldt(name.to_string(), content.to_string());
-            }
+    Effect::new(move |_| {
+        if source_ldt.get_untracked().is_none() {
+            let (name, content) = TEMPLATES[0];
+            load_ldt(name.to_string(), content.to_string());
         }
     });
 
@@ -898,7 +896,7 @@ pub fn GonioSimDemo(
                                         {slider(locale.get().goniosim.transmittance.clone(), "%", transmittance_pct, set_transmittance_pct, 5.0, 98.0, 1.0, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
                                         {slider(locale.get().goniosim.ior.clone(), "", ior, set_ior, 1.0, 2.0, 0.01, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
                                         {slider(locale.get().goniosim.thickness.clone(), "mm", thickness_mm, set_thickness_mm, 1.0, 10.0, 0.5, move || { set_cover_preset.set(CoverPreset::Custom); reset(); })}
-                                        {slider(locale.get().goniosim.distance.clone(), "mm", cover_distance_mm, set_cover_distance_mm, 5.0, 200.0, 5.0, move || reset())}
+                                        {slider(locale.get().goniosim.distance.clone(), "mm", cover_distance_mm, set_cover_distance_mm, 5.0, 200.0, 5.0, #[allow(clippy::redundant_closure)] move || reset())}
                                     </div>
                                 }.into_any()
                             } else {
@@ -1158,14 +1156,7 @@ pub fn GonioSimDemo(
                                 }
 
                                 // Standard diagram types
-                                if ldt_opt.is_none() {
-                                    view! {
-                                        <div style="color: #484f58; text-align: center; font-size: 0.9rem;">
-                                            {move || locale.get().goniosim.click_trace.clone()}
-                                        </div>
-                                    }.into_any()
-                                } else {
-                                    let ldt = ldt_opt.unwrap();
+                                if let Some(ldt) = ldt_opt {
                                     let theme = SvgTheme::dark();
                                     // Shared scale: use max of original and simulated
                                     let shared_max = {
@@ -1176,6 +1167,12 @@ pub fn GonioSimDemo(
                                     let svg = render_diagram(&ldt, dt, cp, &theme, 450.0, 450.0, Some(shared_max));
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
+                                    }.into_any()
+                                } else {
+                                    view! {
+                                        <div style="color: #484f58; text-align: center; font-size: 0.9rem;">
+                                            {move || locale.get().goniosim.click_trace.clone()}
+                                        </div>
                                     }.into_any()
                                 }
                             }}
@@ -1215,6 +1212,7 @@ fn reset_sim(
 }
 
 /// Labeled slider with value display.
+#[allow(clippy::too_many_arguments)]
 fn slider(
     label: String,
     unit: &'static str,
@@ -1432,7 +1430,7 @@ fn build_render_scene(
 /// Encode RGBA bytes as BMP (uncompressed, 24-bit, bottom-up).
 /// All browsers support BMP in <img> tags and data URIs.
 fn encode_bmp(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
-    let row_size = ((width * 3 + 3) / 4) * 4; // rows padded to 4-byte boundary
+    let row_size = (width * 3).div_ceil(4) * 4; // rows padded to 4-byte boundary
     let pixel_data_size = row_size * height;
     let file_size = 54 + pixel_data_size;
 
@@ -1467,9 +1465,7 @@ fn encode_bmp(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
             data.push(rgba[i + 1]); // G
             data.push(rgba[i]); // R
         }
-        for _ in 0..padding {
-            data.push(0);
-        }
+        data.extend(std::iter::repeat_n(0u8, padding));
     }
 
     data

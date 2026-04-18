@@ -36,6 +36,7 @@ pub fn spawn_photometric_lights<T: PhotometricData>(
 
 /// System to update Bevy lights when PhotometricLight components change.
 /// Skips newly-added entities (handled by `spawn_photometric_lights`).
+#[allow(clippy::too_many_arguments)]
 pub fn update_photometric_lights<T: PhotometricData>(
     mut commands: Commands,
     changed_query: Query<

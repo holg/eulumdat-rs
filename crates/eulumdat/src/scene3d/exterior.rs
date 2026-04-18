@@ -29,7 +29,7 @@ pub fn build_exterior_scene(
     // ─── Ground heatmap ─────────────────────────────────────────────
     // Cap grid cells for SVG performance
     let step = if n > 20 { n / 20 } else { 1 };
-    let grid_n = (n + step - 1) / step;
+    let grid_n = n.div_ceil(step);
 
     let dx = aw / grid_n as f64;
     let dy = ad / grid_n as f64;

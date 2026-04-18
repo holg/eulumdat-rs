@@ -1,4 +1,5 @@
 //! Validation tests: compare traced results against analytical solutions.
+#![allow(clippy::needless_range_loop)]
 
 use eulumdat_goniosim::*;
 

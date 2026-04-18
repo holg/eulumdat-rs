@@ -233,7 +233,7 @@ impl GpuDetectorResult {
         self.bins.iter().flat_map(|row| row.iter()).sum()
     }
 
-    /// Get bins as [c][g] array.
+    /// Get bins as `[c][g]` array.
     pub fn bins(&self) -> &Vec<Vec<f64>> {
         &self.bins
     }
@@ -256,9 +256,10 @@ impl GpuDetectorResult {
         }
 
         let flux_per_energy = source_flux_lm / total;
-        let dc_rad = (self.c_res as f64).to_radians();
+        let dc_rad = self.c_res.to_radians();
 
         let mut candela = vec![vec![0.0; self.num_g]; self.num_c];
+        #[allow(clippy::needless_range_loop)]
         for ci in 0..self.num_c {
             for gi in 0..self.num_g {
                 let g_rad = (gi as f64 * self.g_res).to_radians();
@@ -435,6 +436,7 @@ impl GpuTracer {
     }
 
     /// Trace with scene geometry and materials.
+    #[allow(clippy::too_many_arguments)]
     pub async fn trace_with_scene(
         &self,
         num_photons: u32,
@@ -464,6 +466,7 @@ impl GpuTracer {
     }
 
     /// Trace from a rectangular diffuse area source in free space.
+    #[allow(clippy::too_many_arguments)]
     pub async fn trace_area_source(
         &self,
         num_photons: u32,
@@ -513,6 +516,7 @@ impl GpuTracer {
     }
 
     /// Trace from an LDT source (FromLvk) with optional cover geometry.
+    #[allow(clippy::too_many_arguments)]
     pub async fn trace_from_lvk(
         &self,
         num_photons: u32,
@@ -583,6 +587,7 @@ impl GpuTracer {
         .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn trace_inner(
         &self,
         num_photons: u32,
@@ -775,7 +780,7 @@ impl GpuTracer {
 
         // Dispatch compute
         let workgroup_size = 256u32;
-        let num_workgroups = (num_photons + workgroup_size - 1) / workgroup_size;
+        let num_workgroups = num_photons.div_ceil(workgroup_size);
 
         let mut encoder = self
             .device
@@ -818,6 +823,7 @@ impl GpuTracer {
 
         // Convert fixed-point u32 back to f64
         let mut bins = vec![vec![0.0f64; num_g as usize]; num_c as usize];
+        #[allow(clippy::needless_range_loop)]
         for ci in 0..num_c as usize {
             for gi in 0..num_g as usize {
                 let idx = ci * num_g as usize + gi;

@@ -55,7 +55,7 @@ impl LuminairePlace {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaResult {
-    /// Combined illuminance grid (row-major: [row][col])
+    /// Combined illuminance grid (row-major: `[row][col]`)
     pub lux_grid: Vec<Vec<f64>>,
     pub min_lux: f64,
     pub avg_lux: f64,
@@ -499,7 +499,7 @@ pub(crate) fn compute_illuminance_at_point(
 /// Compute illuminance on a vertical wall surface.
 ///
 /// The wall is defined by its grid of sample points and outward normal.
-/// Returns a 2D grid [rows][cols] of lux values.
+/// Returns a 2D grid `[rows][cols]` of lux values.
 pub fn compute_wall_illuminance(
     ldt: &Eulumdat,
     placements: &[LuminairePlace],

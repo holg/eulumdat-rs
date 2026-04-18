@@ -255,6 +255,7 @@ pub struct LvkCdf {
 
 impl LvkCdf {
     /// Build CDF from an Eulumdat. Used by Source::from_lvk and GPU tracer.
+    #[allow(clippy::needless_range_loop)]
     pub fn build(ldt: &Eulumdat) -> Self {
         let g_max = ldt.g_angles.last().copied().unwrap_or(180.0);
         let g_step: f64 = 1.0; // 1° resolution

@@ -60,7 +60,7 @@ fn render_opal_cover_scene() {
     );
 
     // Write PPM file for visual inspection
-    let mut ppm = format!("P6\n{} {}\n255\n", image.width, image.height);
+    let ppm = format!("P6\n{} {}\n255\n", image.width, image.height);
     let ppm_bytes: Vec<u8> = bytes
         .chunks(4)
         .flat_map(|rgba| [rgba[0], rgba[1], rgba[2]])

@@ -266,6 +266,7 @@ impl GpuCamera {
     ///
     /// `lvk_data`: optional flat array of intensity values [c0g0, c0g1, ..., c1g0, ...] for
     /// LDT-based light emission. If empty, uses uniform emission.
+    #[allow(clippy::too_many_arguments)]
     pub async fn render(
         &self,
         width: u32,
@@ -300,6 +301,7 @@ impl GpuCamera {
     }
 
     /// Render with LDT-based light emission pattern.
+    #[allow(clippy::too_many_arguments)]
     pub async fn render_with_lvk(
         &self,
         width: u32,
@@ -468,8 +470,8 @@ impl GpuCamera {
         });
 
         // Dispatch: 16x16 workgroups covering the image
-        let wg_x = (width + 15) / 16;
-        let wg_y = (height + 15) / 16;
+        let wg_x = width.div_ceil(16);
+        let wg_y = height.div_ceil(16);
 
         let mut encoder = self
             .device

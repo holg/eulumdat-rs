@@ -126,7 +126,7 @@ pub fn build_interior_scene(
         let max_lux = ppb.max_lux.max(0.001);
         let n = ppb.grid_resolution;
         let step = if n > 16 { n / 16 } else { 1 };
-        let grid_n = (n + step - 1) / step;
+        let grid_n = n.div_ceil(step);
         let dx = l / grid_n as f64;
         let dy = w / grid_n as f64;
 

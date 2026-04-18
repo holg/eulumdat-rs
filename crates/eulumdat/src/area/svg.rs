@@ -19,6 +19,7 @@ impl AreaSvg {
     /// `placements` — luminaire placements (for rotation indicators).
     /// `selected_pole` — which pole ID is selected.
     /// `luminaires_per_pole` — how many luminaires per pole (for grouping).
+    #[allow(clippy::too_many_arguments)]
     pub fn plan_view_with_poles(
         pole_positions: &[(usize, f64, f64)],
         placements: &[LuminairePlace],
@@ -157,6 +158,7 @@ impl AreaSvg {
     }
 
     /// Plan view with optional polygon outline instead of rectangle.
+    #[allow(clippy::too_many_arguments)]
     pub fn plan_view_with_polygon(
         pole_positions: &[(usize, f64, f64)],
         placements: &[LuminairePlace],
@@ -645,6 +647,7 @@ impl AreaSvg {
     ///
     /// Computes wall illuminance from the LDT data, projects heatmaps onto all visible
     /// surfaces in perspective. Pure SVG, no WebGL needed.
+    #[allow(clippy::too_many_arguments)]
     pub fn room_view(
         result: &AreaResult,
         placements: &[LuminairePlace],
@@ -670,7 +673,7 @@ impl AreaSvg {
         let n = result.grid_resolution;
 
         // Wall grid resolution (fewer cells than floor for performance)
-        let wall_res = (n / 2).max(6).min(16);
+        let wall_res = (n / 2).clamp(6, 16);
 
         // --- Compute wall illuminance grids ---
         // Back wall: at y = area_d, spanning x = [0, area_w], z = [0, mounting_height]
@@ -737,7 +740,7 @@ impl AreaSvg {
 
         let wall_h_svg = floor_bl.1 - floor_tl.1;
         let max_scene_h = area_w.max(area_d).max(1.0);
-        let ceil_frac = (mounting_height / max_scene_h).min(0.95).max(0.3);
+        let ceil_frac = (mounting_height / max_scene_h).clamp(0.3, 0.95);
 
         let ceil_tl = (floor_tl.0, floor_tl.1 - wall_h_svg * ceil_frac);
         let ceil_tr = (floor_tr.0, floor_tr.1 - wall_h_svg * ceil_frac);
@@ -991,6 +994,7 @@ impl AreaSvg {
 }
 
 /// Render a wall heatmap onto a perspective quad.
+#[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
 fn render_wall_heatmap(
     svg: &mut String,
     lux_grid: &[Vec<f64>],
@@ -1035,7 +1039,7 @@ fn render_wall_heatmap(
 /// Bilinear interpolation on a quad defined by 4 corners.
 ///
 /// `bl`=bottom-left, `br`=bottom-right, `tl`=top-left(far), `tr`=top-right(far).
-/// `u` goes left→right [0,1], `v` goes near→far [0,1].
+/// `u` goes left→right `[0,1]`, `v` goes near→far `[0,1]`.
 fn lerp_quad(
     bl: (f64, f64),
     br: (f64, f64),

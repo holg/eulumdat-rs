@@ -87,6 +87,7 @@ pub fn optimize_spacing(
 }
 
 /// Optimize spacing for a single mounting height.
+#[allow(clippy::too_many_arguments)]
 fn optimize_for_height(
     ldt: &Eulumdat,
     criteria: &OptimizationCriteria,
@@ -210,6 +211,7 @@ fn optimize_for_height(
 }
 
 /// Evaluate illuminance for a given spacing using a 2×2 bay arrangement.
+#[allow(clippy::too_many_arguments)]
 fn evaluate_spacing(
     ldt: &Eulumdat,
     pole_config: &PoleConfig,

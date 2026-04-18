@@ -3700,6 +3700,7 @@ impl IsoluxDiagram {
     /// colors (red → orange → yellow → green → cyan → purple) with a stepped
     /// legend showing percentage and lux values — matching common AEC photometric
     /// data sheets.
+    #[allow(clippy::needless_range_loop)]
     pub fn to_svg_aec(
         &self,
         width: f64,
@@ -3923,6 +3924,7 @@ impl IsoluxDiagram {
     /// - A small red polar diagram on a vertical pole at the luminaire position
     ///
     /// `ldt` is needed to draw the mini polar diagram on the pole.
+    #[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
     pub fn to_svg_isometric(
         &self,
         width: f64,

@@ -210,7 +210,7 @@ template_roundtrip!(spotlight, "wiki-spotlight.ldt", "Spotlight");
 fn cover_reduces_efficiency() {
     let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
     let ldt = Eulumdat::parse(content).unwrap();
-    let lamp_flux = ldt.total_luminous_flux();
+    let _lamp_flux = ldt.total_luminous_flux();
     let flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
     let c_res = ldt.c_plane_distance;
     let g_res = ldt.g_plane_distance;
@@ -223,7 +223,7 @@ fn cover_reduces_efficiency() {
         ("Matte Black", catalog::matte_black()),
     ];
 
-    let mut prev_throughput = 1.0f64;
+    let _prev_throughput = 1.0f64;
 
     for (name, cover) in &covers {
         let mut scene = Scene::new();
@@ -280,11 +280,10 @@ fn cover_reduces_efficiency() {
 fn thickness_affects_absorption() {
     let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
     let ldt = Eulumdat::parse(content).unwrap();
-    let lamp_flux = ldt.total_luminous_flux();
+    let _lamp_flux = ldt.total_luminous_flux();
     let flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
 
     let thicknesses = [2.0, 3.0, 5.0, 8.0]; // mm
-    let mut prev_throughput = 1.0f64;
 
     for &thick in &thicknesses {
         let cover = MaterialParams {
@@ -335,8 +334,7 @@ fn thickness_affects_absorption() {
         // With same transmittance_pct but different thickness, the mu_a changes:
         // mu_a = -ln(0.5) / (thick/1000) — thinner = higher mu_a = more absorption per mm
         // But total absorption through the slab stays the same since tau = exp(-mu_a * d) = 0.5
-
-        prev_throughput = throughput;
+        let _ = throughput;
     }
 }
 
@@ -345,7 +343,7 @@ fn thickness_affects_absorption() {
 fn reflectance_increases_loss() {
     let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
     let ldt = Eulumdat::parse(content).unwrap();
-    let lamp_flux = ldt.total_luminous_flux();
+    let _lamp_flux = ldt.total_luminous_flux();
     let flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
 
     let reflectances = [0.0, 10.0, 20.0, 40.0];
