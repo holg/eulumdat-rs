@@ -1,10 +1,14 @@
 //! Camera rendering test — produces an actual image.
 
+mod common;
+use common::gpu_or_skip;
 use eulumdat_rt::*;
 
 #[test]
 fn render_opal_cover_scene() {
-    let camera = pollster::block_on(GpuCamera::new()).expect("GPU camera");
+    let Some(camera) = gpu_or_skip(GpuCamera::new()) else {
+        return;
+    };
 
     // Scene: opal PMMA cover at z=-0.04
     let cover = eulumdat_goniosim::catalog::opal_pmma_3mm();
@@ -78,7 +82,9 @@ fn render_opal_cover_scene() {
 
 #[test]
 fn render_empty_scene() {
-    let camera = pollster::block_on(GpuCamera::new()).expect("GPU camera");
+    let Some(camera) = gpu_or_skip(GpuCamera::new()) else {
+        return;
+    };
 
     let image = pollster::block_on(camera.render(
         64,

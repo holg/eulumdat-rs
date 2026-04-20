@@ -1,9 +1,12 @@
 //! GPU material tests — verify each material type against CPU reference.
 
+mod common;
+use common::gpu_or_skip;
 use eulumdat_rt::*;
 
-fn gpu_throughput(material: &eulumdat_goniosim::MaterialParams, num_photons: u32) -> f64 {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+/// Returns `None` if the GPU isn't available (headless CI); tests early-return.
+fn gpu_throughput(material: &eulumdat_goniosim::MaterialParams, num_photons: u32) -> Option<f64> {
+    let tracer = gpu_or_skip(GpuTracer::new())?;
     let gpu_mat = GpuMaterial::from_material_params(material);
     let gpu_prim = GpuPrimitive::sheet(
         [0.0, 0.0, -0.04],
@@ -23,7 +26,7 @@ fn gpu_throughput(material: &eulumdat_goniosim::MaterialParams, num_photons: u32
         &[gpu_prim],
         &[gpu_mat],
     ));
-    result.total_energy() / num_photons as f64
+    Some(result.total_energy() / num_photons as f64)
 }
 
 fn cpu_throughput(material: &eulumdat_goniosim::MaterialParams, num_photons: u64) -> f64 {
@@ -60,7 +63,9 @@ fn cpu_throughput(material: &eulumdat_goniosim::MaterialParams, num_photons: u64
 #[test]
 fn clear_pmma_gpu_vs_cpu() {
     let mat = eulumdat_goniosim::catalog::clear_pmma_3mm();
-    let gpu = gpu_throughput(&mat, 500_000);
+    let Some(gpu) = gpu_throughput(&mat, 500_000) else {
+        return;
+    };
     let cpu = cpu_throughput(&mat, 500_000);
     eprintln!(
         "Clear PMMA: GPU={:.3}, CPU={:.3}, ratio={:.3}",
@@ -78,7 +83,9 @@ fn clear_pmma_gpu_vs_cpu() {
 #[test]
 fn satin_pmma_gpu_vs_cpu() {
     let mat = eulumdat_goniosim::catalog::satin_pmma_3mm();
-    let gpu = gpu_throughput(&mat, 500_000);
+    let Some(gpu) = gpu_throughput(&mat, 500_000) else {
+        return;
+    };
     let cpu = cpu_throughput(&mat, 500_000);
     eprintln!(
         "Satin PMMA: GPU={:.3}, CPU={:.3}, ratio={:.3}",
@@ -96,7 +103,9 @@ fn satin_pmma_gpu_vs_cpu() {
 #[test]
 fn opal_pmma_gpu_vs_cpu() {
     let mat = eulumdat_goniosim::catalog::opal_pmma_3mm();
-    let gpu = gpu_throughput(&mat, 500_000);
+    let Some(gpu) = gpu_throughput(&mat, 500_000) else {
+        return;
+    };
     let cpu = cpu_throughput(&mat, 500_000);
     eprintln!(
         "Opal PMMA: GPU={:.3}, CPU={:.3}, ratio={:.3}",
@@ -114,7 +123,9 @@ fn opal_pmma_gpu_vs_cpu() {
 #[test]
 fn clear_glass_gpu_vs_cpu() {
     let mat = eulumdat_goniosim::catalog::clear_glass_4mm();
-    let gpu = gpu_throughput(&mat, 500_000);
+    let Some(gpu) = gpu_throughput(&mat, 500_000) else {
+        return;
+    };
     let cpu = cpu_throughput(&mat, 500_000);
     eprintln!(
         "Clear glass: GPU={:.3}, CPU={:.3}, ratio={:.3}",
@@ -132,7 +143,9 @@ fn clear_glass_gpu_vs_cpu() {
 #[test]
 fn matte_black_gpu_vs_cpu() {
     let mat = eulumdat_goniosim::catalog::matte_black();
-    let gpu = gpu_throughput(&mat, 500_000);
+    let Some(gpu) = gpu_throughput(&mat, 500_000) else {
+        return;
+    };
     let cpu = cpu_throughput(&mat, 500_000);
     eprintln!(
         "Matte black: GPU={:.3}, CPU={:.3}, ratio={:.3}",
@@ -157,7 +170,9 @@ fn matte_black_gpu_vs_cpu() {
 /// Cover always reduces throughput (never increases).
 #[test]
 fn cover_always_reduces() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
     let covers = [
         ("Clear PMMA", eulumdat_goniosim::catalog::clear_pmma_3mm()),
         ("Satin PMMA", eulumdat_goniosim::catalog::satin_pmma_3mm()),
@@ -198,7 +213,9 @@ fn cover_always_reduces() {
 /// Transmittance directly controls absorption.
 #[test]
 fn transmittance_controls_absorption() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
 
     let mut prev_throughput = 1.0f64;
     for &trans in &[90.0, 50.0, 20.0, 5.0] {
