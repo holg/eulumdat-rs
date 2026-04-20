@@ -142,13 +142,12 @@ fn parse_tm33_23(xml: &str) -> Result<LuminaireOpticalData> {
                     _ => {}
                 }
             }
-            Ok(Event::Text(ref e)) => {
-                if current_path.last().map(|s| s.as_str()) == Some("Version")
-                    && current_path.len() == 2
-                {
-                    let text = e.unescape().unwrap_or_default().to_string();
-                    doc.version = text;
-                }
+            Ok(Event::Text(ref e))
+                if current_path.len() == 2
+                    && current_path.last().map(|s| s.as_str()) == Some("Version") =>
+            {
+                let text = e.unescape().unwrap_or_default().to_string();
+                doc.version = text;
             }
             Ok(Event::End(_)) => {
                 current_path.pop();
