@@ -69,15 +69,11 @@ impl App {
             None => return,
         };
         match key {
-            KeyCode::Up => {
-                if picker.cursor > 0 {
-                    picker.cursor -= 1;
-                }
+            KeyCode::Up if picker.cursor > 0 => {
+                picker.cursor -= 1;
             }
-            KeyCode::Down => {
-                if picker.cursor + 1 < picker.languages.len() {
-                    picker.cursor += 1;
-                }
+            KeyCode::Down if picker.cursor + 1 < picker.languages.len() => {
+                picker.cursor += 1;
             }
             KeyCode::Enter => {
                 let lang = picker.languages[picker.cursor];
@@ -153,15 +149,11 @@ impl App {
         match key {
             KeyCode::F(2) => self.toggle_lang_picker(),
             KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
-            KeyCode::Up => {
-                if state.option_cursor > 0 {
-                    state.option_cursor -= 1;
-                }
+            KeyCode::Up if state.option_cursor > 0 => {
+                state.option_cursor -= 1;
             }
-            KeyCode::Down => {
-                if state.option_cursor < 3 {
-                    state.option_cursor += 1;
-                }
+            KeyCode::Down if state.option_cursor < 3 => {
+                state.option_cursor += 1;
             }
             KeyCode::Char('a') | KeyCode::Char('A') | KeyCode::Char('1') => {
                 state.answer_current(0, &self.locale);
