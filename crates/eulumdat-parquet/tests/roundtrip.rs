@@ -1,23 +1,19 @@
-//! Round-trip test: write several sample LDTs to a Parquet file, read back,
-//! verify row count and key column values.
+//! Basic round-trip: write several sample LDTs, read them back, verify row
+//! count and string-column values.
+
+mod common;
+use common::{load, tmp_parquet};
 
 use std::fs::File;
 use std::sync::Arc;
 
 use arrow::array::RecordBatchReader;
-use eulumdat::Eulumdat;
 use eulumdat_parquet::EulumdatParquetWriter;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
-fn load(rel: &str) -> Eulumdat {
-    let path = format!("../eulumdat-wasm/templates/{rel}");
-    let content = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {path}: {e}"));
-    Eulumdat::parse(&content).unwrap_or_else(|e| panic!("parse {path}: {e}"))
-}
-
 #[test]
 fn write_and_read_sample_catalog() {
-    let tmp = std::env::temp_dir().join("eulumdat-parquet-roundtrip.parquet");
+    let tmp = tmp_parquet("roundtrip");
 
     let samples = [
         ("fluorescent", load("fluorescent_luminaire.ldt")),
@@ -26,16 +22,12 @@ fn write_and_read_sample_catalog() {
         ("projector", load("projector.ldt")),
     ];
 
-    // Write
-    {
-        let mut w = EulumdatParquetWriter::create(&tmp).unwrap();
-        for (name, ldt) in &samples {
-            w.append(name, ldt).unwrap();
-        }
-        w.finish().unwrap();
+    let mut w = EulumdatParquetWriter::create(&tmp).unwrap();
+    for (name, ldt) in &samples {
+        w.append(name, ldt).unwrap();
     }
+    w.finish().unwrap();
 
-    // Read back
     let file = File::open(&tmp).unwrap();
     let reader = ParquetRecordBatchReaderBuilder::try_new(file)
         .unwrap()
@@ -50,9 +42,8 @@ fn write_and_read_sample_catalog() {
         let batch = batch.unwrap();
         total_rows += batch.num_rows();
 
-        // file_path is column 0
-        let col = batch.column(0);
-        let arr = col
+        let arr = batch
+            .column(0)
             .as_any()
             .downcast_ref::<arrow::array::StringArray>()
             .unwrap();
@@ -60,9 +51,8 @@ fn write_and_read_sample_catalog() {
             names.push(arr.value(i).to_string());
         }
 
-        // identification is column 1
-        let col = batch.column(1);
-        let arr = col
+        let arr = batch
+            .column(1)
             .as_any()
             .downcast_ref::<arrow::array::StringArray>()
             .unwrap();
@@ -71,33 +61,25 @@ fn write_and_read_sample_catalog() {
         }
     }
 
-    assert_eq!(total_rows, samples.len(), "row count matches input");
+    assert_eq!(total_rows, samples.len());
     assert_eq!(names[0], "fluorescent");
     assert_eq!(names[3], "projector");
-
-    // Every sample should have non-empty identification
     for (i, id) in identifications.iter().enumerate() {
-        assert!(
-            !id.is_empty(),
-            "sample {i} has empty identification — parser bug or missing field"
-        );
+        assert!(!id.is_empty(), "sample {i} has empty identification");
     }
 
-    // Cleanup
     let _ = std::fs::remove_file(&tmp);
 }
 
 #[cfg(feature = "summary")]
 #[test]
 fn summary_columns_present() {
-    let tmp = std::env::temp_dir().join("eulumdat-parquet-summary.parquet");
+    let tmp = tmp_parquet("summary-schema");
 
     let ldt = load("fluorescent_luminaire.ldt");
-    {
-        let mut w = EulumdatParquetWriter::create(&tmp).unwrap();
-        w.append("fluorescent", &ldt).unwrap();
-        w.finish().unwrap();
-    }
+    let mut w = EulumdatParquetWriter::create(&tmp).unwrap();
+    w.append("fluorescent", &ldt).unwrap();
+    w.finish().unwrap();
 
     let file = File::open(&tmp).unwrap();
     let reader = ParquetRecordBatchReaderBuilder::try_new(file)
@@ -106,7 +88,6 @@ fn summary_columns_present() {
         .unwrap();
     let schema: Arc<arrow::datatypes::Schema> = reader.schema();
 
-    // Sanity: summary columns must exist
     for name in [
         "beam_angle",
         "field_angle",

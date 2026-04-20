@@ -27,3 +27,8 @@ eulumdat.workspace = true
 eulumdat-parquet = { workspace = true, optional = true }
 eulumdat-typst.workspace = true
 walkdir = "2.5.0"
+
+[dev-dependencies]
+assert_cmd = "2"
+parquet = "58"
+tempfile = "3"
