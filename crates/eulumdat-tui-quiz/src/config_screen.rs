@@ -68,15 +68,11 @@ impl ConfigState {
 
     pub fn cursor_left(&mut self) {
         match self.focus {
-            ConfigFocus::Difficulty => {
-                if self.difficulty_cursor > 0 {
-                    self.difficulty_cursor -= 1;
-                }
+            ConfigFocus::Difficulty if self.difficulty_cursor > 0 => {
+                self.difficulty_cursor -= 1;
             }
-            ConfigFocus::QuestionCount => {
-                if self.count_cursor > 0 {
-                    self.count_cursor -= 1;
-                }
+            ConfigFocus::QuestionCount if self.count_cursor > 0 => {
+                self.count_cursor -= 1;
             }
             _ => {}
         }
@@ -84,15 +80,11 @@ impl ConfigState {
 
     pub fn cursor_right(&mut self) {
         match self.focus {
-            ConfigFocus::Difficulty => {
-                if self.difficulty_cursor < 3 {
-                    self.difficulty_cursor += 1;
-                }
+            ConfigFocus::Difficulty if self.difficulty_cursor < 3 => {
+                self.difficulty_cursor += 1;
             }
-            ConfigFocus::QuestionCount => {
-                if self.count_cursor < 4 {
-                    self.count_cursor += 1;
-                }
+            ConfigFocus::QuestionCount if self.count_cursor < 4 => {
+                self.count_cursor += 1;
             }
             _ => {}
         }

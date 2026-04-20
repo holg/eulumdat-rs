@@ -1,13 +1,17 @@
 //! CIE 171:2006 test cases on GPU — must match CPU reference.
 #![allow(clippy::needless_range_loop, clippy::unnecessary_cast)]
 
+mod common;
+use common::gpu_or_skip;
 use eulumdat_rt::*;
 use std::f64::consts::PI;
 
 /// TC 5.1: Isotropic in free space — uniform candela everywhere.
 #[test]
 fn cie_tc_5_1_isotropic_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
     let result = pollster::block_on(tracer.trace_isotropic(2_000_000, 10.0, 5.0));
 
     let expected_cd = 1000.0 / (4.0 * PI);
@@ -39,7 +43,9 @@ fn cie_tc_5_1_isotropic_gpu() {
 /// TC 5.2: Lambertian — cosine falloff.
 #[test]
 fn cie_tc_5_2_lambertian_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
     let result = pollster::block_on(tracer.trace_lambertian(2_000_000, 10.0, 5.0));
 
     let candela = result.to_candela(1000.0);
@@ -91,7 +97,9 @@ fn cie_tc_5_2_lambertian_gpu() {
 /// TC 5.5: Clear glass transmittance — Fresnel equations.
 #[test]
 fn cie_tc_5_5_clear_glass_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
 
     // Clear glass: IOR 1.52, 92% transmittance
     let glass = eulumdat_goniosim::MaterialParams {
@@ -141,7 +149,9 @@ fn cie_tc_5_5_clear_glass_gpu() {
 /// TC 5.8: Integrating cube — diffuse inter-reflections.
 #[test]
 fn cie_tc_5_8_diffuse_cube_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
 
     // Build a closed cube with diffuse walls (rho=0.5)
     let rho = 0.5f32;
@@ -246,7 +256,9 @@ fn cie_tc_5_8_diffuse_cube_gpu() {
 /// TC 5.3: Rectangular diffuse area source — far-field cosine distribution.
 #[test]
 fn cie_tc_5_3_area_source_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
 
     let luminance = 1000.0f64; // cd/m²
     let area = 2.0 * 1.0; // m²
@@ -312,7 +324,9 @@ fn cie_tc_5_3_area_source_gpu() {
 /// with one reflecting floor (ρ=0.5) and absorbing walls/ceiling.
 #[test]
 fn cie_tc_5_6_single_reflection_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
 
     let half = 2.0f32; // 4m cube
 
@@ -431,7 +445,9 @@ fn cie_tc_5_6_single_reflection_gpu() {
 /// Same as TC 5.8 integrating cube (ρ=0.5) but with an absorbing partition.
 #[test]
 fn cie_tc_5_7_obstruction_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
 
     let half = 2.0f32; // 4m cube
     let rho = 0.5f32;
@@ -559,7 +575,9 @@ fn cie_tc_5_7_obstruction_gpu() {
 /// Energy conservation: detected energy must match emitted for all configs.
 #[test]
 fn energy_conservation_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
 
     // Free space isotropic
     let r1 = pollster::block_on(tracer.trace_isotropic(500_000, 10.0, 5.0));
@@ -577,7 +595,9 @@ fn energy_conservation_gpu() {
 /// Monte Carlo convergence: RMS decreases with more photons.
 #[test]
 fn convergence_gpu() {
-    let tracer = pollster::block_on(GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(GpuTracer::new()) else {
+        return;
+    };
     let expected = 1000.0 / (4.0 * PI);
 
     let mut prev_rms = 1.0;

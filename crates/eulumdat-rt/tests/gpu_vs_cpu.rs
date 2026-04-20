@@ -4,14 +4,17 @@
 //! compares detector outputs. Must match within statistical tolerance.
 #![allow(clippy::needless_range_loop)]
 
+mod common;
+use common::gpu_or_skip;
 use eulumdat_rt::{GpuMaterial, GpuPrimitive};
 use std::f64::consts::PI;
 
 #[test]
 fn isotropic_free_space_gpu_vs_cpu() {
     // GPU trace
-    let tracer =
-        pollster::block_on(eulumdat_rt::GpuTracer::new()).expect("Failed to create GPU tracer");
+    let Some(tracer) = gpu_or_skip(eulumdat_rt::GpuTracer::new()) else {
+        return;
+    };
 
     let gpu_result = pollster::block_on(tracer.trace_isotropic(1_000_000, 10.0, 5.0));
 
@@ -80,8 +83,9 @@ fn isotropic_free_space_gpu_vs_cpu() {
 #[test]
 fn isotropic_with_opal_cover_gpu_vs_cpu() {
     // GPU trace with opal PMMA cover
-    let tracer =
-        pollster::block_on(eulumdat_rt::GpuTracer::new()).expect("Failed to create GPU tracer");
+    let Some(tracer) = gpu_or_skip(eulumdat_rt::GpuTracer::new()) else {
+        return;
+    };
 
     let cover_params = eulumdat_goniosim::catalog::opal_pmma_3mm();
     let gpu_material = GpuMaterial::from_material_params(&cover_params);
@@ -177,7 +181,9 @@ fn from_lvk_free_space_gpu_vs_cpu() {
     let cdf = eulumdat_goniosim::source::LvkCdf::build(&ldt);
 
     // GPU trace
-    let tracer = pollster::block_on(eulumdat_rt::GpuTracer::new()).unwrap();
+    let Some(tracer) = gpu_or_skip(eulumdat_rt::GpuTracer::new()) else {
+        return;
+    };
     let gpu_result = pollster::block_on(tracer.trace_from_lvk(
         1_000_000,
         10.0,
