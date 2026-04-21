@@ -174,10 +174,10 @@ fn partition_by_primary_direction() {
     let mut downward = Vec::new();
     let mut upward = Vec::new();
     for (n, d) in names.iter().zip(&dir) {
-        if d == "Downward" {
-            downward.push(n.clone());
-        } else if d == "Upward" {
-            upward.push(n.clone());
+        match d.as_str() {
+            "downward" => downward.push(n.clone()),
+            "upward" => upward.push(n.clone()),
+            _ => {}
         }
     }
 

@@ -5,12 +5,12 @@ use common::{load, load_ies, tmp_parquet};
 
 use std::fs::File;
 
-use arrow::array::{RecordBatchReader, StringArray};
-use eulumdat_parquet::EulumdatParquetWriter;
+use arrow::array::{RecordBatchReader, StringArray, UInt8Array};
+use eulumdat_parquet::{EulumdatParquetWriter, SourceFormat};
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
 /// Read the `symmetry` column across all rows.
-fn collect_symmetries(path: &std::path::Path) -> Vec<String> {
+fn collect_symmetries(path: &std::path::Path) -> Vec<u8> {
     let file = File::open(path).unwrap();
     let reader = ParquetRecordBatchReaderBuilder::try_new(file)
         .unwrap()
@@ -23,10 +23,10 @@ fn collect_symmetries(path: &std::path::Path) -> Vec<String> {
         let arr = batch
             .column(idx)
             .as_any()
-            .downcast_ref::<StringArray>()
+            .downcast_ref::<UInt8Array>()
             .unwrap();
         for i in 0..batch.num_rows() {
-            out.push(arr.value(i).to_string());
+            out.push(arr.value(i));
         }
     }
     out
@@ -55,9 +55,9 @@ fn mixed_symmetry_inputs_serialize() {
     let syms = collect_symmetries(&tmp);
     assert_eq!(syms.len(), samples.len());
 
-    // Each row's symmetry string must match the source LDT's Debug repr.
+    // Each row's symmetry value is the LDT spec's Isym discriminant (0-4).
     for (i, (_, ldt)) in samples.iter().enumerate() {
-        assert_eq!(syms[i], format!("{:?}", ldt.symmetry));
+        assert_eq!(syms[i], ldt.symmetry as u8);
     }
 
     // We should see at least 3 distinct symmetry values across the 5 samples.
@@ -70,6 +70,59 @@ fn mixed_symmetry_inputs_serialize() {
     );
 
     let _ = std::fs::remove_file(&tmp);
+}
+
+/// Read the `source_format` column across all rows.
+fn collect_source_formats(path: &std::path::Path) -> Vec<String> {
+    let file = File::open(path).unwrap();
+    let reader = ParquetRecordBatchReaderBuilder::try_new(file)
+        .unwrap()
+        .build()
+        .unwrap();
+    let mut out = Vec::new();
+    for batch in reader {
+        let batch = batch.unwrap();
+        let idx = batch.schema().index_of("source_format").unwrap();
+        let arr = batch
+            .column(idx)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .unwrap();
+        for i in 0..batch.num_rows() {
+            out.push(arr.value(i).to_string());
+        }
+    }
+    out
+}
+
+#[test]
+fn source_format_column_records_origin() {
+    // append() sets Unknown; append_with_source() sets the given format.
+    let ldt = load("fluorescent_luminaire.ldt");
+    let tmp = tmp_parquet("source-fmt");
+
+    let mut w = EulumdatParquetWriter::create(&tmp).unwrap();
+    w.append("row-unknown", &ldt).unwrap();
+    w.append_with_source("row-ldt", &ldt, SourceFormat::Ldt)
+        .unwrap();
+    w.append_with_source("row-ies", &ldt, SourceFormat::Ies)
+        .unwrap();
+    w.finish().unwrap();
+
+    let formats = collect_source_formats(&tmp);
+    assert_eq!(formats, vec!["unknown", "ldt", "ies"]);
+
+    let _ = std::fs::remove_file(&tmp);
+}
+
+#[test]
+fn source_format_from_extension() {
+    assert_eq!(SourceFormat::from_extension("ldt"), SourceFormat::Ldt);
+    assert_eq!(SourceFormat::from_extension("LDT"), SourceFormat::Ldt);
+    assert_eq!(SourceFormat::from_extension("ies"), SourceFormat::Ies);
+    assert_eq!(SourceFormat::from_extension("IES"), SourceFormat::Ies);
+    assert_eq!(SourceFormat::from_extension("xml"), SourceFormat::Unknown);
+    assert_eq!(SourceFormat::from_extension(""), SourceFormat::Unknown);
 }
 
 #[test]

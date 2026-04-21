@@ -6,4 +6,4 @@ mod schema;
 mod writer;
 
 pub use schema::build_schema;
-pub use writer::EulumdatParquetWriter;
+pub use writer::{EulumdatParquetWriter, SourceFormat};

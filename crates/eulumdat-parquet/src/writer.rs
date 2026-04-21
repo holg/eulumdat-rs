@@ -5,7 +5,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use arrow::array::{
     ArrayRef, BooleanBuilder, Float64Builder, Int32Builder, ListBuilder, RecordBatch,
-    StringBuilder, StructBuilder, UInt32Builder,
+    StringBuilder, StructBuilder, UInt32Builder, UInt8Builder,
 };
 use arrow::datatypes::{DataType, Field, Schema};
 use eulumdat::Eulumdat;
@@ -14,6 +14,42 @@ use parquet::basic::{Compression, ZstdLevel};
 use parquet::file::properties::WriterProperties;
 
 use crate::schema::build_schema;
+
+/// Identifies which file format the data came from, so readers know what
+/// format-specific metadata (IES `[KEYWORD]` blocks, LDT spec quirks) was
+/// dropped during conversion to the shared `Eulumdat` representation.
+///
+/// Stored as lowercase strings in the `source_format` column:
+/// `"ldt"`, `"ies"`, `"unknown"`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceFormat {
+    /// Parsed from an EULUMDAT (.ldt) file.
+    Ldt,
+    /// Parsed from an IESNA LM-63 (.ies) file.
+    Ies,
+    /// Origin not tracked (e.g., synthetic data or a format converter chain).
+    Unknown,
+}
+
+impl SourceFormat {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Ldt => "ldt",
+            Self::Ies => "ies",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    /// Infer from a file extension, case-insensitive. Returns `Unknown`
+    /// for anything other than `.ldt` or `.ies`.
+    pub fn from_extension(ext: &str) -> Self {
+        match ext.to_ascii_lowercase().as_str() {
+            "ldt" => Self::Ldt,
+            "ies" => Self::Ies,
+            _ => Self::Unknown,
+        }
+    }
+}
 
 /// Streaming Parquet writer for a collection of Eulumdat records.
 ///
@@ -61,9 +97,26 @@ impl EulumdatParquetWriter {
     /// Append one Eulumdat record as a row.
     ///
     /// `file_path` is stored in the `file_path` column (for traceability);
-    /// pass an empty string if not applicable.
+    /// pass an empty string if not applicable. The `source_format` column
+    /// is set to `SourceFormat::Unknown` — use `append_with_source` to
+    /// record provenance.
     pub fn append(&mut self, file_path: &str, ldt: &Eulumdat) -> Result<()> {
-        self.builders.push(file_path, ldt);
+        self.append_with_source(file_path, ldt, SourceFormat::Unknown)
+    }
+
+    /// Append one Eulumdat record, recording the original file format.
+    ///
+    /// Prefer this over `append` when you know whether the data came from
+    /// an LDT or IES file: readers can then identify rows whose original
+    /// format had metadata (IES keyword blocks, tilt data) that isn't
+    /// carried in the Parquet schema.
+    pub fn append_with_source(
+        &mut self,
+        file_path: &str,
+        ldt: &Eulumdat,
+        source: SourceFormat,
+    ) -> Result<()> {
+        self.builders.push(file_path, ldt, source);
         if self.builders.rows_buffered() >= self.batch_size {
             self.flush()?;
         }
@@ -96,6 +149,7 @@ struct RowBuilders {
 
     // Identity
     file_path: StringBuilder,
+    source_format: StringBuilder,
     identification: StringBuilder,
     luminaire_name: StringBuilder,
     luminaire_number: StringBuilder,
@@ -104,8 +158,8 @@ struct RowBuilders {
     measurement_report_number: StringBuilder,
 
     // Classification
-    type_indicator: StringBuilder,
-    symmetry: StringBuilder,
+    type_indicator: UInt8Builder,
+    symmetry: UInt8Builder,
 
     // Grid
     num_c_planes: UInt32Builder,
@@ -227,9 +281,9 @@ impl SummaryBuilders {
         self.spacing_c90.append_value(s.spacing_c90);
         self.is_batwing.append_value(s.is_batwing);
         self.primary_direction
-            .append_value(format!("{:?}", s.primary_direction));
+            .append_value(light_direction_str(s.primary_direction));
         self.distribution_type
-            .append_value(format!("{:?}", s.distribution_type));
+            .append_value(distribution_type_str(s.distribution_type));
     }
 
     fn finish(&mut self) -> Vec<ArrayRef> {
@@ -265,14 +319,15 @@ impl RowBuilders {
         Self {
             rows: 0,
             file_path: StringBuilder::new(),
+            source_format: StringBuilder::new(),
             identification: StringBuilder::new(),
             luminaire_name: StringBuilder::new(),
             luminaire_number: StringBuilder::new(),
             file_name: StringBuilder::new(),
             date_user: StringBuilder::new(),
             measurement_report_number: StringBuilder::new(),
-            type_indicator: StringBuilder::new(),
-            symmetry: StringBuilder::new(),
+            type_indicator: UInt8Builder::new(),
+            symmetry: UInt8Builder::new(),
             num_c_planes: UInt32Builder::new(),
             c_plane_distance: Float64Builder::new(),
             num_g_planes: UInt32Builder::new(),
@@ -307,8 +362,9 @@ impl RowBuilders {
         self.rows
     }
 
-    fn push(&mut self, file_path: &str, ldt: &Eulumdat) {
+    fn push(&mut self, file_path: &str, ldt: &Eulumdat, source: SourceFormat) {
         self.file_path.append_value(file_path);
+        self.source_format.append_value(source.as_str());
         self.identification.append_value(&ldt.identification);
         self.luminaire_name.append_value(&ldt.luminaire_name);
         self.luminaire_number.append_value(&ldt.luminaire_number);
@@ -317,9 +373,8 @@ impl RowBuilders {
         self.measurement_report_number
             .append_value(&ldt.measurement_report_number);
 
-        self.type_indicator
-            .append_value(format!("{:?}", ldt.type_indicator));
-        self.symmetry.append_value(format!("{:?}", ldt.symmetry));
+        self.type_indicator.append_value(ldt.type_indicator as u8);
+        self.symmetry.append_value(ldt.symmetry as u8);
 
         self.num_c_planes.append_value(ldt.num_c_planes as u32);
         self.c_plane_distance.append_value(ldt.c_plane_distance);
@@ -412,6 +467,7 @@ impl RowBuilders {
     fn finish_batch(&mut self, schema: &Arc<Schema>) -> Result<RecordBatch> {
         let mut arrays: Vec<ArrayRef> = Vec::with_capacity(schema.fields().len());
         arrays.push(Arc::new(self.file_path.finish()));
+        arrays.push(Arc::new(self.source_format.finish()));
         arrays.push(Arc::new(self.identification.finish()));
         arrays.push(Arc::new(self.luminaire_name.finish()));
         arrays.push(Arc::new(self.luminaire_number.finish()));
@@ -452,6 +508,28 @@ impl RowBuilders {
 
         self.rows = 0;
         RecordBatch::try_new(schema.clone(), arrays).context("building RecordBatch")
+    }
+}
+
+/// Stable string encoding for `LightDirection`. Must not change across
+/// versions of this crate — existing parquet files carry these values.
+#[cfg(feature = "summary")]
+fn light_direction_str(d: eulumdat::LightDirection) -> &'static str {
+    match d {
+        eulumdat::LightDirection::Downward => "downward",
+        eulumdat::LightDirection::Upward => "upward",
+    }
+}
+
+/// Stable string encoding for `DistributionType`. Must not change across
+/// versions of this crate — existing parquet files carry these values.
+#[cfg(feature = "summary")]
+fn distribution_type_str(d: eulumdat::DistributionType) -> &'static str {
+    match d {
+        eulumdat::DistributionType::Direct => "direct",
+        eulumdat::DistributionType::Indirect => "indirect",
+        eulumdat::DistributionType::DirectIndirect => "direct_indirect",
+        eulumdat::DistributionType::IndirectDirect => "indirect_direct",
     }
 }
 

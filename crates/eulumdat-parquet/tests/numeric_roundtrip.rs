@@ -6,7 +6,7 @@ use common::{load, tmp_parquet};
 use std::fs::File;
 
 use arrow::array::{
-    Array, Float64Array, Int32Array, ListArray, StringArray, StructArray, UInt32Array,
+    Array, Float64Array, Int32Array, ListArray, StringArray, StructArray, UInt32Array, UInt8Array,
 };
 use eulumdat_parquet::EulumdatParquetWriter;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
@@ -63,6 +63,16 @@ fn col_u32(batch: &arrow::record_batch::RecordBatch, name: &str) -> u32 {
     arr.value(0)
 }
 
+fn col_u8(batch: &arrow::record_batch::RecordBatch, name: &str) -> u8 {
+    let idx = batch.schema().index_of(name).expect("column exists");
+    let arr = batch
+        .column(idx)
+        .as_any()
+        .downcast_ref::<UInt8Array>()
+        .expect("u8 column");
+    arr.value(0)
+}
+
 #[test]
 fn identity_and_classification_fields() {
     // fluorescent template has known values we can assert exactly
@@ -78,12 +88,10 @@ fn identity_and_classification_fields() {
         &ldt.measurement_report_number
     );
 
-    // Enum reprs
-    assert_eq!(
-        col_str(&batch, "type_indicator"),
-        format!("{:?}", ldt.type_indicator)
-    );
-    assert_eq!(col_str(&batch, "symmetry"), format!("{:?}", ldt.symmetry));
+    // Spec enums: stable integer discriminants from the EULUMDAT spec
+    // (Ityp and Isym), not Rust variant names.
+    assert_eq!(col_u8(&batch, "type_indicator"), ldt.type_indicator as u8);
+    assert_eq!(col_u8(&batch, "symmetry"), ldt.symmetry as u8);
 }
 
 #[test]
@@ -245,13 +253,18 @@ fn summary_matches_photometric_summary() {
     assert_eq!(col_f64(&batch, "field_angle"), expected.field_angle);
     assert_eq!(col_f64(&batch, "max_intensity"), expected.max_intensity);
 
-    // String enums via Debug repr
-    assert_eq!(
-        col_str(&batch, "primary_direction"),
-        format!("{:?}", expected.primary_direction)
-    );
-    assert_eq!(
-        col_str(&batch, "distribution_type"),
-        format!("{:?}", expected.distribution_type)
-    );
+    // Stable snake_case constants (not Rust Debug output).
+    use eulumdat::{DistributionType, LightDirection};
+    let expected_dir = match expected.primary_direction {
+        LightDirection::Downward => "downward",
+        LightDirection::Upward => "upward",
+    };
+    let expected_dist = match expected.distribution_type {
+        DistributionType::Direct => "direct",
+        DistributionType::Indirect => "indirect",
+        DistributionType::DirectIndirect => "direct_indirect",
+        DistributionType::IndirectDirect => "indirect_direct",
+    };
+    assert_eq!(col_str(&batch, "primary_direction"), expected_dir);
+    assert_eq!(col_str(&batch, "distribution_type"), expected_dist);
 }

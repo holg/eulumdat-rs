@@ -8,13 +8,19 @@ Produces a single Parquet file with **one row per luminaire** — ideal for anal
 
 ```rust
 use eulumdat::Eulumdat;
-use eulumdat_parquet::EulumdatParquetWriter;
+use eulumdat_parquet::{EulumdatParquetWriter, SourceFormat};
 
 let mut writer = EulumdatParquetWriter::create("catalog.parquet")?;
 for path in glob::glob("catalog/*.ldt")? {
     let path = path?;
     let ldt = Eulumdat::from_file(&path)?;
-    writer.append(path.to_string_lossy().as_ref(), &ldt)?;
+    // Record format provenance so readers know what was dropped (IES keyword
+    // blocks, tilt data, etc.) — or use `append()` to leave it as "unknown".
+    writer.append_with_source(
+        path.to_string_lossy().as_ref(),
+        &ldt,
+        SourceFormat::Ldt,
+    )?;
 }
 writer.finish()?;
 ```
@@ -32,14 +38,14 @@ ORDER BY luminaire_efficacy DESC;
 
 Wide row-per-file layout:
 
-- **Identity**: `file_path`, `identification`, `luminaire_name`, `luminaire_number`, `date_user`, `measurement_report_number`
-- **Classification**: `type_indicator`, `symmetry` (both as strings)
+- **Identity**: `file_path`, `source_format` (`"ldt"` | `"ies"` | `"unknown"`), `identification`, `luminaire_name`, `luminaire_number`, `date_user`, `measurement_report_number`
+- **Classification**: `type_indicator` (UInt8, EULUMDAT Ityp 1-3), `symmetry` (UInt8, EULUMDAT Isym 0-4) — stable spec discriminants, not Rust enum names
 - **Grid**: `num_c_planes`, `c_plane_distance`, `num_g_planes`, `g_plane_distance`
 - **Dimensions (mm)**: `length`, `width`, `height`, `luminous_area_length`, `luminous_area_width`, `height_c0/c90/c180/c270`
 - **Optical**: `downward_flux_fraction`, `light_output_ratio`, `conversion_factor`, `tilt_angle`
 - **`direct_ratios`**: `list<double>` (fixed length 10)
 - **`lamp_sets`**: `list<struct{num_lamps, lamp_type, total_luminous_flux, color_appearance, color_rendering_group, wattage_with_ballast}>`
-- **Summary** (with default `summary` feature): beam/field angles (IES + CIE), efficacy, flux, batwing flag, zonal lumens, etc.
+- **Summary** (with default `summary` feature): beam/field angles (IES + CIE), efficacy, flux, batwing flag, zonal lumens, `primary_direction` (`"downward"` | `"upward"`), `distribution_type` (`"direct"` | `"indirect"` | `"direct_indirect"` | `"indirect_direct"`) — all stable string constants
 - **Raw photometry** (with opt-in `raw-photometry` feature): `c_angles list<double>`, `g_angles list<double>`, `intensities list<list<double>>`
 
 ## Features

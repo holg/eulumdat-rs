@@ -12,6 +12,10 @@ pub fn build_schema() -> Arc<Schema> {
 
     // ── Identity ───────────────────────────────────────────────────────────
     fields.push(Field::new("file_path", DataType::Utf8, true));
+    // Origin format of the record — "ldt", "ies", or "unknown". Lets readers
+    // see which rows were converted from a different source format and may
+    // therefore have lost format-specific metadata (IES keyword blocks, etc.).
+    fields.push(Field::new("source_format", DataType::Utf8, false));
     fields.push(Field::new("identification", DataType::Utf8, false));
     fields.push(Field::new("luminaire_name", DataType::Utf8, false));
     fields.push(Field::new("luminaire_number", DataType::Utf8, false));
@@ -24,8 +28,14 @@ pub fn build_schema() -> Arc<Schema> {
     ));
 
     // ── Classification ─────────────────────────────────────────────────────
-    fields.push(Field::new("type_indicator", DataType::Utf8, false));
-    fields.push(Field::new("symmetry", DataType::Utf8, false));
+    // Integer discriminants directly from the EULUMDAT spec (Ityp, Isym).
+    // These are stable by definition — Rust enum variant renames do not
+    // affect parquet files.
+    //   type_indicator: 1 = PointSourceSymmetric, 2 = Linear, 3 = PointSourceOther
+    //   symmetry:       0 = None, 1 = VerticalAxis, 2 = PlaneC0C180,
+    //                   3 = PlaneC90C270, 4 = BothPlanes
+    fields.push(Field::new("type_indicator", DataType::UInt8, false));
+    fields.push(Field::new("symmetry", DataType::UInt8, false));
 
     // ── Grid ───────────────────────────────────────────────────────────────
     fields.push(Field::new("num_c_planes", DataType::UInt32, false));
@@ -103,6 +113,9 @@ pub fn build_schema() -> Arc<Schema> {
             fields.push(Field::new(name, DataType::Float64, false));
         }
         fields.push(Field::new("is_batwing", DataType::Boolean, false));
+        // Stable lowercase snake_case constants, not Rust Debug output.
+        //   primary_direction:  "downward" | "upward"
+        //   distribution_type:  "direct" | "indirect" | "direct_indirect" | "indirect_direct"
         fields.push(Field::new("primary_direction", DataType::Utf8, false));
         fields.push(Field::new("distribution_type", DataType::Utf8, false));
     }

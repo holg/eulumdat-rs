@@ -1475,7 +1475,7 @@ pub fn interpolate(
 /// Export all LDT/IES files under `input_dir` into a single Parquet file.
 #[cfg(feature = "parquet")]
 pub fn export_parquet(input_dir: &PathBuf, output: &PathBuf, recursive: bool) -> Result<()> {
-    use eulumdat_parquet::EulumdatParquetWriter;
+    use eulumdat_parquet::{EulumdatParquetWriter, SourceFormat};
 
     if !input_dir.is_dir() {
         anyhow::bail!("Input path is not a directory: {}", input_dir.display());
@@ -1503,16 +1503,16 @@ pub fn export_parquet(input_dir: &PathBuf, output: &PathBuf, recursive: bool) ->
             None => continue,
         };
 
-        let ldt = match ext.as_str() {
+        let (ldt, source) = match ext.as_str() {
             "ldt" => {
                 let content = std::fs::read_to_string(path)
                     .with_context(|| format!("read {}", path.display()))?;
-                Eulumdat::parse(&content).ok()
+                (Eulumdat::parse(&content).ok(), SourceFormat::Ldt)
             }
             "ies" => {
                 let content = std::fs::read_to_string(path)
                     .with_context(|| format!("read {}", path.display()))?;
-                IesParser::parse(&content).ok()
+                (IesParser::parse(&content).ok(), SourceFormat::Ies)
             }
             _ => continue,
         };
@@ -1524,7 +1524,7 @@ pub fn export_parquet(input_dir: &PathBuf, output: &PathBuf, recursive: bool) ->
         };
 
         writer
-            .append(path.to_string_lossy().as_ref(), &ldt)
+            .append_with_source(path.to_string_lossy().as_ref(), &ldt, source)
             .with_context(|| format!("append {}", path.display()))?;
         written += 1;
     }
