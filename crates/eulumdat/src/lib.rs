@@ -179,6 +179,7 @@ pub mod iesna_classification;
 pub mod interpolate;
 mod parser;
 pub mod scene3d;
+pub mod standards;
 mod symmetry;
 pub mod type_b_conversion;
 pub mod units;
