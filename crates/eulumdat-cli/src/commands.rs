@@ -1471,3 +1471,139 @@ pub fn interpolate(
     );
     Ok(())
 }
+
+// ─── Street lighting classification / compliance (feature = "street") ────────
+
+/// Print luminaire classifications: IES Type, BUG, CCT, DLOR/ULOR, efficacy.
+#[cfg(feature = "street")]
+pub fn classify(
+    file: &std::path::PathBuf,
+    format: crate::cli::ClassifyFormat,
+) -> anyhow::Result<()> {
+    use eulumdat::bug_rating::{BugRating, ZoneLumens};
+    use eulumdat::iesna_classification;
+
+    let ldt = load_file(file)?;
+    let zones = ZoneLumens::from_eulumdat(&ldt);
+    let bug = BugRating::from_zone_lumens(&zones);
+    let ies = iesna_classification::classify(&ldt);
+    let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldt);
+
+    match format {
+        crate::cli::ClassifyFormat::Text => {
+            println!("File: {}", file.display());
+            println!("Luminaire: {}", ldt.luminaire_name);
+            println!();
+            println!("=== IES Classification (RP-8 / TM-15) ===");
+            println!("Lateral type:    {}", ies.lateral_type);
+            println!("Longitudinal:    {}", ies.longitudinal);
+            println!("Cutoff class:    {}", ies.cutoff);
+            println!("BUG rating:      {bug}");
+            println!();
+            println!("=== Photometric ===");
+            println!("DLOR:            {:.1}%", summary.dlor);
+            println!("ULOR:            {:.1}%", summary.ulor);
+            println!("Efficacy:        {:.1} lm/W", summary.luminaire_efficacy);
+            println!("Max intensity:   {:.0} cd/klm", summary.max_intensity);
+            println!("Beam angle:      {:.1}°", summary.beam_angle);
+            println!();
+            println!("=== Dark-Sky Zones (MLO) ===");
+            for z in bug.compliant_zones() {
+                println!("  {z}: ✓ compliant");
+            }
+        }
+        crate::cli::ClassifyFormat::Json => {
+            let report = serde_json::json!({
+                "file": file.display().to_string(),
+                "luminaire_name": ldt.luminaire_name,
+                "ies": {
+                    "lateral_type": ies.lateral_type.to_string(),
+                    "longitudinal": ies.longitudinal.to_string(),
+                    "cutoff": ies.cutoff.to_string(),
+                },
+                "bug": {
+                    "b": bug.b,
+                    "u": bug.u,
+                    "g": bug.g,
+                    "display": bug.to_string(),
+                },
+                "photometric": {
+                    "dlor": summary.dlor,
+                    "ulor": summary.ulor,
+                    "efficacy_lm_per_w": summary.luminaire_efficacy,
+                    "max_intensity_cd_klm": summary.max_intensity,
+                    "beam_angle_deg": summary.beam_angle,
+                },
+                "mlo_compliant_zones": bug
+                    .compliant_zones()
+                    .iter()
+                    .map(|z| z.to_string())
+                    .collect::<Vec<_>>(),
+            });
+            println!("{}", serde_json::to_string_pretty(&report)?);
+        }
+    }
+
+    Ok(())
+}
+
+/// Check a photometric file against a file-level compliance standard (MLO).
+///
+/// Design-level standards (RP-8, EN 13201, CJJ 45) require a layout and
+/// belong in the WASM street-designer, not a single-file CLI invocation.
+#[cfg(feature = "street")]
+pub fn compliance(
+    file: &std::path::PathBuf,
+    standard: crate::cli::ComplianceStandard,
+    zone: Option<&str>,
+) -> anyhow::Result<()> {
+    use eulumdat::bug_rating::LightingZone;
+    use eulumdat::standards::{mlo::MloStandard, LightingStandard};
+
+    let ldt = load_file(file)?;
+
+    match standard {
+        crate::cli::ComplianceStandard::Mlo => {
+            let zone = zone.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "--zone is required for MLO (e.g. --zone lz2). \
+                     Valid values: lz0, lz1, lz2, lz3, lz4."
+                )
+            })?;
+            let zone = match zone.to_ascii_lowercase().as_str() {
+                "lz0" => LightingZone::LZ0,
+                "lz1" => LightingZone::LZ1,
+                "lz2" => LightingZone::LZ2,
+                "lz3" => LightingZone::LZ3,
+                "lz4" => LightingZone::LZ4,
+                other => anyhow::bail!("unknown lighting zone: {other}"),
+            };
+
+            let result = MloStandard.check_file(&zone, &ldt).ok_or_else(|| {
+                anyhow::anyhow!("MLO check returned no result — internal error")
+            })?;
+
+            println!("Standard: {}", result.standard);
+            println!("Region:   {}", result.region);
+            println!();
+            println!("{:<22} {:<15} {:<15} {}", "Criterion", "Required", "Achieved", "Status");
+            println!("{}", "-".repeat(60));
+            for item in &result.items {
+                let status = if item.passed { "✓" } else { "✗" };
+                println!(
+                    "{:<22} {:<15} {:<15} {status}",
+                    item.parameter, item.required, item.achieved
+                );
+            }
+            println!();
+            if result.passed() {
+                println!("Overall: ✓ COMPLIANT");
+            } else {
+                println!("Overall: ✗ NON-COMPLIANT ({} failures)", result.failure_count());
+                std::process::exit(1);
+            }
+        }
+    }
+
+    Ok(())
+}

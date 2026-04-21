@@ -63,6 +63,14 @@ fn main() -> Result<()> {
             recursive,
             overwrite,
         ),
+        #[cfg(feature = "street")]
+        Commands::Classify { file, format } => commands::classify(&file, format),
+        #[cfg(feature = "street")]
+        Commands::Compliance {
+            file,
+            standard,
+            zone,
+        } => commands::compliance(&file, standard, zone.as_deref()),
         Commands::Summary {
             file,
             format,

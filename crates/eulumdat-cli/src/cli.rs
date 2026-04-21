@@ -134,6 +134,32 @@ pub enum Commands {
         overwrite: bool,
     },
 
+    /// Print luminaire classifications (IES Type, BUG, CCT bin, DLOR/ULOR).
+    #[cfg(feature = "street")]
+    Classify {
+        /// Input file (.ldt or .ies)
+        file: PathBuf,
+
+        /// Output format
+        #[arg(short = 'f', long, value_enum, default_value = "text")]
+        format: ClassifyFormat,
+    },
+
+    /// Check a photometric file or computed design against a lighting standard.
+    #[cfg(feature = "street")]
+    Compliance {
+        /// Input file (.ldt or .ies)
+        file: PathBuf,
+
+        /// Which standard to check against.
+        #[arg(long, value_enum)]
+        standard: ComplianceStandard,
+
+        /// MLO-only: lighting zone (lz0..lz4).
+        #[arg(long)]
+        zone: Option<String>,
+    },
+
     /// Display photometric summary with calculated values
     Summary {
         /// Input file (.ldt or .ies)
@@ -448,6 +474,24 @@ pub enum CompareDiagramType {
     Polar,
     /// Cartesian overlay diagram
     Cartesian,
+}
+
+/// Output format for the `classify` subcommand.
+#[cfg(feature = "street")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum ClassifyFormat {
+    /// Human-readable text
+    Text,
+    /// JSON
+    Json,
+}
+
+/// Which compliance standard to apply.
+#[cfg(feature = "street")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum ComplianceStandard {
+    /// IES/IDA Model Lighting Ordinance (file-level, dark-sky).
+    Mlo,
 }
 
 /// Unit system for output display

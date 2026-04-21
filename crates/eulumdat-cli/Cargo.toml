@@ -14,10 +14,17 @@ categories = ["command-line-utilities", "science"]
 name = "eulumdat"
 path = "src/main.rs"
 
+[features]
+default = []
+# Enables the `classify` and `compliance` subcommands (street lighting
+# standards: RP-8, EN 13201, CJJ 45, MLO).
+street = []
+
 [dependencies]
 anyhow.workspace = true
 atla = { workspace = true, features = ["xml", "json", "eulumdat"] }
 clap.workspace = true
 eulumdat.workspace = true
 eulumdat-typst.workspace = true
+serde_json = "1"
 walkdir = "2.5.0"

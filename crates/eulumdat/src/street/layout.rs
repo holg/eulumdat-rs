@@ -175,7 +175,6 @@ impl StreetLayout {
         let placements = cycle_layout.placements();
 
         let ldts = [ldt];
-        let ldt_indices: Vec<usize> = vec![0; placements.len()];
 
         // Shift evaluation window to the middle cycle: [eval_len, 2*eval_len] in X.
         let mut translated: Vec<LuminairePlace> = placements
