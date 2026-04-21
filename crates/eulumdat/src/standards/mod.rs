@@ -16,7 +16,10 @@
 //! Both funnel into the same [`ComplianceResult`] so downstream UI code can
 //! render a pass/fail panel regardless of region.
 
+pub mod cjj45;
+pub mod en13201;
 pub mod mlo;
+pub mod rp8;
 
 use std::borrow::Cow;
 

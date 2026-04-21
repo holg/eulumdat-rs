@@ -180,6 +180,7 @@ pub mod interpolate;
 mod parser;
 pub mod scene3d;
 pub mod standards;
+pub mod street;
 mod symmetry;
 pub mod type_b_conversion;
 pub mod units;
