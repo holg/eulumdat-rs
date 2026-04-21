@@ -21,10 +21,7 @@ use super::{ComplianceItem, ComplianceResult, DesignResult, LightingStandard, Re
 /// The Chinese spec orders these by importance/volume: ClassI is highest
 /// (expressways and main arterials), ClassIV is residential/branch roads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Cjj45Class {
     /// 快速路 / 主干路 — expressway / main arterial.
     ClassI,

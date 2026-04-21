@@ -1,0 +1,42 @@
+[package]
+name = "eulumdat-wasm-street"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Street / roadway lighting designer — multi-luminaire compliance against RP-8, EN 13201, CJJ 45 (lazy-loaded WASM companion)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "eulumdat-wasm-street"
+path = "src/main.rs"
+
+[features]
+default = ["csr"]
+csr = ["leptos/csr"]
+
+[dependencies]
+console_error_panic_hook.workspace = true
+eulumdat = { workspace = true, features = ["serde"] }
+js-sys.workspace = true
+leptos.workspace = true
+wasm-bindgen.workspace = true
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "HtmlInputElement",
+    "HtmlSelectElement",
+    "File",
+    "FileList",
+    "FileReader",
+    "Blob",
+    "console",
+]

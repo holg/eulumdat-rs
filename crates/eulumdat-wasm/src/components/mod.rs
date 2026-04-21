@@ -27,6 +27,7 @@ mod maps_designer;
 pub mod obscura_demo;
 mod polar_diagram;
 mod spectral_diagram;
+pub mod street_launcher;
 mod tabs;
 pub mod templates;
 pub mod theme;

@@ -94,7 +94,7 @@ impl ComplianceResult {
 ///
 /// Placeholder — filled in by the `street` module when the layout-compute
 /// pipeline lands. File-level standards (like MLO) ignore this entirely.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct DesignResult {
     /// Average illuminance across the evaluation surface, in lux.
     pub avg_illuminance_lux: f64,

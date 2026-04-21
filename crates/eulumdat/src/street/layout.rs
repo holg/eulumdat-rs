@@ -6,10 +6,7 @@ use crate::Eulumdat;
 
 /// How luminaires are arranged along a road.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Arrangement {
     /// Poles on one side only, equally spaced.
     SingleSide,

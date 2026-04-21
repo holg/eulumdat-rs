@@ -1579,14 +1579,17 @@ pub fn compliance(
                 other => anyhow::bail!("unknown lighting zone: {other}"),
             };
 
-            let result = MloStandard.check_file(&zone, &ldt).ok_or_else(|| {
-                anyhow::anyhow!("MLO check returned no result — internal error")
-            })?;
+            let result = MloStandard
+                .check_file(&zone, &ldt)
+                .ok_or_else(|| anyhow::anyhow!("MLO check returned no result — internal error"))?;
 
             println!("Standard: {}", result.standard);
             println!("Region:   {}", result.region);
             println!();
-            println!("{:<22} {:<15} {:<15} {}", "Criterion", "Required", "Achieved", "Status");
+            println!(
+                "{:<22} {:<15} {:<15} {}",
+                "Criterion", "Required", "Achieved", "Status"
+            );
             println!("{}", "-".repeat(60));
             for item in &result.items {
                 let status = if item.passed { "✓" } else { "✗" };
@@ -1599,7 +1602,10 @@ pub fn compliance(
             if result.passed() {
                 println!("Overall: ✓ COMPLIANT");
             } else {
-                println!("Overall: ✗ NON-COMPLIANT ({} failures)", result.failure_count());
+                println!(
+                    "Overall: ✗ NON-COMPLIANT ({} failures)",
+                    result.failure_count()
+                );
                 std::process::exit(1);
             }
         }

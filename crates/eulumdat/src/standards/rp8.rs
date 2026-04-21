@@ -11,10 +11,7 @@ use super::{ComplianceItem, ComplianceResult, DesignResult, LightingStandard, Re
 
 /// RP-8 functional road classification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum RoadClass {
     /// High-speed, high-volume arterials (freeways, expressways).
     Major,
@@ -36,10 +33,7 @@ impl std::fmt::Display for RoadClass {
 
 /// Pedestrian conflict area classification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum PedestrianConflict {
     /// > 100 pedestrians/hr — urban commercial, dense mixed-use.
     High,
@@ -61,10 +55,7 @@ impl std::fmt::Display for PedestrianConflict {
 
 /// User selection for RP-8 compliance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Rp8Selection {
     pub road_class: RoadClass,
     pub pedestrian_conflict: PedestrianConflict,
@@ -149,8 +140,7 @@ impl LightingStandard for Rp8Standard {
                 } else {
                     "∞".into()
                 },
-                passed: achieved_unif.is_finite()
-                    && achieved_unif <= crit.max_uniformity_avg_min,
+                passed: achieved_unif.is_finite() && achieved_unif <= crit.max_uniformity_avg_min,
             },
         ];
 
@@ -275,4 +265,3 @@ mod tests {
         assert_eq!(result.region, Region::Us);
     }
 }
-

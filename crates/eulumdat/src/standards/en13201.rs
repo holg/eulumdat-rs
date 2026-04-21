@@ -19,10 +19,7 @@ use super::{ComplianceItem, ComplianceResult, DesignResult, LightingStandard, Re
 
 /// EN 13201 lighting class. Each class maps to one criteria row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum En13201Class {
     /// C-class conflict areas (illuminance method, EN 13201-2 Table 3).
     C0,
@@ -160,9 +157,7 @@ mod tests {
     fn p3_fails_on_minimum() {
         // P3 wants avg ≥ 7.5 lux, min ≥ 1.5 lux.
         let d = design(10.0, 0.5); // min too low
-        let result = En13201Standard
-            .check_design(&En13201Class::P3, &d)
-            .unwrap();
+        let result = En13201Standard.check_design(&En13201Class::P3, &d).unwrap();
         assert!(!result.passed());
         assert_eq!(result.failure_count(), 1);
         assert!(result.items[0].passed);

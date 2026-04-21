@@ -15,6 +15,7 @@ display_name = "Eulumdat"
 wasm_crate = "crates/eulumdat-wasm"
 bevy_crate = "crates/eulumdat-bevy"
 bevy_output = "target/wasm32-unknown-unknown/web-release"
+street_crate = "crates/eulumdat-wasm-street"
 typst_source = "crates/eulumdat-wasm/src/static/typst"
 dist_output = "crates/eulumdat-wasm/dist"
 templates_crate = "crates/eulumdat-wasm-templates"
@@ -34,6 +35,9 @@ typst = true
 gmaps = true
 templates = true
 obscura = true
+# Street designer — lazy-loaded multi-luminaire compliance app
+# (enable once the build script grows a "street" section, similar to bevy)
+street = false
 
 [bundles.leptos]
 description = "Leptos editor"
@@ -57,6 +61,11 @@ load_strategy = "on_demand"
 description = "Obscura Darkness Preservation Demo"
 load_strategy = "on_demand"
 size_estimate = "~25MB compressed"
+
+[bundles.street]
+description = "Street Designer — multi-luminaire RP-8 / EN 13201 / CJJ 45 / MLO compliance"
+load_strategy = "on_demand"
+size_estimate = "~3MB compressed"
 
 # GonioSim is compiled INTO the Leptos bundle (not a separate WASM).
 # No separate build step, loader, or content hashing needed.

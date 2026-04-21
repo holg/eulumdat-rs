@@ -1,0 +1,14 @@
+[build]
+target = "street.html"
+dist = "dist"
+
+[tools]
+wasm_bindgen = "0.2.114"
+
+[watch]
+watch = ["src", "street.html"]
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 8046
+open = false

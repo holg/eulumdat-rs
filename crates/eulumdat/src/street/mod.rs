@@ -3,9 +3,10 @@
 //! A [`StreetLayout`] describes a linear road segment: lane widths, pole
 //! spacing, arrangement (single side / opposite / staggered), mounting
 //! height, and optional overhang/tilt. The layout is translated into a set
-//! of [`LuminairePlace`] records and fed into the existing area-compute
-//! pipeline to produce an [`AreaResult`]. The resulting grid is what the
-//! regional compliance standards (RP-8, EN 13201, CJJ 45) check against.
+//! of [`crate::area::LuminairePlace`] records and fed into the existing
+//! area-compute pipeline to produce an [`crate::area::AreaResult`]. The
+//! resulting grid is what the regional compliance standards (RP-8,
+//! EN 13201, CJJ 45) check against.
 //!
 //! This module owns only the layout math. Visualization (3D street scene,
 //! plan views) lives in the WASM companion crate.
