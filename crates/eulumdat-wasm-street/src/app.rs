@@ -10,6 +10,7 @@
 use leptos::prelude::*;
 
 use crate::storage_sync::{wire_storage_sync, LdtSource};
+use eulumdat::area::AreaResult;
 use eulumdat::standards::{
     cjj45::{Cjj45Class, Cjj45Standard},
     en13201::{En13201Class, En13201Standard},
@@ -17,7 +18,9 @@ use eulumdat::standards::{
     rp8::{PedestrianConflict, RoadClass, Rp8Selection, Rp8Standard},
     ComplianceResult, LightingStandard,
 };
-use eulumdat::street::{Arrangement, StreetLayout};
+use eulumdat::street::{
+    plan_view_heatmap, Arrangement, FailureOverlay, PlanViewOptions, StreetLayout, StreetTheme,
+};
 use eulumdat::{bug_rating::LightingZone, Eulumdat};
 
 #[component]
@@ -39,27 +42,42 @@ pub fn StreetApp() -> impl IntoView {
     let (en_class, _) = signal(En13201Class::C3);
     let (cjj_class, _) = signal(Cjj45Class::ClassII);
 
-    // Recompute on every relevant change.
-    let design_and_results = Memo::new(move |_| {
+    // Viz toggle — off by default so the first impression is clean.
+    let (highlight_failures, set_highlight_failures) = signal(false);
+
+    // Compute the illuminance grid (drives both the heatmap and the
+    // compliance results). Kept as a separate memo so changing only a
+    // standard selection doesn't force a full layout recompute.
+    let area_result = Memo::new(move |_| -> Option<AreaResult> {
         let ldt_val = ldt.get()?;
         let layout_val = layout.get();
-        let area = layout_val.compute(&ldt_val, 0.8);
+        Some(layout_val.compute(&ldt_val, 0.8))
+    });
+
+    let compliance = Memo::new(move |_| -> Vec<ComplianceResult> {
+        let Some(ldt_val) = ldt.get() else {
+            return Vec::new();
+        };
+        let Some(area) = area_result.get() else {
+            return Vec::new();
+        };
+        let layout_val = layout.get();
         let design = layout_val.design_result(&area);
 
-        let mut results: Vec<ComplianceResult> = Vec::new();
+        let mut out: Vec<ComplianceResult> = Vec::new();
         if let Some(r) = MloStandard.check_file(&mlo_zone.get(), &ldt_val) {
-            results.push(r);
+            out.push(r);
         }
         if let Some(r) = Rp8Standard.check_design(&rp8_sel.get(), &design) {
-            results.push(r);
+            out.push(r);
         }
         if let Some(r) = En13201Standard.check_design(&en_class.get(), &design) {
-            results.push(r);
+            out.push(r);
         }
         if let Some(r) = Cjj45Standard.check_design(&cjj_class.get(), &design) {
-            results.push(r);
+            out.push(r);
         }
-        Some((design, results, area.avg_lux, area.min_lux, area.max_lux))
+        out
     });
 
     view! {
@@ -67,25 +85,68 @@ pub fn StreetApp() -> impl IntoView {
             <LdtSourcePanel ldt=ldt source=source set_ldt=set_ldt set_source=set_source />
             <LayoutForm layout=layout set_layout=set_layout />
 
-            {move || match design_and_results.get() {
-                None => view! {
-                    <p style="color: #888; font-style: italic;">
-                        "Load a luminaire in the main editor (or upload one here) to see compliance results."
-                    </p>
-                }.into_any(),
-                Some((_design, results, avg, min, max)) => view! {
-                    <h2>"Computed illuminance"</h2>
-                    <p>
-                        "Average: " <strong>{format!("{avg:.1} lux")}</strong>
-                        " · Min: " <strong>{format!("{min:.1} lux")}</strong>
-                        " · Max: " <strong>{format!("{max:.1} lux")}</strong>
-                    </p>
+            {move || area_result.get().map(|area| {
+                let layout_val = layout.get();
+                let svg = render_plan_svg(&layout_val, &area, highlight_failures.get());
+                let avg = area.avg_lux;
+                let min = area.min_lux;
+                let max = area.max_lux;
+                view! {
+                    <section class="street-viz">
+                        <div class="street-viz-toolbar">
+                            <label class="street-viz-toggle">
+                                <input
+                                    type="checkbox"
+                                    prop:checked=move || highlight_failures.get()
+                                    on:change=move |ev| {
+                                        use wasm_bindgen::JsCast;
+                                        let checked = ev.target()
+                                            .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+                                            .map(|i| i.checked())
+                                            .unwrap_or(false);
+                                        set_highlight_failures.set(checked);
+                                    }
+                                />
+                                " Highlight failures (cells below avg × uniformity target)"
+                            </label>
+                            <div class="street-viz-stats">
+                                "avg " <strong>{format!("{avg:.1}")}</strong> " · "
+                                "min " <strong>{format!("{min:.1}")}</strong> " · "
+                                "max " <strong>{format!("{max:.1}")}</strong> " lux"
+                            </div>
+                        </div>
+                        <div class="street-viz-canvas" inner_html=svg></div>
+                    </section>
+                }.into_any()
+            }).unwrap_or_else(|| view! {
+                <p class="street-placeholder">
+                    "Load a luminaire in the main editor (or upload one here) to see the plan view and compliance."
+                </p>
+            }.into_any())}
+
+            {move || {
+                let results = compliance.get();
+                (!results.is_empty()).then(|| view! {
                     <h2>"Compliance"</h2>
                     <ResultsTable results=results />
-                }.into_any(),
+                })
             }}
         </div>
     }
+}
+
+/// Render the plan-view SVG with the current failure-overlay toggle.
+///
+/// Threshold picks a representative roadway uniformity floor (0.4 ≈
+/// EN 13201 U₀, and a reasonable proxy for RP-8's "avg/min ≤ 3" on
+/// collector/local roads). Per-standard thresholds would be nicer but
+/// require piping the active selection through here.
+fn render_plan_svg(layout: &StreetLayout, area: &AreaResult, highlight: bool) -> String {
+    let opts = PlanViewOptions {
+        theme: StreetTheme::Dark,
+        failure_overlay: highlight.then_some(FailureOverlay { ratio_floor: 0.4 }),
+    };
+    plan_view_heatmap(layout, area, 800.0, 280.0, opts)
 }
 
 /// Shows which luminaire is currently loaded (badge + name) plus a
@@ -217,6 +278,8 @@ fn LayoutForm(
                     on_change=move |v| set_layout.update(|l| l.tilt_deg = v) />
                 <NumberField label="Pole offset (m)" value=Signal::derive(move || layout.get().pole_offset_m)
                     on_change=move |v| set_layout.update(|l| l.pole_offset_m = v) />
+                <NumberField label="Sidewalk (m)" value=Signal::derive(move || layout.get().sidewalk_width_m)
+                    on_change=move |v| set_layout.update(|l| l.sidewalk_width_m = v.max(0.0)) />
                 <label style="grid-column: 1 / -1;">
                     "Arrangement: "
                     <select

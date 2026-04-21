@@ -52,6 +52,11 @@ pub struct StreetLayout {
     pub tilt_deg: f64,
     /// Lateral offset of the pole base from the curb, in meters.
     pub pole_offset_m: f64,
+    /// Sidewalk width on each side of the road, in meters. `0.0` hides the
+    /// sidewalk in plan-view renderings but has no effect on illuminance
+    /// calculations (the evaluation area is the roadway only).
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub sidewalk_width_m: f64,
 }
 
 impl Default for StreetLayout {
@@ -66,6 +71,7 @@ impl Default for StreetLayout {
             overhang_m: 1.5,
             tilt_deg: 0.0,
             pole_offset_m: 0.5,
+            sidewalk_width_m: 1.5,
         }
     }
 }

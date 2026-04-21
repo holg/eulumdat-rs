@@ -8,8 +8,10 @@
 //! resulting grid is what the regional compliance standards (RP-8,
 //! EN 13201, CJJ 45) check against.
 //!
-//! This module owns only the layout math. Visualization (3D street scene,
-//! plan views) lives in the WASM companion crate.
+//! This module also ships a plan-view SVG renderer (see [`svg`]) that
+//! paints the road, lane markings, poles, and a lux heatmap — so the
+//! same core library that drives CLI/PDF workflows can also produce
+//! visualizations without relying on a frontend.
 //!
 //! ```no_run
 //! use eulumdat::Eulumdat;
@@ -26,11 +28,14 @@
 //!     overhang_m: 1.5,
 //!     tilt_deg: 0.0,
 //!     pole_offset_m: 0.5,
+//!     sidewalk_width_m: 1.5,
 //! };
 //! let result = layout.compute(&ldt, 1.0);
 //! println!("avg = {:.1} lux, uniformity = {:.2}", result.avg_lux, result.uniformity_min_avg);
 //! ```
 
 pub mod layout;
+pub mod svg;
 
 pub use layout::{Arrangement, StreetLayout};
+pub use svg::{plan_view_heatmap, FailureOverlay, PlanViewOptions, StreetTheme};
