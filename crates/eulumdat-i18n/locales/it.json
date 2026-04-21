@@ -408,7 +408,8 @@
       "zonal_designer": "Interni",
       "maps_designer": "Mappe",
       "beam_angle": "Angolo del fascio",
-      "iso_view": "Vista ISO"
+      "iso_view": "Vista ISO",
+      "street_design": "🛣️ Illuminazione stradale"
     },
     "subtabs": {
       "spd": "DSP",

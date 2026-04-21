@@ -408,7 +408,8 @@
       "zonal_designer": "Interior",
       "maps_designer": "Mapas",
       "beam_angle": "Ángulo de haz",
-      "iso_view": "Vista ISO"
+      "iso_view": "Vista ISO",
+      "street_design": "🛣️ Alumbrado vial"
     },
     "subtabs": {
       "spd": "DEP",

@@ -408,7 +408,8 @@
       "zonal_designer": "Innenraum",
       "maps_designer": "Karten",
       "beam_angle": "Strahlwinkel",
-      "iso_view": "ISO-Ansicht"
+      "iso_view": "ISO-Ansicht",
+      "street_design": "🛣️ Straßenplanung"
     },
     "subtabs": {
       "spd": "SPD",

@@ -56,6 +56,7 @@ use super::maps_designer::MapsDesigner;
 use super::obscura_demo::ObscuraDemo;
 use super::polar_diagram::PolarDiagram;
 use super::spectral_diagram::SpectralDiagramView;
+use super::street_launcher::StreetLauncher;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
 use super::templates::ALL_TEMPLATES;
 use super::theme::{ThemeMode, ThemeProvider};
@@ -185,6 +186,7 @@ pub enum MainTab {
     ZonalDesigner,
     MapsDesigner,
     GonioSim,
+    StreetDesign,
 }
 
 /// Sub-tabs within each main tab group
@@ -228,6 +230,8 @@ pub enum Tab {
     MapsDesignerTab,
     // GonioSim group (single tab, no sub-tabs)
     GonioSimTab,
+    // Street Design group (single tab, no sub-tabs) — lazy-loaded companion
+    StreetDesignTab,
 }
 
 impl Tab {
@@ -253,6 +257,7 @@ impl Tab {
             Tab::ZonalDesignerTab => MainTab::ZonalDesigner,
             Tab::MapsDesignerTab => MainTab::MapsDesigner,
             Tab::GonioSimTab => MainTab::GonioSim,
+            Tab::StreetDesignTab => MainTab::StreetDesign,
         }
     }
 
@@ -271,6 +276,7 @@ impl Tab {
             MainTab::ZonalDesigner => Tab::ZonalDesignerTab,
             MainTab::MapsDesigner => Tab::MapsDesignerTab,
             MainTab::GonioSim => Tab::GonioSimTab,
+            MainTab::StreetDesign => Tab::StreetDesignTab,
         }
     }
 
@@ -303,6 +309,7 @@ impl Tab {
             MainTab::ZonalDesigner => &[Tab::ZonalDesignerTab],
             MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
             MainTab::GonioSim => &[Tab::GonioSimTab],
+            MainTab::StreetDesign => &[Tab::StreetDesignTab],
         }
     }
 }
@@ -1025,7 +1032,8 @@ pub fn App() -> impl IntoView {
             | Tab::AreaDesignerTab
             | Tab::ZonalDesignerTab
             | Tab::MapsDesignerTab
-            | Tab::GonioSimTab => None,
+            | Tab::GonioSimTab
+            | Tab::StreetDesignTab => None,
         }
     };
 
@@ -1498,6 +1506,12 @@ pub fn App() -> impl IntoView {
                             >
                                 {move || format!("🔬 {}", locale.get().goniosim.title)}
                             </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::StreetDesign { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::StreetDesign))
+                            >
+                                {move || locale.get().ui.tabs.street_design.clone()}
+                            </button>
                         </nav>
 
                         // Sub-tabs (shown only when main tab has multiple sub-tabs)
@@ -1534,6 +1548,7 @@ pub fn App() -> impl IntoView {
                                                 Tab::ZonalDesignerTab => locale.get().ui.tabs.zonal_designer.clone(),
                                                 Tab::MapsDesignerTab => locale.get().ui.tabs.maps_designer.clone(),
                                                 Tab::GonioSimTab => locale.get().goniosim.title.clone(),
+                                                Tab::StreetDesignTab => locale.get().ui.tabs.street_design.clone(),
                                             };
                                             view! {
                                                 <button
@@ -1934,6 +1949,19 @@ pub fn App() -> impl IntoView {
                                 }.into_any(),
                                 Tab::GonioSimTab => view! {
                                     <GonioSimDemo ldt=ldt />
+                                }.into_any(),
+                                Tab::StreetDesignTab => view! {
+                                    <div class="street-design-tab">
+                                        <div class="diagram-header">
+                                            <span class="diagram-title">
+                                                {move || locale.get().ui.tabs.street_design.clone()}
+                                            </span>
+                                            <span class="text-muted">
+                                                "Multi-luminaire RP-8 / EN 13201 / CJJ 45 / MLO compliance"
+                                            </span>
+                                        </div>
+                                        <StreetLauncher />
+                                    </div>
                                 }.into_any(),
                             }}
                         </div>

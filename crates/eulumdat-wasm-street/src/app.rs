@@ -53,14 +53,7 @@ pub fn StreetApp() -> impl IntoView {
     });
 
     view! {
-        <div style="font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
-            <h1>"Street Designer"</h1>
-            <p style="color: #666;">
-                "Multi-luminaire street lighting compliance. Pick a luminaire file, \
-                adjust the road geometry, and see how it scores against US (RP-8), \
-                EU (EN 13201), Chinese (CJJ 45), and dark-sky (MLO) standards."
-            </p>
-
+        <div class="street-app">
             <FilePicker set_ldt=set_ldt />
             <LayoutForm layout=layout set_layout=set_layout />
 

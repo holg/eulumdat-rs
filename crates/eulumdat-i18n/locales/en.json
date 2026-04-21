@@ -408,7 +408,8 @@
       "zonal_designer": "Interior",
       "maps_designer": "Maps",
       "beam_angle": "Beam Angle",
-      "iso_view": "ISO View"
+      "iso_view": "ISO View",
+      "street_design": "🛣️ Street Design"
     },
     "subtabs": {
       "spd": "SPD",

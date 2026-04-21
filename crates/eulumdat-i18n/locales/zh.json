@@ -408,7 +408,8 @@
       "zonal_designer": "室内设计器",
       "maps_designer": "地图",
       "beam_angle": "光束角",
-      "iso_view": "ISO视图"
+      "iso_view": "ISO视图",
+      "street_design": "🛣️ 道路照明设计"
     },
     "subtabs": {
       "spd": "SPD",

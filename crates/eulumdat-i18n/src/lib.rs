@@ -674,6 +674,12 @@ pub struct UiTabs {
     pub beam_angle: String,
     #[serde(default)]
     pub iso_view: String,
+    #[serde(default = "default_street_design_tab")]
+    pub street_design: String,
+}
+
+fn default_street_design_tab() -> String {
+    "🛣️ Street Design".into()
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

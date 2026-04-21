@@ -408,7 +408,8 @@
       "zonal_designer": "Intérieur",
       "maps_designer": "Cartes",
       "beam_angle": "Angle de faisceau",
-      "iso_view": "Vue ISO"
+      "iso_view": "Vue ISO",
+      "street_design": "🛣️ Éclairage routier"
     },
     "subtabs": {
       "spd": "DSP",

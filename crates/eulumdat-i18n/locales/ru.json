@@ -408,7 +408,8 @@
       "zonal_designer": "Интерьер",
       "maps_designer": "Карты",
       "beam_angle": "Угол луча",
-      "iso_view": "ISO-вид"
+      "iso_view": "ISO-вид",
+      "street_design": "🛣️ Уличное освещение"
     },
     "subtabs": {
       "spd": "СРМ",
