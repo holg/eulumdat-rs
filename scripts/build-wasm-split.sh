@@ -1154,13 +1154,17 @@ if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_JS_HASH" ]]; then
 // Street Designer loader — multi-luminaire RP-8 / EN 13201 / CJJ 45 / MLO compliance
 // Auto-generated with content hashes for cache busting.
 
-let streetLoaded = false;
+let streetModule = null;
+let streetInitialized = false;
 let streetLoading = false;
 let streetLoadPromise = null;
 
 async function loadStreetDesigner() {
-    if (streetLoaded) {
-        console.log("[Street] Already loaded");
+    if (streetInitialized && streetModule) {
+        // Cached — re-mount into whatever #street-root exists now.
+        if (typeof streetModule.mount === "function") {
+            streetModule.mount();
+        }
         return;
     }
     if (streetLoading && streetLoadPromise) {
@@ -1175,12 +1179,11 @@ async function loadStreetDesigner() {
         try {
             const mod = await import('./street/${STREET_CRATE_NAME}-${STREET_JS_HASH}.js');
             await mod.default();
-            // Companion app exposes a wasm_bindgen-exported \`mount()\`
-            // that attaches the Leptos UI to #street-root in the host page.
+            streetModule = mod;
             if (typeof mod.mount === "function") {
                 mod.mount();
             }
-            streetLoaded = true;
+            streetInitialized = true;
             streetLoading = false;
             console.log("[Street] Loaded successfully");
         } catch (error) {
@@ -1194,7 +1197,7 @@ async function loadStreetDesigner() {
     return streetLoadPromise;
 }
 
-function isStreetDesignerLoaded() { return streetLoaded; }
+function isStreetDesignerLoaded() { return streetInitialized; }
 function isStreetDesignerLoading() { return streetLoading; }
 
 window.loadStreetDesigner = loadStreetDesigner;

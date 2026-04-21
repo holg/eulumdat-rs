@@ -38,5 +38,6 @@ features = [
     "FileList",
     "FileReader",
     "Blob",
+    "Storage",
     "console",
 ]

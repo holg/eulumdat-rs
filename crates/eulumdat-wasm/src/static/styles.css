@@ -4906,3 +4906,65 @@ tr.delta-major .metric-percent {
     border-radius: 4px;
     padding: 0.25rem 0.5rem;
 }
+
+/* Source panel — shows which luminaire is loaded (from editor vs upload)
+   plus the collapsible fallback upload. */
+.street-root .street-app .street-source-panel {
+    margin: 0.5rem 0 1rem;
+}
+
+.street-root .street-app .street-source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+}
+
+.street-root .street-app .street-source-badge .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted, #888);
+    flex-shrink: 0;
+}
+
+.street-root .street-app .street-source-badge--editor .dot {
+    background: #2d7a2d;
+    box-shadow: 0 0 0 3px rgba(45, 122, 45, 0.15);
+}
+
+.street-root .street-app .street-source-badge--upload .dot {
+    background: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(80, 120, 200, 0.15);
+}
+
+.street-root .street-app .street-source-hint {
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.street-root .street-app .street-source-upload {
+    margin-top: 0.5rem;
+}
+
+.street-root .street-app .street-source-upload summary {
+    cursor: pointer;
+    color: var(--text-muted, #888);
+    font-size: 0.85rem;
+    padding: 0.25rem 0;
+    user-select: none;
+}
+
+.street-root .street-app .street-source-upload summary:hover {
+    color: var(--text-primary);
+}
+
+.street-root .street-app .street-upload-row {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0;
+}

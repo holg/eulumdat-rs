@@ -1,18 +1,27 @@
 // Lazy loader for the Street Designer companion app.
 // Pattern mirrors bevy-loader.js: single entry point exposed on window,
 // imports the WASM module on demand, subsequent calls are idempotent.
+//
+// After the first successful load the module stays cached on `window`, so
+// re-entering the tab (which unmounts and re-mounts #street-root) only
+// triggers a cheap mount() call — no re-download, no re-init.
 
-let streetLoaded = false;
+let streetModule = null;
+let streetInitialized = false;
 let streetLoading = false;
 let streetLoadPromise = null;
 
 /**
- * Load and initialize the street designer WASM module.
+ * Load (if needed) and mount the street designer into #street-root.
+ * Safe to call multiple times — subsequent calls just re-mount.
  * @returns {Promise<void>}
  */
 async function loadStreetDesigner() {
-    if (streetLoaded) {
-        console.log("[Street] Already loaded");
+    if (streetInitialized && streetModule) {
+        // Already in memory — just mount into whatever #street-root exists now.
+        if (typeof streetModule.mount === "function") {
+            streetModule.mount();
+        }
         return;
     }
     if (streetLoading && streetLoadPromise) {
@@ -28,11 +37,11 @@ async function loadStreetDesigner() {
             const cacheBuster = Date.now();
             const mod = await import(`./street/eulumdat-wasm-street.js?v=${cacheBuster}`);
             await mod.default();
-            // The #[wasm_bindgen] pub fn mount() in lib.rs is exposed as mod.mount()
+            streetModule = mod;
             if (typeof mod.mount === "function") {
                 mod.mount();
             }
-            streetLoaded = true;
+            streetInitialized = true;
             streetLoading = false;
             console.log("[Street] Loaded");
         } catch (error) {
@@ -47,7 +56,7 @@ async function loadStreetDesigner() {
 }
 
 function isStreetDesignerLoaded() {
-    return streetLoaded;
+    return streetInitialized;
 }
 
 function isStreetDesignerLoading() {

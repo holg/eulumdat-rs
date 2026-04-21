@@ -10,6 +10,7 @@
 //! layout visualization come in follow-up commits.
 
 mod app;
+mod storage_sync;
 
 pub use app::StreetApp;
 

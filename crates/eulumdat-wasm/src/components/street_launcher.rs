@@ -21,12 +21,24 @@ extern "C" {
 /// mount point receives the full multi-standard compliance UI.
 #[component]
 pub fn StreetLauncher() -> impl IntoView {
-    // Initialize from window state so hot-reloads / re-renders don't force
-    // the user to click again if the bundle is already in memory.
+    // Initialize from window state so re-entering the tab after the bundle
+    // has loaded once skips the intro card.
     let initial = is_street_designer_loaded();
     let (loaded, set_loaded) = signal(initial);
     let (loading, set_loading) = signal(false);
     let (error, set_error) = signal(None::<String>);
+
+    // If the bundle is already cached on `window` (user switched away from
+    // the tab and back), re-invoke loadStreetDesigner — the loader detects
+    // the cached module and just calls mount() again to re-populate the
+    // (freshly rendered) #street-root div.
+    if initial {
+        let promise = load_street_designer();
+        let future = wasm_bindgen_futures::JsFuture::from(promise);
+        wasm_bindgen_futures::spawn_local(async move {
+            let _ = future.await;
+        });
+    }
 
     let on_click = move |_| {
         if loaded.get() || loading.get() {

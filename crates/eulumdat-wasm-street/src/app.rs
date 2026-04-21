@@ -2,9 +2,14 @@
 //!
 //! v0: single luminaire, a small form for street geometry, and a compliance
 //! table that runs all four standards simultaneously. No heatmap yet.
+//!
+//! The luminaire comes from the main editor via localStorage (see
+//! [`crate::storage_sync`]); the fallback file picker is only used when the
+//! editor hasn't loaded anything yet.
 
 use leptos::prelude::*;
 
+use crate::storage_sync::{wire_storage_sync, LdtSource};
 use eulumdat::standards::{
     cjj45::{Cjj45Class, Cjj45Standard},
     en13201::{En13201Class, En13201Standard},
@@ -18,7 +23,12 @@ use eulumdat::{bug_rating::LightingZone, Eulumdat};
 #[component]
 pub fn StreetApp() -> impl IntoView {
     let (ldt, set_ldt) = signal(None::<Eulumdat>);
+    let (source, set_source) = signal(LdtSource::None);
     let (layout, set_layout) = signal(StreetLayout::default());
+
+    // Hook into the editor's localStorage writes so the same luminaire the
+    // user is editing appears here automatically, with live updates.
+    wire_storage_sync(set_ldt, set_source);
 
     // Selections for each region's standard.
     let (mlo_zone, _) = signal(LightingZone::LZ2);
@@ -54,12 +64,14 @@ pub fn StreetApp() -> impl IntoView {
 
     view! {
         <div class="street-app">
-            <FilePicker set_ldt=set_ldt />
+            <LdtSourcePanel ldt=ldt source=source set_ldt=set_ldt set_source=set_source />
             <LayoutForm layout=layout set_layout=set_layout />
 
             {move || match design_and_results.get() {
                 None => view! {
-                    <p style="color: #888; font-style: italic;">"Load a luminaire file to see compliance results."</p>
+                    <p style="color: #888; font-style: italic;">
+                        "Load a luminaire in the main editor (or upload one here) to see compliance results."
+                    </p>
                 }.into_any(),
                 Some((_design, results, avg, min, max)) => view! {
                     <h2>"Computed illuminance"</h2>
@@ -76,8 +88,62 @@ pub fn StreetApp() -> impl IntoView {
     }
 }
 
+/// Shows which luminaire is currently loaded (badge + name) plus a
+/// collapsible fallback upload. When `ldt` is `None` the upload field is
+/// front-and-centre; when an LDT is present it's collapsed under a
+/// "Use a different file" disclosure.
 #[component]
-fn FilePicker(set_ldt: WriteSignal<Option<Eulumdat>>) -> impl IntoView {
+fn LdtSourcePanel(
+    ldt: ReadSignal<Option<Eulumdat>>,
+    source: ReadSignal<LdtSource>,
+    set_ldt: WriteSignal<Option<Eulumdat>>,
+    set_source: WriteSignal<LdtSource>,
+) -> impl IntoView {
+    view! {
+        <div class="street-source-panel">
+            {move || match (source.get(), ldt.get()) {
+                (LdtSource::Editor, Some(l)) => view! {
+                    <div class="street-source-badge street-source-badge--editor">
+                        <span class="dot"></span>
+                        "Using luminaire from editor: "
+                        <strong>
+                            {if l.luminaire_name.is_empty() { "(unnamed)".to_string() } else { l.luminaire_name.clone() }}
+                        </strong>
+                        <span class="text-muted"> " — live updates as you edit"</span>
+                    </div>
+                }.into_any(),
+                (LdtSource::Upload, Some(l)) => view! {
+                    <div class="street-source-badge street-source-badge--upload">
+                        <span class="dot"></span>
+                        "Uploaded: "
+                        <strong>
+                            {if l.luminaire_name.is_empty() { "(unnamed)".to_string() } else { l.luminaire_name.clone() }}
+                        </strong>
+                    </div>
+                }.into_any(),
+                _ => view! {
+                    <div class="street-source-hint text-muted">
+                        "No luminaire loaded yet. Open one in the main editor, "
+                        "or upload a .ldt or .ies file below."
+                    </div>
+                }.into_any(),
+            }}
+
+            <details class="street-source-upload" open=move || ldt.get().is_none()>
+                <summary>
+                    {move || if ldt.get().is_some() { "Use a different file…" } else { "Upload a luminaire file" }}
+                </summary>
+                <FallbackFilePicker set_ldt=set_ldt set_source=set_source />
+            </details>
+        </div>
+    }
+}
+
+#[component]
+fn FallbackFilePicker(
+    set_ldt: WriteSignal<Option<Eulumdat>>,
+    set_source: WriteSignal<LdtSource>,
+) -> impl IntoView {
     use wasm_bindgen::closure::Closure;
     use wasm_bindgen::JsCast;
     use web_sys::{FileReader, HtmlInputElement};
@@ -96,10 +162,12 @@ fn FilePicker(set_ldt: WriteSignal<Option<Eulumdat>>) -> impl IntoView {
         let onload = Closure::wrap(Box::new(move |_: web_sys::ProgressEvent| {
             let result = reader_clone.result().unwrap();
             let text = result.as_string().unwrap_or_default();
-            // Try LDT first, then IES.
             let parsed = Eulumdat::parse(&text).or_else(|_| eulumdat::IesParser::parse(&text));
             match parsed {
-                Ok(ldt) => set_ldt.set(Some(ldt)),
+                Ok(ldt) => {
+                    set_ldt.set(Some(ldt));
+                    set_source.set(LdtSource::Upload);
+                }
                 Err(e) => web_sys::console::warn_1(&format!("parse failed: {e}").into()),
             }
         }) as Box<dyn FnMut(_)>);
@@ -109,9 +177,9 @@ fn FilePicker(set_ldt: WriteSignal<Option<Eulumdat>>) -> impl IntoView {
     };
 
     view! {
-        <div style="margin: 1rem 0;">
+        <div class="street-upload-row">
             <label>
-                "Luminaire file (.ldt or .ies): "
+                "File: "
                 <input type="file" accept=".ldt,.ies" on:change=on_change />
             </label>
         </div>
