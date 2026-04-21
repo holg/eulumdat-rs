@@ -36,8 +36,7 @@ gmaps = true
 templates = true
 obscura = true
 # Street designer — lazy-loaded multi-luminaire compliance app
-# (enable once the build script grows a "street" section, similar to bevy)
-street = false
+street = true
 
 [bundles.leptos]
 description = "Leptos editor"

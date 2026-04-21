@@ -128,6 +128,7 @@ BEVY_OUTPUT_REL=$(toml_get "paths.bevy_output" "target/wasm32-unknown-unknown/we
 TYPST_SOURCE_REL=$(toml_get "paths.typst_source" "")
 DIST_OUTPUT_REL=$(toml_get "paths.dist_output" "$WASM_CRATE/dist")
 TEMPLATES_CRATE=$(toml_get "paths.templates_crate" "")
+STREET_CRATE=$(toml_get "paths.street_crate" "")
 ASSETS_REL=$(toml_get "paths.assets" "assets")
 
 # Absolute paths
@@ -138,6 +139,7 @@ TYPST_SOURCE="$ROOT_DIR/$TYPST_SOURCE_REL"
 DIST_DIR="$ROOT_DIR/$DIST_OUTPUT_REL"
 ASSETS_DIR="$ROOT_DIR/$ASSETS_REL"
 TEMPLATES_DIR="$ROOT_DIR/$TEMPLATES_CRATE"
+STREET_DIR="$ROOT_DIR/$STREET_CRATE"
 
 # Bevy settings
 BEVY_BINARY=$(toml_get "bevy.binary_name" "${PROJECT_NAME}-3d")
@@ -150,6 +152,7 @@ BUILD_TYPST=$(toml_get "bundles.typst" "false")
 BUILD_GMAPS=$(toml_get "bundles.gmaps" "false")
 BUILD_TEMPLATES=$(toml_get "bundles.templates" "false")
 BUILD_OBSCURA=$(toml_get "bundles.obscura" "false")
+BUILD_STREET=$(toml_get "bundles.street" "false")
 
 # Deploy settings
 DEPLOY_TARGET=$(toml_get "deploy.target" "")
@@ -302,6 +305,9 @@ fi
 if [[ "$BUILD_OBSCURA" == "true" ]]; then
     echo "  Bundle 5: Obscura Demo (loads on demand, ?wasm=obscura_demo)"
 fi
+if [[ "$BUILD_STREET" == "true" ]]; then
+    echo "  Bundle 6: Street Designer (loads on demand)"
+fi
 if [[ "$HAVE_BROTLI" == "true" ]]; then
     echo ""
     echo "  Brotli pre-compression: enabled"
@@ -425,6 +431,75 @@ if [[ "$BUILD_OBSCURA" == "true" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
+# Step 1.7: Build Street Designer (lazy-loaded companion, same pattern as obscura)
+# -----------------------------------------------------------------------------
+STREET_CRATE_NAME="eulumdat-wasm-street"
+STREET_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
+STREET_BINDGEN_OUTPUT="$ROOT_DIR/target/street-wasm-bindgen"
+STREET_BUILT=false
+if [[ "$BUILD_STREET" == "true" ]]; then
+    STREET_NEEDS_BUILD=false
+    if needs_rebuild "street" "$STREET_DIR"; then
+        STREET_NEEDS_BUILD=true
+    elif [[ ! -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" ]]; then
+        STREET_NEEDS_BUILD=true
+    fi
+
+    if [[ "$STREET_NEEDS_BUILD" == "true" ]]; then
+        echo "[1.7/$TOTAL_STEPS] Building Street Designer for WASM..."
+        cd "$ROOT_DIR"
+
+        # Build the street designer library as a cdylib for wasm32
+        cargo build --release --target wasm32-unknown-unknown \
+            --lib \
+            -p "$STREET_CRATE_NAME"
+
+        # Run wasm-bindgen to generate JS glue
+        mkdir -p "$STREET_BINDGEN_OUTPUT"
+        STREET_CRATE_UNDER=$(echo "$STREET_CRATE_NAME" | tr '-' '_')
+        wasm-bindgen --out-dir "$STREET_BINDGEN_OUTPUT" --target web \
+            "$STREET_OUTPUT/${STREET_CRATE_UNDER}.wasm"
+
+        # wasm-bindgen outputs use underscores (eulumdat_wasm_street.js);
+        # normalize to hyphenated name so downstream steps can assume a
+        # consistent filename.
+        if [[ -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}.js" ]] && \
+           [[ ! -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" ]]; then
+            mv "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}.js" \
+                "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js"
+            mv "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}_bg.wasm" \
+                "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm"
+            # Rewrite the JS to match the renamed WASM
+            if [[ "$(uname)" == "Darwin" ]]; then
+                sed -i '' "s/${STREET_CRATE_UNDER}_bg.wasm/${STREET_CRATE_NAME}_bg.wasm/g" \
+                    "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js"
+            else
+                sed -i "s/${STREET_CRATE_UNDER}_bg.wasm/${STREET_CRATE_NAME}_bg.wasm/g" \
+                    "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js"
+            fi
+        fi
+
+        # Optimize with wasm-opt if available
+        if command -v wasm-opt &> /dev/null && [[ -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" ]]; then
+            echo "  Running wasm-opt..."
+            ORIG_SIZE=$(ls -lh "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg_opt.wasm" \
+                "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm"
+            mv "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg_opt.wasm" \
+                "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm"
+            OPT_SIZE=$(ls -lh "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" | awk '{print $5}')
+            echo "  Size: $ORIG_SIZE -> $OPT_SIZE"
+        fi
+
+        save_hash "street" "$(calculate_source_hash "$STREET_DIR")"
+        STREET_BUILT=true
+        echo ""
+    else
+        echo "[1.7/$TOTAL_STEPS] Street Designer: unchanged, skipping build"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # Step 2: Build Leptos editor
 # -----------------------------------------------------------------------------
 if [[ "$BUILD_LEPTOS" == "true" ]]; then
@@ -530,6 +605,46 @@ if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -f "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_
         fi
         echo "  ${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js"
         echo "  ${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm"
+    fi
+fi
+echo ""
+
+# -----------------------------------------------------------------------------
+# Step 3.7: Add content hashes to Street Designer files
+# -----------------------------------------------------------------------------
+STREET_JS_HASH=""
+STREET_WASM_HASH=""
+if [[ "$BUILD_STREET" == "true" ]] && [[ -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" ]]; then
+    if command -v md5sum &> /dev/null; then
+        STREET_JS_HASH=$(md5sum "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" | cut -c1-16)
+        STREET_WASM_HASH=$(md5sum "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" | cut -c1-16)
+    else
+        STREET_JS_HASH=$(md5 -q "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" | cut -c1-16)
+        STREET_WASM_HASH=$(md5 -q "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" | cut -c1-16)
+    fi
+
+    STREET_JS_TARGET="$DIST_DIR/street/${STREET_CRATE_NAME}-${STREET_JS_HASH}.js"
+    STREET_WASM_TARGET="$DIST_DIR/street/${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm"
+
+    if [[ -f "$STREET_JS_TARGET" ]] && [[ -f "$STREET_WASM_TARGET" ]]; then
+        echo "[3.7/$TOTAL_STEPS] Street files: unchanged (hash match), skipping"
+    else
+        echo "[3.7/$TOTAL_STEPS] Adding content hashes to Street Designer files..."
+        mkdir -p "$DIST_DIR/street"
+
+        rm -f "$DIST_DIR/street/"*.js "$DIST_DIR/street/"*.wasm "$DIST_DIR/street/"*.br
+
+        cp "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" "$STREET_JS_TARGET"
+        cp "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" "$STREET_WASM_TARGET"
+
+        # Update JS to reference hashed WASM
+        if [[ "$(uname)" == "Darwin" ]]; then
+            sed -i '' "s/${STREET_CRATE_NAME}_bg.wasm/${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm/g" "$STREET_JS_TARGET"
+        else
+            sed -i "s/${STREET_CRATE_NAME}_bg.wasm/${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm/g" "$STREET_JS_TARGET"
+        fi
+        echo "  ${STREET_CRATE_NAME}-${STREET_JS_HASH}.js"
+        echo "  ${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm"
     fi
 fi
 echo ""
@@ -1023,6 +1138,84 @@ EOF
 fi
 
 # -----------------------------------------------------------------------------
+# Step 6.85: Generate street-loader.js (if configured)
+# -----------------------------------------------------------------------------
+STREET_LOADER_HASH=""
+if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_JS_HASH" ]]; then
+    EXISTING_STREET_LOADER=$(ls "$DIST_DIR/street-loader-"*.js 2>/dev/null | head -1)
+    if [[ -n "$EXISTING_STREET_LOADER" ]] && grep -q "${STREET_CRATE_NAME}-${STREET_JS_HASH}.js" "$EXISTING_STREET_LOADER" 2>/dev/null; then
+        echo "[6.85/$TOTAL_STEPS] street-loader.js: unchanged, skipping"
+        STREET_LOADER_HASH=$(echo "$EXISTING_STREET_LOADER" | sed 's/.*street-loader-\([^.]*\)\.js/\1/')
+    else
+        echo "[6.85/$TOTAL_STEPS] Generating street-loader.js..."
+        rm -f "$DIST_DIR/street-loader-"*.js "$DIST_DIR/street-loader-"*.js.br
+
+        cat > "$DIST_DIR/street-loader-temp.js" << EOF
+// Street Designer loader — multi-luminaire RP-8 / EN 13201 / CJJ 45 / MLO compliance
+// Auto-generated with content hashes for cache busting.
+
+let streetLoaded = false;
+let streetLoading = false;
+let streetLoadPromise = null;
+
+async function loadStreetDesigner() {
+    if (streetLoaded) {
+        console.log("[Street] Already loaded");
+        return;
+    }
+    if (streetLoading && streetLoadPromise) {
+        console.log("[Street] Loading in progress, waiting...");
+        return streetLoadPromise;
+    }
+
+    streetLoading = true;
+    console.log("[Street] Loading street designer...");
+
+    streetLoadPromise = (async () => {
+        try {
+            const mod = await import('./street/${STREET_CRATE_NAME}-${STREET_JS_HASH}.js');
+            await mod.default();
+            // Companion app exposes a wasm_bindgen-exported \`mount()\`
+            // that attaches the Leptos UI to #street-root in the host page.
+            if (typeof mod.mount === "function") {
+                mod.mount();
+            }
+            streetLoaded = true;
+            streetLoading = false;
+            console.log("[Street] Loaded successfully");
+        } catch (error) {
+            console.error("[Street] Failed to load:", error);
+            streetLoading = false;
+            streetLoadPromise = null;
+            throw error;
+        }
+    })();
+
+    return streetLoadPromise;
+}
+
+function isStreetDesignerLoaded() { return streetLoaded; }
+function isStreetDesignerLoading() { return streetLoading; }
+
+window.loadStreetDesigner = loadStreetDesigner;
+window.isStreetDesignerLoaded = isStreetDesignerLoaded;
+window.isStreetDesignerLoading = isStreetDesignerLoading;
+
+console.log("[Street] Loader ready (JS: ${STREET_JS_HASH}, WASM: ${STREET_WASM_HASH})");
+EOF
+
+        if command -v md5sum &> /dev/null; then
+            STREET_LOADER_HASH=$(md5sum "$DIST_DIR/street-loader-temp.js" | cut -c1-16)
+        else
+            STREET_LOADER_HASH=$(md5 -q "$DIST_DIR/street-loader-temp.js" | cut -c1-16)
+        fi
+        mv "$DIST_DIR/street-loader-temp.js" "$DIST_DIR/street-loader-${STREET_LOADER_HASH}.js"
+        echo "  street-loader-${STREET_LOADER_HASH}.js"
+    fi
+    echo ""
+fi
+
+# -----------------------------------------------------------------------------
 # Step 6.6: Update index.html with hashed loader filenames
 # -----------------------------------------------------------------------------
 # Only update if needed (check if already has correct hashes)
@@ -1050,6 +1243,11 @@ if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_LOADER_HASH" ]]; then
 fi
 if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -n "$OBSCURA_LOADER_HASH" ]]; then
     if ! grep -q "obscura-loader-${OBSCURA_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
+        INDEX_NEEDS_UPDATE=true
+    fi
+fi
+if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_LOADER_HASH" ]]; then
+    if ! grep -q "street-loader-${STREET_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
         INDEX_NEEDS_UPDATE=true
     fi
 fi
@@ -1090,6 +1288,12 @@ if [[ "$INDEX_NEEDS_UPDATE" == "true" ]]; then
         sed "${SED_INPLACE[@]}" "s|obscura-loader-[a-f0-9]*.js\"|obscura-loader-${OBSCURA_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
     fi
 
+    if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_LOADER_HASH" ]]; then
+        sed "${SED_INPLACE[@]}" "s|street-loader.js\"|street-loader-${STREET_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|street-loader.js?v=[0-9]*\"|street-loader-${STREET_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|street-loader-[a-f0-9]*.js\"|street-loader-${STREET_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+    fi
+
     echo "  Updated loader references"
 else
     echo "[6.6/$TOTAL_STEPS] index.html: unchanged, skipping"
@@ -1120,8 +1324,8 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
     FILES_TO_COMPRESS=()
 
     # Only add files that don't have an up-to-date .br version
-    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/obscura/"*.wasm \
-             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/obscura/"*.js \
+    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/obscura/"*.wasm "$DIST_DIR/street/"*.wasm \
+             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/obscura/"*.js "$DIST_DIR/street/"*.js \
              "$DIST_DIR/"*.css; do
         if [[ -f "$f" ]]; then
             # Skip non-hashed loader files (we use hashed versions)
@@ -1129,7 +1333,8 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
             if [[ "$basename_f" == "bevy-loader.js" ]] || \
                [[ "$basename_f" == "typst-loader.js" ]] || \
                [[ "$basename_f" == "gmaps-loader.js" ]] || \
-               [[ "$basename_f" == "templates-loader.js" ]]; then
+               [[ "$basename_f" == "templates-loader.js" ]] || \
+               [[ "$basename_f" == "street-loader.js" ]]; then
                 continue
             fi
             # Skip if .br exists and is at least as new as source
@@ -1322,6 +1527,12 @@ if [[ "$HAVE_BROTLI" == "true" ]]; then
     [[ -n "$BEVY_SIZE" ]] && echo "  Bevy 3D viewer:     $BEVY_SIZE -> $BEVY_BR (loads on demand)"
     [[ -n "$TYPST_SIZE" ]] && echo "  Typst PDF compiler: $TYPST_SIZE -> $TYPST_BR (loads on demand)"
     [[ -n "$TEMPLATES_SIZE" ]] && echo "  Templates:          $TEMPLATES_SIZE -> $TEMPLATES_BR (loads on demand)"
+    if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_WASM_HASH" ]]; then
+        STREET_WASM_FILE_DIST="$DIST_DIR/street/${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm"
+        STREET_SIZE=$(ls -lh "$STREET_WASM_FILE_DIST" 2>/dev/null | awk '{print $5}')
+        STREET_BR=$(ls -lh "${STREET_WASM_FILE_DIST}.br" 2>/dev/null | awk '{print $5}')
+        [[ -n "$STREET_SIZE" ]] && echo "  Street Designer:    $STREET_SIZE -> $STREET_BR (loads on demand)"
+    fi
     if [[ -n "$QUIZ_SIZE" ]]; then
         QUIZ_BR=$(ls -lh "${QUIZ_WASM_FILE}.br" 2>/dev/null | awk '{print $5}')
         echo "  Quiz app:           $QUIZ_SIZE -> $QUIZ_BR (quiz.html)"
@@ -1331,6 +1542,11 @@ else
     [[ -n "$BEVY_SIZE" ]] && echo "  Bevy 3D viewer:     $BEVY_SIZE (loads on demand)"
     [[ -n "$TYPST_SIZE" ]] && echo "  Typst PDF compiler: $TYPST_SIZE (loads on demand)"
     [[ -n "$TEMPLATES_SIZE" ]] && echo "  Templates:          $TEMPLATES_SIZE (loads on demand)"
+    if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_WASM_HASH" ]]; then
+        STREET_WASM_FILE_DIST="$DIST_DIR/street/${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm"
+        STREET_SIZE_U=$(ls -lh "$STREET_WASM_FILE_DIST" 2>/dev/null | awk '{print $5}')
+        [[ -n "$STREET_SIZE_U" ]] && echo "  Street Designer:    $STREET_SIZE_U (loads on demand)"
+    fi
     [[ -n "$QUIZ_SIZE" ]] && echo "  Quiz app:           $QUIZ_SIZE (quiz.html)"
 fi
 echo ""
@@ -1344,6 +1560,9 @@ if [[ "$BUILD_TYPST" == "true" ]] && [[ -n "$TYPST_JS_HASH" ]]; then
 fi
 if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_JS_HASH" ]]; then
     echo "  Templates: eulumdat_wasm_templates-${TEMPLATES_JS_HASH}.js / eulumdat_wasm_templates-${TEMPLATES_WASM_HASH}_bg.wasm"
+fi
+if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_JS_HASH" ]]; then
+    echo "  Street:    ${STREET_CRATE_NAME}-${STREET_JS_HASH}.js / ${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm"
 fi
 echo ""
 echo "Output: $DIST_DIR"
