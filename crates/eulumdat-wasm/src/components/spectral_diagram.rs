@@ -1,15 +1,17 @@
 //! Spectral Power Distribution (SPD) diagram component
 //!
-//! Displays spectral data from ATLA emitters using the atla::spectral module.
+//! Displays spectral data from ATLA emitters using the eulumdat::atla::spectral module.
 //! Auto-detects horticultural lighting and shows PAR zones.
 //! Can synthesize spectrum from CCT/CRI when spectral data is not available.
 //! Calculates and displays TM-30 metrics when real spectral data is available.
 //! Shows IR/UV content and thermal/hazard warnings.
 
 use crate::i18n::use_locale;
-use atla::spectral::{synthesize_spectrum, SpectralDiagram, SpectralMetrics, SpectralTheme};
-use atla::tm30::{calculate_tm30, Tm30Theme};
-use atla::{LuminaireOpticalData, SpectralDistribution, SpectralUnits};
+use eulumdat::atla::spectral::{
+    synthesize_spectrum, SpectralDiagram, SpectralMetrics, SpectralTheme,
+};
+use eulumdat::atla::tm30::{calculate_tm30, Tm30Theme};
+use eulumdat::atla::{LuminaireOpticalData, SpectralDistribution, SpectralUnits};
 use leptos::prelude::*;
 
 /// Check if this appears to be a horticultural/grow light based on metadata

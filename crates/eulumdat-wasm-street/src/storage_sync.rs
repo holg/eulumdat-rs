@@ -1,9 +1,10 @@
 //! localStorage bridge to the main eulumdat editor.
 //!
-//! The editor writes the current luminaire to `localStorage` under the key
-//! `eulumdat_current_ldt` (+ a matching `..._timestamp` key that bumps on
-//! every change). The 3D viewer reads the same keys; this module lets the
-//! street designer do the same.
+//! The editor writes the current light distribution (LDC) to `localStorage`
+//! under the key `eulumdat_current_ldt` (the key name kept for compatibility
+//! with the 3D viewer; the *value* is currently EULUMDAT-format text but the
+//! in-memory model is a generic light distribution, hence `ldc` for
+//! variables here). A matching `..._timestamp` key bumps on every change.
 //!
 //! Since Web Storage's `storage` event only fires on **other** tabs, we use
 //! a short polling loop on the timestamp key instead — that's what Bevy
@@ -12,78 +13,103 @@
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 
+// Storage key names — the *values* stored here are LDT-formatted text,
+// hence the `LDT` suffix. The in-memory Rust side uses `ldc` names because
+// the same signal/variable could later hold non-LDT distributions.
 const LDT_KEY: &str = "eulumdat_current_ldt";
 const LDT_TIMESTAMP_KEY: &str = "eulumdat_ldt_timestamp";
 
-/// Identifies where the currently-loaded luminaire came from.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum LdtSource {
-    /// No luminaire loaded.
-    None,
-    /// Received live from the main editor via localStorage.
-    Editor,
-    /// User uploaded a file directly to the street designer.
-    Upload,
-}
-
-/// Fetch the current LDT string from localStorage, if any.
-fn read_ldt_from_storage() -> Option<String> {
+/// Fetch the current LDT-encoded text from localStorage, if any.
+fn read_ldt_text_from_storage() -> Option<String> {
     let window = web_sys::window()?;
     let storage = window.local_storage().ok()??;
     storage.get_item(LDT_KEY).ok()?
 }
 
-/// Fetch the current LDT timestamp from localStorage, if any.
+/// Fetch the current timestamp from localStorage, if any.
 fn read_timestamp() -> Option<String> {
     let window = web_sys::window()?;
     let storage = window.local_storage().ok()??;
     storage.get_item(LDT_TIMESTAMP_KEY).ok()?
 }
 
-/// Parse an LDT or IES string into an `Eulumdat`.
-fn parse_editor_string(s: &str) -> Option<eulumdat::Eulumdat> {
+/// Parse an LDT or IES string into the in-memory light distribution
+/// (currently `eulumdat::Eulumdat`; this is the generic LDC representation
+/// consumers work with).
+fn parse_editor_text(s: &str) -> Option<eulumdat::Eulumdat> {
     eulumdat::Eulumdat::parse(s)
         .or_else(|_| eulumdat::IesParser::parse(s))
         .ok()
 }
 
+/// Synchronous snapshot of whatever LDC the editor has saved.
+///
+/// Use this to seed the initial signal value so the first render already
+/// reflects reality — the reactive polling loop then keeps it up to date.
+pub fn read_ldc_now() -> Option<eulumdat::Eulumdat> {
+    let s = read_ldt_text_from_storage()?;
+    let parsed = parse_editor_text(&s);
+    match &parsed {
+        Some(ldc) => web_sys::console::log_1(
+            &format!("[Street] seeded from storage: '{}'", ldc.luminaire_name).into(),
+        ),
+        None => web_sys::console::warn_1(
+            &format!(
+                "[Street] seed failed — storage had {} chars but parse rejected them",
+                s.len()
+            )
+            .into(),
+        ),
+    }
+    parsed
+}
+
 /// Wire up localStorage synchronization:
 ///
-/// - Seeds the `ldt` signal from current storage (always).
+/// - Seeds the `ldc` signal from current storage (always).
 /// - Registers a 1 Hz polling loop that pushes future storage updates into
 ///   the same signal. Registration is idempotent — repeated calls
 ///   (e.g. every re-mount of the Leptos app as the user flips the tab)
-///   update the signal-setters without accumulating extra timers.
+///   update the signal-setter without accumulating extra timers.
 ///
 /// Call once from the app root on each mount.
-pub fn wire_storage_sync(
-    set_ldt: WriteSignal<Option<eulumdat::Eulumdat>>,
-    set_source: WriteSignal<LdtSource>,
-) {
-    // Always do an initial read so a remount picks up the latest LDT.
-    if let Some(s) = read_ldt_from_storage() {
-        if let Some(ldt) = parse_editor_string(&s) {
-            set_ldt.set(Some(ldt));
-            set_source.set(LdtSource::Editor);
+pub fn wire_storage_sync(set_ldc: WriteSignal<Option<eulumdat::Eulumdat>>) {
+    // Always do an initial read so a remount picks up the latest LDC.
+    match read_ldt_text_from_storage() {
+        Some(s) => {
+            web_sys::console::log_1(&format!("[Street] storage hit: {} chars", s.len()).into());
+            match parse_editor_text(&s) {
+                Some(ldc) => {
+                    web_sys::console::log_1(
+                        &format!("[Street] parsed OK: '{}'", ldc.luminaire_name).into(),
+                    );
+                    set_ldc.set(Some(ldc));
+                }
+                None => {
+                    web_sys::console::warn_1(
+                        &"[Street] storage value failed to parse as LDT or IES".into(),
+                    );
+                }
+            }
+        }
+        None => {
+            web_sys::console::log_1(
+                &format!("[Street] storage empty (key '{LDT_KEY}' missing)").into(),
+            );
         }
     }
 
-    // Swap the current signal-setters into the polling loop. On first call
+    // Swap the current signal-setter into the polling loop. On first call
     // this also spawns the setInterval; subsequent calls just overwrite the
-    // setters so the running timer pushes updates to the fresh signals.
-    SETTERS.with(|cell| {
-        *cell.borrow_mut() = Some((set_ldt, set_source));
+    // setter so the running timer pushes updates to the fresh signal.
+    SETTER.with(|cell| {
+        *cell.borrow_mut() = Some(set_ldc);
     });
     ensure_poll_registered();
 }
 
-type SignalSetters = (
-    WriteSignal<Option<eulumdat::Eulumdat>>,
-    WriteSignal<LdtSource>,
-);
-
 thread_local! {
-    static SETTERS: std::cell::RefCell<Option<SignalSetters>> =
+    static SETTER: std::cell::RefCell<Option<WriteSignal<Option<eulumdat::Eulumdat>>>> =
         const { std::cell::RefCell::new(None) };
     static POLL_REGISTERED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static LAST_TS: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
@@ -117,12 +143,14 @@ fn ensure_poll_registered() {
         if !changed {
             return;
         }
-        if let Some(s) = read_ldt_from_storage() {
-            if let Some(ldt) = parse_editor_string(&s) {
-                SETTERS.with(|cell| {
-                    if let Some((set_ldt, set_source)) = *cell.borrow() {
-                        set_ldt.set(Some(ldt));
-                        set_source.set(LdtSource::Editor);
+        if let Some(s) = read_ldt_text_from_storage() {
+            if let Some(ldc) = parse_editor_text(&s) {
+                web_sys::console::log_1(
+                    &format!("[Street] poll update: '{}'", ldc.luminaire_name).into(),
+                );
+                SETTER.with(|cell| {
+                    if let Some(set_ldc) = *cell.borrow() {
+                        set_ldc.set(Some(ldc));
                     }
                 });
             }

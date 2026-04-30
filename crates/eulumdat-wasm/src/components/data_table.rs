@@ -24,38 +24,38 @@ fn format_angle(v: f64) -> String {
 }
 
 /// Get the starting index for C-angles based on symmetry type
-fn get_c_angle_start_index(ldt: &Eulumdat) -> usize {
-    match ldt.symmetry {
-        Symmetry::PlaneC90C270 => ldt.c_angles.iter().position(|&c| c >= 90.0).unwrap_or(0),
+fn get_c_angle_start_index(ldc: &Eulumdat) -> usize {
+    match ldc.symmetry {
+        Symmetry::PlaneC90C270 => ldc.c_angles.iter().position(|&c| c >= 90.0).unwrap_or(0),
         _ => 0,
     }
 }
 
 #[component]
-pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> impl IntoView {
+pub fn DataTable(ldc: ReadSignal<Eulumdat>, set_ldc: WriteSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let on_copy = move |_: ev::MouseEvent| {
-        let ldt = ldt.get();
+        let ldc = ldc.get();
         let mut text = String::new();
-        let mc = ldt.intensities.len();
-        let c_start = get_c_angle_start_index(&ldt);
+        let mc = ldc.intensities.len();
+        let c_start = get_c_angle_start_index(&ldc);
 
         // Header row with C angles
         text.push_str("γ\\C");
         for i in 0..mc {
             text.push('\t');
-            if let Some(&angle) = ldt.c_angles.get(c_start + i) {
+            if let Some(&angle) = ldc.c_angles.get(c_start + i) {
                 text.push_str(&format_angle(angle));
             }
         }
         text.push('\n');
 
         // Data rows
-        for (g_idx, g_angle) in ldt.g_angles.iter().enumerate() {
+        for (g_idx, g_angle) in ldc.g_angles.iter().enumerate() {
             text.push_str(&format_angle(*g_angle));
             for c_idx in 0..mc {
                 text.push('\t');
-                if let Some(intensity) = ldt.intensities.get(c_idx).and_then(|row| row.get(g_idx)) {
+                if let Some(intensity) = ldc.intensities.get(c_idx).and_then(|row| row.get(g_idx)) {
                     text.push_str(&format_value(*intensity));
                 }
             }
@@ -70,7 +70,7 @@ pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> i
     };
 
     move || {
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         let l = locale.get();
 
         if ldt_val.intensities.is_empty() || ldt_val.g_angles.is_empty() {
@@ -136,8 +136,8 @@ pub fn DataTable(ldt: ReadSignal<Eulumdat>, set_ldt: WriteSignal<Eulumdat>) -> i
                                             let on_change = move |e: ev::Event| {
                                                 let input: HtmlInputElement = e.target().unwrap().unchecked_into();
                                                 if let Ok(v) = input.value().parse::<f64>() {
-                                                    set_ldt.update(|ldt| {
-                                                        if let Some(row) = ldt.intensities.get_mut(c_idx) {
+                                                    set_ldc.update(|ldc| {
+                                                        if let Some(row) = ldc.intensities.get_mut(c_idx) {
                                                             if let Some(cell) = row.get_mut(g_idx) {
                                                                 *cell = v;
                                                             }

@@ -10,12 +10,12 @@ use eulumdat::Eulumdat;
 use leptos::prelude::*;
 
 #[component]
-pub fn IsoluxIsometric(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn IsoluxIsometric(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let unit_system = use_unit_system();
 
     let svg_content = move || {
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         let units = unit_system.get();
         let params = IsoluxParams {
             mounting_height: 10.0,

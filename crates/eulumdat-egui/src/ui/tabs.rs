@@ -294,7 +294,7 @@ pub fn render_tab_bar(ui: &mut Ui, current_tab: &mut AppTab, has_data: bool) {
 }
 
 /// Render the General tab
-pub fn render_general_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
+pub fn render_general_tab(ui: &mut Ui, ldc: &mut Eulumdat) {
     ScrollArea::vertical().show(ui, |ui| {
         ui.heading("Identification");
         ui.separator();
@@ -304,27 +304,27 @@ pub fn render_general_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .spacing([20.0, 8.0])
             .show(ui, |ui| {
                 ui.label("Manufacturer/ID:");
-                ui.text_edit_singleline(&mut ldt.identification);
+                ui.text_edit_singleline(&mut ldc.identification);
                 ui.end_row();
 
                 ui.label("Luminaire Name:");
-                ui.text_edit_singleline(&mut ldt.luminaire_name);
+                ui.text_edit_singleline(&mut ldc.luminaire_name);
                 ui.end_row();
 
                 ui.label("Luminaire Number:");
-                ui.text_edit_singleline(&mut ldt.luminaire_number);
+                ui.text_edit_singleline(&mut ldc.luminaire_number);
                 ui.end_row();
 
                 ui.label("File Name:");
-                ui.text_edit_singleline(&mut ldt.file_name);
+                ui.text_edit_singleline(&mut ldc.file_name);
                 ui.end_row();
 
                 ui.label("Date/User:");
-                ui.text_edit_singleline(&mut ldt.date_user);
+                ui.text_edit_singleline(&mut ldc.date_user);
                 ui.end_row();
 
                 ui.label("Report Number:");
-                ui.text_edit_singleline(&mut ldt.measurement_report_number);
+                ui.text_edit_singleline(&mut ldc.measurement_report_number);
                 ui.end_row();
             });
 
@@ -338,20 +338,20 @@ pub fn render_general_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .show(ui, |ui| {
                 ui.label("Type Indicator:");
                 egui::ComboBox::from_id_salt("type_indicator")
-                    .selected_text(format!("{:?}", ldt.type_indicator))
+                    .selected_text(format!("{:?}", ldc.type_indicator))
                     .show_ui(ui, |ui| {
                         ui.selectable_value(
-                            &mut ldt.type_indicator,
+                            &mut ldc.type_indicator,
                             TypeIndicator::PointSourceSymmetric,
                             "Point Source (Symmetric)",
                         );
                         ui.selectable_value(
-                            &mut ldt.type_indicator,
+                            &mut ldc.type_indicator,
                             TypeIndicator::Linear,
                             "Linear",
                         );
                         ui.selectable_value(
-                            &mut ldt.type_indicator,
+                            &mut ldc.type_indicator,
                             TypeIndicator::PointSourceOther,
                             "Point Source (Other)",
                         );
@@ -360,25 +360,25 @@ pub fn render_general_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
 
                 ui.label("Symmetry:");
                 egui::ComboBox::from_id_salt("symmetry")
-                    .selected_text(format!("{:?}", ldt.symmetry))
+                    .selected_text(format!("{:?}", ldc.symmetry))
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut ldt.symmetry, Symmetry::None, "None (Full Data)");
+                        ui.selectable_value(&mut ldc.symmetry, Symmetry::None, "None (Full Data)");
                         ui.selectable_value(
-                            &mut ldt.symmetry,
+                            &mut ldc.symmetry,
                             Symmetry::VerticalAxis,
                             "Vertical Axis",
                         );
                         ui.selectable_value(
-                            &mut ldt.symmetry,
+                            &mut ldc.symmetry,
                             Symmetry::PlaneC0C180,
                             "Plane C0-C180",
                         );
                         ui.selectable_value(
-                            &mut ldt.symmetry,
+                            &mut ldc.symmetry,
                             Symmetry::PlaneC90C270,
                             "Plane C90-C270",
                         );
-                        ui.selectable_value(&mut ldt.symmetry, Symmetry::BothPlanes, "Both Planes");
+                        ui.selectable_value(&mut ldc.symmetry, Symmetry::BothPlanes, "Both Planes");
                     });
                 ui.end_row();
             });
@@ -386,7 +386,7 @@ pub fn render_general_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
 }
 
 /// Render the Dimensions tab
-pub fn render_dimensions_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
+pub fn render_dimensions_tab(ui: &mut Ui, ldc: &mut Eulumdat) {
     ScrollArea::vertical().show(ui, |ui| {
         ui.heading("Luminaire Dimensions (mm)");
         ui.separator();
@@ -396,15 +396,15 @@ pub fn render_dimensions_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .spacing([20.0, 8.0])
             .show(ui, |ui| {
                 ui.label("Length:");
-                ui.add(DragValue::new(&mut ldt.length).speed(1.0));
+                ui.add(DragValue::new(&mut ldc.length).speed(1.0));
                 ui.end_row();
 
                 ui.label("Width:");
-                ui.add(DragValue::new(&mut ldt.width).speed(1.0));
+                ui.add(DragValue::new(&mut ldc.width).speed(1.0));
                 ui.end_row();
 
                 ui.label("Height:");
-                ui.add(DragValue::new(&mut ldt.height).speed(1.0));
+                ui.add(DragValue::new(&mut ldc.height).speed(1.0));
                 ui.end_row();
             });
 
@@ -417,11 +417,11 @@ pub fn render_dimensions_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .spacing([20.0, 8.0])
             .show(ui, |ui| {
                 ui.label("Length:");
-                ui.add(DragValue::new(&mut ldt.luminous_area_length).speed(1.0));
+                ui.add(DragValue::new(&mut ldc.luminous_area_length).speed(1.0));
                 ui.end_row();
 
                 ui.label("Width:");
-                ui.add(DragValue::new(&mut ldt.luminous_area_width).speed(1.0));
+                ui.add(DragValue::new(&mut ldc.luminous_area_width).speed(1.0));
                 ui.end_row();
             });
 
@@ -434,33 +434,33 @@ pub fn render_dimensions_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .spacing([20.0, 8.0])
             .show(ui, |ui| {
                 ui.label("C0:");
-                ui.add(DragValue::new(&mut ldt.height_c0).speed(0.1));
+                ui.add(DragValue::new(&mut ldc.height_c0).speed(0.1));
                 ui.end_row();
 
                 ui.label("C90:");
-                ui.add(DragValue::new(&mut ldt.height_c90).speed(0.1));
+                ui.add(DragValue::new(&mut ldc.height_c90).speed(0.1));
                 ui.end_row();
 
                 ui.label("C180:");
-                ui.add(DragValue::new(&mut ldt.height_c180).speed(0.1));
+                ui.add(DragValue::new(&mut ldc.height_c180).speed(0.1));
                 ui.end_row();
 
                 ui.label("C270:");
-                ui.add(DragValue::new(&mut ldt.height_c270).speed(0.1));
+                ui.add(DragValue::new(&mut ldc.height_c270).speed(0.1));
                 ui.end_row();
             });
     });
 }
 
 /// Render the Lamps tab
-pub fn render_lamps_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
+pub fn render_lamps_tab(ui: &mut Ui, ldc: &mut Eulumdat) {
     ScrollArea::vertical().show(ui, |ui| {
         ui.heading("Lamp Sets");
         ui.separator();
 
         let mut remove_index = None;
 
-        for (i, lamp) in ldt.lamp_sets.iter_mut().enumerate() {
+        for (i, lamp) in ldc.lamp_sets.iter_mut().enumerate() {
             ui.push_id(i, |ui| {
                 egui::CollapsingHeader::new(format!("Lamp Set {} - {}", i + 1, lamp.lamp_type))
                     .default_open(true)
@@ -507,12 +507,12 @@ pub fn render_lamps_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
         }
 
         if let Some(idx) = remove_index {
-            ldt.lamp_sets.remove(idx);
+            ldc.lamp_sets.remove(idx);
         }
 
         ui.add_space(10.0);
         if ui.button("+ Add Lamp Set").clicked() {
-            ldt.lamp_sets.push(LampSet {
+            ldc.lamp_sets.push(LampSet {
                 num_lamps: 1,
                 lamp_type: "LED".to_string(),
                 total_luminous_flux: 1000.0,
@@ -525,7 +525,7 @@ pub fn render_lamps_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
 }
 
 /// Render the Optical tab
-pub fn render_optical_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
+pub fn render_optical_tab(ui: &mut Ui, ldc: &mut Eulumdat) {
     ScrollArea::vertical().show(ui, |ui| {
         ui.heading("Light Output");
         ui.separator();
@@ -536,7 +536,7 @@ pub fn render_optical_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .show(ui, |ui| {
                 ui.label("Light Output Ratio (%):");
                 ui.add(
-                    DragValue::new(&mut ldt.light_output_ratio)
+                    DragValue::new(&mut ldc.light_output_ratio)
                         .speed(0.5)
                         .range(0.0..=100.0),
                 );
@@ -544,7 +544,7 @@ pub fn render_optical_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
 
                 ui.label("Downward Flux (%):");
                 ui.add(
-                    DragValue::new(&mut ldt.downward_flux_fraction)
+                    DragValue::new(&mut ldc.downward_flux_fraction)
                         .speed(0.5)
                         .range(0.0..=100.0),
                 );
@@ -552,14 +552,14 @@ pub fn render_optical_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
 
                 ui.label("Tilt Angle:");
                 ui.add(
-                    DragValue::new(&mut ldt.tilt_angle)
+                    DragValue::new(&mut ldc.tilt_angle)
                         .speed(1.0)
                         .range(-90.0..=90.0),
                 );
                 ui.end_row();
 
                 ui.label("Conversion Factor:");
-                ui.add(DragValue::new(&mut ldt.conversion_factor).speed(0.01));
+                ui.add(DragValue::new(&mut ldc.conversion_factor).speed(0.01));
                 ui.end_row();
             });
 
@@ -572,11 +572,11 @@ pub fn render_optical_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .spacing([20.0, 8.0])
             .show(ui, |ui| {
                 ui.label("Max Intensity:");
-                ui.label(format!("{:.1} cd/klm", ldt.max_intensity()));
+                ui.label(format!("{:.1} cd/klm", ldc.max_intensity()));
                 ui.end_row();
 
                 ui.label("Total Flux:");
-                ui.label(format!("{:.0} lm", ldt.total_luminous_flux()));
+                ui.label(format!("{:.0} lm", ldc.total_luminous_flux()));
                 ui.end_row();
             });
 
@@ -592,9 +592,9 @@ pub fn render_optical_tab(ui: &mut Ui, ldt: &mut Eulumdat) {
             .spacing([20.0, 4.0])
             .show(ui, |ui| {
                 for (i, idx) in indices.iter().enumerate() {
-                    if i < ldt.direct_ratios.len() {
+                    if i < ldc.direct_ratios.len() {
                         ui.label(format!("k = {}:", idx));
-                        ui.add(DragValue::new(&mut ldt.direct_ratios[i]).speed(0.01));
+                        ui.add(DragValue::new(&mut ldc.direct_ratios[i]).speed(0.01));
                         ui.end_row();
                     }
                 }
@@ -608,24 +608,24 @@ pub struct IntensityTabState {
 }
 
 /// Generate CSV from intensity data
-fn generate_intensity_csv(ldt: &Eulumdat) -> String {
+fn generate_intensity_csv(ldc: &Eulumdat) -> String {
     let mut csv = String::new();
 
     // Header row: gamma \ C, C0, C15, C30, ...
     csv.push_str("gamma");
-    for c_angle in &ldt.c_angles {
+    for c_angle in &ldc.c_angles {
         csv.push('\t');
         csv.push_str(&format!("C{}", *c_angle as i32));
     }
     csv.push('\n');
 
     // Data rows
-    for (g_idx, g_angle) in ldt.g_angles.iter().enumerate() {
+    for (g_idx, g_angle) in ldc.g_angles.iter().enumerate() {
         csv.push_str(&format!("{}", *g_angle as i32));
-        for c_idx in 0..ldt.c_angles.len() {
-            let intensity = if c_idx < ldt.intensities.len() && g_idx < ldt.intensities[c_idx].len()
+        for c_idx in 0..ldc.c_angles.len() {
+            let intensity = if c_idx < ldc.intensities.len() && g_idx < ldc.intensities[c_idx].len()
             {
-                ldt.intensities[c_idx][g_idx]
+                ldc.intensities[c_idx][g_idx]
             } else {
                 0.0
             };
@@ -639,7 +639,7 @@ fn generate_intensity_csv(ldt: &Eulumdat) -> String {
 }
 
 /// Render the Intensity tab
-pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTabState) {
+pub fn render_intensity_tab(ui: &mut Ui, ldc: &Eulumdat, state: &mut IntensityTabState) {
     // Toolbar
     ui.horizontal(|ui| {
         ui.heading("Intensities (cd/klm)");
@@ -647,7 +647,7 @@ pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTa
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             // Copy CSV button
             if ui.button("Copy as CSV").clicked() {
-                let csv = generate_intensity_csv(ldt);
+                let csv = generate_intensity_csv(ldc);
                 ui.output_mut(|o| o.copied_text = csv);
             }
 
@@ -659,20 +659,20 @@ pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTa
             ui.separator();
 
             // Stats
-            ui.label(RichText::new(format!("Max: {:.1}", ldt.max_intensity())).small());
+            ui.label(RichText::new(format!("Max: {:.1}", ldc.max_intensity())).small());
         });
     });
     ui.separator();
 
     // Main content
-    if ldt.intensities.is_empty() || ldt.c_angles.is_empty() || ldt.g_angles.is_empty() {
+    if ldc.intensities.is_empty() || ldc.c_angles.is_empty() || ldc.g_angles.is_empty() {
         ui.centered_and_justified(|ui| {
             ui.label("No intensity data available");
         });
         return;
     }
 
-    let max_intensity = ldt.max_intensity().max(1.0);
+    let max_intensity = ldc.max_intensity().max(1.0);
     let cell_width = 52.0;
     let header_width = 40.0;
 
@@ -690,7 +690,7 @@ pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTa
                     );
 
                     // C-angle headers
-                    for c_angle in &ldt.c_angles {
+                    for c_angle in &ldc.c_angles {
                         ui.add_sized(
                             [cell_width, 20.0],
                             egui::Label::new(
@@ -706,7 +706,7 @@ pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTa
                 ui.separator();
 
                 // Data rows
-                for (g_idx, g_angle) in ldt.g_angles.iter().enumerate() {
+                for (g_idx, g_angle) in ldc.g_angles.iter().enumerate() {
                     ui.horizontal(|ui| {
                         // Row header (gamma angle)
                         ui.add_sized(
@@ -720,11 +720,11 @@ pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTa
                         );
 
                         // Intensity values
-                        for c_idx in 0..ldt.c_angles.len() {
-                            let intensity = if c_idx < ldt.intensities.len()
-                                && g_idx < ldt.intensities[c_idx].len()
+                        for c_idx in 0..ldc.c_angles.len() {
+                            let intensity = if c_idx < ldc.intensities.len()
+                                && g_idx < ldc.intensities[c_idx].len()
                             {
-                                ldt.intensities[c_idx][g_idx]
+                                ldc.intensities[c_idx][g_idx]
                             } else {
                                 0.0
                             };
@@ -772,9 +772,9 @@ pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTa
         ui.label(
             RichText::new(format!(
                 "{} C-planes × {} γ-angles = {} values",
-                ldt.c_angles.len(),
-                ldt.g_angles.len(),
-                ldt.c_angles.len() * ldt.g_angles.len()
+                ldc.c_angles.len(),
+                ldc.g_angles.len(),
+                ldc.c_angles.len() * ldc.g_angles.len()
             ))
             .small()
             .color(Color32::GRAY),
@@ -795,9 +795,9 @@ pub fn render_intensity_tab(ui: &mut Ui, ldt: &Eulumdat, state: &mut IntensityTa
 }
 
 /// Render the Validation tab
-pub fn render_validation_tab(ui: &mut Ui, ldt: &Eulumdat) {
-    let warnings = validate(ldt);
-    let errors = match validate_strict(ldt) {
+pub fn render_validation_tab(ui: &mut Ui, ldc: &Eulumdat) {
+    let warnings = validate(ldc);
+    let errors = match validate_strict(ldc) {
         Ok(()) => vec![],
         Err(e) => e,
     };

@@ -2,7 +2,7 @@
 //!
 //! Load an LDT/IES file, configure cover materials (PMMA, glass, etc.),
 //! trace photons through the cover, watch the new LVK build up in real-time.
-//! Compare original vs. simulated side by side. Export as .ldt.
+//! Compare original vs. simulated side by side. Export as .ldc.
 //!
 //! Activated via `?wasm=goniosim` query parameter.
 
@@ -196,27 +196,27 @@ pub fn GonioSimDemo(
     /// When provided, use this LDT from the editor (tab mode).
     /// When None, show template selector (standalone mode).
     #[prop(optional)]
-    ldt: Option<ReadSignal<Eulumdat>>,
+    ldc: Option<ReadSignal<Eulumdat>>,
 ) -> impl IntoView {
     let locale = use_locale();
 
     // --- Input LDT (the source luminaire) ---
     // In tab mode: track the editor's LDT. In standalone: own signal.
-    let (own_ldt, set_own_ldt) = signal::<Option<Eulumdat>>(None);
+    let (own_ldc, set_own_ldc) = signal::<Option<Eulumdat>>(None);
     let (source_name, set_source_name) = signal(String::new());
-    let standalone = ldt.is_none();
+    let standalone = ldc.is_none();
 
-    // Unified source_ldt: reads from editor prop or own signal
-    let source_ldt = Memo::new(move |_| {
-        if let Some(editor_ldt) = ldt {
-            Some(editor_ldt.get())
+    // Unified source_ldc: reads from editor prop or own signal
+    let source_ldc = Memo::new(move |_| {
+        if let Some(editor_ldc) = ldc {
+            Some(editor_ldc.get())
         } else {
-            own_ldt.get()
+            own_ldc.get()
         }
     });
     // Setter only used in standalone mode
-    let set_source_ldt = move |val: Option<Eulumdat>| {
-        set_own_ldt.set(val);
+    let set_source_ldc = move |val: Option<Eulumdat>| {
+        set_own_ldc.set(val);
     };
 
     // --- Cover material ---
@@ -233,7 +233,7 @@ pub fn GonioSimDemo(
     let (slider_idx, set_slider_idx) = signal(0usize);
 
     let c_planes = Memo::new(move |_| {
-        source_ldt
+        source_ldc
             .get()
             .map_or(vec![], |l| CorePolarDiagram::available_c_planes(&l))
     });
@@ -270,9 +270,9 @@ pub fn GonioSimDemo(
     // Load an LDT from string content
     let load_ldt = move |name: String, content: String| {
         match Eulumdat::parse(&content) {
-            Ok(ldt) => {
+            Ok(ldc) => {
                 set_source_name.set(name);
-                set_source_ldt(Some(ldt));
+                set_source_ldc(Some(ldc));
                 // Reset simulation
                 reset_sim(
                     set_running,
@@ -286,9 +286,9 @@ pub fn GonioSimDemo(
             }
             Err(_) => {
                 // Try IES
-                if let Ok(ldt) = eulumdat::IesParser::parse(&content) {
+                if let Ok(ldc) = eulumdat::IesParser::parse(&content) {
                     set_source_name.set(name);
-                    set_source_ldt(Some(ldt));
+                    set_source_ldc(Some(ldc));
                     reset_sim(
                         set_running,
                         set_photons_done,
@@ -305,7 +305,7 @@ pub fn GonioSimDemo(
 
     // Load default template on mount
     Effect::new(move |_| {
-        if source_ldt.get_untracked().is_none() {
+        if source_ldc.get_untracked().is_none() {
             let (name, content) = TEMPLATES[0];
             load_ldt(name.to_string(), content.to_string());
         }
@@ -354,11 +354,11 @@ pub fn GonioSimDemo(
 
     // Build scene from current signals (called inside spawn_local)
     let build_scene = move || -> Option<Scene> {
-        let ldt = source_ldt.get_untracked()?;
+        let ldc = source_ldc.get_untracked()?;
         // Use luminaire output flux (lamp flux * LOR), not raw lamp flux.
         // The LDT intensity values are already scaled by LOR.
-        let lamp_flux = ldt.total_luminous_flux().max(1.0);
-        let lor = ldt.light_output_ratio / 100.0;
+        let lamp_flux = ldc.total_luminous_flux().max(1.0);
+        let lor = ldc.light_output_ratio / 100.0;
         let luminaire_flux = if lor > 0.0 {
             lamp_flux * lor
         } else {
@@ -370,7 +370,7 @@ pub fn GonioSimDemo(
         scene.add_source(Source::from_lvk(
             Point3::origin(),
             eulumdat_goniosim::nalgebra::Rotation3::identity(),
-            ldt,
+            ldc,
             luminaire_flux,
         ));
 
@@ -416,7 +416,7 @@ pub fn GonioSimDemo(
         };
         set_running.set(true);
         let gen = generation.get_untracked();
-        let src = source_ldt.get_untracked().unwrap();
+        let src = source_ldc.get_untracked().unwrap();
         let lamp_flux = src.total_luminous_flux().max(1.0);
         let lor = src.light_output_ratio / 100.0;
         let flux = if lor > 0.0 {
@@ -531,27 +531,27 @@ pub fn GonioSimDemo(
                 let src_g_max = src_clone.g_angles.last().copied().unwrap_or(180.0);
                 let src_num_g = (src_g_max / g_res).round() as usize + 1;
 
-                let mut ldt = Eulumdat::new();
-                ldt.luminaire_name = export_cfg.luminaire_name.clone();
-                ldt.identification = export_cfg.manufacturer.clone();
-                ldt.symmetry = src_clone.symmetry;
-                ldt.num_c_planes = gpu_cd.len();
-                ldt.c_plane_distance = c_res;
-                ldt.num_g_planes = src_num_g;
-                ldt.g_plane_distance = g_res;
-                ldt.length = src_clone.length;
-                ldt.width = src_clone.width;
-                ldt.height = src_clone.height;
-                ldt.luminous_area_length = src_clone.luminous_area_length;
-                ldt.luminous_area_width = src_clone.luminous_area_width;
-                ldt.lamp_sets = src_clone.lamp_sets.clone();
-                ldt.type_indicator = src_clone.type_indicator;
-                ldt.light_output_ratio = src_clone.light_output_ratio * (energy / n_photons as f64);
-                ldt.downward_flux_fraction = src_clone.downward_flux_fraction;
-                ldt.conversion_factor = 1.0;
-                ldt.direct_ratios = [0.0; 10];
-                ldt.c_angles = (0..gpu_cd.len()).map(|i| i as f64 * c_res).collect();
-                ldt.g_angles = (0..src_num_g).map(|i| i as f64 * g_res).collect();
+                let mut ldc = Eulumdat::new();
+                ldc.luminaire_name = export_cfg.luminaire_name.clone();
+                ldc.identification = export_cfg.manufacturer.clone();
+                ldc.symmetry = src_clone.symmetry;
+                ldc.num_c_planes = gpu_cd.len();
+                ldc.c_plane_distance = c_res;
+                ldc.num_g_planes = src_num_g;
+                ldc.g_plane_distance = g_res;
+                ldc.length = src_clone.length;
+                ldc.width = src_clone.width;
+                ldc.height = src_clone.height;
+                ldc.luminous_area_length = src_clone.luminous_area_length;
+                ldc.luminous_area_width = src_clone.luminous_area_width;
+                ldc.lamp_sets = src_clone.lamp_sets.clone();
+                ldc.type_indicator = src_clone.type_indicator;
+                ldc.light_output_ratio = src_clone.light_output_ratio * (energy / n_photons as f64);
+                ldc.downward_flux_fraction = src_clone.downward_flux_fraction;
+                ldc.conversion_factor = 1.0;
+                ldc.direct_ratios = [0.0; 10];
+                ldc.c_angles = (0..gpu_cd.len()).map(|i| i as f64 * c_res).collect();
+                ldc.g_angles = (0..src_num_g).map(|i| i as f64 * g_res).collect();
                 // Trim gamma bins to source range and convert cd to cd/klm
                 let raw_intensities: Vec<Vec<f64>> = gpu_cd
                     .iter()
@@ -595,12 +595,12 @@ pub fn GonioSimDemo(
                     }
                 };
 
-                ldt.num_c_planes = final_intensities.len();
-                ldt.c_angles = final_c_angles;
-                ldt.intensities = final_intensities;
+                ldc.num_c_planes = final_intensities.len();
+                ldc.c_angles = final_c_angles;
+                ldc.intensities = final_intensities;
 
-                set_export_ldt_string.set(ldt.to_ldt());
-                set_sim_ldt.set(Some(ldt));
+                set_export_ldt_string.set(ldc.to_ldt());
+                set_sim_ldt.set(Some(ldc));
 
                 // Render a 3D camera image with LDT-based light emission
                 if let Ok(camera) = eulumdat_rt::GpuCamera::new().await {
@@ -756,18 +756,18 @@ pub fn GonioSimDemo(
                     ),
                     ..ExportConfig::default()
                 };
-                let mut ldt =
+                let mut ldc =
                     detector_to_eulumdat_with_lamp_flux(&det, flux, lamp_flux, &export_cfg);
                 // Copy lamp data from source
-                ldt.lamp_sets = src_clone.lamp_sets.clone();
-                ldt.type_indicator = src_clone.type_indicator;
+                ldc.lamp_sets = src_clone.lamp_sets.clone();
+                ldc.type_indicator = src_clone.type_indicator;
 
                 // LOR: scale by energy throughput (not photon count —
                 // ClearTransmitter attenuates energy without killing photons)
                 let energy_frac = det.total_energy() / total_done as f64;
-                ldt.light_output_ratio = src_clone.light_output_ratio * energy_frac;
-                set_export_ldt_string.set(ldt.to_ldt());
-                set_sim_ldt.set(Some(ldt));
+                ldc.light_output_ratio = src_clone.light_output_ratio * energy_frac;
+                set_export_ldt_string.set(ldc.to_ldt());
+                set_sim_ldt.set(Some(ldc));
 
                 // Yield to browser
                 let promise = js_sys::Promise::new(&mut |resolve, _| {
@@ -799,7 +799,7 @@ pub fn GonioSimDemo(
                     <LanguageSelectorCompact />
                     <button
                         style="padding: 6px 16px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;"
-                        disabled=move || source_ldt.get().is_none()
+                        disabled=move || source_ldc.get().is_none()
                         on:click=move |ev| {
                             if running.get() {
                                 set_running.set(false);
@@ -844,7 +844,7 @@ pub fn GonioSimDemo(
                                     {move || locale.get().goniosim.upload.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES"
+                                        accept=".ldt,.LDT,.ies,.IES,.oxl,.OXL,.oxc,.OXC"
                                         style="display: none;"
                                         on:change=on_file_input
                                     />
@@ -1101,11 +1101,11 @@ pub fn GonioSimDemo(
                     </div>
                     // Diagrams
                     <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 20px; gap: 20px; overflow: hidden;">
-                        // Original — re-renders when source_ldt, selected_plane, or diagram_type changes
+                        // Original — re-renders when source_ldc, selected_plane, or diagram_type changes
                         <div style="flex: 1; max-width: 500px; display: flex; align-items: center; justify-content: center;">
                             {move || {
                                 let dt = diagram_type.get();
-                                let ldt_opt = source_ldt.get();
+                                let ldt_opt = source_ldc.get();
                                 let cp = selected_plane.get();
 
                                 if ldt_opt.is_none() {
@@ -1115,17 +1115,17 @@ pub fn GonioSimDemo(
                                 }
 
                                 // For Render3D, original shows the polar diagram (always useful as reference)
-                                let ldt = ldt_opt.unwrap();
+                                let ldc = ldt_opt.unwrap();
                                 let theme = SvgTheme::dark();
                                 let effective_dt = if dt == DiagramType::Render3D { DiagramType::Polar } else { dt };
                                 // Shared scale: use max of original and simulated
                                 let shared_max = {
-                                    let orig_max = ldt.max_intensity();
+                                    let orig_max = ldc.max_intensity();
                                     let sim_max = sim_ldt.get().map_or(0.0, |s| s.max_intensity());
                                     if sim_max > 0.0 { orig_max.max(sim_max) } else { orig_max }
                                 };
                                 let forced = if sim_ldt.get().is_some() { Some(shared_max) } else { None };
-                                let svg = render_diagram(&ldt, effective_dt, cp, &theme, 450.0, 450.0, forced);
+                                let svg = render_diagram(&ldc, effective_dt, cp, &theme, 450.0, 450.0, forced);
                                 view! {
                                     <div style="width: 100%;" inner_html=svg />
                                 }.into_any()
@@ -1156,15 +1156,15 @@ pub fn GonioSimDemo(
                                 }
 
                                 // Standard diagram types
-                                if let Some(ldt) = ldt_opt {
+                                if let Some(ldc) = ldt_opt {
                                     let theme = SvgTheme::dark();
                                     // Shared scale: use max of original and simulated
                                     let shared_max = {
-                                        let sim_max = ldt.max_intensity();
-                                        let orig_max = source_ldt.get().map_or(0.0, |s| s.max_intensity());
+                                        let sim_max = ldc.max_intensity();
+                                        let orig_max = source_ldc.get().map_or(0.0, |s| s.max_intensity());
                                         sim_max.max(orig_max)
                                     };
-                                    let svg = render_diagram(&ldt, dt, cp, &theme, 450.0, 450.0, Some(shared_max));
+                                    let svg = render_diagram(&ldc, dt, cp, &theme, 450.0, 450.0, Some(shared_max));
                                     view! {
                                         <div style="width: 100%;" inner_html=svg />
                                     }.into_any()
@@ -1265,7 +1265,7 @@ fn format_number(n: u64) -> String {
 
 /// Render the appropriate diagram type for an Eulumdat.
 fn render_diagram(
-    ldt: &Eulumdat,
+    ldc: &Eulumdat,
     dtype: DiagramType,
     c_plane: Option<f64>,
     theme: &SvgTheme,
@@ -1275,13 +1275,13 @@ fn render_diagram(
 ) -> String {
     match dtype {
         DiagramType::Polar => {
-            CorePolarDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max)
+            CorePolarDiagram::render_svg_with_max(ldc, c_plane, w, h, theme, forced_max)
         }
         DiagramType::Cartesian => {
-            CartesianDiagram::render_svg_with_max(ldt, c_plane, w, h, theme, forced_max)
+            CartesianDiagram::render_svg_with_max(ldc, c_plane, w, h, theme, forced_max)
         }
-        DiagramType::Heatmap => HeatmapDiagram::render_svg(ldt, w, h, theme),
-        DiagramType::Butterfly => ButterflyDiagram::render_svg(ldt, w, h, 60.0, theme),
+        DiagramType::Heatmap => HeatmapDiagram::render_svg(ldc, w, h, theme),
+        DiagramType::Butterfly => ButterflyDiagram::render_svg(ldc, w, h, 60.0, theme),
         DiagramType::Render3D => String::new(),
     }
 }

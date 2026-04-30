@@ -2,8 +2,8 @@
 //!
 //! Displays PPFD (µmol/m²/s) at different mounting distances for horticultural lighting.
 
-use atla::greenhouse::{GreenhouseDiagram, GreenhouseTheme};
-use atla::LuminaireOpticalData;
+use eulumdat::atla::greenhouse::{GreenhouseDiagram, GreenhouseTheme};
+use eulumdat::atla::LuminaireOpticalData;
 use leptos::prelude::*;
 
 /// Greenhouse PPFD diagram component

@@ -3,7 +3,7 @@
 //! This module provides uniffi bindings for the ATLA S001 photometric data format,
 //! which is the internal representation used for all photometric data.
 
-use atla::LuminaireOpticalData as CoreAtla;
+use eulumdat::atla::LuminaireOpticalData as CoreAtla;
 
 use crate::diagram::SvgThemeType;
 use crate::error::EulumdatError;
@@ -20,25 +20,25 @@ pub struct SpectralDistribution {
     pub is_relative: bool,
 }
 
-impl From<&atla::SpectralDistribution> for SpectralDistribution {
-    fn from(spd: &atla::SpectralDistribution) -> Self {
+impl From<&eulumdat::atla::SpectralDistribution> for SpectralDistribution {
+    fn from(spd: &eulumdat::atla::SpectralDistribution) -> Self {
         Self {
             wavelengths: spd.wavelengths.clone(),
             values: spd.values.clone(),
-            is_relative: matches!(spd.units, atla::SpectralUnits::Relative),
+            is_relative: matches!(spd.units, eulumdat::atla::SpectralUnits::Relative),
         }
     }
 }
 
-impl From<&SpectralDistribution> for atla::SpectralDistribution {
+impl From<&SpectralDistribution> for eulumdat::atla::SpectralDistribution {
     fn from(spd: &SpectralDistribution) -> Self {
-        atla::SpectralDistribution {
+        eulumdat::atla::SpectralDistribution {
             wavelengths: spd.wavelengths.clone(),
             values: spd.values.clone(),
             units: if spd.is_relative {
-                atla::SpectralUnits::Relative
+                eulumdat::atla::SpectralUnits::Relative
             } else {
-                atla::SpectralUnits::WattsPerNanometer
+                eulumdat::atla::SpectralUnits::WattsPerNanometer
             },
             start_wavelength: None,
             wavelength_interval: None,
@@ -59,8 +59,8 @@ pub struct ColorRendering {
     pub rg: Option<f64>,
 }
 
-impl From<&atla::ColorRendering> for ColorRendering {
-    fn from(cr: &atla::ColorRendering) -> Self {
+impl From<&eulumdat::atla::ColorRendering> for ColorRendering {
+    fn from(cr: &eulumdat::atla::ColorRendering) -> Self {
         Self {
             ra: cr.ra,
             r9: cr.r9,
@@ -91,8 +91,8 @@ pub struct Emitter {
     pub spectral_distribution: Option<SpectralDistribution>,
 }
 
-impl From<&atla::Emitter> for Emitter {
-    fn from(e: &atla::Emitter) -> Self {
+impl From<&eulumdat::atla::Emitter> for Emitter {
+    fn from(e: &eulumdat::atla::Emitter) -> Self {
         Self {
             description: e.description.clone(),
             quantity: e.quantity,
@@ -140,7 +140,7 @@ impl AtlaDocument {
     /// Parse from ATLA XML string
     #[uniffi::constructor]
     pub fn parse_xml(content: &str) -> Result<Self, EulumdatError> {
-        atla::xml::parse(content)
+        eulumdat::atla::xml::parse(content)
             .map(|inner| Self { inner })
             .map_err(|e| EulumdatError::ParseError(e.to_string()))
     }
@@ -148,7 +148,7 @@ impl AtlaDocument {
     /// Parse from ATLA JSON string
     #[uniffi::constructor]
     pub fn parse_json(content: &str) -> Result<Self, EulumdatError> {
-        atla::json::parse(content)
+        eulumdat::atla::json::parse(content)
             .map(|inner| Self { inner })
             .map_err(|e| EulumdatError::ParseError(e.to_string()))
     }
@@ -175,12 +175,14 @@ impl AtlaDocument {
 
     /// Export to ATLA XML string
     pub fn to_xml(&self) -> Result<String, EulumdatError> {
-        atla::xml::write(&self.inner).map_err(|e| EulumdatError::ExportError(e.to_string()))
+        eulumdat::atla::xml::write(&self.inner)
+            .map_err(|e| EulumdatError::ExportError(e.to_string()))
     }
 
     /// Export to ATLA JSON string
     pub fn to_json(&self) -> Result<String, EulumdatError> {
-        atla::json::write(&self.inner).map_err(|e| EulumdatError::ExportError(e.to_string()))
+        eulumdat::atla::json::write(&self.inner)
+            .map_err(|e| EulumdatError::ExportError(e.to_string()))
     }
 
     /// Export to LDT string
@@ -281,9 +283,9 @@ pub fn generate_spectral_svg(
     dark: bool,
 ) -> Result<String, EulumdatError> {
     let theme = if dark {
-        atla::spectral::SpectralTheme::dark()
+        eulumdat::atla::spectral::SpectralTheme::dark()
     } else {
-        atla::spectral::SpectralTheme::light()
+        eulumdat::atla::spectral::SpectralTheme::light()
     };
 
     // Try to get spectral data from emitters
@@ -294,7 +296,7 @@ pub fn generate_spectral_svg(
         .filter_map(|e| e.spectral_distribution.as_ref())
         .next()
     {
-        let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+        let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(spd);
         return Ok(diagram.to_svg(width, height, &theme));
     }
 
@@ -302,8 +304,8 @@ pub fn generate_spectral_svg(
     if let Some(emitter) = doc.inner.emitters.first() {
         if let Some(cct) = emitter.cct {
             let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
-            let spd = atla::spectral::synthesize_spectrum(cct, cri);
-            let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+            let spd = eulumdat::atla::spectral::synthesize_spectrum(cct, cri);
+            let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(&spd);
             return Ok(diagram.to_svg(width, height, &theme));
         }
     }
@@ -339,9 +341,9 @@ pub fn generate_spectral_svg_localized(
     let locale = Locale::for_language(core_lang);
 
     let theme = if dark {
-        atla::spectral::SpectralTheme::dark_with_locale(&locale)
+        eulumdat::atla::spectral::SpectralTheme::dark_with_locale(&locale)
     } else {
-        atla::spectral::SpectralTheme::light_with_locale(&locale)
+        eulumdat::atla::spectral::SpectralTheme::light_with_locale(&locale)
     };
 
     // Try to get spectral data from emitters
@@ -352,7 +354,7 @@ pub fn generate_spectral_svg_localized(
         .filter_map(|e| e.spectral_distribution.as_ref())
         .next()
     {
-        let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+        let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(spd);
         return Ok(diagram.to_svg(width, height, &theme));
     }
 
@@ -360,8 +362,8 @@ pub fn generate_spectral_svg_localized(
     if let Some(emitter) = doc.inner.emitters.first() {
         if let Some(cct) = emitter.cct {
             let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
-            let spd = atla::spectral::synthesize_spectrum(cct, cri);
-            let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+            let spd = eulumdat::atla::spectral::synthesize_spectrum(cct, cri);
+            let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(&spd);
             return Ok(diagram.to_svg(width, height, &theme));
         }
     }
@@ -383,12 +385,13 @@ pub fn generate_greenhouse_svg(
     dark: bool,
 ) -> String {
     let theme = if dark {
-        atla::greenhouse::GreenhouseTheme::dark()
+        eulumdat::atla::greenhouse::GreenhouseTheme::dark()
     } else {
-        atla::greenhouse::GreenhouseTheme::light()
+        eulumdat::atla::greenhouse::GreenhouseTheme::light()
     };
-    let diagram =
-        atla::greenhouse::GreenhouseDiagram::from_atla_with_height(&doc.inner, max_height);
+    let diagram = eulumdat::atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
+        &doc.inner, max_height,
+    );
     diagram.to_svg(width, height, &theme)
 }
 
@@ -405,22 +408,23 @@ pub fn generate_greenhouse_svg_localized(
     language: Language,
 ) -> String {
     let theme = if dark {
-        atla::greenhouse::GreenhouseTheme::dark()
+        eulumdat::atla::greenhouse::GreenhouseTheme::dark()
     } else {
-        atla::greenhouse::GreenhouseTheme::light()
+        eulumdat::atla::greenhouse::GreenhouseTheme::light()
     };
     let labels = match language {
-        Language::German => atla::GreenhouseLabels::german(),
-        Language::Chinese => atla::GreenhouseLabels::chinese(),
-        Language::French => atla::GreenhouseLabels::french(),
-        Language::Italian => atla::GreenhouseLabels::italian(),
-        Language::Russian => atla::GreenhouseLabels::russian(),
-        Language::Spanish => atla::GreenhouseLabels::spanish(),
-        Language::PortugueseBrazil => atla::GreenhouseLabels::portuguese_brazil(),
-        Language::English => atla::GreenhouseLabels::default(),
+        Language::German => eulumdat::atla::GreenhouseLabels::german(),
+        Language::Chinese => eulumdat::atla::GreenhouseLabels::chinese(),
+        Language::French => eulumdat::atla::GreenhouseLabels::french(),
+        Language::Italian => eulumdat::atla::GreenhouseLabels::italian(),
+        Language::Russian => eulumdat::atla::GreenhouseLabels::russian(),
+        Language::Spanish => eulumdat::atla::GreenhouseLabels::spanish(),
+        Language::PortugueseBrazil => eulumdat::atla::GreenhouseLabels::portuguese_brazil(),
+        Language::English => eulumdat::atla::GreenhouseLabels::default(),
     };
-    let diagram =
-        atla::greenhouse::GreenhouseDiagram::from_atla_with_height(&doc.inner, max_height);
+    let diagram = eulumdat::atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
+        &doc.inner, max_height,
+    );
     diagram.to_svg_with_labels(width, height, &theme, &labels)
 }
 

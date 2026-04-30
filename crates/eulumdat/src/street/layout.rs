@@ -150,21 +150,43 @@ impl StreetLayout {
         }
     }
 
-    /// Compute the illuminance grid for this layout using the given luminaire.
+    /// Compute the roadway illuminance grid for this layout using the given
+    /// luminaire.
     ///
     /// `maintenance_factor` (aka light loss factor) scales the computed values
     /// to account for lumen depreciation, dirt, etc. — typically 0.7–0.85 for
     /// outdoor installations. Pass `1.0` for a bare calculation.
     ///
-    /// The evaluation area covers the full roadway width, spanning one
-    /// spacing cycle by default (so uniformity reflects the repeating pattern
-    /// rather than end-effects of the analyzed strip).
+    /// The evaluation area covers the full roadway width only (no sidewalks),
+    /// spanning one spacing cycle — this is what every compliance standard
+    /// expects. For a heatmap visualization that includes the sidewalks, use
+    /// [`compute_with_sidewalks`](Self::compute_with_sidewalks).
     pub fn compute(&self, ldt: &Eulumdat, maintenance_factor: f64) -> AreaResult {
+        self.compute_internal(ldt, maintenance_factor, 0.0)
+    }
+
+    /// Compute the illuminance grid including sidewalks on both sides.
+    ///
+    /// Returns the grid widened by `sidewalk_width_m` on each side so the
+    /// sidewalks render in the heatmap. Do **not** use the returned stats for
+    /// compliance — sidewalk cells would skew them; use [`compute`](Self::compute)
+    /// for that.
+    pub fn compute_with_sidewalks(&self, ldt: &Eulumdat, maintenance_factor: f64) -> AreaResult {
+        self.compute_internal(ldt, maintenance_factor, self.sidewalk_width_m.max(0.0))
+    }
+
+    fn compute_internal(
+        &self,
+        ldt: &Eulumdat,
+        maintenance_factor: f64,
+        sidewalk_pad_m: f64,
+    ) -> AreaResult {
         // Evaluate over one full pole-spacing cycle centered in the road to
         // capture the worst-case uniformity between poles. Grid sized to give
         // ~0.5 m cells: that's the resolution RP-8 examples typically use.
         let eval_len = self.pole_spacing_m.max(1.0);
-        let eval_width = self.roadway_width_m();
+        let road_w = self.roadway_width_m();
+        let eval_width = road_w + 2.0 * sidewalk_pad_m;
         let grid_resolution = ((eval_len.max(eval_width) / 0.5).round() as usize).max(16);
 
         // Place luminaires over a strip 3× the pole spacing so the central
@@ -179,11 +201,14 @@ impl StreetLayout {
 
         let ldts = [ldt];
 
-        // Shift evaluation window to the middle cycle: [eval_len, 2*eval_len] in X.
+        // Shift evaluation window: X to middle cycle [eval_len, 2*eval_len];
+        // Y shifted by `sidewalk_pad_m` so the grid's local Y=0 corresponds
+        // to the left sidewalk's outer edge, Y=eval_width to the right.
         let mut translated: Vec<LuminairePlace> = placements
             .into_iter()
             .map(|mut p| {
                 p.x -= eval_len;
+                p.y += sidewalk_pad_m;
                 p
             })
             .collect();

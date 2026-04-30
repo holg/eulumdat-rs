@@ -472,7 +472,7 @@ pub fn verify(templates: &[TemplateMeta], templates_dir: &Path) -> Vec<VerifyMes
                 }
             }
             TemplateFormat::AtlaXml => {
-                if let Err(e) = atla::xml::parse(&content) {
+                if let Err(e) = eulumdat::atla::xml::parse(&content) {
                     msgs.push(VerifyMessage::error(format!(
                         "'{}': ATLA XML parse error: {}",
                         t.id, e
@@ -480,7 +480,7 @@ pub fn verify(templates: &[TemplateMeta], templates_dir: &Path) -> Vec<VerifyMes
                 }
             }
             TemplateFormat::AtlaJson => {
-                if let Err(e) = atla::json::parse(&content) {
+                if let Err(e) = eulumdat::atla::json::parse(&content) {
                     msgs.push(VerifyMessage::error(format!(
                         "'{}': ATLA JSON parse error: {}",
                         t.id, e

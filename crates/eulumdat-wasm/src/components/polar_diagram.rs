@@ -9,10 +9,10 @@ use eulumdat::{
 use leptos::prelude::*;
 
 #[component]
-pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn PolarDiagram(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
-    let c_planes = Memo::new(move |_| CorePolarDiagram::available_c_planes(&ldt.get()));
+    let c_planes = Memo::new(move |_| CorePolarDiagram::available_c_planes(&ldc.get()));
 
     let (selected_plane, set_selected_plane) = signal::<Option<f64>>(None);
     let (slider_idx, set_slider_idx) = signal(0usize);
@@ -80,7 +80,7 @@ pub fn PolarDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         }}
         <div class="polar-diagram" inner_html=move || {
             let theme = SvgTheme::css_variables_with_locale(&locale.get());
-            CorePolarDiagram::render_svg(&ldt.get(), selected_plane.get(), 500.0, 500.0, &theme)
+            CorePolarDiagram::render_svg(&ldc.get(), selected_plane.get(), 500.0, 500.0, &theme)
         } />
     }
 }

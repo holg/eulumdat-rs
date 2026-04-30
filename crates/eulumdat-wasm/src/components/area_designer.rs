@@ -51,7 +51,7 @@ struct PoleState {
 #[derive(Debug, Clone)]
 struct ExtraLdt {
     name: String,
-    ldt: Eulumdat,
+    ldc: Eulumdat,
 }
 
 // ── URL state serialization ──────────────────────────────────────────────────
@@ -261,10 +261,10 @@ struct SmartDefaults {
     opt_height_max: f64,
 }
 
-fn compute_smart_defaults(ldt: &Eulumdat) -> SmartDefaults {
-    let flux = ldt.total_luminous_flux();
-    let max_gamma = ldt.g_angles.last().copied().unwrap_or(90.0);
-    let dff = ldt.downward_flux_fraction; // 0-100, percentage of light going down
+fn compute_smart_defaults(ldc: &Eulumdat) -> SmartDefaults {
+    let flux = ldc.total_luminous_flux();
+    let max_gamma = ldc.g_angles.last().copied().unwrap_or(90.0);
+    let dff = ldc.downward_flux_fraction; // 0-100, percentage of light going down
 
     // Estimate mounting height from luminous flux, beam spread, and DFF.
     // Low DFF (< 30%) = mostly uplight → lower mounting height
@@ -332,7 +332,7 @@ fn compute_mixed_or_single(
     } else {
         let mut all_ldts: Vec<&Eulumdat> = vec![primary];
         for e in extras {
-            all_ldts.push(&e.ldt);
+            all_ldts.push(&e.ldc);
         }
         compute_area_illuminance_mixed(&all_ldts, placements, ldt_indices, aw, ad, gr, pf)
     }
@@ -340,12 +340,12 @@ fn compute_mixed_or_single(
 
 /// Area Lighting Designer component.
 #[component]
-pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let units = super::app::use_unit_system();
 
     // --- Compute smart defaults from the loaded LDT ---
-    let defaults = compute_smart_defaults(&ldt.get());
+    let defaults = compute_smart_defaults(&ldc.get());
 
     // --- Parse URL hash for initial values ---
     let url_params = parse_hash_params();
@@ -827,7 +827,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     let run_optimizer = move || {
         set_opt_running.set(true);
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         let arr = arrangement.get();
         let al = arm_length.get();
         let droop = arm_droop.get();
@@ -910,7 +910,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // ISO view SVG + stats (must be after optimizer signals for overlay access)
     let area_data = move || {
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         let aw = area_width.get();
         let ad = area_depth.get();
         let pf = proration.get();
@@ -1521,7 +1521,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         <h4>{move || locale.get().area_designer.mixed.title.clone()}</h4>
                         <p class="area-hint">{move || locale.get().area_designer.mixed.description.clone()}</p>
                         <input type="file"
-                            accept=".ldt,.ies"
+                            accept=".ldt,.ies,.oxl,.oxc"
                             node_ref=extra_ldts_ref
                             style="display: none;"
                             on:change=move |ev| {
@@ -1548,13 +1548,13 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                         } else {
                                             Eulumdat::parse(&text).ok()
                                         };
-                                        if let Some(ldt_parsed) = parsed {
+                                        if let Some(ldc_parsed) = parsed {
                                             let display_name = name_clone
                                                 .strip_suffix(".ldt").or_else(|| name_clone.strip_suffix(".ies"))
                                                 .unwrap_or(&name_clone).to_string();
                                             set_extra_ldts.update(|v| v.push(ExtraLdt {
                                                 name: display_name,
-                                                ldt: ldt_parsed,
+                                                ldc: ldc_parsed,
                                             }));
                                         }
                                     });
@@ -2151,7 +2151,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                                     <button class="area-export-btn"
                                         disabled=move || pdf_exporting.get()
                                         on:click=move |_| {
-                                            let ldt_val = ldt.get();
+                                            let ldt_val = ldc.get();
                                             let u = units.get();
                                             let dl = u.distance_label();
                                             let il = u.illuminance_label();
@@ -2322,7 +2322,7 @@ pub fn AreaDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         let tab = area_view_tab.get();
                         match tab.as_str() {
                             "room" => {
-                                let ldt_val = ldt.get();
+                                let ldt_val = ldc.get();
                                 let (placements, _ldt_idx) = make_placements();
                                 let (result, _, _) = area_data();
                                 let h = mounting_height.get();

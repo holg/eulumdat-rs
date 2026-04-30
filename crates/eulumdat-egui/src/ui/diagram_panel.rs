@@ -92,7 +92,7 @@ impl Default for DiagramParams {
 
 /// Generate SVG for a diagram type
 pub fn generate_svg(
-    ldt: &Eulumdat,
+    ldc: &Eulumdat,
     diagram_type: DiagramType,
     width: f64,
     height: f64,
@@ -100,7 +100,7 @@ pub fn generate_svg(
     locale: &Locale,
 ) -> Option<String> {
     generate_svg_with_height(
-        ldt,
+        ldc,
         diagram_type,
         width,
         height,
@@ -113,7 +113,7 @@ pub fn generate_svg(
 
 /// Generate SVG for a diagram type with configurable mounting height
 pub fn generate_svg_with_height(
-    ldt: &Eulumdat,
+    ldc: &Eulumdat,
     diagram_type: DiagramType,
     width: f64,
     height: f64,
@@ -128,56 +128,56 @@ pub fn generate_svg_with_height(
         SvgTheme::light_with_locale(locale)
     };
 
-    let summary = PhotometricSummary::from_eulumdat(ldt);
+    let summary = PhotometricSummary::from_eulumdat(ldc);
 
     Some(match diagram_type {
         DiagramType::Polar => {
             if let Some(cp) = params.c_plane {
-                let polar = PolarDiagram::from_eulumdat_for_plane(ldt, cp);
+                let polar = PolarDiagram::from_eulumdat_for_plane(ldc, cp);
                 polar.to_svg_with_summary(width, height, &theme, &summary)
             } else {
-                let polar = PolarDiagram::from_eulumdat(ldt);
+                let polar = PolarDiagram::from_eulumdat(ldc);
                 polar.to_svg_with_summary(width, height, &theme, &summary)
             }
         }
         DiagramType::Cartesian => {
             if let Some(cp) = params.c_plane {
                 let cartesian =
-                    CartesianDiagram::from_eulumdat_for_plane(ldt, cp, width, height * 0.75);
+                    CartesianDiagram::from_eulumdat_for_plane(ldc, cp, width, height * 0.75);
                 cartesian.to_svg_with_summary(width, height * 0.75, &theme, &summary)
             } else {
-                let cartesian = CartesianDiagram::from_eulumdat(ldt, width, height * 0.75, 8);
+                let cartesian = CartesianDiagram::from_eulumdat(ldc, width, height * 0.75, 8);
                 cartesian.to_svg_with_summary(width, height * 0.75, &theme, &summary)
             }
         }
         DiagramType::Butterfly | DiagramType::Butterfly3D => {
-            let butterfly = ButterflyDiagram::from_eulumdat(ldt, width, height * 0.8, 60.0);
+            let butterfly = ButterflyDiagram::from_eulumdat(ldc, width, height * 0.8, 60.0);
             butterfly.to_svg(width, height * 0.8, &theme)
         }
         DiagramType::Heatmap => {
-            let heatmap = HeatmapDiagram::from_eulumdat(ldt, width, height * 0.7);
+            let heatmap = HeatmapDiagram::from_eulumdat(ldc, width, height * 0.7);
             heatmap.to_svg_with_summary(width, height * 0.7, &theme, &summary)
         }
         DiagramType::Bug => {
-            let bug = BugDiagram::from_eulumdat(ldt);
+            let bug = BugDiagram::from_eulumdat(ldc);
             bug.to_svg(width, height * 0.85, &theme)
         }
         DiagramType::Lcs => {
-            let bug = BugDiagram::from_eulumdat(ldt);
+            let bug = BugDiagram::from_eulumdat(ldc);
             bug.to_lcs_svg(width, height * 0.75, &theme)
         }
         DiagramType::Cone => {
             if let Some(cp) = params.c_plane {
-                let cone = ConeDiagram::from_eulumdat_for_plane(ldt, mounting_height, cp);
+                let cone = ConeDiagram::from_eulumdat_for_plane(ldc, mounting_height, cp);
                 cone.to_svg(width, height * 0.85, &theme)
             } else {
-                let cone = ConeDiagram::from_eulumdat(ldt, mounting_height);
+                let cone = ConeDiagram::from_eulumdat(ldc, mounting_height);
                 cone.to_svg(width, height * 0.85, &theme)
             }
         }
         DiagramType::BeamAngle => {
-            let polar = PolarDiagram::from_eulumdat(ldt);
-            let analysis = PhotometricCalculations::beam_field_analysis(ldt);
+            let polar = PolarDiagram::from_eulumdat(ldc);
+            let analysis = PhotometricCalculations::beam_field_analysis(ldc);
             let show_both = analysis.is_batwing;
             polar.to_svg_with_beam_field_angles(width, height, &theme, &analysis, show_both)
         }
@@ -189,11 +189,11 @@ pub fn generate_svg_with_height(
                 area_half_depth: params.area_size,
                 grid_resolution: 60,
             };
-            let diagram = IsoluxDiagram::from_eulumdat(ldt, width, height, isolux_params);
+            let diagram = IsoluxDiagram::from_eulumdat(ldc, width, height, isolux_params);
             diagram.to_svg(width, height, &theme)
         }
         DiagramType::Isocandela => {
-            let diagram = IsocandelaDiagram::from_eulumdat(ldt, width, height * 0.85);
+            let diagram = IsocandelaDiagram::from_eulumdat(ldc, width, height * 0.85);
             diagram.to_svg(width, height * 0.85, &theme)
         }
         DiagramType::Floodlight => {
@@ -203,7 +203,7 @@ pub fn generate_svg_with_height(
                 YScale::Linear
             };
             let diagram =
-                FloodlightCartesianDiagram::from_eulumdat(ldt, width, height * 0.75, y_scale);
+                FloodlightCartesianDiagram::from_eulumdat(ldc, width, height * 0.75, y_scale);
             diagram.to_svg(width, height * 0.75, &theme)
         }
         // ATLA-specific types are handled separately via generate_current_svg
@@ -231,7 +231,7 @@ pub fn render_diagram_selector(ui: &mut Ui, diagram_type: &mut DiagramType) -> b
 /// Render the diagram panel
 pub fn render_diagram_panel(
     ui: &mut Ui,
-    ldt: &Eulumdat,
+    ldc: &Eulumdat,
     diagram_type: DiagramType,
     dark_theme: bool,
     texture: &mut Option<TextureHandle>,
@@ -250,7 +250,7 @@ pub fn render_diagram_panel(
 
     if *texture_dirty || texture.is_none() {
         if let Some(svg) = generate_svg(
-            ldt,
+            ldc,
             diagram_type,
             size as f64,
             size as f64,

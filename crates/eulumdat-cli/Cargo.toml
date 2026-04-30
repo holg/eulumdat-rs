@@ -22,9 +22,8 @@ street = []
 
 [dependencies]
 anyhow.workspace = true
-atla = { workspace = true, features = ["xml", "json", "eulumdat"] }
 clap.workspace = true
-eulumdat.workspace = true
+eulumdat = { workspace = true, features = ["xml", "json"] }
 eulumdat-typst.workspace = true
 serde_json = "1"
 walkdir = "2.5.0"

@@ -15,7 +15,7 @@ use crate::input::{self, Action, MouseActionKind};
 use crate::ui::{self, Focus, LayoutAreas, ViewMode};
 
 pub struct App {
-    ldt: Eulumdat,
+    ldc: Eulumdat,
     file_name: String,
     summary: PhotometricSummary,
     warnings: Vec<ValidationWarning>,
@@ -45,11 +45,11 @@ pub struct App {
 
 impl App {
     pub fn new(file_path: Option<&str>) -> Result<Self> {
-        let (ldt, file_name) = match file_path {
+        let (ldc, file_name) = match file_path {
             Some(path) => {
                 let content = std::fs::read_to_string(path)?;
                 let lower = path.to_lowercase();
-                let ldt = if lower.ends_with(".ies") {
+                let ldc = if lower.ends_with(".ies") {
                     IesParser::parse(&content)?
                 } else {
                     Eulumdat::parse(&content)?
@@ -58,29 +58,29 @@ impl App {
                     .file_name()
                     .map(|n| n.to_string_lossy().to_string())
                     .unwrap_or_else(|| path.to_string());
-                (ldt, name)
+                (ldc, name)
             }
             None => {
-                anyhow::bail!("No file specified. Usage: eulumdat-tui <FILE.ldt|FILE.ies>");
+                anyhow::bail!("No file specified. Usage: eulumdat-tui <FILE.ldc|FILE.ies>");
             }
         };
 
-        let summary = PhotometricSummary::from_eulumdat(&ldt);
-        let warnings = validate(&ldt);
-        let beam_field = PhotometricCalculations::beam_field_analysis(&ldt);
+        let summary = PhotometricSummary::from_eulumdat(&ldc);
+        let warnings = validate(&ldc);
+        let beam_field = PhotometricCalculations::beam_field_analysis(&ldc);
 
-        let polar = PolarDiagram::from_eulumdat(&ldt);
-        let cartesian = CartesianDiagram::from_eulumdat(&ldt, 800.0, 600.0, 8);
-        let heatmap = HeatmapDiagram::from_eulumdat(&ldt, 800.0, 600.0);
-        let cone = ConeDiagram::from_eulumdat(&ldt, 3.0);
-        let butterfly = ButterflyDiagram::from_eulumdat(&ldt, 500.0, 400.0, 60.0);
+        let polar = PolarDiagram::from_eulumdat(&ldc);
+        let cartesian = CartesianDiagram::from_eulumdat(&ldc, 800.0, 600.0, 8);
+        let heatmap = HeatmapDiagram::from_eulumdat(&ldc, 800.0, 600.0);
+        let cone = ConeDiagram::from_eulumdat(&ldc, 3.0);
+        let butterfly = ButterflyDiagram::from_eulumdat(&ldc, 500.0, 400.0, 60.0);
 
         // Build list of available C-plane angles for cycling
         // Index 0 = "default" (standard C0-C180 + C90-C270 view)
-        let c_plane_angles = ldt.c_angles.clone();
+        let c_plane_angles = ldc.c_angles.clone();
 
         Ok(App {
-            ldt,
+            ldc,
             file_name,
             summary,
             warnings,
@@ -137,7 +137,7 @@ impl App {
         ui::info::render_info(
             layout.sidebar,
             frame.buffer_mut(),
-            &self.ldt,
+            &self.ldc,
             &self.summary,
             &self.warnings,
             self.sidebar_scroll,
@@ -242,7 +242,7 @@ impl App {
                 self.sidebar_scroll = 0;
                 if self.view_mode == ViewMode::Polar {
                     self.c_plane_index = 0;
-                    self.polar = PolarDiagram::from_eulumdat(&self.ldt);
+                    self.polar = PolarDiagram::from_eulumdat(&self.ldc);
                 }
             }
             Action::CycleFocus => self.focus = self.focus.cycle(),
@@ -265,10 +265,10 @@ impl App {
         if next != self.c_plane_index {
             self.c_plane_index = next;
             if next == 0 {
-                self.polar = PolarDiagram::from_eulumdat(&self.ldt);
+                self.polar = PolarDiagram::from_eulumdat(&self.ldc);
             } else {
                 let angle = self.c_plane_angles[next - 1];
-                self.polar = PolarDiagram::from_eulumdat_for_plane(&self.ldt, angle);
+                self.polar = PolarDiagram::from_eulumdat_for_plane(&self.ldc, angle);
             }
         }
     }

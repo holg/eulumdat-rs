@@ -3,13 +3,15 @@
 //! Exposes a single `mount()` entry point (called by `street-loader.js`) that
 //! attaches a Leptos app to `#street-root` in the host page.
 //!
-//! The UI is intentionally minimal in this first commit: a file picker, a
-//! [`StreetLayout`](eulumdat::street::StreetLayout) form, and a compliance
-//! panel that cycles through MLO / RP-8 / EN 13201 / CJJ 45 against the
-//! computed design result. Heatmap, multi-LDT catalog support, and polished
-//! layout visualization come in follow-up commits.
+//! The luminaire comes exclusively from the main editor via localStorage
+//! — there is no separate picker here. The UI is a
+//! [`StreetLayout`](eulumdat::street::StreetLayout) form, a plan-view SVG
+//! heatmap with optional failure-overlay, and a compliance panel that
+//! cycles through MLO / RP-8 / EN 13201 / CJJ 45.
 
 mod app;
+mod download;
+mod i18n;
 mod storage_sync;
 
 pub use app::StreetApp;

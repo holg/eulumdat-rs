@@ -50,7 +50,7 @@ fn area_range(units: UnitSystem) -> SliderRange {
 }
 
 #[component]
-pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn IsoluxFootprint(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let unit_system = use_unit_system();
 
@@ -83,7 +83,7 @@ pub fn IsoluxFootprint(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // Generate SVG reactively
     let svg_content = move || {
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         let units = unit_system.get();
         let params = IsoluxParams {
             mounting_height: mounting_height.get(),

@@ -147,7 +147,7 @@ fn setup(
 
     commands.spawn(SceneRoot(asset_server.load(bistro_glb)));
 
-    // --- Spawn raw Bevy lights at the same Bistro positions as obscura_demo ---
+    // --- Spawn raw Bevy lights at the same Bistro positions as skyglow_demo ---
     // Same light color as road_luminaire.ldt would produce
     let warm_white = Color::srgb(1.0, 0.85, 0.6);
     let intensity = 50000.0;

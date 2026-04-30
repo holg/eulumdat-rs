@@ -30,7 +30,7 @@ pub enum DiagramTab {
 pub struct EditorPanel;
 
 impl EditorPanel {
-    pub fn show(ui: &mut egui::Ui, ldt: &mut eulumdat::Eulumdat) {
+    pub fn show(ui: &mut egui::Ui, ldc: &mut eulumdat::Eulumdat) {
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.heading("Luminaire Information");
             ui.separator();
@@ -40,15 +40,15 @@ impl EditorPanel {
                 .spacing([20.0, 4.0])
                 .show(ui, |ui| {
                     ui.label("Name:");
-                    ui.text_edit_singleline(&mut ldt.luminaire_name);
+                    ui.text_edit_singleline(&mut ldc.luminaire_name);
                     ui.end_row();
 
                     ui.label("Manufacturer:");
-                    ui.text_edit_singleline(&mut ldt.identification);
+                    ui.text_edit_singleline(&mut ldc.identification);
                     ui.end_row();
 
                     ui.label("Description:");
-                    ui.text_edit_singleline(&mut ldt.luminaire_number);
+                    ui.text_edit_singleline(&mut ldc.luminaire_number);
                     ui.end_row();
                 });
 
@@ -60,15 +60,15 @@ impl EditorPanel {
                 .spacing([20.0, 4.0])
                 .show(ui, |ui| {
                     ui.label("Length:");
-                    ui.add(egui::DragValue::new(&mut ldt.length).speed(1.0));
+                    ui.add(egui::DragValue::new(&mut ldc.length).speed(1.0));
                     ui.end_row();
 
                     ui.label("Width:");
-                    ui.add(egui::DragValue::new(&mut ldt.width).speed(1.0));
+                    ui.add(egui::DragValue::new(&mut ldc.width).speed(1.0));
                     ui.end_row();
 
                     ui.label("Height:");
-                    ui.add(egui::DragValue::new(&mut ldt.height).speed(1.0));
+                    ui.add(egui::DragValue::new(&mut ldc.height).speed(1.0));
                     ui.end_row();
                 });
         });

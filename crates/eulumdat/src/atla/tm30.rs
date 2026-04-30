@@ -5,7 +5,7 @@
 //!
 //! Reference: IES TM-30-20 "IES Method for Evaluating Light Source Color Rendition"
 
-use crate::types::SpectralDistribution;
+use crate::atla::types::SpectralDistribution;
 
 /// TM-30 calculation results
 #[derive(Debug, Clone)]
@@ -231,7 +231,7 @@ fn planckian_spd(cct: f64) -> SpectralDistribution {
     SpectralDistribution {
         wavelengths,
         values: normalized,
-        units: crate::types::SpectralUnits::Relative,
+        units: crate::atla::types::SpectralUnits::Relative,
         start_wavelength: None,
         wavelength_interval: None,
     }
@@ -850,7 +850,7 @@ mod tests {
         let spd = SpectralDistribution {
             wavelengths,
             values,
-            units: crate::types::SpectralUnits::Relative,
+            units: crate::atla::types::SpectralUnits::Relative,
             start_wavelength: None,
             wavelength_interval: None,
         };

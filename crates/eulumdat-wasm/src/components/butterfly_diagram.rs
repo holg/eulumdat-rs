@@ -11,13 +11,13 @@ use leptos::prelude::*;
 
 #[allow(dead_code)]
 #[component]
-pub fn ButterflyDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn ButterflyDiagram(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
     view! {
         <div class="butterfly-diagram" inner_html=move || {
-            let ldt = ldt.get();
-            let butterfly = CoreButterflyDiagram::from_eulumdat(&ldt, 500.0, 450.0, 60.0);
+            let ldc = ldc.get();
+            let butterfly = CoreButterflyDiagram::from_eulumdat(&ldc, 500.0, 450.0, 60.0);
             let theme = SvgTheme::css_variables_with_locale(&locale.get());
             butterfly.to_svg(500.0, 450.0, &theme)
         } />

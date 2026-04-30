@@ -1,7 +1,14 @@
-//! Obscura Demo: Darkness Preservation Simulator
+//! Skyglow Demo: Darkness Preservation Simulator
 //!
-//! A Bevy example showcasing light pollution vs. darkness preservation.
-//! Built as a pitch demo for L'Observatoire de la Nuit.
+//! A Bevy example showcasing skyglow (upward-scattered light pollution)
+//! and darkness preservation. The two-mode toggle compares a polluting
+//! road luminaire against a fully-shielded preservation-grade fixture
+//! at the same target illuminance.
+//!
+//! Originally a pitch demo for L'Observatoire de la Nuit; the name was
+//! generalized to "skyglow" (the IES/IDA term) so the demo works as a
+//! vendor-neutral outreach piece for IDA chapters, amateur astronomy
+//! clubs, and dark-sky tourism organizations.
 //!
 //! Controls:
 //!   Space       — Toggle simulation mode (pollution ↔ preserved)
@@ -18,12 +25,15 @@
 //!   9 / 0       — Decrease / increase haze
 //!
 //! Run:
-//!   cargo run --example obscura_demo -p eulumdat-bevy --features post-process,bevy-ui --release
+//!   cargo run --example skyglow_demo -p eulumdat-bevy --features post-process,bevy-ui --release
 
 use bevy::camera::Hdr;
 use bevy::core_pipeline::tonemapping::Tonemapping;
-use bevy::light::{NotShadowCaster, NotShadowReceiver, TransmittedShadowReceiver};
+#[cfg(not(feature = "webgl2"))]
+use bevy::light::TransmittedShadowReceiver;
+use bevy::light::{NotShadowCaster, NotShadowReceiver};
 use bevy::pbr::{DistanceFog, FogFalloff};
+#[cfg(not(feature = "webgl2"))]
 use bevy::post_process::bloom::Bloom;
 use bevy::prelude::*;
 use bevy::render::render_resource::Face;
@@ -64,6 +74,12 @@ const UPLIGHT_LDT: &str = include_str!("../../eulumdat-wasm/templates/floor_upli
 #[cfg(feature = "bevy-ui")]
 mod ui_colors {
     use bevy::prelude::Color;
+    // Translucent dashboard backgrounds for the glass-panel feel over
+    // the 3D scene. Chrome / Firefox / native compositors render this
+    // correctly. Safari WebGPU users see the overlay flicker — that is
+    // unrelated to alpha blending (we tested opaque, it still flickers)
+    // and lives in the Bloom + HDR + UI render path.
+    // See `docs/safari_bloom_flicker.md` for the full diagnostic.
     pub const PANEL_BG: Color = Color::srgba(0.05, 0.05, 0.08, 0.85);
     pub const SECTION_BG: Color = Color::srgba(0.08, 0.08, 0.12, 0.6);
     pub const SLIDER_TRACK_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
@@ -305,7 +321,7 @@ fn main() {
     };
     #[cfg(target_arch = "wasm32")]
     let (debug_flags, scene) = {
-        // Read scene from URL: ?wasm=obscura_demo&scene=sponza (or bistro)
+        // Read scene from URL: ?wasm=skyglow_demo&scene=sponza (or bistro)
         #[cfg(feature = "wasm-bindgen")]
         let scene: Option<String> =
             js_sys::eval("new URLSearchParams(window.location.search).get('scene')")
@@ -331,14 +347,14 @@ fn main() {
 
     #[allow(unused_mut)]
     let mut window = Window {
-        title: "Obscura Demo — Darkness Preservation Simulator".into(),
+        title: "Skyglow Demo — Darkness Preservation Simulator".into(),
         resolution: (1280u32, 720u32).into(),
         present_mode: bevy::window::PresentMode::Fifo,
         ..default()
     };
     #[cfg(target_arch = "wasm32")]
     {
-        window.canvas = Some("#obscura-canvas".into());
+        window.canvas = Some("#skyglow-canvas".into());
         window.fit_canvas_to_parent = true;
     }
 
@@ -472,20 +488,19 @@ fn setup_scene(
     let cam_transform = Transform::from_translation(state.scene.cam_start())
         .looking_at(state.scene.cam_look_at(), Vec3::Y);
 
-    commands.spawn((
+    // Camera spawn is split between WebGPU and WebGL2 paths because:
+    // - Bloom needs `rgba16float` storage textures (WebGPU only)
+    // - EnvironmentMapLight reads KTX2 zstd cubemaps via compute decoder
+    //   (WebGPU only)
+    // - The dense ClusterConfig::FixedZ { total: 4096 } overflows
+    //   WebGL2's smaller storage-buffer limits
+    //
+    // The WebGL2 build trades these for a simpler camera + ambient ramp
+    // and shows a "reduced fidelity" banner via `setup_fallback_banner`.
+    let mut cam = commands.spawn((
         Camera3d::default(),
         Hdr,
         Tonemapping::AgX,
-        Bloom {
-            intensity: 0.08,
-            ..default()
-        },
-        EnvironmentMapLight {
-            diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
-            specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
-            intensity: 600.0,
-            ..default()
-        },
         cam_transform,
         DistanceFog {
             color: Color::srgb(0.05, 0.04, 0.06),
@@ -496,14 +511,43 @@ fn setup_scene(
         },
         FlyCamera::from_look_direction(state.scene.cam_start(), state.scene.cam_look_at()),
         NoIndirectDrawing,
-        // Finer cluster grid for dense photometric lighting scenes
-        bevy::light::cluster::ClusterConfig::FixedZ {
-            total: 4096,
-            z_slices: 24,
-            z_config: default(),
-            dynamic_resizing: true,
-        },
     ));
+
+    #[cfg(not(feature = "webgl2"))]
+    {
+        cam.insert((
+            Bloom {
+                intensity: 0.08,
+                ..default()
+            },
+            EnvironmentMapLight {
+                diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
+                specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
+                intensity: 600.0,
+                ..default()
+            },
+            // Finer cluster grid for dense photometric lighting scenes
+            bevy::light::cluster::ClusterConfig::FixedZ {
+                total: 4096,
+                z_slices: 24,
+                z_config: default(),
+                dynamic_resizing: true,
+            },
+        ));
+    }
+    #[cfg(feature = "webgl2")]
+    {
+        // WebGL2 fallback: attach an ambient term to the camera so the
+        // scene isn't near-black where direct lights miss. Bevy 0.19's
+        // `AmbientLight` is a per-camera component, not a global
+        // resource — `cam.insert(...)` is the right place.
+        let _ = &asset_server;
+        cam.insert(AmbientLight {
+            color: Color::srgb(0.55, 0.6, 0.75),
+            brightness: 220.0,
+            ..default()
+        });
+    }
 
     spawn_scene_geometry(
         &mut commands,
@@ -558,7 +602,7 @@ fn spawn_scene_geometry(
 
 fn fix_scene_materials(
     flags: Res<DebugFlags>,
-    mut commands: Commands,
+    #[cfg_attr(feature = "webgl2", allow(unused_mut, unused_variables))] mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     state: Res<SimulationState>,
     mut fix_state: ResMut<MaterialFixState>,
@@ -621,9 +665,14 @@ fn fix_scene_materials(
                 }
                 fixed += 1;
             }
+            // TransmittedShadowReceiver needs storage textures for the
+            // transmitted-shadow ray probe — not available in WebGL2.
+            #[cfg(not(feature = "webgl2"))]
             for entity in transmitted_entities {
                 commands.entity(entity).insert(TransmittedShadowReceiver);
             }
+            #[cfg(feature = "webgl2")]
+            let _ = transmitted_entities;
             println!("BISTRO FIX: patched {} materials", fixed);
         }
         SceneChoice::UrbanStreet => unreachable!(),
@@ -1530,7 +1579,7 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
         .with_children(|panel| {
             // Title
             panel.spawn((
-                Text::new("Obscura Analysis"),
+                Text::new("Skyglow Analysis"),
                 TextFont {
                     font_size: FontSize::Px(14.0),
                     ..default()

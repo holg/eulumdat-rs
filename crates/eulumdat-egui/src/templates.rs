@@ -2,7 +2,7 @@
 //!
 //! Templates are copied from EulumdatApp/Resources/Templates during build.
 
-use atla::LuminaireOpticalData;
+use eulumdat::atla::LuminaireOpticalData;
 use eulumdat::Eulumdat;
 
 /// Template format type
@@ -161,8 +161,8 @@ impl Template {
         match self.format {
             TemplateFormat::Ldt => Eulumdat::parse(self.content).map_err(|e| e.to_string()),
             TemplateFormat::AtlaXml => {
-                let atla =
-                    atla::xml::parse(self.content).map_err(|e| format!("ATLA XML error: {}", e))?;
+                let atla = eulumdat::atla::xml::parse(self.content)
+                    .map_err(|e| format!("ATLA XML error: {}", e))?;
                 Ok(atla.to_eulumdat())
             }
         }
@@ -172,12 +172,11 @@ impl Template {
     pub fn parse_atla(&self) -> Result<LuminaireOpticalData, String> {
         match self.format {
             TemplateFormat::Ldt => {
-                let ldt = Eulumdat::parse(self.content).map_err(|e| e.to_string())?;
-                Ok(LuminaireOpticalData::from_eulumdat(&ldt))
+                let ldc = Eulumdat::parse(self.content).map_err(|e| e.to_string())?;
+                Ok(LuminaireOpticalData::from_eulumdat(&ldc))
             }
-            TemplateFormat::AtlaXml => {
-                atla::xml::parse(self.content).map_err(|e| format!("ATLA XML error: {}", e))
-            }
+            TemplateFormat::AtlaXml => eulumdat::atla::xml::parse(self.content)
+                .map_err(|e| format!("ATLA XML error: {}", e)),
         }
     }
 

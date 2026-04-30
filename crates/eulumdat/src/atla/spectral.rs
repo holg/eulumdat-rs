@@ -10,7 +10,7 @@
 //!
 //! Provides spectral metrics for energy distribution analysis.
 
-use crate::types::{SpectralDistribution, SpectralUnits};
+use crate::atla::types::{SpectralDistribution, SpectralUnits};
 
 // ============================================================================
 // Localized Labels for Spectral SVG

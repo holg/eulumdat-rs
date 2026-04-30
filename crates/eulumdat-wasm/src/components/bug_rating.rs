@@ -17,14 +17,14 @@ pub enum BugViewMode {
 }
 
 #[component]
-pub fn BugRating(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn BugRating(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let (view_mode, set_view_mode) = signal(BugViewMode::default());
 
     // Calculate rating from LDT
     let calculated_rating = move || {
-        let ldt = ldt.get();
-        let diagram = BugDiagram::from_eulumdat(&ldt);
+        let ldc = ldc.get();
+        let diagram = BugDiagram::from_eulumdat(&ldc);
         diagram.rating
     };
 
@@ -76,8 +76,8 @@ pub fn BugRating(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             </div>
 
             <div class="bug-rating-content" inner_html=move || {
-                let ldt = ldt.get();
-                let diagram = BugDiagram::from_eulumdat(&ldt);
+                let ldc = ldc.get();
+                let diagram = BugDiagram::from_eulumdat(&ldc);
                 let theme = SvgTheme::css_variables_with_locale(&locale.get());
                 match view_mode.get() {
                     BugViewMode::Basic => diagram.to_svg(400.0, 350.0, &theme),

@@ -38,7 +38,7 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::LuminaireOpticalData;
+use crate::atla::types::LuminaireOpticalData;
 
 // ============================================================================
 // Enums
@@ -671,7 +671,7 @@ impl BimParameters {
             if let Some(opening) = lum.luminous_openings.first() {
                 params.luminous_length = Some(opening.dimensions.length);
                 params.luminous_width = opening.dimensions.width;
-                if opening.shape == crate::LuminousOpeningShape::Circular {
+                if opening.shape == crate::atla::types::LuminousOpeningShape::Circular {
                     params.luminous_diameter = Some(opening.dimensions.length);
                 }
             }

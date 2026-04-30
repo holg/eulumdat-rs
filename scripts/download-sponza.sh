@@ -1,6 +1,6 @@
 #!/bin/bash
 # Download the Sponza glTF scene from Khronos glTF-Sample-Assets
-# and environment maps from bevy_bistro_scene for the obscura_demo example.
+# and environment maps from bevy_bistro_scene for the skyglow_demo example.
 
 set -e
 cd "$(dirname "$0")/.."
@@ -48,4 +48,4 @@ fi
 
 echo ""
 echo "Ready! Run the demo with:"
-echo "  cargo run --example obscura_demo --features egui-ui,post-process"
+echo "  cargo run --example skyglow_demo --features egui-ui,post-process"

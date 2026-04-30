@@ -418,7 +418,7 @@
       "metrics": "Metrics"
     },
     "dropzone": {
-      "text": "Drag and drop an LDT, IES, or ATLA (XML/JSON) file here, or use the Open button above",
+      "text": "Drag and drop an LDT, IES, ATLA (XML/JSON), or OxyTech OXL file here, or use the Open button above",
       "current_file": "Current file:"
     },
     "diagram": {
@@ -640,7 +640,7 @@
     },
     "compare": {
       "title": "Compare with:",
-      "drop_hint": "Drop a .ldt, .ies, or .xml file here",
+      "drop_hint": "Drop a .ldt, .ies, .xml, or .oxl file here",
       "browse": "Browse file",
       "or": "or",
       "select_template": "Select template...",
@@ -1136,5 +1136,208 @@
     "mat_opal_pmma": "PMMA opal 3mm",
     "mat_clear_glass": "Glass clear 4mm",
     "mat_satin_glass": "Glass satin 4mm"
+  },
+  "street": {
+    "title": "Street Lighting Designer",
+    "source": {
+      "using": "Using luminaire from editor: ",
+      "hint_none": "No luminaire loaded yet. Open one in the main editor tab — it will appear here automatically.",
+      "live_updates": " — live updates as you edit",
+      "unnamed": "(unnamed)"
+    },
+    "layout": {
+      "legend": "Street geometry",
+      "length": "Length",
+      "lane_width": "Lane width",
+      "num_lanes": "# Lanes",
+      "pole_spacing": "Pole spacing",
+      "mounting_height": "Mounting height",
+      "overhang": "Overhang",
+      "tilt": "Tilt",
+      "pole_offset": "Pole offset",
+      "sidewalk_width": "Sidewalk",
+      "arrangement_label": "Arrangement:"
+    },
+    "arrangement": {
+      "single_side": "Single-side",
+      "opposite": "Opposite",
+      "staggered": "Staggered"
+    },
+    "threshold": {
+      "label": "Highlight failures:",
+      "off": "Off (no highlighting)",
+      "rp8": "RP-8 (selected road class)",
+      "en13201": "EN 13201 (selected class)",
+      "cjj45": "CJJ 45 (selected class)",
+      "custom": "Custom ratio",
+      "ratio": "Ratio:",
+      "below_ratio": "below {pct}% of avg",
+      "below_lux": "below {lux}"
+    },
+    "stats": {
+      "avg": "avg",
+      "min": "min",
+      "max": "max",
+      "lux_suffix": "lux"
+    },
+    "compliance": {
+      "heading": "Compliance",
+      "pass": "✓ PASS",
+      "fail": "✗ FAIL",
+      "criterion": "Criterion",
+      "required": "Required",
+      "achieved": "Achieved"
+    },
+    "placeholder": "Load a luminaire in the main editor tab — it will appear here automatically for plan view and compliance.",
+    "standard_selector": {
+      "legend": "Authoritative standard",
+      "rp8": "ANSI/IES RP-8 (United States)",
+      "en13201": "DIN EN 13201 (Europe)",
+      "cjj45": "CJJ 45 (China)"
+    },
+    "rp8_tree": {
+      "legend": "RP-8 decision tree",
+      "road_class": "Road functional class",
+      "major": "Major",
+      "collector": "Collector",
+      "local": "Local",
+      "pedestrian_conflict": "Pedestrian conflict area",
+      "ped_high": "High (> 100 ped/hr)",
+      "ped_medium": "Medium (11–100 ped/hr)",
+      "ped_low": "Low (< 11 ped/hr)"
+    },
+    "en13201_tree": {
+      "legend": "EN 13201-1 Annex A (lighting class selection)",
+      "family": "Class family",
+      "family_c": "C — conflict area (illuminance)",
+      "family_p": "P — pedestrian / low-speed (illuminance)",
+      "design_speed": "Design speed",
+      "speed_very_high": "Very high (> 60 km/h)",
+      "speed_high": "High (30–60 km/h)",
+      "speed_moderate": "Moderate (5–30 km/h)",
+      "speed_low": "Low (walking)",
+      "traffic_volume": "Traffic volume",
+      "vol_very_high": "Very high (> 80 % of capacity)",
+      "vol_high": "High (65–80 %)",
+      "vol_moderate": "Moderate (35–65 %)",
+      "vol_low": "Low (15–35 %)",
+      "vol_very_low": "Very low (< 15 %)",
+      "traffic_composition": "Traffic composition",
+      "comp_mixed": "Mixed (motor + slow + non-motor)",
+      "comp_mixed_motor": "Mixed, motor-dominant",
+      "comp_motor_only": "Motor only",
+      "separation": "Separation of carriageways",
+      "sep_yes": "Separated",
+      "sep_no": "Not separated",
+      "junction_density": "Junction density",
+      "jd_high": "High (> 3 / km)",
+      "jd_moderate": "Moderate (≤ 3 / km)",
+      "parked_vehicles": "Parked vehicles",
+      "parked_yes": "Present",
+      "parked_no": "Not present",
+      "ambient_luminance": "Ambient luminance",
+      "amb_high": "High",
+      "amb_moderate": "Moderate",
+      "amb_low": "Low",
+      "navigational_task": "Navigational task",
+      "nav_very_difficult": "Very difficult",
+      "nav_difficult": "Difficult",
+      "nav_easy": "Easy",
+      "pedestrian_speed": "Pedestrian speed category",
+      "pspeed_walking": "Walking only",
+      "pspeed_slow_mixed": "Slow mixed (access motor OK)",
+      "pspeed_low_motor": "Low-speed motor + pedestrians",
+      "user_density": "User density",
+      "ud_high": "High",
+      "ud_moderate": "Moderate",
+      "ud_low": "Low",
+      "facial_recognition": "Facial recognition need",
+      "fr_necessary": "Necessary",
+      "fr_useful": "Useful",
+      "fr_not_needed": "Not needed"
+    },
+    "cjj45_tree": {
+      "legend": "CJJ 45 decision tree",
+      "road_grade": "Road grade",
+      "expressway": "Expressway 快速路 (Class I)",
+      "major_arterial": "Major arterial 主干路 (Class I)",
+      "minor_arterial": "Minor arterial 次干路 (Class II)",
+      "branch": "Branch road 支路 (Class III)",
+      "residential": "Residential 居住区道路 (Class IV)"
+    },
+    "optimizer": {
+      "legend": "Layout optimizer",
+      "objective_label": "Objective",
+      "obj_pole_count": "Fewest poles per km",
+      "obj_flux": "Lowest total flux per km",
+      "obj_safety": "Highest safety margin (min/avg)",
+      "run": "Find minimum-cost layout",
+      "running": "Searching…",
+      "no_results": "No passing layouts found yet — pick an objective and click Find.",
+      "col_spacing": "Spacing",
+      "col_height": "Height",
+      "col_arrangement": "Arrangement",
+      "col_poles": "Poles / km",
+      "col_flux": "Flux / km",
+      "col_uniformity": "U₀",
+      "col_apply": "",
+      "apply": "Apply",
+      "tradeoff_show": "Show layout trade-off",
+      "tradeoff_hide": "Hide layout trade-off"
+    },
+    "principal_planes": {
+      "show": "Show PV/PC distribution",
+      "hide": "Hide PV/PC distribution"
+    },
+    "exports": {
+      "heading": "Export",
+      "plan_svg": "Plan view (SVG)",
+      "principal_planes_svg": "PV/PC diagram (SVG)",
+      "tradeoff_svg": "Trade-off chart (SVG)",
+      "optimizer_csv": "Optimizer results (CSV)",
+      "optimizer_json": "Optimizer results (JSON)",
+      "report_pdf": "Full report (PDF)",
+      "report_pdf_hint": "Compiles to PDF in-browser via Typst (≈10 MB module loads on first use)"
+    },
+    "advisor": {
+      "heading": "Recommendations"
+    },
+    "plan_overlays": {
+      "grid_points": "Show calculation grid points"
+    }
+  },
+  "extra": {
+    "gldf.nav.overview": "Overview",
+    "gldf.nav.raw_data": "Raw Data",
+    "gldf.nav.file_viewer": "File Viewer",
+    "gldf.nav.plugins": "Plugins",
+    "gldf.nav.ifc_viewer": "IFC Viewer",
+    "gldf.nav.header": "Header",
+    "gldf.nav.electrical": "Electrical",
+    "gldf.nav.mechanical": "Mechanical",
+    "gldf.nav.applications": "Applications",
+    "gldf.nav.photometry": "Photometry",
+    "gldf.nav.statistics": "Statistics",
+    "gldf.nav.files": "Files",
+    "gldf.nav.light_sources": "Light Sources",
+    "gldf.nav.emitters": "Emitters",
+    "gldf.nav.variants": "Variants",
+    "gldf.toolbar.edit_mode": "Edit Mode",
+    "gldf.toolbar.view_mode": "View Mode",
+    "gldf.toolbar.export_gldf": "Export GLDF",
+    "gldf.toolbar.export_json": "Export JSON",
+    "gldf.toolbar.export_xml": "Export XML",
+    "gldf.toolbar.export_ifc": "Export IFC",
+    "gldf.toolbar.export_ifc_tooltip": "Export to IFC (BIM format)",
+    "gldf.toolbar.clear": "Clear",
+    "gldf.toolbar.clear_tooltip": "Clear all and start over",
+    "gldf.toolbar.help": "?",
+    "gldf.toolbar.help_tooltip": "Show help",
+    "gldf.toolbar.ui_lang_tooltip": "Viewer translation language",
+    "gldf.welcome.open_file": "Open File...",
+    "gldf.welcome.load_slv_tria_2": "Load SLV Tria 2",
+    "gldf.welcome.load_floodlight_max": "Load Ledvance Floodlight Max",
+    "gldf.welcome.load_floodlight_combined": "Load Floodlight Max Combined",
+    "gldf.welcome.load_biolux": "Load Biolux HCL"
   }
 }

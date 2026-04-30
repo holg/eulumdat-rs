@@ -8,6 +8,7 @@ repository.workspace = true
 description = "Typst report generation for photometric data"
 keywords = ["eulumdat", "photometry", "pdf", "report", "typst"]
 categories = ["science", "visualization"]
+readme = "README.md"
 
 [features]
 default = []
@@ -18,7 +19,6 @@ cli-compile = []
 
 [dependencies]
 anyhow = "1.0"
-atla.workspace = true
 base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "wasmbind"] }
 comemo = { version = "0.4", optional = true }

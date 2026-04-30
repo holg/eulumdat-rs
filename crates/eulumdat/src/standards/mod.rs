@@ -18,6 +18,7 @@
 
 pub mod cjj45;
 pub mod en13201;
+pub mod en13201_selector;
 pub mod mlo;
 pub mod rp8;
 

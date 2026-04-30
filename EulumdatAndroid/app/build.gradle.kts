@@ -30,7 +30,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = getEnvProperty("VERSION_CODE", "1").toIntOrNull() ?: 1
-        versionName = getEnvProperty("VERSION_NAME", "0.2.1")
+        versionName = getEnvProperty("VERSION_NAME", "0.7.0")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

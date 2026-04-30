@@ -1,24 +1,24 @@
 use crate::i18n::use_locale;
-use atla::validate::{validate_with_schema, ValidationSchema};
-use atla::LuminaireOpticalData;
+use eulumdat::atla::validate::{validate_with_schema, ValidationSchema};
+use eulumdat::atla::LuminaireOpticalData;
 use eulumdat::Eulumdat;
 use leptos::prelude::*;
 
 #[component]
-pub fn ValidationPanel(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn ValidationPanel(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
     move || {
-        let ldt = ldt.get();
+        let ldc = ldc.get();
         let l = locale.get();
-        let warnings = eulumdat::validate_with_locale(&ldt, &l);
-        let strict_result = eulumdat::validate_strict_with_locale(&ldt, &l);
+        let warnings = eulumdat::validate_with_locale(&ldc, &l);
+        let strict_result = eulumdat::validate_strict_with_locale(&ldc, &l);
 
         let has_errors = strict_result.is_err();
         let errors = strict_result.err().unwrap_or_default();
 
         // Convert to ATLA for schema validation
-        let atla_doc = LuminaireOpticalData::from_eulumdat(&ldt);
+        let atla_doc = LuminaireOpticalData::from_eulumdat(&ldc);
         let s001_result = validate_with_schema(&atla_doc, ValidationSchema::AtlaS001);
         let tm33_result = validate_with_schema(&atla_doc, ValidationSchema::Tm3323);
         let tm32_result = validate_with_schema(&atla_doc, ValidationSchema::Tm3224);

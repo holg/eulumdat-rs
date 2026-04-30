@@ -167,6 +167,7 @@
 //! - [IES TM-15-11 BUG Ratings](https://www.ies.org/wp-content/uploads/2017/03/TM-15-11BUGRatingsAddendum.pdf)
 
 pub mod area;
+pub mod atla;
 pub mod batch;
 pub mod bug_rating;
 mod calculations;

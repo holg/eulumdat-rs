@@ -71,7 +71,9 @@ fn parse_photometric(name: &str, content: &str) -> Option<Eulumdat> {
     if lower.ends_with(".ies") {
         IesParser::parse(content).ok()
     } else if lower.ends_with(".xml") {
-        atla::xml::parse(content).ok().map(|doc| doc.to_eulumdat())
+        eulumdat::atla::xml::parse(content)
+            .ok()
+            .map(|doc| doc.to_eulumdat())
     } else {
         Eulumdat::parse(content).ok()
     }
@@ -219,14 +221,14 @@ fn render_diagrams(
 
 /// Panel for comparing two photometric files side-by-side.
 ///
-/// File B state (`ldt_b`, `label_b`) is owned by the parent (app.rs) so it
+/// File B state (`ldc_b`, `label_b`) is owned by the parent (app.rs) so it
 /// persists across tab switches.
 #[component]
 pub fn ComparePanel(
-    ldt: ReadSignal<Eulumdat>,
+    ldc: ReadSignal<Eulumdat>,
     current_file: ReadSignal<Option<String>>,
-    ldt_b: ReadSignal<Option<Eulumdat>>,
-    set_ldt_b: WriteSignal<Option<Eulumdat>>,
+    ldc_b: ReadSignal<Option<Eulumdat>>,
+    set_ldc_b: WriteSignal<Option<Eulumdat>>,
     label_b: ReadSignal<Option<String>>,
     set_label_b: WriteSignal<Option<String>>,
 ) -> impl IntoView {
@@ -251,14 +253,14 @@ pub fn ComparePanel(
 
     // Expanded C-plane angles (half-circle 0..180) — memoized per file so DOM isn't recreated on slider move
     let half_angles_a = Memo::new(move |_| {
-        let angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+        let angles = eulumdat::SymmetryHandler::expand_c_angles(&ldc.get());
         angles
             .into_iter()
             .filter(|&a| a < 180.0)
             .collect::<Vec<f64>>()
     });
     let half_angles_b = Memo::new(move |_| {
-        ldt_b
+        ldc_b
             .get()
             .map(|b| {
                 eulumdat::SymmetryHandler::expand_c_angles(&b)
@@ -279,7 +281,7 @@ pub fn ComparePanel(
     // Shared helper: load a file into File B state
     let load_file_b = move |name: String, content: String| {
         if let Some(parsed) = parse_photometric(&name, &content) {
-            set_ldt_b.set(Some(parsed));
+            set_ldc_b.set(Some(parsed));
             set_label_b.set(Some(name));
         }
     };
@@ -332,7 +334,7 @@ pub fn ComparePanel(
 
     // Clear File B
     let on_clear_b = move |_: ev::MouseEvent| {
-        set_ldt_b.set(None);
+        set_ldc_b.set(None);
         set_label_b.set(None);
     };
 
@@ -350,15 +352,15 @@ pub fn ComparePanel(
                 let parsed = match format {
                     TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
                     TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
-                    TemplateFormat::AtlaXml => {
-                        atla::xml::parse(&content).ok().map(|doc| doc.to_eulumdat())
-                    }
-                    TemplateFormat::AtlaJson => atla::json::parse(&content)
+                    TemplateFormat::AtlaXml => eulumdat::atla::xml::parse(&content)
+                        .ok()
+                        .map(|doc| doc.to_eulumdat()),
+                    TemplateFormat::AtlaJson => eulumdat::atla::json::parse(&content)
                         .ok()
                         .map(|doc| doc.to_eulumdat()),
                 };
-                if let Some(ldt) = parsed {
-                    set_ldt_b.set(Some(ldt));
+                if let Some(ldc) = parsed {
+                    set_ldc_b.set(Some(ldc));
                     set_label_b.set(Some(name));
                 }
             }
@@ -367,8 +369,8 @@ pub fn ComparePanel(
 
     // Compute comparison as a derived memo
     let comparison = Memo::new(move |_| {
-        let a = ldt.get();
-        ldt_b.get().map(|b| {
+        let a = ldc.get();
+        ldc_b.get().map(|b| {
             let la = label_a.get();
             let lb = label_b
                 .get()
@@ -383,8 +385,8 @@ pub fn ComparePanel(
 
     // Generate diagram SVG(s)
     let diagram_svgs = Memo::new(move |_| {
-        let a = ldt.get();
-        ldt_b.get().map(|b| {
+        let a = ldc.get();
+        ldc_b.get().map(|b| {
             let la = label_a.get();
             let lb = label_b
                 .get()
@@ -417,8 +419,8 @@ pub fn ComparePanel(
 
     // Export: Typst source download
     let on_export_compare_typ = move |_: ev::MouseEvent| {
-        if let Some(b_ldt) = ldt_b.get() {
-            let a_ldt = ldt.get();
+        if let Some(b_ldt) = ldc_b.get() {
+            let a_ldt = ldc.get();
             let la = label_a.get();
             let lb = label_b
                 .get()
@@ -436,8 +438,8 @@ pub fn ComparePanel(
     let (pdf_exporting, set_pdf_exporting) = signal(false);
 
     let on_export_compare_pdf = move |_: ev::MouseEvent| {
-        if let Some(b_ldt) = ldt_b.get() {
-            let a_ldt = ldt.get();
+        if let Some(b_ldt) = ldc_b.get() {
+            let a_ldt = ldc.get();
             let la = label_a.get();
             let lb = label_b
                 .get()
@@ -501,7 +503,7 @@ pub fn ComparePanel(
                             {move || locale.get().ui.compare.browse.clone()}
                             <input
                                 type="file"
-                                accept=".ldt,.ies,.xml,.json"
+                                accept=".ldt,.ies,.xml,.json,.oxl,.oxc"
                                 style="display:none"
                                 on:change=on_file_b_input
                             />
@@ -704,12 +706,12 @@ pub fn ComparePanel(
                                         type="range"
                                         min="0"
                                         prop:max=move || {
-                                            let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+                                            let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldc.get());
                                             if c_angles.is_empty() { "0".to_string() } else { (c_angles.len() - 1).to_string() }
                                         }
                                         step="1"
                                         prop:value=move || {
-                                            let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+                                            let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldc.get());
                                             match cmp_c_plane.get() {
                                                 Some(cp) => c_angles.iter().position(|&x| (x - cp).abs() < 0.01)
                                                     .unwrap_or(0).to_string(),
@@ -718,7 +720,7 @@ pub fn ComparePanel(
                                         }
                                         on:input=move |ev| {
                                             if let Ok(idx) = event_target_value(&ev).parse::<usize>() {
-                                                let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldt.get());
+                                                let c_angles = eulumdat::SymmetryHandler::expand_c_angles(&ldc.get());
                                                 if let Some(&angle) = c_angles.get(idx) {
                                                     set_cmp_c_plane.set(Some(angle));
                                                 }

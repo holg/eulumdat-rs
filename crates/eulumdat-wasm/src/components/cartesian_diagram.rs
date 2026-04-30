@@ -9,13 +9,13 @@ use eulumdat::{
 use leptos::prelude::*;
 
 #[component]
-pub fn CartesianDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn CartesianDiagram(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
-    let has_variation = Memo::new(move |_| ConeDiagram::has_c_plane_variation(&ldt.get()));
+    let has_variation = Memo::new(move |_| ConeDiagram::has_c_plane_variation(&ldc.get()));
 
     let half_angles = Memo::new(move |_| {
-        let angles = SymmetryHandler::expand_c_angles(&ldt.get());
+        let angles = SymmetryHandler::expand_c_angles(&ldc.get());
         angles
             .into_iter()
             .filter(|&a| a <= 360.0)
@@ -87,14 +87,14 @@ pub fn CartesianDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
             }
         }}
         <div class="cartesian-diagram" inner_html=move || {
-            let ldt = ldt.get();
+            let ldc = ldc.get();
             let theme = SvgTheme::css_variables_with_locale(&locale.get());
-            let summary = PhotometricSummary::from_eulumdat(&ldt);
+            let summary = PhotometricSummary::from_eulumdat(&ldc);
             if let Some(cp) = selected_plane.get() {
-                let cartesian = CoreCartesianDiagram::from_eulumdat_for_plane(&ldt, cp, 500.0, 380.0);
+                let cartesian = CoreCartesianDiagram::from_eulumdat_for_plane(&ldc, cp, 500.0, 380.0);
                 cartesian.to_svg_with_summary(500.0, 380.0, &theme, &summary)
             } else {
-                let cartesian = CoreCartesianDiagram::from_eulumdat(&ldt, 500.0, 380.0, 8);
+                let cartesian = CoreCartesianDiagram::from_eulumdat(&ldc, 500.0, 380.0, 8);
                 cartesian.to_svg_with_summary(500.0, 380.0, &theme, &summary)
             }
         } />

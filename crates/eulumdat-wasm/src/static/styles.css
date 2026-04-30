@@ -4991,16 +4991,54 @@ tr.delta-major .metric-percent {
     color: var(--text-primary);
 }
 
-.street-root .street-app .street-viz-toggle {
+.street-root .street-app .street-viz-controls {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.street-root .street-app .street-viz-dropdown {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    cursor: pointer;
     user-select: none;
 }
 
-.street-root .street-app .street-viz-toggle input[type="checkbox"] {
-    margin: 0;
+.street-root .street-app .street-viz-dropdown select {
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.street-root .street-app .street-viz-ratio {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.street-root .street-app .street-viz-ratio input[type="range"] {
+    width: 8rem;
+    accent-color: var(--primary-color);
+}
+
+.street-root .street-app .street-viz-ratio span {
+    min-width: 2.5rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted, #888);
+}
+
+.street-root .street-app .street-viz-threshold {
+    padding: 0.15rem 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-muted, #888);
+    font-size: 0.78rem;
+    white-space: nowrap;
 }
 
 .street-root .street-app .street-viz-stats strong {
@@ -5022,4 +5060,65 @@ tr.delta-major .metric-percent {
     color: var(--text-muted, #888);
     font-style: italic;
     padding: 1rem 0;
+}
+
+/* Inline download buttons next to diagram visibility toggles. Small,
+ * unobtrusive, theme-aware — they sit beside the toggle so the user
+ * can grab the SVG of whatever they're currently looking at without
+ * scrolling to the master export panel. */
+.street-root .street-app .street-inline-dl {
+    margin-left: 0.4rem;
+    padding: 0.15rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-muted, #888);
+    font-size: 0.78rem;
+    cursor: pointer;
+    line-height: 1.3;
+}
+.street-root .street-app .street-inline-dl:hover {
+    background: var(--surface-hover, var(--surface));
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* ExportsPanel — single row of download buttons at the bottom that
+ * mirrors what the inline buttons do for individual diagrams plus
+ * adds CSV/JSON of the optimizer set and the full PDF report. */
+.street-root .street-app .street-exports {
+    margin: 1rem 0 0;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+}
+.street-root .street-app .street-exports legend {
+    padding: 0 0.4rem;
+    color: var(--text-muted, #888);
+    font-size: 0.85rem;
+}
+.street-root .street-app .street-exports-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
+}
+.street-root .street-app .street-exports-row button {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.street-root .street-app .street-exports-row button:hover:not(:disabled) {
+    background: var(--surface-hover, var(--surface));
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.street-root .street-app .street-exports-row button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }

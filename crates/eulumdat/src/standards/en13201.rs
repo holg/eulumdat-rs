@@ -80,6 +80,15 @@ impl En13201Class {
             min_illuminance_lux: min,
         }
     }
+
+    /// Threshold for the plan-view "highlight failures" overlay.
+    ///
+    /// EN 13201 specifies an *absolute* minimum illuminance per class
+    /// (`E_min ≥ L`), so the overlay threshold is set directly to that
+    /// lux value — independent of the grid's mean.
+    pub fn failure_overlay(self) -> crate::street::FailureOverlay {
+        crate::street::FailureOverlay::absolute(self.criteria().min_illuminance_lux)
+    }
 }
 
 /// DIN EN 13201 — illuminance method (C/P classes).
@@ -191,5 +200,21 @@ mod tests {
             );
         }
         let _ = all;
+    }
+
+    #[test]
+    fn failure_overlay_matches_absolute_min() {
+        use crate::street::FailureOverlay;
+
+        // C3 requires E_min ≥ 9 lux.
+        match En13201Class::C3.failure_overlay() {
+            FailureOverlay::AbsoluteLux { min_lux } => assert_eq!(min_lux, 9.0),
+            other => panic!("expected AbsoluteLux, got {other:?}"),
+        }
+        // P6 requires E_min ≥ 0.4 lux.
+        match En13201Class::P6.failure_overlay() {
+            FailureOverlay::AbsoluteLux { min_lux } => assert!((min_lux - 0.4).abs() < 1e-9),
+            other => panic!("expected AbsoluteLux, got {other:?}"),
+        }
     }
 }

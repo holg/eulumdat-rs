@@ -3,8 +3,8 @@
 //! Parses the JSON format as specified in ATLA S001-A, which provides
 //! approximately 90% file size reduction compared to XML.
 
-use crate::error::Result;
-use crate::types::*;
+use crate::atla::error::Result;
+use crate::atla::types::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

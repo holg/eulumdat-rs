@@ -53,16 +53,16 @@ pub fn load_from_local_storage() -> Option<Eulumdat> {
     );
 
     match Eulumdat::parse(&ldt_string) {
-        Ok(ldt) => {
+        Ok(ldc) => {
             web_sys::console::log_1(
                 &format!(
                     "[Bevy] Parsed LDT: {} lumens, {} cd/klm max",
-                    ldt.total_luminous_flux(),
-                    ldt.max_intensity()
+                    ldc.total_luminous_flux(),
+                    ldc.max_intensity()
                 )
                 .into(),
             );
-            Some(ldt)
+            Some(ldc)
         }
         Err(e) => {
             web_sys::console::error_1(&format!("[Bevy] Failed to parse LDT: {:?}", e).into());
@@ -93,7 +93,7 @@ pub fn get_ldt_timestamp() -> Option<String> {
 ///
 /// For WASM with wasm-sync feature: Loads from localStorage.
 /// For native: Tries common file paths.
-pub fn load_default_ldt() -> Option<Eulumdat> {
+pub fn load_default_ldc() -> Option<Eulumdat> {
     // For WASM with wasm-sync feature, load from localStorage
     #[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
     {
@@ -119,8 +119,8 @@ pub fn load_default_ldt() -> Option<Eulumdat> {
         ];
 
         for path in sample_paths {
-            if let Ok(ldt) = Eulumdat::from_file(path) {
-                return Some(ldt);
+            if let Ok(ldc) = Eulumdat::from_file(path) {
+                return Some(ldc);
             }
         }
         None
@@ -146,11 +146,11 @@ pub fn poll_ldt_changes(
                     )
                     .into(),
                 );
-                if let Some(ldt) = load_from_local_storage() {
+                if let Some(ldc) = load_from_local_storage() {
                     web_sys::console::log_1(
                         &format!("[Bevy] Updating ViewerSettings with new LDT").into(),
                     );
-                    settings.ldt_data = Some(ldt);
+                    settings.ldc_data = Some(ldc);
                     last_timestamp.0 = new_timestamp;
                 }
             }
@@ -199,7 +199,7 @@ pub fn load_viewer_settings_from_local_storage(
 }
 
 /// Parse ViewerSettings from JSON string.
-/// Preserves ldt_data from current settings since it's synced separately.
+/// Preserves ldc_data from current settings since it's synced separately.
 #[cfg(all(target_arch = "wasm32", feature = "wasm-sync"))]
 fn parse_viewer_settings_json(json: &str, current: &ViewerSettings) -> Option<ViewerSettings> {
     // Simple JSON parsing without serde dependency
@@ -253,7 +253,7 @@ fn parse_viewer_settings_json(json: &str, current: &ViewerSettings) -> Option<Vi
             .unwrap_or(current.show_photometric_solid),
         show_shadows: get_bool("show_shadows").unwrap_or(current.show_shadows),
         // Preserve LDT data - it's synced separately
-        ldt_data: current.ldt_data.clone(),
+        ldc_data: current.ldc_data.clone(),
         luminaire_tilt: get_f32("luminaire_tilt").unwrap_or(current.luminaire_tilt),
         lane_width: get_f32("lane_width").unwrap_or(current.lane_width),
         num_lanes: get_u8("num_lanes").unwrap_or(current.num_lanes as u8) as u32,

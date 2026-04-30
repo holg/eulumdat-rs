@@ -83,8 +83,8 @@ pub fn viewer_controls_system(
         settings.scene_type = SceneType::DesignerExterior;
         // Auto-populate exterior designer data from LDT if not already set
         if settings.area_result.is_none() {
-            if let Some(ldt) = settings.ldt_data.clone() {
-                populate_exterior_defaults(&mut settings, &ldt);
+            if let Some(ldc) = settings.ldc_data.clone() {
+                populate_exterior_defaults(&mut settings, &ldc);
             }
         }
     }
@@ -92,8 +92,8 @@ pub fn viewer_controls_system(
         settings.scene_type = SceneType::DesignerInterior;
         // Auto-populate interior designer data from LDT if not already set
         if settings.designer_room.is_none() {
-            if let Some(ldt) = settings.ldt_data.clone() {
-                populate_interior_defaults(&mut settings, &ldt);
+            if let Some(ldc) = settings.ldc_data.clone() {
+                populate_interior_defaults(&mut settings, &ldc);
             }
         }
     }
@@ -183,13 +183,13 @@ pub fn sync_viewer_to_lights(
     }
 
     // Get LDT data from first light
-    let ldt_data = lights.iter().next().map(|(_, l, _)| l.data.clone());
-    let Some(ldt) = ldt_data else {
+    let ldc_data = lights.iter().next().map(|(_, l, _)| l.data.clone());
+    let Some(ldc) = ldc_data else {
         return;
     };
 
     // Calculate required transforms for current scene
-    let transforms = calculate_all_luminaire_transforms(&settings, &ldt);
+    let transforms = calculate_all_luminaire_transforms(&settings, &ldc);
     let current_count = lights.iter().count();
     let required_count = transforms.len();
 
@@ -203,7 +203,7 @@ pub fn sync_viewer_to_lights(
         // Spawn new lights
         for transform in transforms {
             commands.spawn(
-                crate::eulumdat_impl::EulumdatLightBundle::new(ldt.clone())
+                crate::eulumdat_impl::EulumdatLightBundle::new(ldc.clone())
                     .with_transform(
                         Transform::from_translation(transform.position)
                             .with_rotation(transform.rotation),
@@ -244,9 +244,9 @@ pub struct LuminaireTransform {
 /// Returns a list of positions and rotations for each luminaire.
 pub fn calculate_all_luminaire_transforms(
     settings: &ViewerSettings,
-    ldt: &Eulumdat,
+    ldc: &Eulumdat,
 ) -> Vec<LuminaireTransform> {
-    let y = settings.luminaire_height(ldt);
+    let y = settings.luminaire_height(ldc);
 
     match settings.scene_type {
         SceneType::Room => {
@@ -382,8 +382,8 @@ fn calculate_road_luminaires(settings: &ViewerSettings, y: f32) -> Vec<Luminaire
 /// Calculate light position based on scene type and settings.
 /// Returns position for the first/primary luminaire only.
 /// For multi-luminaire scenes, use `calculate_all_luminaire_transforms`.
-pub fn calculate_light_position(settings: &ViewerSettings, ldt: &Eulumdat) -> Vec3 {
-    let transforms = calculate_all_luminaire_transforms(settings, ldt);
+pub fn calculate_light_position(settings: &ViewerSettings, ldc: &Eulumdat) -> Vec3 {
+    let transforms = calculate_all_luminaire_transforms(settings, ldc);
     transforms.first().map(|t| t.position).unwrap_or(Vec3::ZERO)
 }
 
@@ -415,7 +415,7 @@ pub fn calculate_light_rotation(settings: &ViewerSettings) -> Quat {
 /// Uses the zonal cavity method to compute a realistic room, layout,
 /// reflectances, cavity ratios, and point-by-point illuminance grid
 /// so the 3D viewer has something to show in native mode.
-fn populate_interior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
+fn populate_interior_defaults(settings: &mut ViewerSettings, ldc: &Eulumdat) {
     use eulumdat::zonal;
     use eulumdat::CuTable;
 
@@ -428,10 +428,10 @@ fn populate_interior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
     );
     let reflectances = zonal::Reflectances::new(0.80, 0.50, 0.20);
     let llf = zonal::LightLossFactor::new(0.90, 0.95, 1.0, 0.98);
-    let cu_table = CuTable::calculate(ldt);
+    let cu_table = CuTable::calculate(ldc);
 
     let zr = zonal::compute_zonal(
-        ldt,
+        ldc,
         &room,
         &reflectances,
         &llf,
@@ -444,7 +444,7 @@ fn populate_interior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
 
     // Compute PPB overlay for workplane heatmap
     let ppb = zonal::compute_ppb_overlay(
-        ldt,
+        ldc,
         &zr.layout,
         &room,
         20,
@@ -464,7 +464,7 @@ fn populate_interior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
 ///
 /// Creates a simple 2×2 grid of luminaire placements and computes
 /// the area illuminance heatmap.
-fn populate_exterior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
+fn populate_exterior_defaults(settings: &mut ViewerSettings, ldc: &Eulumdat) {
     use eulumdat::area;
 
     let area_w = 20.0;
@@ -479,7 +479,7 @@ fn populate_exterior_defaults(settings: &mut ViewerSettings, ldt: &Eulumdat) {
         area::LuminairePlace::simple(3, 15.0, 15.0, mh),
     ];
 
-    let result = area::compute_area_illuminance(ldt, &placements, area_w, area_d, 20, 1.0);
+    let result = area::compute_area_illuminance(ldc, &placements, area_w, area_d, 20, 1.0);
     settings.area_result = Some(result);
     settings.area_placements = placements;
 }

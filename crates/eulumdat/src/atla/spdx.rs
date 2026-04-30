@@ -6,7 +6,9 @@
 //! When loaded, creates a partial LuminaireOpticalData with spectral information
 //! but missing intensity distribution data.
 
-use crate::types::{Emitter, Header, LuminaireOpticalData, SpectralDistribution, SpectralUnits};
+use crate::atla::types::{
+    Emitter, Header, LuminaireOpticalData, SpectralDistribution, SpectralUnits,
+};
 use anyhow::{anyhow, Result};
 use quick_xml::events::Event;
 use quick_xml::Reader;

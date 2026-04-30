@@ -34,8 +34,18 @@
 //! println!("avg = {:.1} lux, uniformity = {:.2}", result.avg_lux, result.uniformity_min_avg);
 //! ```
 
+pub mod advisor;
 pub mod layout;
+pub mod optimize;
+pub mod report;
 pub mod svg;
 
 pub use layout::{Arrangement, StreetLayout};
-pub use svg::{plan_view_heatmap, FailureOverlay, PlanViewOptions, StreetTheme};
+pub use optimize::{
+    optimize_layout, optimize_layout_all, pareto_front_tradeoff, OptimizationCandidate,
+    OptimizerBounds, OptimizerObjective,
+};
+pub use svg::{
+    layout_tradeoff_chart, plan_view_heatmap, FailureOverlay, LayoutTradeoffOptions,
+    PlanViewOptions, StreetTheme,
+};

@@ -95,6 +95,15 @@ impl Rp8Selection {
             max_uniformity_avg_min: unif,
         }
     }
+
+    /// Threshold for the plan-view "highlight failures" overlay.
+    ///
+    /// RP-8 expresses uniformity as `avg/min ≤ N`, which translates to a
+    /// ratio floor of `1/N` (cells whose lux falls below `avg/N` fail).
+    pub fn failure_overlay(&self) -> crate::street::FailureOverlay {
+        let crit = self.criteria();
+        crate::street::FailureOverlay::ratio(1.0 / crit.max_uniformity_avg_min)
+    }
 }
 
 /// US ANSI/IES RP-8 — illuminance method.
@@ -263,5 +272,34 @@ mod tests {
         // the table) — just that the pipeline produces a well-formed result.
         assert_eq!(result.items.len(), 2);
         assert_eq!(result.region, Region::Us);
+    }
+
+    #[test]
+    fn failure_overlay_is_inverse_of_uniformity_ratio() {
+        use crate::street::FailureOverlay;
+
+        // Major/Medium → avg/min ≤ 3 → ratio_floor = 1/3 ≈ 0.333
+        let sel = Rp8Selection {
+            road_class: RoadClass::Major,
+            pedestrian_conflict: PedestrianConflict::Medium,
+        };
+        match sel.failure_overlay() {
+            FailureOverlay::RatioFloor { min_over_avg } => {
+                assert!((min_over_avg - 1.0 / 3.0).abs() < 1e-6, "{min_over_avg}");
+            }
+            other => panic!("expected RatioFloor, got {other:?}"),
+        }
+
+        // Local/Low → avg/min ≤ 6 → ratio_floor ≈ 0.1667
+        let sel = Rp8Selection {
+            road_class: RoadClass::Local,
+            pedestrian_conflict: PedestrianConflict::Low,
+        };
+        match sel.failure_overlay() {
+            FailureOverlay::RatioFloor { min_over_avg } => {
+                assert!((min_over_avg - 1.0 / 6.0).abs() < 1e-6);
+            }
+            other => panic!("expected RatioFloor, got {other:?}"),
+        }
     }
 }

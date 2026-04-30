@@ -40,7 +40,7 @@ pub use controls::{
 pub use plugin::EulumdatViewerPlugin;
 pub use scenes::{SceneGeometry, ScenePlugin, SceneType};
 pub use wasm_sync::{
-    load_default_ldt, load_from_local_storage, poll_viewer_settings_changes, DesignerTimestamp,
+    load_default_ldc, load_from_local_storage, poll_viewer_settings_changes, DesignerTimestamp,
     LdtTimestamp, ViewerSettingsTimestamp,
 };
 
@@ -77,7 +77,7 @@ pub struct ViewerSettings {
     /// Whether to enable shadows
     pub show_shadows: bool,
     /// The LDT data to display
-    pub ldt_data: Option<Eulumdat>,
+    pub ldc_data: Option<Eulumdat>,
     /// Luminaire tilt angle in degrees (for road/outdoor scenes).
     /// 0 = pointing straight down, 90 = pointing horizontally across the road.
     /// Default is 15 degrees for road luminaires.
@@ -125,7 +125,7 @@ impl Default for ViewerSettings {
             show_luminaire: true,
             show_photometric_solid: false,
             show_shadows: false,
-            ldt_data: None,
+            ldc_data: None,
             luminaire_tilt: 15.0, // 15 degrees tilt for road luminaires (typical)
             lane_width: 3.5,      // EN 13201 standard lane width
             num_lanes: 2,         // Two lanes (one per direction)
@@ -172,8 +172,8 @@ impl ViewerSettings {
     /// For outdoor scenes (Road, Parking, Outdoor):
     /// - Luminaire is fixed to pole arm at mounting_height
     /// - Center Y = mounting_height - arm_offset - half_luminaire_height
-    pub fn luminaire_height(&self, ldt: &Eulumdat) -> f32 {
-        let lum_height = (ldt.height / 1000.0).max(0.05) as f32;
+    pub fn luminaire_height(&self, ldc: &Eulumdat) -> f32 {
+        let lum_height = (ldc.height / 1000.0).max(0.05) as f32;
 
         match self.scene_type {
             SceneType::Room | SceneType::DesignerInterior => {

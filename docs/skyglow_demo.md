@@ -1,7 +1,13 @@
-# 🌌 Obscura Demo: Darkness Preservation Simulator
+# 🌌 Skyglow Demo: Darkness Preservation Simulator
+
+> **Naming note:** this demo was originally drafted as "Obscura". It was
+> renamed to **Skyglow** (the IES/IDA technical term for upward-scattered
+> light pollution) so the demo can be co-marketed with multiple partners
+> — L'Observatoire de la Nuit, IDA chapters, amateur astronomy clubs —
+> without name conflicts. Old `?wasm=obscura_demo` URLs still work.
 
 ## 🎯 Objective
-Create a high-performance, real-time lighting simulation in **Bevy (Rust)** that demonstrates the "scientific beauty of darkness." This demo showcases how the `eulumdat-bevy` crate handles real-world photometric data to reduce light pollution—perfect for a collaboration pitch to **L’Observatoire de la Nuit**.
+Create a high-performance, real-time lighting simulation in **Bevy (Rust)** that demonstrates the "scientific beauty of darkness." This demo showcases how the `eulumdat-bevy` crate handles real-world photometric data to reduce light pollution—perfect for outreach with **L'Observatoire de la Nuit**, IDA chapters, and dark-sky amateur-astronomy organizations.
 
 ---
 
@@ -16,7 +22,7 @@ Create a high-performance, real-time lighting simulation in **Bevy (Rust)** that
 ## 🛠️ Step 1: Initial Prompt for Claude Code
 *Copy and paste this into your terminal running `claude`:*
 
-> "Help me build a professional lighting demo for my `eulumdat-bevy` crate. We need to create an example called `obscura_demo`. Setup a 'Midnight Urban' environment: a dark grey ground plane (100x100), three minimalist 'apartment' cubes with emissive windows, and a 'park' area with a few spheres as trees. Ensure the ambient light is near zero to emphasize the photometric sources. Use `eulumdat_bevy::photometric::*` and `eulumdat_bevy::EulumdatLightBundle`."
+> "Help me build a professional lighting demo for my `eulumdat-bevy` crate. We need to create an example called `skyglow_demo`. Setup a 'Midnight Urban' environment: a dark grey ground plane (100x100), three minimalist 'apartment' cubes with emissive windows, and a 'park' area with a few spheres as trees. Ensure the ambient light is near zero to emphasize the photometric sources. Use `eulumdat_bevy::photometric::*` and `eulumdat_bevy::EulumdatLightBundle`."
 
 ---
 
@@ -33,10 +39,10 @@ Create a high-performance, real-time lighting simulation in **Bevy (Rust)** that
 
 ---
 
-## 📊 Step 3: The "Obscura" Dashboard (Egui)
+## 📊 Step 3: The "Skyglow" Dashboard (Egui)
 *Ask Claude to add the analytical UI:*
 
-> "Integrate `bevy_egui`. Create a floating window titled 'Obscura Analysis'. Display:
+> "Integrate `bevy_egui`. Create a floating window titled 'Skyglow Analysis'. Display:
 > 1. **Current Mode:** (Standard vs. Preserved).
 > 2. **LDT Filename:** Display the metadata from the active `EulumdatLight`.
 > 3. **Environmental Impact:** Calculate a 'Sky Glow Score' based on the `Uplight` value from the LDT data.
@@ -57,4 +63,4 @@ Create a high-performance, real-time lighting simulation in **Bevy (Rust)** that
 ## 🚀 Step 5: Run and Fix
 *Tell Claude to verify:*
 
-> "Run `cargo run --example obscura_demo`. If you encounter any dependency mismatches with Bevy 0.18 or issues with the `eulumdat` crate imports, fix them by inspecting the current workspace files."
+> "Run `cargo run --example skyglow_demo`. If you encounter any dependency mismatches with Bevy 0.18 or issues with the `eulumdat` crate imports, fix them by inspecting the current workspace files."

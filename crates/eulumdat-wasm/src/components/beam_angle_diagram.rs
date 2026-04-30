@@ -12,14 +12,14 @@ use eulumdat::{
 use leptos::prelude::*;
 
 #[component]
-pub fn BeamAngleDiagram(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn BeamAngleDiagram(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
     view! {
         <div class="polar-diagram beam-angle-diagram" inner_html=move || {
-            let ldt = ldt.get();
-            let polar = CorePolarDiagram::from_eulumdat(&ldt);
-            let analysis = PhotometricCalculations::beam_field_analysis(&ldt);
+            let ldc = ldc.get();
+            let polar = CorePolarDiagram::from_eulumdat(&ldc);
+            let analysis = PhotometricCalculations::beam_field_analysis(&ldc);
             let theme = SvgTheme::css_variables_with_locale(&locale.get());
 
             // Show both IES and CIE definitions when they differ (batwing)

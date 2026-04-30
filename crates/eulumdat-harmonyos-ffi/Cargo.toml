@@ -1,10 +1,12 @@
 [package]
 name = "eulumdat-harmonyos-ffi"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 description = "Simple C FFI bindings for Eulumdat - HarmonyOS/Cangjie compatible"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/htr/eulumdat-rs"
+# HarmonyOS native cdylib, not a Rust library — distributed as a binary.
+publish = false
 
 [lib]
 crate-type = ["cdylib", "staticlib"]

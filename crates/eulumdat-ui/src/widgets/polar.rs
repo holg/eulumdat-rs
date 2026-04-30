@@ -9,7 +9,7 @@ pub struct PolarWidget;
 
 impl PolarWidget {
     /// Show the polar diagram
-    pub fn show(ui: &mut egui::Ui, ldt: &Eulumdat, theme: &Theme) {
+    pub fn show(ui: &mut egui::Ui, ldc: &Eulumdat, theme: &Theme) {
         let available_size = ui.available_size();
         let size = available_size.min_elem().min(600.0);
         let (response, painter) = ui.allocate_painter(Vec2::splat(size), Sense::hover());
@@ -22,7 +22,7 @@ impl PolarWidget {
         painter.rect_filled(rect, 0.0, theme.background);
 
         // Generate diagram data
-        let polar = PolarDiagram::from_eulumdat(ldt);
+        let polar = PolarDiagram::from_eulumdat(ldc);
 
         // Draw grid circles
         Self::draw_grid(&painter, center, radius, &polar, theme);

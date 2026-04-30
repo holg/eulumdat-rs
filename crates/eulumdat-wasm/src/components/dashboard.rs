@@ -385,56 +385,56 @@ fn diagrams_for_mode(mode: DiagramMode) -> Vec<DiagramSlot> {
 
 // ── Extractors ────────────────────────────────────────────────────
 
-fn extract_name(ldt: &Eulumdat) -> String {
-    if !ldt.luminaire_name.is_empty() {
-        ldt.luminaire_name.clone()
-    } else if !ldt.identification.is_empty() {
-        ldt.identification.clone()
-    } else if !ldt.luminaire_number.is_empty() {
-        ldt.luminaire_number.clone()
+fn extract_name(ldc: &Eulumdat) -> String {
+    if !ldc.luminaire_name.is_empty() {
+        ldc.luminaire_name.clone()
+    } else if !ldc.identification.is_empty() {
+        ldc.identification.clone()
+    } else if !ldc.luminaire_number.is_empty() {
+        ldc.luminaire_number.clone()
     } else {
         String::new()
     }
 }
 
-fn extract_cct(ldt: &Eulumdat) -> String {
-    ldt.lamp_sets
+fn extract_cct(ldc: &Eulumdat) -> String {
+    ldc.lamp_sets
         .first()
         .map(|ls| ls.color_appearance.clone())
         .unwrap_or_default()
 }
 
-fn extract_power(ldt: &Eulumdat) -> String {
-    format!("{:.0}W", ldt.total_wattage())
+fn extract_power(ldc: &Eulumdat) -> String {
+    format!("{:.0}W", ldc.total_wattage())
 }
 
-fn extract_lumens(ldt: &Eulumdat) -> String {
-    format!("{:.0} lm", ldt.total_luminous_flux())
+fn extract_lumens(ldc: &Eulumdat) -> String {
+    format!("{:.0} lm", ldc.total_luminous_flux())
 }
 
-fn extract_lor(ldt: &Eulumdat) -> String {
-    format!("{:.0}%", ldt.light_output_ratio)
+fn extract_lor(ldc: &Eulumdat) -> String {
+    format!("{:.0}%", ldc.light_output_ratio)
 }
 
-fn extract_bug(ldt: &Eulumdat) -> String {
-    let r = eulumdat::bug_rating::BugRating::from_eulumdat(ldt);
+fn extract_bug(ldc: &Eulumdat) -> String {
+    let r = eulumdat::bug_rating::BugRating::from_eulumdat(ldc);
     format!("B{} U{} G{}", r.b, r.u, r.g)
 }
 
-fn extract_cri(ldt: &Eulumdat) -> String {
-    ldt.lamp_sets
+fn extract_cri(ldc: &Eulumdat) -> String {
+    ldc.lamp_sets
         .first()
         .map(|ls| ls.color_rendering_group.clone())
         .unwrap_or_default()
 }
 
-fn extract_beam(ldt: &Eulumdat) -> String {
-    let s = eulumdat::PhotometricSummary::from_eulumdat(ldt);
+fn extract_beam(ldc: &Eulumdat) -> String {
+    let s = eulumdat::PhotometricSummary::from_eulumdat(ldc);
     format!("{:.0}\u{00b0}", s.beam_angle)
 }
 
-fn extract_optics(ldt: &Eulumdat) -> String {
-    let s = eulumdat::PhotometricSummary::from_eulumdat(ldt);
+fn extract_optics(ldc: &Eulumdat) -> String {
+    let s = eulumdat::PhotometricSummary::from_eulumdat(ldc);
     if s.beam_angle < 30.0 {
         "Narrow".into()
     } else if s.beam_angle < 60.0 {
@@ -446,8 +446,8 @@ fn extract_optics(ldt: &Eulumdat) -> String {
     }
 }
 
-fn extract_modules(ldt: &Eulumdat) -> String {
-    let n: i32 = ldt
+fn extract_modules(ldc: &Eulumdat) -> String {
+    let n: i32 = ldc
         .lamp_sets
         .iter()
         .map(|ls| ls.num_lamps.unsigned_abs() as i32)
@@ -459,8 +459,8 @@ fn extract_modules(ldt: &Eulumdat) -> String {
     }
 }
 
-fn extract_current(ldt: &Eulumdat) -> String {
-    let w = ldt.total_wattage();
+fn extract_current(ldc: &Eulumdat) -> String {
+    let w = ldc.total_wattage();
     if w > 0.0 {
         format!("{:.0}mA", (w / 48.0) * 1000.0)
     } else {
@@ -498,7 +498,7 @@ fn grid_template_columns(config: &DashboardConfig) -> String {
 #[derive(Clone)]
 struct LuminaireEntry {
     name: String,
-    ldt: Eulumdat,
+    ldc: Eulumdat,
 }
 
 type RowId = usize;
@@ -508,7 +508,7 @@ const USER_FILE_ROW: RowId = usize::MAX;
 
 #[component]
 pub fn Dashboard(
-    ldt: ReadSignal<Eulumdat>,
+    ldc: ReadSignal<Eulumdat>,
     on_select: Callback<(Eulumdat, String)>,
     on_compare: Callback<(Eulumdat, String)>,
     on_edit: Callback<()>,
@@ -569,10 +569,10 @@ pub fn Dashboard(
                     TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
                     _ => None,
                 };
-                if let Some(ldt) = parsed {
+                if let Some(ldc) = parsed {
                     loaded.push(LuminaireEntry {
                         name: tpl.name.to_string(),
-                        ldt,
+                        ldc,
                     });
                 }
             }
@@ -582,7 +582,7 @@ pub fn Dashboard(
     });
 
     // ── Row click handler ───────────────────────────────────────
-    let make_row_handler = move |row_id: RowId, entry_ldt: Eulumdat, label: String| {
+    let make_row_handler = move |row_id: RowId, entry_ldc: Eulumdat, label: String| {
         Callback::new(move |ctrl: bool| {
             if ctrl {
                 let current = compare_idx.get_untracked();
@@ -590,7 +590,7 @@ pub fn Dashboard(
                     set_compare_idx.set(None);
                 } else {
                     set_compare_idx.set(Some(row_id));
-                    on_compare.run((entry_ldt.clone(), label.clone()));
+                    on_compare.run((entry_ldc.clone(), label.clone()));
                 }
             } else {
                 let current = selected_idx.get_untracked();
@@ -605,7 +605,7 @@ pub fn Dashboard(
                 } else {
                     set_selected_idx.set(Some(row_id));
                     set_expanded_idx.set(Some(row_id));
-                    on_select.run((entry_ldt.clone(), label.clone()));
+                    on_select.run((entry_ldc.clone(), label.clone()));
                 }
             }
         })
@@ -624,9 +624,9 @@ pub fn Dashboard(
     let on_zoom = move || {
         if let Some(row_id) = selected_idx.get_untracked() {
             let sel_ldt = if row_id == USER_FILE_ROW {
-                Some(ldt.get_untracked())
+                Some(ldc.get_untracked())
             } else {
-                entries.get_untracked().get(row_id).map(|e| e.ldt.clone())
+                entries.get_untracked().get(row_id).map(|e| e.ldc.clone())
             };
             if let Some(l) = sel_ldt {
                 let cfg = config.get_untracked();
@@ -652,9 +652,9 @@ pub fn Dashboard(
     let on_print = move || {
         if let Some(row_id) = selected_idx.get_untracked() {
             let sel_ldt = if row_id == USER_FILE_ROW {
-                Some(ldt.get_untracked())
+                Some(ldc.get_untracked())
             } else {
-                entries.get_untracked().get(row_id).map(|e| e.ldt.clone())
+                entries.get_untracked().get(row_id).map(|e| e.ldc.clone())
             };
             if let Some(l) = sel_ldt {
                 on_export_pdf.run(l);
@@ -737,7 +737,7 @@ pub fn Dashboard(
 
                 // User-loaded file row
                 {move || {
-                    let l = ldt.get();
+                    let l = ldc.get();
                     let is_default = l.luminaire_name.is_empty()
                         && l.identification.is_empty()
                         && l.intensities.is_empty();
@@ -747,7 +747,7 @@ pub fn Dashboard(
                         let is_expanded = expanded_idx.get() == Some(USER_FILE_ROW);
                         let is_selected = selected_idx.get() == Some(USER_FILE_ROW);
                         let is_compare = compare_idx.get() == Some(USER_FILE_ROW);
-                        let user_ldt = ldt.get();
+                        let user_ldt = ldc.get();
                         let label = locale.get().dashboard.loaded_file.clone();
                         let cfg = config.get();
                         let mut cells: Vec<String> = cfg.columns.iter()
@@ -769,7 +769,7 @@ pub fn Dashboard(
                                 on_toggle=make_row_handler(USER_FILE_ROW, user_ldt, label)
                             />
                             {is_expanded.then(|| view! {
-                                <LuminaireDetailStatic ldt=ldt.get() diagrams=diagrams />
+                                <LuminaireDetailStatic ldc=ldc.get() diagrams=diagrams />
                             })}
                         })
                     }
@@ -796,14 +796,14 @@ pub fn Dashboard(
                         let is_selected = current_selected == Some(idx);
                         let is_compare = current_compare == Some(idx);
                         let mut cells: Vec<String> = cfg.columns.iter()
-                            .map(|c| (c.extract)(&entry.ldt))
+                            .map(|c| (c.extract)(&entry.ldc))
                             .collect();
                         if !cells.is_empty() && cells[0].is_empty() {
                             cells[0] = entry.name.clone();
                         }
                         let diagrams = diagrams_template.clone();
-                        let entry_ldt = entry.ldt.clone();
-                        let detail_ldt = entry.ldt.clone();
+                        let entry_ldc = entry.ldc.clone();
+                        let detail_ldc = entry.ldc.clone();
                         view! {
                             <LuminaireRowStatic
                                 cells=cells
@@ -812,11 +812,11 @@ pub fn Dashboard(
                                 expanded=is_expanded
                                 selected=is_selected
                                 compare=is_compare
-                                on_toggle=make_row_handler(idx, entry_ldt, entry.name.clone())
+                                on_toggle=make_row_handler(idx, entry_ldc, entry.name.clone())
                             />
                             {is_expanded.then(|| {
-                                let ldt = detail_ldt.clone();
-                                view! { <LuminaireDetailStatic ldt=ldt diagrams=diagrams /> }
+                                let ldc = detail_ldc.clone();
+                                view! { <LuminaireDetailStatic ldc=ldc diagrams=diagrams /> }
                             })}
                         }
                     }).collect_view()
@@ -851,7 +851,7 @@ pub fn Dashboard(
                         let active_slot = zoom_slot.get();
                         Some(view! {
                             <ZoomOverlay
-                                ldt=z_ldt
+                                ldc=z_ldt
                                 diagram=active_slot
                                 on_close=Callback::new(move |_| set_zoom_open.set(false))
                             />
@@ -974,8 +974,8 @@ fn DashboardSidebar(
 
 /// Full-screen overlay showing a single diagram at large size.
 #[component]
-fn ZoomOverlay(ldt: Eulumdat, diagram: DiagramSlot, on_close: Callback<()>) -> impl IntoView {
-    let (ldt_sig, _) = signal(ldt);
+fn ZoomOverlay(ldc: Eulumdat, diagram: DiagramSlot, on_close: Callback<()>) -> impl IntoView {
+    let (ldt_sig, _) = signal(ldc);
 
     // Close on Escape key
     let on_keydown = move |ev: leptos::ev::KeyboardEvent| {
@@ -999,19 +999,19 @@ fn ZoomOverlay(ldt: Eulumdat, diagram: DiagramSlot, on_close: Callback<()>) -> i
                 </button>
                 <div class="zoom-overlay-diagram">
                     {match diagram {
-                        DiagramSlot::Polar => view! { <PolarDiagram ldt=ldt_sig /> }.into_any(),
-                        DiagramSlot::Cartesian => view! { <CartesianDiagram ldt=ldt_sig /> }.into_any(),
-                        DiagramSlot::Isolux => view! { <IsoluxFootprint ldt=ldt_sig /> }.into_any(),
-                        DiagramSlot::IsoluxAec => view! { <IsoluxAec ldt=ldt_sig /> }.into_any(),
-                        DiagramSlot::IsoluxIso => view! { <IsoluxIsometric ldt=ldt_sig /> }.into_any(),
-                        DiagramSlot::BugRating => view! { <BugRating ldt=ldt_sig /> }.into_any(),
-                        DiagramSlot::Isocandela => view! { <IsocandelaDiagramView ldt=ldt_sig /> }.into_any(),
+                        DiagramSlot::Polar => view! { <PolarDiagram ldc=ldt_sig /> }.into_any(),
+                        DiagramSlot::Cartesian => view! { <CartesianDiagram ldc=ldt_sig /> }.into_any(),
+                        DiagramSlot::Isolux => view! { <IsoluxFootprint ldc=ldt_sig /> }.into_any(),
+                        DiagramSlot::IsoluxAec => view! { <IsoluxAec ldc=ldt_sig /> }.into_any(),
+                        DiagramSlot::IsoluxIso => view! { <IsoluxIsometric ldc=ldt_sig /> }.into_any(),
+                        DiagramSlot::BugRating => view! { <BugRating ldc=ldt_sig /> }.into_any(),
+                        DiagramSlot::Isocandela => view! { <IsocandelaDiagramView ldc=ldt_sig /> }.into_any(),
                         DiagramSlot::Cone => {
                             let (mh, _) = signal(3.0_f64);
                             let (cp, _) = signal(None::<f64>);
-                            view! { <ConeDiagramView ldt=ldt_sig mounting_height=mh c_plane=cp /> }.into_any()
+                            view! { <ConeDiagramView ldc=ldt_sig mounting_height=mh c_plane=cp /> }.into_any()
                         },
-                        DiagramSlot::BeamAngle => view! { <BeamAngleDiagram ldt=ldt_sig /> }.into_any(),
+                        DiagramSlot::BeamAngle => view! { <BeamAngleDiagram ldc=ldt_sig /> }.into_any(),
                     }}
                 </div>
             </div>
@@ -1069,8 +1069,8 @@ fn LuminaireRowStatic(
 // ── Dynamic Detail Panel ──────────────────────────────────────────
 
 #[component]
-fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl IntoView {
-    let (ldt_sig, _) = signal(ldt);
+fn LuminaireDetailStatic(ldc: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl IntoView {
+    let (ldt_sig, _) = signal(ldc);
     let locale = use_locale();
 
     view! {
@@ -1080,43 +1080,43 @@ fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl Into
                     DiagramSlot::Polar => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.polar_title.clone()}</h4>
-                            <PolarDiagram ldt=ldt_sig />
+                            <PolarDiagram ldc=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::Cartesian => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.cartesian_title.clone()}</h4>
-                            <CartesianDiagram ldt=ldt_sig />
+                            <CartesianDiagram ldc=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::Isolux => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.iso_lux_title.clone()}</h4>
-                            <IsoluxFootprint ldt=ldt_sig />
+                            <IsoluxFootprint ldc=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::IsoluxAec => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.iso_lux_title.clone()}</h4>
-                            <IsoluxAec ldt=ldt_sig />
+                            <IsoluxAec ldc=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::IsoluxIso => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.iso_view_title.clone()}</h4>
-                            <IsoluxIsometric ldt=ldt_sig />
+                            <IsoluxIsometric ldc=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::BugRating => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.bug_title.clone()}</h4>
-                            <BugRating ldt=ldt_sig />
+                            <BugRating ldc=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::Isocandela => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.iso_curve_title.clone()}</h4>
-                            <IsocandelaDiagramView ldt=ldt_sig />
+                            <IsocandelaDiagramView ldc=ldt_sig />
                         </div>
                     }.into_any(),
                     DiagramSlot::Cone => {
@@ -1125,14 +1125,14 @@ fn LuminaireDetailStatic(ldt: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl Into
                         view! {
                             <div class="detail-diagram">
                                 <h4>{move || locale.get().dashboard.beam_intensities_title.clone()}</h4>
-                                <ConeDiagramView ldt=ldt_sig mounting_height=mh c_plane=cp />
+                                <ConeDiagramView ldc=ldt_sig mounting_height=mh c_plane=cp />
                             </div>
                         }.into_any()
                     },
                     DiagramSlot::BeamAngle => view! {
                         <div class="detail-diagram">
                             <h4>{move || locale.get().dashboard.beam_angle_title.clone()}</h4>
-                            <BeamAngleDiagram ldt=ldt_sig />
+                            <BeamAngleDiagram ldc=ldt_sig />
                         </div>
                     }.into_any(),
                 }

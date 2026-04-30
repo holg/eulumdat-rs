@@ -4,11 +4,11 @@ use eframe::egui::{self, Color32, RichText, ScrollArea, Ui};
 use eulumdat::{validate, Eulumdat};
 
 /// Render the info panel (right side)
-pub fn render_info_panel(ui: &mut Ui, ldt: &Eulumdat) {
+pub fn render_info_panel(ui: &mut Ui, ldc: &Eulumdat) {
     ScrollArea::vertical().show(ui, |ui| {
         // Summary section
-        ui.heading(&ldt.luminaire_name);
-        ui.label(RichText::new(&ldt.identification).color(Color32::GRAY));
+        ui.heading(&ldc.luminaire_name);
+        ui.label(RichText::new(&ldc.identification).color(Color32::GRAY));
         ui.separator();
 
         // Key metrics
@@ -17,28 +17,28 @@ pub fn render_info_panel(ui: &mut Ui, ldt: &Eulumdat) {
             .spacing([20.0, 4.0])
             .show(ui, |ui| {
                 ui.label("Max Intensity:");
-                ui.label(format!("{:.0} cd/klm", ldt.max_intensity()));
+                ui.label(format!("{:.0} cd/klm", ldc.max_intensity()));
                 ui.end_row();
 
                 ui.label("Total Flux:");
-                ui.label(format!("{:.0} lm", ldt.total_luminous_flux()));
+                ui.label(format!("{:.0} lm", ldc.total_luminous_flux()));
                 ui.end_row();
 
                 ui.label("Symmetry:");
-                ui.label(format!("{:?}", ldt.symmetry));
+                ui.label(format!("{:?}", ldc.symmetry));
                 ui.end_row();
 
                 ui.label("C-Planes:");
-                ui.label(format!("{}", ldt.c_angles.len()));
+                ui.label(format!("{}", ldc.c_angles.len()));
                 ui.end_row();
 
                 ui.label("g-Angles:");
-                ui.label(format!("{}", ldt.g_angles.len()));
+                ui.label(format!("{}", ldc.g_angles.len()));
                 ui.end_row();
             });
 
         // Validation warnings
-        let warnings = validate(ldt);
+        let warnings = validate(ldc);
         if !warnings.is_empty() {
             ui.add_space(10.0);
             ui.separator();

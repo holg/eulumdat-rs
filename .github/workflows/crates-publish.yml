@@ -1,5 +1,28 @@
 # Crates.io publishing workflow for eulumdat crates
-# Publishes to crates.io on version tags
+#
+# Triggered on every `v*` tag push. Publishes the workspace's publishable
+# crates to crates.io in topological dependency order, with sleeps after
+# foundation crates so crates.io's index can update before dependents
+# resolve their peer versions.
+#
+# Crates flagged `publish = false` (see crates/*/Cargo.toml) are
+# intentionally excluded:
+#   - eulumdat-bevy / eulumdat-bevy-rt — depend on a Bevy git fork
+#     (`holg/bevy.git#photometric_proposal`); crates.io rejects git deps.
+#     Restore once the photometric proposal merges into upstream Bevy.
+#   - eulumdat-dev-server — internal dev tooling.
+#   - eulumdat-harmonyos-ffi — HarmonyOS native cdylib, distributed as a
+#     binary, not a Rust library.
+#   - eulumdat-wasm-quiz / eulumdat-wasm-street / eulumdat-wasm-templates
+#     — Leptos / WASM bundle apps, distributed as JS, not Rust libraries.
+#
+# Workflow design:
+# - Each `cargo publish` is best-effort: if a version is already on
+#   crates.io it logs "already published" and continues. This makes the
+#   workflow idempotent — re-running for the same tag is safe.
+# - We don't pre-build the whole workspace (slow, redundant with publish
+#   verify). Each `cargo publish` does its own packaging + verify.
+
 name: Crates.io Publish
 
 on:
@@ -24,163 +47,176 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      # Install Linux dependencies for egui (needed to build eulumdat-egui)
+      # Linux deps for the egui-based crates' verify step.
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev libgtk-3-dev
+          sudo apt-get install -y \
+            libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxkbcommon-dev libssl-dev libgtk-3-dev
 
-      - name: Verify crates build
+      # Sanity-check that the publishable set still tests green before we
+      # touch crates.io. Skip py/wasm/windows crates whose verify step
+      # would need a non-Linux target or a non-stable toolchain.
+      - name: Run tests on the core publishable set
         run: |
-          cargo build -p eulumdat-i18n --release
-          cargo build -p eulumdat-quiz --release
-          cargo build -p eulumdat --release
-          cargo build -p atla --release
-          cargo build -p eulumdat-photweb --release
-          cargo build -p eulumdat-typst --release
-          cargo build -p eulumdat-bevy --release
-          cargo build -p eulumdat-ui --release
-          cargo build -p eulumdat-cli --release
-          cargo build -p eulumdat-egui --release
-          cargo build -p eulumdat-ffi --release
-          cargo build -p eulumdat-plugin --release
-          cargo build -p eulumdat-tui-quiz --release
+          cargo test \
+            -p eulumdat \
+            -p eulumdat-i18n \
+            -p eulumdat-quiz \
+            -p eulumdat-photweb \
+            -p eulumdat-goniosim \
+            -p eulumdat-typst \
+            -p eulumdat-ui \
+            -p eulumdat-plugin \
+            -p eulumdat-rt \
+            -p eulumdat-ffi \
+            -p eulumdat-egui \
+            -p eulumdat-tui \
+            -p eulumdat-tui-quiz \
+            -p eulumdat-cli
 
-      - name: Run tests
-        run: cargo test -p eulumdat -p atla -p eulumdat-i18n -p eulumdat-quiz -p eulumdat-typst -p eulumdat-photweb -p eulumdat-bevy -p eulumdat-ui -p eulumdat-cli -p eulumdat-ffi -p eulumdat-tui-quiz
-
-      # Publish crates in dependency order
-      # 1. eulumdat-i18n (no internal deps)
-      - name: Publish eulumdat-i18n (internationalization)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      # ─── Tier 1: leaves with no internal deps ────────────────────────
+      - name: Publish eulumdat-i18n
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p eulumdat-i18n --allow-dirty || echo "eulumdat-i18n already published or no changes"
+          cargo publish -p eulumdat-i18n --allow-dirty \
+            || echo "eulumdat-i18n already published — continuing"
 
-      # 2. eulumdat-quiz (no internal deps, only serde)
-      - name: Publish eulumdat-quiz (photometric knowledge quiz engine)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish eulumdat-quiz
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p eulumdat-quiz --allow-dirty || echo "eulumdat-quiz already published or no changes"
+          cargo publish -p eulumdat-quiz --allow-dirty \
+            || echo "eulumdat-quiz already published — continuing"
+
+      - name: Publish eulumdat-gltf-pack
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-gltf-pack --allow-dirty \
+            || echo "eulumdat-gltf-pack already published — continuing"
+
+      - name: Publish eulumdat-server
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-server --allow-dirty \
+            || echo "eulumdat-server already published — continuing"
 
       - name: Wait for crates.io index update
         run: sleep 30
 
-      # 3. eulumdat (optionally depends on eulumdat-i18n)
+      # ─── Tier 2: foundation library (only depends on i18n) ───────────
       - name: Publish eulumdat (core library)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p eulumdat --allow-dirty || echo "eulumdat already published or no changes"
+          cargo publish -p eulumdat --allow-dirty \
+            || echo "eulumdat already published — continuing"
+
+      - name: Wait for crates.io index update
+        run: sleep 45
+
+      # ─── Tier 3: direct eulumdat consumers ───────────────────────────
+      - name: Publish eulumdat-photweb
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-photweb --allow-dirty \
+            || echo "eulumdat-photweb already published — continuing"
+
+      - name: Publish eulumdat-goniosim
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-goniosim --allow-dirty \
+            || echo "eulumdat-goniosim already published — continuing"
+
+      - name: Publish eulumdat-typst
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-typst --allow-dirty \
+            || echo "eulumdat-typst already published — continuing"
+
+      - name: Publish eulumdat-ui
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-ui --allow-dirty \
+            || echo "eulumdat-ui already published — continuing"
+
+      - name: Publish eulumdat-plugin
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          # WASM-only crate: --no-verify because Linux can't build the
+          # `wasm32-unknown-unknown` cdylib in the verify step.
+          cargo publish -p eulumdat-plugin --allow-dirty --no-verify \
+            || echo "eulumdat-plugin already published — continuing"
 
       - name: Wait for crates.io index update
         run: sleep 30
 
-      # 4. atla (optionally depends on eulumdat, eulumdat-i18n)
-      - name: Publish atla (ATLA-S001/TM-33-23 unified data model)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      # ─── Tier 4: depend on tier 3 ────────────────────────────────────
+      - name: Publish eulumdat-rt
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p atla --allow-dirty || echo "atla already published or no changes"
+          cargo publish -p eulumdat-rt --allow-dirty \
+            || echo "eulumdat-rt already published — continuing"
+
+      - name: Publish eulumdat-ffi
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-ffi --allow-dirty \
+            || echo "eulumdat-ffi already published — continuing"
+
+      - name: Publish eulumdat-egui
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-egui --allow-dirty \
+            || echo "eulumdat-egui already published — continuing"
+
+      - name: Publish eulumdat-tui
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-tui --allow-dirty \
+            || echo "eulumdat-tui already published — continuing"
+
+      - name: Publish eulumdat-tui-quiz
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-tui-quiz --allow-dirty \
+            || echo "eulumdat-tui-quiz already published — continuing"
+
+      - name: Publish eulumdat-cli
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        run: |
+          cargo publish -p eulumdat-cli --allow-dirty \
+            || echo "eulumdat-cli already published — continuing"
 
       - name: Wait for crates.io index update
         run: sleep 30
 
-      # 5. eulumdat-photweb (depends on eulumdat)
-      - name: Publish eulumdat-photweb (photometric web and 3D mesh generation)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      # ─── Tier 5: WASM editor app + Python source uploads + Windows ───
+      - name: Publish eulumdat-wasm
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p eulumdat-photweb --allow-dirty || echo "eulumdat-photweb already published or no changes"
+          # Leptos app: --no-verify so the wasm32 cdylib build isn't
+          # required on Linux x86_64.
+          cargo publish -p eulumdat-wasm --allow-dirty --no-verify \
+            || echo "eulumdat-wasm already published — continuing"
 
-      # 6. eulumdat-typst (depends on eulumdat, atla)
-      - name: Publish eulumdat-typst (Typst report generation)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish eulumdat-py (source upload)
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p eulumdat-typst --allow-dirty || echo "eulumdat-typst already published or no changes"
+          # PyO3 cdylib: --no-verify because verify needs Python linkage.
+          # Wheels go to PyPI via .github/workflows/python-publish.yml;
+          # this is just the crates.io source upload for completeness.
+          cargo publish -p eulumdat-py --allow-dirty --no-verify \
+            || echo "eulumdat-py already published — continuing"
 
-      - name: Wait for crates.io index update
-        run: sleep 30
-
-      # 7. eulumdat-bevy (depends on eulumdat, eulumdat-photweb)
-      - name: Publish eulumdat-bevy (3D scene viewer)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish eulumdat-quiz-py (source upload)
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p eulumdat-bevy --allow-dirty || echo "eulumdat-bevy already published or no changes"
+          cargo publish -p eulumdat-quiz-py --allow-dirty --no-verify \
+            || echo "eulumdat-quiz-py already published — continuing"
 
-      # 8. eulumdat-ui (depends on eulumdat, eulumdat-photweb)
-      - name: Publish eulumdat-ui (shared egui components)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Publish eulumdat-windows-preview
+        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
         run: |
-          cargo publish -p eulumdat-ui --allow-dirty || echo "eulumdat-ui already published or no changes"
-
-      # 9. eulumdat-ffi (depends on eulumdat)
-      - name: Publish eulumdat-ffi (FFI bindings for Swift/Kotlin)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          cargo publish -p eulumdat-ffi --allow-dirty || echo "eulumdat-ffi already published or no changes"
-
-      # 10. eulumdat-cli (depends on eulumdat, atla, eulumdat-typst)
-      - name: Publish eulumdat-cli (command-line tool)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          cargo publish -p eulumdat-cli --allow-dirty || echo "eulumdat-cli already published or no changes"
-
-      # 11. eulumdat-egui (depends on eulumdat, eulumdat-ui)
-      - name: Publish eulumdat-egui (desktop GUI)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          cargo publish -p eulumdat-egui --allow-dirty || echo "eulumdat-egui already published or no changes"
-
-      # 12. eulumdat-plugin (depends on eulumdat)
-      - name: Publish eulumdat-plugin (WASM plugin)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          # WASM-only crate needs --no-verify on Linux CI
-          cargo publish -p eulumdat-plugin --allow-dirty --no-verify || echo "eulumdat-plugin already published or no changes"
-
-      # 13. eulumdat-wasm (depends on eulumdat, atla, eulumdat-i18n, eulumdat-typst)
-      - name: Publish eulumdat-wasm (WebAssembly app)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          cargo publish -p eulumdat-wasm --allow-dirty || echo "eulumdat-wasm already published or no changes"
-
-      # 14. eulumdat-py (depends on eulumdat)
-      - name: Publish eulumdat-py (Python bindings source)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          # PyO3 crates need --no-verify due to Python linking requirements
-          cargo publish -p eulumdat-py --allow-dirty --no-verify || echo "eulumdat-py already published or no changes"
-
-      # 15. eulumdat-windows-preview (depends on eulumdat)
-      - name: Publish eulumdat-windows-preview (Windows Shell preview handler)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          # Windows-only crate needs --no-verify on Linux CI
-          cargo publish -p eulumdat-windows-preview --allow-dirty --no-verify || echo "eulumdat-windows-preview already published or no changes"
-
-      # 16. eulumdat-quiz-py (depends on eulumdat-quiz)
-      - name: Publish eulumdat-quiz-py (Python quiz bindings source)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          # PyO3 crates need --no-verify due to Python linking requirements
-          cargo publish -p eulumdat-quiz-py --allow-dirty --no-verify || echo "eulumdat-quiz-py already published or no changes"
-
-      # 17. eulumdat-tui-quiz (depends on eulumdat, eulumdat-i18n, eulumdat-quiz)
-      - name: Publish eulumdat-tui-quiz (terminal quiz app)
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: |
-          cargo publish -p eulumdat-tui-quiz --allow-dirty || echo "eulumdat-tui-quiz already published or no changes"
+          # Windows-only crate: --no-verify on Linux CI.
+          cargo publish -p eulumdat-windows-preview --allow-dirty --no-verify \
+            || echo "eulumdat-windows-preview already published — continuing"

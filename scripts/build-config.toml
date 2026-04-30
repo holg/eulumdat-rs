@@ -34,7 +34,7 @@ bevy = true
 typst = true
 gmaps = true
 templates = true
-obscura = true
+skyglow = true
 # Street designer — lazy-loaded multi-luminaire compliance app
 street = true
 
@@ -56,8 +56,8 @@ size_estimate = "~10MB compressed"
 description = "Template files"
 load_strategy = "on_demand"
 
-[bundles.obscura]
-description = "Obscura Darkness Preservation Demo"
+[bundles.skyglow]
+description = "Skyglow Darkness Preservation Demo"
 load_strategy = "on_demand"
 size_estimate = "~25MB compressed"
 

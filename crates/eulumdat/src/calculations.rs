@@ -141,9 +141,19 @@ impl PhotometricCalculations {
                 continue;
             }
 
-            // Average intensity in this segment
+            // Average intensity in this segment. When the cone half-angle
+            // truncates the segment (g_end < g_curr), interpolate the far
+            // endpoint at g_end so the trapezoid uses the actual interval
+            // endpoints. Without this, N1 (41.4° cone) is biased on files
+            // where the gamma grid does not align with 41.4°.
             let i_prev = intensities.get(j - 1).copied().unwrap_or(0.0);
-            let i_curr = intensities.get(j).copied().unwrap_or(0.0);
+            let i_curr_full = intensities.get(j).copied().unwrap_or(0.0);
+            let i_curr = if g_end < g_curr {
+                let t = (g_end - g_prev) / (g_curr - g_prev);
+                i_prev + (i_curr_full - i_prev) * t
+            } else {
+                i_curr_full
+            };
             let avg_intensity = (i_prev + i_curr) / 2.0;
 
             // Convert to radians for solid angle calculation
@@ -727,35 +737,58 @@ impl PhotometricCalculations {
 
     /// Calculate CIE Flux Codes.
     ///
-    /// Returns a tuple of 5 values (N1, N2, N3, N4, N5) representing the
-    /// percentage of lamp flux in different angular zones:
-    /// - N1: % in lower hemisphere (0-90°)
-    /// - N2: % in 0-60° zone
-    /// - N3: % in 0-40° zone
-    /// - N4: % in upper hemisphere (90-180°)
-    /// - N5: % in 90-120° zone (near-horizontal uplight)
+    /// CIE Flux Code per CIE 52-1982 (also IES LM-31 / older LM-58).
     ///
-    /// The flux code is typically written as: N1 N2 N3 N4 N5
-    /// Example: "92 68 42 8 3" means 92% downward, 68% within 60°, etc.
+    /// Five numbers `N1..N5`:
+    /// - **N1**: cumulative percentage of *downward* flux in the 0–41.4° cone
+    /// - **N2**: cumulative percentage of *downward* flux in the 0–60° cone
+    /// - **N3**: cumulative percentage of *downward* flux in the 0–75° cone
+    /// - **N4**: DLOR — percentage of *total* luminaire flux that flows downward
+    /// - **N5**: LOR — luminaire flux ÷ lamp flux × 100
+    ///
+    /// Two notes that trip up many implementations (and tripped up this
+    /// one — see `docs/check_cie_flux_code.md` for the full story):
+    /// 1. The cone angles are **41.4° / 60° / 75°**, chosen so each zone
+    ///    subtends π/2 steradians (lower hemisphere divided into four
+    ///    equal-solid-angle slices). They are **not** 40 / 60 / 90.
+    /// 2. N1, N2, N3 are fractions of *downward* flux, not of total flux.
+    ///    A pure downlight has N3 = 100 by definition.
+    ///
+    /// Example for a narrow-beam recessed downlight: `95 100 100 100 100`
+    /// reads as: 95 % of downward flux in the inner 41.4° cone, all of it
+    /// inside 60°, all of it inside 75°, all flux is downward (DLOR = 100),
+    /// and luminaire flux equals lamp flux (LOR = 100).
     pub fn cie_flux_codes(ldt: &Eulumdat) -> CieFluxCodes {
         let total = Self::total_output(ldt);
         if total <= 0.0 {
             return CieFluxCodes::default();
         }
 
-        // Calculate flux in each zone
-        let flux_40 = Self::downward_flux(ldt, 40.0);
-        let flux_60 = Self::downward_flux(ldt, 60.0);
-        let flux_90 = Self::downward_flux(ldt, 90.0);
-        let flux_120 = Self::downward_flux(ldt, 120.0);
-        let flux_180 = Self::downward_flux(ldt, 180.0);
+        // Cumulative percentage of *total* flux up to each cone half-angle.
+        // `downward_flux(arc)` returns this directly.
+        let p_41_4 = Self::downward_flux(ldt, 41.4);
+        let p_60 = Self::downward_flux(ldt, 60.0);
+        let p_75 = Self::downward_flux(ldt, 75.0);
+        let p_90 = Self::downward_flux(ldt, 90.0); // = DLOR
+
+        // N1, N2, N3 are cumulative fractions of *downward* flux. Guard the
+        // pure-uplight case (no downward flux ⇒ ratio undefined; report 0).
+        let (n1, n2, n3) = if p_90 > 0.0 {
+            (
+                100.0 * p_41_4 / p_90,
+                100.0 * p_60 / p_90,
+                100.0 * p_75 / p_90,
+            )
+        } else {
+            (0.0, 0.0, 0.0)
+        };
 
         CieFluxCodes {
-            n1: flux_90,            // 0-90° (DLOR)
-            n2: flux_60,            // 0-60°
-            n3: flux_40,            // 0-40°
-            n4: flux_180 - flux_90, // 90-180° (ULOR)
-            n5: flux_120 - flux_90, // 90-120° (near-horizontal uplight)
+            n1,
+            n2,
+            n3,
+            n4: p_90,                   // DLOR
+            n5: ldt.light_output_ratio, // LOR — already a percentage in EULUMDAT
         }
     }
 
@@ -1778,13 +1811,25 @@ impl GldfPhotometricData {
         // Generate photometric classification code
         let photo_code = PhotometricCalculations::photometric_code(ldt);
 
+        // DLOR / ULOR derivations:
+        //   DLOR = % of *lamp* flux flowing downward
+        //        = (downward share of luminaire output) × LOR / 100
+        //        = cie_codes.n4 (which is % of luminaire output downward)
+        //          × LOR / 100
+        //   ULOR = % of lamp flux flowing upward = LOR − DLOR.
+        //
+        // Pre-CIE-fix this code multiplied `n1` (then DLOR-of-luminaire) by
+        // LOR/100. After the CIE fix N1 is a cone fraction and N4 is the
+        // downward share — see docs/check_cie_flux_code.md.
+        let dlor = cie_codes.n4 * ldt.light_output_ratio / 100.0;
+        let ulor = (ldt.light_output_ratio - dlor).max(0.0);
         Self {
             cie_flux_code: cie_codes.to_string(),
             light_output_ratio: ldt.light_output_ratio,
             luminous_efficacy: PhotometricCalculations::luminaire_efficacy(ldt),
             downward_flux_fraction: ldt.downward_flux_fraction,
-            downward_light_output_ratio: cie_codes.n1 * ldt.light_output_ratio / 100.0,
-            upward_light_output_ratio: cie_codes.n4 * ldt.light_output_ratio / 100.0,
+            downward_light_output_ratio: dlor,
+            upward_light_output_ratio: ulor,
             luminaire_luminance: luminance,
             cut_off_angle: cut_off,
             ugr_4h_8h_705020: ugr_values,
@@ -2418,32 +2463,39 @@ impl std::fmt::Display for ComprehensiveBeamAnalysis {
     }
 }
 
-/// CIE Flux Code values
+/// CIE Flux Code values per CIE 52-1982.
+///
+/// See [`PhotometricCalculations::cie_flux_codes`] for the definitions —
+/// these are the spec-correct fields, not the ad-hoc "0–90 / 0–60 / 0–40 /
+/// 90–180 / 90–120" zones an earlier draft of this library used.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CieFluxCodes {
-    /// N1: % flux in lower hemisphere (0-90°) - equivalent to DLOR
+    /// % of *downward* flux contained in the 0–41.4° cone.
     pub n1: f64,
-    /// N2: % flux in 0-60° zone
+    /// % of *downward* flux contained in the 0–60° cone.
     pub n2: f64,
-    /// N3: % flux in 0-40° zone
+    /// % of *downward* flux contained in the 0–75° cone.
     pub n3: f64,
-    /// N4: % flux in upper hemisphere (90-180°) - equivalent to ULOR
+    /// DLOR — % of *total* luminaire flux that flows downward.
     pub n4: f64,
-    /// N5: % flux in 90-120° zone (near-horizontal uplight)
+    /// LOR — luminaire flux ÷ lamp flux × 100.
     pub n5: f64,
 }
 
 impl std::fmt::Display for CieFluxCodes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // CIE 52 specifies banker's rounding (round-half-to-even). Rust's
+        // `f64::round` rounds half-away-from-zero, so use `round_ties_even`
+        // to match the spec on .5 boundaries.
         write!(
             f,
             "{:.0} {:.0} {:.0} {:.0} {:.0}",
-            self.n1.round(),
-            self.n2.round(),
-            self.n3.round(),
-            self.n4.round(),
-            self.n5.round()
+            self.n1.round_ties_even(),
+            self.n2.round_ties_even(),
+            self.n3.round_ties_even(),
+            self.n4.round_ties_even(),
+            self.n5.round_ties_even()
         )
     }
 }
@@ -3717,25 +3769,28 @@ mod tests {
         let ldt = create_test_ldt();
         let codes = PhotometricCalculations::cie_flux_codes(&ldt);
 
-        // For a downlight, most flux should be in lower hemisphere
+        // For a downlight, DLOR (N4) dominates.
         assert!(
-            codes.n1 > 50.0,
-            "N1 (DLOR) should be > 50% for downlight, got {}",
-            codes.n1
-        );
-        assert!(
-            codes.n4 < 50.0,
-            "N4 (ULOR) should be < 50% for downlight, got {}",
+            codes.n4 > 50.0,
+            "N4 (DLOR) should be > 50% for downlight, got {}",
             codes.n4
         );
 
-        // N3 < N2 < N1 (flux accumulates with angle)
-        assert!(codes.n3 <= codes.n2, "N3 should be <= N2");
-        assert!(codes.n2 <= codes.n1, "N2 should be <= N1");
+        // N1, N2, N3 are *cumulative* fractions of downward flux on
+        // increasing cones (0–41.4° ⊂ 0–60° ⊂ 0–75°), so monotonic
+        // non-decreasing.
+        assert!(codes.n1 <= codes.n2, "N1 ≤ N2 (cumulative ≤-cone)");
+        assert!(codes.n2 <= codes.n3, "N2 ≤ N3 (cumulative ≤-cone)");
 
-        // Test display format
+        // N5 is LOR — equal to the LDT's stored value (already a percent).
+        assert!(
+            (codes.n5 - ldt.light_output_ratio).abs() < 1e-9,
+            "N5 should equal ldt.light_output_ratio"
+        );
+
+        // Display format produces five integers separated by spaces.
         let display = format!("{}", codes);
-        assert!(!display.is_empty());
+        assert_eq!(display.split_whitespace().count(), 5);
     }
 
     #[test]

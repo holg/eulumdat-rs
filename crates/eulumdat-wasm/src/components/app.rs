@@ -1,4 +1,4 @@
-use atla::{Emitter, IntensityDistribution, LuminaireOpticalData};
+use eulumdat::atla::{Emitter, IntensityDistribution, LuminaireOpticalData};
 use eulumdat::{Eulumdat, IesParser, UnitSystem};
 use eulumdat_typst::{ReportGenerator, ReportOptions};
 use leptos::ev;
@@ -53,8 +53,8 @@ use super::isolux_footprint::IsoluxFootprint;
 use super::isolux_isometric::IsoluxIsometric;
 use super::lcs_classification::LcsClassification;
 use super::maps_designer::MapsDesigner;
-use super::obscura_demo::ObscuraDemo;
 use super::polar_diagram::PolarDiagram;
+use super::skyglow_demo::SkyglowDemo;
 use super::spectral_diagram::SpectralDiagramView;
 use super::street_launcher::StreetLauncher;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
@@ -114,11 +114,12 @@ fn log_color_data(filename: &str, doc: &LuminaireOpticalData) {
     web_sys::console::group_end();
 }
 
-/// Log color data with raw LDT values
-fn log_color_data_from_ldt(filename: &str, ldt: &Eulumdat, doc: &LuminaireOpticalData) {
+/// Log color data with raw values from the LDC side (`Eulumdat` lamp sets)
+/// alongside the derived ATLA emitter view.
+fn log_color_data_from_ldc(filename: &str, ldc: &Eulumdat, doc: &LuminaireOpticalData) {
     web_sys::console::group_1(&format!("[Color Data] {}", filename).into());
 
-    for (i, lamp_set) in ldt.lamp_sets.iter().enumerate() {
+    for (i, lamp_set) in ldc.lamp_sets.iter().enumerate() {
         web_sys::console::log_1(&format!("Lamp Set {}:", i).into());
         web_sys::console::log_1(
             &format!("  Raw color_appearance: '{}'", lamp_set.color_appearance).into(),
@@ -341,7 +342,7 @@ fn create_default_atla() -> LuminaireOpticalData {
         rated_lumens: Some(1000.0),
         input_watts: Some(10.0),
         cct: Some(3000.0),
-        color_rendering: Some(atla::ColorRendering {
+        color_rendering: Some(eulumdat::atla::ColorRendering {
             ra: Some(80.0),
             ..Default::default()
         }),
@@ -442,14 +443,37 @@ fn load_template(
 
     set_templates_loading.set(true);
 
+    web_sys::console::log_1(
+        &format!("[Editor] load_template: id='{}', file='{}'", id, filename).into(),
+    );
+
     if let Some(content) = eulumdat_wasm_templates::get_template_content(&id) {
+        web_sys::console::log_1(
+            &format!("[Editor] template content loaded: {} chars", content.len()).into(),
+        );
         match format {
             TemplateFormat::Ldt => {
-                if let Ok(ldt) = Eulumdat::parse(&content) {
-                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                    set_atla_doc.set(doc);
-                    set_current_file.set(Some(filename));
-                    set_selected_lamp_set.set(0);
+                match Eulumdat::parse(&content) {
+                    Ok(ldc) => {
+                        web_sys::console::log_1(
+                            &format!("[Editor] LDT parsed: '{}'", ldc.luminaire_name).into(),
+                        );
+                        // Build the atla doc from the lossless LDC, then
+                        // register the LDC as the pristine source so the
+                        // save-Effect emits the lossless LDT text (instead
+                        // of the lossy atla-round-trip) until the user
+                        // actually edits the document.
+                        let doc = LuminaireOpticalData::from_eulumdat(&ldc);
+                        record_pristine_ldc(&ldc, &doc.to_eulumdat());
+                        set_atla_doc.set(doc);
+                        set_current_file.set(Some(filename));
+                        set_selected_lamp_set.set(0);
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(
+                            &format!("[Editor] LDT parse failed: {e}").into(),
+                        );
+                    }
                 }
             }
             TemplateFormat::IesLm63 => {
@@ -460,22 +484,25 @@ fn load_template(
                         0.0
                     },
                 };
-                if let Ok(ldt) = IesParser::parse_with_options(&content, &opts) {
-                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+                if let Ok(ldc) = IesParser::parse_with_options(&content, &opts) {
+                    let doc = LuminaireOpticalData::from_eulumdat(&ldc);
+                    record_pristine_ldc(&ldc, &doc.to_eulumdat());
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(filename));
                     set_selected_lamp_set.set(0);
                 }
             }
             TemplateFormat::AtlaXml => {
-                if let Ok(doc) = atla::xml::parse(&content) {
+                if let Ok(doc) = eulumdat::atla::xml::parse(&content) {
+                    clear_pristine_ldc();
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(filename));
                     set_selected_lamp_set.set(0);
                 }
             }
             TemplateFormat::AtlaJson => {
-                if let Ok(doc) = atla::json::parse(&content) {
+                if let Ok(doc) = eulumdat::atla::json::parse(&content) {
+                    clear_pristine_ldc();
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(filename));
                     set_selected_lamp_set.set(0);
@@ -483,7 +510,13 @@ fn load_template(
             }
         }
     } else {
-        web_sys::console::error_1(&format!("Template '{}' not found", id).into());
+        web_sys::console::error_1(
+            &format!(
+                "[Editor] Template '{}' not found — templates module may not be loaded yet",
+                id
+            )
+            .into(),
+        );
     }
     set_templates_loading.set(false);
 }
@@ -518,24 +551,100 @@ fn replace_extension(filename: &str, new_ext: &str) -> String {
     }
 }
 
-/// Save ATLA document to localStorage (as LDT string for Bevy compatibility)
-fn save_to_storage(doc: &LuminaireOpticalData) {
+// Save-to-storage machinery.
+//
+// The atla→ldc converter is lossy for some real files (e.g.
+// `road_luminaire.ldt` — extra intensity rows, wrong symmetry). To protect
+// consumers (Bevy 3D viewer, Street designer), callers that have a
+// lossless `Eulumdat` already (freshly-parsed template or uploaded LDT
+// file) register it via `record_pristine_ldc`. The ATLA Effect then
+// prefers the pristine value while the atla doc still represents the
+// same luminaire.
+thread_local! {
+    /// Last known lossless LDC snapshot + the atla-round-tripped LDT
+    /// serialization it maps to. While the current atla_doc still
+    /// serializes to that same string, we keep writing the pristine
+    /// version to storage. A genuine user edit (which *changes* the atla
+    /// serialization) invalidates this cache and we fall back to writing
+    /// whatever the atla-derived Eulumdat produces.
+    static PRISTINE_LDC: std::cell::RefCell<Option<PristineLdc>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+struct PristineLdc {
+    /// Lossless LDT text — what we actually want to store.
+    lossless_text: String,
+    /// The atla-round-tripped text at the time we recorded the pristine
+    /// value. Used as the cache-validity key.
+    atla_roundtrip_text: String,
+    /// For diagnostic logging.
+    luminaire_name: String,
+}
+
+/// Record a freshly-parsed, lossless LDC. The ATLA save-Effect will use
+/// this snapshot instead of the lossy atla-round-trip as long as the
+/// user hasn't edited the document.
+fn record_pristine_ldc(ldc: &Eulumdat, atla_derived: &Eulumdat) {
+    let pristine = PristineLdc {
+        lossless_text: ldc.to_ldt(),
+        atla_roundtrip_text: atla_derived.to_ldt(),
+        luminaire_name: ldc.luminaire_name.clone(),
+    };
+    PRISTINE_LDC.with(|cell| *cell.borrow_mut() = Some(pristine));
+}
+
+/// Clear the pristine cache — call on `New File` / default-reset paths
+/// so we don't keep sourcing the previous luminaire.
+fn clear_pristine_ldc() {
+    PRISTINE_LDC.with(|cell| cell.borrow_mut().take());
+}
+
+/// Write the current LDC to localStorage.
+///
+/// If a pristine snapshot is on file AND the atla-derived value currently
+/// round-trips to the same text we recorded, we write the pristine text
+/// instead — preserving fidelity through the atla round-trip.
+fn save_to_storage(atla_derived: &Eulumdat) {
+    let atla_text = atla_derived.to_ldt();
+
+    let (ldt_string, source_label, luminaire_name) = PRISTINE_LDC.with(|cell| {
+        let guard = cell.borrow();
+        match guard.as_ref() {
+            Some(p) if p.atla_roundtrip_text == atla_text => (
+                p.lossless_text.clone(),
+                "pristine",
+                p.luminaire_name.clone(),
+            ),
+            _ => (
+                atla_text,
+                "atla-derived",
+                atla_derived.luminaire_name.clone(),
+            ),
+        }
+    });
+
     if let Some(window) = web_sys::window() {
         if let Ok(Some(storage)) = window.local_storage() {
-            // Save as LDT for Bevy 3D viewer compatibility
-            let ldt = doc.to_eulumdat();
-            let ldt_string = ldt.to_ldt();
             let _ = storage.set_item(LDT_STORAGE_KEY, &ldt_string);
             let timestamp = js_sys::Date::now().to_string();
             let _ = storage.set_item(LDT_TIMESTAMP_KEY, &timestamp);
+            web_sys::console::log_1(
+                &format!(
+                    "[Editor] saved to storage ({source_label}): '{}' ({} chars, ts={})",
+                    luminaire_name,
+                    ldt_string.len(),
+                    timestamp
+                )
+                .into(),
+            );
 
             // Save as JSON for Maps Designer (with intensities for calculations)
             if let Ok(json) = serde_json::to_string(&serde_json::json!({
-                "intensities": ldt.intensities,
-                "c_angles": ldt.c_angles,
-                "g_angles": ldt.g_angles,
-                "lumens": ldt.total_luminous_flux(),
-                "luminaire_name": ldt.luminaire_name,
+                "intensities": atla_derived.intensities,
+                "c_angles": atla_derived.c_angles,
+                "g_angles": atla_derived.g_angles,
+                "lumens": atla_derived.total_luminous_flux(),
+                "luminaire_name": atla_derived.luminaire_name,
             })) {
                 let _ = storage.set_item("eulumdat_current_json", &json);
             }
@@ -547,8 +656,10 @@ fn save_to_storage(doc: &LuminaireOpticalData) {
 pub fn App() -> impl IntoView {
     // Check for ?wasm= query parameter — render standalone WASM demos
     if let Some(demo) = crate::i18n::get_url_param("wasm") {
-        if demo == "obscura_demo" {
-            return view! { <ObscuraDemo /> }.into_any();
+        // `obscura_demo` is the legacy URL kept for backwards compatibility
+        // with existing links / videos. New links use `skyglow_demo`.
+        if demo == "skyglow_demo" || demo == "obscura_demo" {
+            return view! { <SkyglowDemo /> }.into_any();
         }
         if demo == "goniosim" {
             return view! { <GonioSimDemo /> }.into_any();
@@ -558,25 +669,26 @@ pub fn App() -> impl IntoView {
     // Primary state: ATLA document (source of truth)
     let (atla_doc, set_atla_doc) = signal(create_default_atla());
 
-    // Secondary state: Eulumdat for existing components
-    // This is derived from ATLA and syncs back to ATLA on changes
-    let (ldt, set_ldt_internal) = signal(create_default_atla().to_eulumdat());
+    // Secondary state: light distribution curve (LDC) view for existing
+    // components. Currently an `Eulumdat` value, derived from the ATLA
+    // source of truth and synced back to ATLA on downstream edits.
+    let (ldc, set_ldc_internal) = signal(create_default_atla().to_eulumdat());
 
-    // Sync ATLA → Eulumdat whenever ATLA changes
+    // Sync ATLA → LDC whenever ATLA changes
     Effect::new(move |_| {
-        set_ldt_internal.set(atla_doc.get().to_eulumdat());
+        set_ldc_internal.set(atla_doc.get().to_eulumdat());
     });
 
-    // Custom setter that syncs Eulumdat changes back to ATLA
-    let set_ldt = set_ldt_internal;
+    // Custom setter that syncs LDC changes back to ATLA
+    let set_ldc = set_ldc_internal;
 
-    // Also sync Eulumdat → ATLA (for when child components modify ldt)
+    // Also sync LDC → ATLA (for when child components modify ldc)
     Effect::new(move |_| {
-        let current_ldt = ldt.get();
-        let current_atla_as_ldt = atla_doc.get_untracked().to_eulumdat();
+        let current_ldc = ldc.get();
+        let current_atla_as_ldc = atla_doc.get_untracked().to_eulumdat();
         // Only update if actually different (avoid infinite loop)
-        if current_ldt.to_ldt() != current_atla_as_ldt.to_ldt() {
-            set_atla_doc.set(LuminaireOpticalData::from_eulumdat(&current_ldt));
+        if current_ldc.to_ldt() != current_atla_as_ldc.to_ldt() {
+            set_atla_doc.set(LuminaireOpticalData::from_eulumdat(&current_ldc));
         }
     });
 
@@ -598,7 +710,7 @@ pub fn App() -> impl IntoView {
     let (templates_loading, set_templates_loading) = signal(false);
 
     // Compare panel: File B state lives here so it persists across tab switches
-    let (compare_ldt_b, set_compare_ldt_b) = signal::<Option<Eulumdat>>(None);
+    let (compare_ldc_b, set_compare_ldc_b) = signal::<Option<Eulumdat>>(None);
     let (compare_label_b, set_compare_label_b) = signal::<Option<String>>(None);
 
     // Derive the active main tab from the active sub-tab
@@ -626,9 +738,13 @@ pub fn App() -> impl IntoView {
     // Check if PDF/Typst export is enabled (via secret URL)
     let export_enabled = is_export_enabled();
 
-    // Save to localStorage whenever ATLA doc changes
+    // Save to localStorage whenever the atla document changes. Converts
+    // back to Eulumdat at the boundary — callers that *know* they have a
+    // lossless Eulumdat already (e.g. freshly-parsed template file) should
+    // call `save_to_storage` directly with that value first, so consumers
+    // see the lossless form even if this Effect fires a moment later.
     Effect::new(move |_| {
-        save_to_storage(&atla_doc.get());
+        save_to_storage(&atla_doc.get().to_eulumdat());
     });
 
     // File loading helper - ALL formats convert to ATLA (lossless)
@@ -639,19 +755,24 @@ pub fn App() -> impl IntoView {
         let is_atla_json = lower_name.ends_with(".json");
         let is_ldt = lower_name.ends_with(".ldt");
         let is_spdx = lower_name.ends_with(".spdx");
+        // OxyTech LITESTAR exports — `.oxl` carries photometry, `.oxc`
+        // is a commercial-only sibling. Both share the LitePack XML
+        // schema; our parser handles them identically.
+        let is_oxl = lower_name.ends_with(".oxl") || lower_name.ends_with(".oxc");
 
         // Parse to ATLA format (source of truth)
         if is_spdx {
             // SPDX (IES TM-27-14) → ATLA (spectral only, no photometric data)
-            match atla::spdx::parse(&content) {
+            match eulumdat::atla::spdx::parse(&content) {
                 Ok(spdx_data) => {
                     // Log warnings about missing data
-                    let warnings = atla::spdx::get_warnings(&spdx_data);
+                    let warnings = eulumdat::atla::spdx::get_warnings(&spdx_data);
                     for warning in &warnings {
                         web_sys::console::warn_1(&format!("SPDX: {}", warning).into());
                     }
 
-                    let doc = atla::spdx::to_atla(&spdx_data);
+                    let doc = eulumdat::atla::spdx::to_atla(&spdx_data);
+                    clear_pristine_ldc();
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(name));
                     set_selected_lamp_set.set(0);
@@ -678,9 +799,10 @@ pub fn App() -> impl IntoView {
                 },
             };
             match IesParser::parse_with_options(&content, &opts) {
-                Ok(ldt) => {
-                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                    log_color_data_from_ldt(&name, &ldt, &doc);
+                Ok(ldc) => {
+                    let doc = LuminaireOpticalData::from_eulumdat(&ldc);
+                    log_color_data_from_ldc(&name, &ldc, &doc);
+                    record_pristine_ldc(&ldc, &doc.to_eulumdat());
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(name));
                     set_selected_lamp_set.set(0);
@@ -691,9 +813,10 @@ pub fn App() -> impl IntoView {
             }
         } else if is_atla_xml {
             // ATLA XML → ATLA (direct, no conversion)
-            match atla::xml::parse(&content) {
+            match eulumdat::atla::xml::parse(&content) {
                 Ok(doc) => {
                     log_color_data(&name, &doc);
+                    clear_pristine_ldc();
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(name));
                     set_selected_lamp_set.set(0);
@@ -704,9 +827,10 @@ pub fn App() -> impl IntoView {
             }
         } else if is_atla_json {
             // ATLA JSON → ATLA (direct, no conversion)
-            match atla::json::parse(&content) {
+            match eulumdat::atla::json::parse(&content) {
                 Ok(doc) => {
                     log_color_data(&name, &doc);
+                    clear_pristine_ldc();
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(name));
                     set_selected_lamp_set.set(0);
@@ -716,17 +840,54 @@ pub fn App() -> impl IntoView {
                 }
             }
         } else if is_ldt {
-            // LDT → Eulumdat → ATLA (with raw value logging)
+            // LDT file → LDC (in-memory distribution) → ATLA. Register
+            // the pristine LDC so the atla save-Effect emits the lossless
+            // LDT text until the user edits the document.
             match Eulumdat::parse(&content) {
-                Ok(ldt) => {
-                    let doc = LuminaireOpticalData::from_eulumdat(&ldt);
-                    log_color_data_from_ldt(&name, &ldt, &doc);
+                Ok(ldc) => {
+                    let doc = LuminaireOpticalData::from_eulumdat(&ldc);
+                    log_color_data_from_ldc(&name, &ldc, &doc);
+                    record_pristine_ldc(&ldc, &doc.to_eulumdat());
                     set_atla_doc.set(doc);
                     set_current_file.set(Some(name));
                     set_selected_lamp_set.set(0);
                 }
                 Err(e) => {
                     web_sys::console::error_1(&format!("Failed to parse LDT: {}", e).into());
+                }
+            }
+        } else if is_oxl {
+            // OXL/OXC → multi-luminaire LitePack package → ATLA. We
+            // import the first luminaire of the package; if the package
+            // carries more, the others are reachable today only via the
+            // library API (`eulumdat::atla::oxl::parse`). A "pick which
+            // luminaire" picker is a deferred UX task.
+            match eulumdat::atla::oxl::parse(&content) {
+                Ok(pkg) => {
+                    if pkg.luminaires.is_empty() {
+                        web_sys::console::warn_1(
+                            &"OXL/OXC contains no luminaires (commercial-only file?)".into(),
+                        );
+                    } else {
+                        if pkg.luminaires.len() > 1 {
+                            web_sys::console::warn_1(
+                                &format!(
+                                    "OXL package contains {} luminaires; loading the first only.",
+                                    pkg.luminaires.len()
+                                )
+                                .into(),
+                            );
+                        }
+                        let doc = pkg.luminaires.into_iter().next().unwrap();
+                        log_color_data(&name, &doc);
+                        clear_pristine_ldc();
+                        set_atla_doc.set(doc);
+                        set_current_file.set(Some(name));
+                        set_selected_lamp_set.set(0);
+                    }
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&format!("Failed to parse OXL: {}", e).into());
                 }
             }
         } else {
@@ -736,6 +897,7 @@ pub fn App() -> impl IntoView {
 
     // Handlers
     let on_new_file = move |_| {
+        clear_pristine_ldc();
         set_atla_doc.set(create_default_atla());
         set_current_file.set(None);
         set_selected_lamp_set.set(0);
@@ -768,7 +930,7 @@ pub fn App() -> impl IntoView {
 
     let on_export_atla_xml = move |_| {
         // Export directly from ATLA (no conversion needed!)
-        match atla::xml::write(&atla_doc.get()) {
+        match eulumdat::atla::xml::write(&atla_doc.get()) {
             Ok(content) => {
                 let filename = current_file
                     .get()
@@ -784,7 +946,7 @@ pub fn App() -> impl IntoView {
 
     let on_export_atla_json = move |_| {
         // Export directly from ATLA (no conversion needed!)
-        match atla::json::write(&atla_doc.get()) {
+        match eulumdat::atla::json::write(&atla_doc.get()) {
             Ok(content) => {
                 let filename = current_file
                     .get()
@@ -800,8 +962,8 @@ pub fn App() -> impl IntoView {
 
     let on_export_report_typ = move |_| {
         // Generate Typst report from the current LDT
-        let ldt_val = ldt.get();
-        let generator = ReportGenerator::new(&ldt_val);
+        let ldc_val = ldc.get();
+        let generator = ReportGenerator::new(&ldc_val);
         let content = generator.generate_typst(&ReportOptions::default());
         let filename = current_file
             .get()
@@ -815,9 +977,9 @@ pub fn App() -> impl IntoView {
 
     let on_export_report_pdf = move |_| {
         // Generate Typst report with inline SVGs and compile to PDF via WASM
-        let ldt_val = ldt.get();
+        let ldc_val = ldc.get();
         let (typst_source, _) =
-            eulumdat_typst::generate_typst_with_files(&ldt_val, &ReportOptions::default().sections);
+            eulumdat_typst::generate_typst_with_files(&ldc_val, &ReportOptions::default().sections);
 
         let filename = current_file
             .get()
@@ -853,7 +1015,7 @@ pub fn App() -> impl IntoView {
     // Helper to generate SVG for the current diagram
     let generate_current_svg = move || -> Option<(String, String)> {
         let current_tab = active_tab.get();
-        let ldt_val = ldt.get();
+        let ldc_val = ldc.get();
         let theme = eulumdat::diagram::SvgTheme::light(); // Use light theme for export
 
         match current_tab {
@@ -861,23 +1023,23 @@ pub fn App() -> impl IntoView {
                 // Use the current diagram type (Polar, Cartesian, or BeamAngle)
                 match diagram_type.get() {
                     DiagramType::Polar => {
-                        let polar = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldt_val);
-                        let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldt_val);
+                        let polar = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldc_val);
+                        let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldc_val);
                         let svg = polar.to_svg_with_summary(600.0, 600.0, &theme, &summary);
                         Some((svg, "polar_diagram.svg".to_string()))
                     }
                     DiagramType::Cartesian => {
                         let cartesian = eulumdat::diagram::CartesianDiagram::from_eulumdat(
-                            &ldt_val, 600.0, 450.0, 8,
+                            &ldc_val, 600.0, 450.0, 8,
                         );
-                        let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldt_val);
+                        let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldc_val);
                         let svg = cartesian.to_svg_with_summary(600.0, 450.0, &theme, &summary);
                         Some((svg, "cartesian_diagram.svg".to_string()))
                     }
                     DiagramType::BeamAngle => {
-                        let polar = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldt_val);
+                        let polar = eulumdat::diagram::PolarDiagram::from_eulumdat(&ldc_val);
                         let analysis =
-                            eulumdat::PhotometricCalculations::beam_field_analysis(&ldt_val);
+                            eulumdat::PhotometricCalculations::beam_field_analysis(&ldc_val);
                         let show_both = analysis.is_batwing;
                         let svg = polar.to_svg_with_beam_field_angles(
                             600.0, 600.0, &theme, &analysis, show_both,
@@ -889,15 +1051,15 @@ pub fn App() -> impl IntoView {
             Tab::Diagram3D => {
                 // Butterfly/3D diagram
                 let butterfly = eulumdat::diagram::ButterflyDiagram::from_eulumdat(
-                    &ldt_val, 600.0, 500.0, 60.0,
+                    &ldc_val, 600.0, 500.0, 60.0,
                 );
                 let svg = butterfly.to_svg(600.0, 500.0, &theme);
                 Some((svg, "butterfly_3d_diagram.svg".to_string()))
             }
             Tab::Heatmap => {
                 let heatmap =
-                    eulumdat::diagram::HeatmapDiagram::from_eulumdat(&ldt_val, 700.0, 500.0);
-                let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldt_val);
+                    eulumdat::diagram::HeatmapDiagram::from_eulumdat(&ldc_val, 700.0, 500.0);
+                let summary = eulumdat::PhotometricSummary::from_eulumdat(&ldc_val);
                 let svg = heatmap.to_svg_with_summary(700.0, 500.0, &theme, &summary);
                 Some((svg, "intensity_heatmap.svg".to_string()))
             }
@@ -905,9 +1067,9 @@ pub fn App() -> impl IntoView {
                 let height = mounting_height.get();
                 let cone = match selected_c_plane.get() {
                     Some(c) => {
-                        eulumdat::diagram::ConeDiagram::from_eulumdat_for_plane(&ldt_val, height, c)
+                        eulumdat::diagram::ConeDiagram::from_eulumdat_for_plane(&ldc_val, height, c)
                     }
-                    None => eulumdat::diagram::ConeDiagram::from_eulumdat(&ldt_val, height),
+                    None => eulumdat::diagram::ConeDiagram::from_eulumdat(&ldc_val, height),
                 };
                 let loc = locale.get();
                 let labels = eulumdat::diagram::ConeDiagramLabels {
@@ -928,7 +1090,7 @@ pub fn App() -> impl IntoView {
             Tab::Spectral => {
                 // Spectral diagram from ATLA doc
                 let doc = atla_doc.get();
-                let atla_theme = atla::spectral::SpectralTheme::light();
+                let atla_theme = eulumdat::atla::spectral::SpectralTheme::light();
 
                 // Try to get spectral data
                 if let Some(spd) = doc
@@ -937,14 +1099,15 @@ pub fn App() -> impl IntoView {
                     .filter_map(|e| e.spectral_distribution.as_ref())
                     .next()
                 {
-                    let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+                    let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(spd);
                     let svg = diagram.to_svg(700.0, 400.0, &atla_theme);
                     Some((svg, "spectral_diagram.svg".to_string()))
                 } else if let Some(emitter) = doc.emitters.first() {
                     if let Some(cct) = emitter.cct {
                         let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
-                        let spd = atla::spectral::synthesize_spectrum(cct, cri);
-                        let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+                        let spd = eulumdat::atla::spectral::synthesize_spectrum(cct, cri);
+                        let diagram =
+                            eulumdat::atla::spectral::SpectralDiagram::from_spectral(&spd);
                         let svg = diagram.to_svg(700.0, 400.0, &atla_theme);
                         Some((svg, "spectral_diagram.svg".to_string()))
                     } else {
@@ -957,26 +1120,27 @@ pub fn App() -> impl IntoView {
             Tab::Greenhouse => {
                 let doc = atla_doc.get();
                 let height = greenhouse_height.get();
-                let diagram =
-                    atla::greenhouse::GreenhouseDiagram::from_atla_with_height(&doc, height);
-                let gh_theme = atla::greenhouse::GreenhouseTheme::light();
+                let diagram = eulumdat::atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
+                    &doc, height,
+                );
+                let gh_theme = eulumdat::atla::greenhouse::GreenhouseTheme::light();
                 let svg = diagram.to_svg(600.0, 450.0, &gh_theme);
                 Some((svg, "greenhouse_ppfd.svg".to_string()))
             }
             Tab::BugRating => {
-                let diagram = eulumdat::BugDiagram::from_eulumdat(&ldt_val);
+                let diagram = eulumdat::BugDiagram::from_eulumdat(&ldc_val);
                 let svg = diagram.to_svg_with_details(600.0, 400.0, &theme);
                 Some((svg, "bug_rating.svg".to_string()))
             }
             Tab::Lcs => {
-                let diagram = eulumdat::BugDiagram::from_eulumdat(&ldt_val);
+                let diagram = eulumdat::BugDiagram::from_eulumdat(&ldc_val);
                 let svg = diagram.to_lcs_svg(600.0, 400.0, &theme);
                 Some((svg, "lcs_classification.svg".to_string()))
             }
             Tab::FloodlightVH => {
                 let y_scale = eulumdat::diagram::YScale::Linear;
                 let diagram = eulumdat::diagram::FloodlightCartesianDiagram::from_eulumdat(
-                    &ldt_val, 600.0, 400.0, y_scale,
+                    &ldc_val, 600.0, 400.0, y_scale,
                 );
                 let svg = diagram.to_svg(600.0, 400.0, &theme);
                 Some((svg, "floodlight_vh.svg".to_string()))
@@ -984,7 +1148,7 @@ pub fn App() -> impl IntoView {
             Tab::FloodlightIsolux => {
                 let params = eulumdat::diagram::IsoluxParams::default();
                 let diagram =
-                    eulumdat::diagram::IsoluxDiagram::from_eulumdat(&ldt_val, 600.0, 500.0, params);
+                    eulumdat::diagram::IsoluxDiagram::from_eulumdat(&ldc_val, 600.0, 500.0, params);
                 let svg = diagram.to_svg(600.0, 500.0, &theme);
                 Some((svg, "isolux_footprint.svg".to_string()))
             }
@@ -995,10 +1159,10 @@ pub fn App() -> impl IntoView {
                     ..eulumdat::diagram::IsoluxParams::default()
                 };
                 let diagram = eulumdat::diagram::IsoluxDiagram::from_eulumdat(
-                    &ldt_val, 1200.0, 500.0, params,
+                    &ldc_val, 1200.0, 500.0, params,
                 );
-                let title = if !ldt_val.luminaire_name.is_empty() {
-                    format!("ISO view {}", ldt_val.luminaire_name)
+                let title = if !ldc_val.luminaire_name.is_empty() {
+                    format!("ISO view {}", ldc_val.luminaire_name)
                 } else {
                     "ISO view".to_string()
                 };
@@ -1008,14 +1172,14 @@ pub fn App() -> impl IntoView {
                     &theme,
                     &eulumdat::diagram::IsometricConfig::default(),
                     UnitSystem::default(),
-                    &ldt_val,
+                    &ldc_val,
                     &title,
                 );
                 Some((svg, "iso_view.svg".to_string()))
             }
             Tab::FloodlightIsocandela => {
                 let diagram =
-                    eulumdat::diagram::IsocandelaDiagram::from_eulumdat(&ldt_val, 600.0, 500.0);
+                    eulumdat::diagram::IsocandelaDiagram::from_eulumdat(&ldc_val, 600.0, 500.0);
                 let svg = diagram.to_svg(600.0, 500.0, &theme);
                 Some((svg, "isocandela_contour.svg".to_string()))
             }
@@ -1118,8 +1282,8 @@ pub fn App() -> impl IntoView {
         }
     };
 
-    // Note: Child components use the `ldt` Memo which derives from atla_doc.
-    // When they call set_ldt, it converts back to ATLA internally.
+    // Note: Child components use the `ldc` Memo which derives from atla_doc.
+    // When they call set_ldc, it converts back to ATLA internally.
 
     view! {
         <ThemeProvider mode=theme_mode>
@@ -1145,7 +1309,7 @@ pub fn App() -> impl IntoView {
                                     {move || locale.get().ui.header.open.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX"
+                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.oxl,.OXL,.oxc,.OXC"
                                         style="display: none;"
                                         on:change=on_file_input
                                         aria-label="Open LDT, IES, SPDX, XML, or JSON file"
@@ -1354,13 +1518,23 @@ pub fn App() -> impl IntoView {
                 {move || match view_mode.get() {
                     ViewMode::Dashboard => view! {
                         <Dashboard
-                            ldt=ldt
-                            on_select=Callback::new(move |(new_ldt, name): (Eulumdat, String)| {
-                                set_ldt.set(new_ldt);
+                            ldc=ldc
+                            on_select=Callback::new(move |(new_ldc, name): (Eulumdat, String)| {
+                                // The dashboard hands us the lossless
+                                // `Eulumdat` it parsed from an embedded
+                                // template. Register it as the pristine
+                                // source *before* nudging the signals, so
+                                // the save-Effect that fires when the LDC
+                                // → ATLA sync runs keeps the lossless
+                                // bytes instead of an atla-round-tripped
+                                // (potentially lossy) re-serialization.
+                                let atla = LuminaireOpticalData::from_eulumdat(&new_ldc);
+                                record_pristine_ldc(&new_ldc, &atla.to_eulumdat());
+                                set_ldc.set(new_ldc);
                                 set_current_file.set(Some(name));
                             })
                             on_compare=Callback::new(move |(cmp_ldt, name): (Eulumdat, String)| {
-                                set_compare_ldt_b.set(Some(cmp_ldt));
+                                set_compare_ldc_b.set(Some(cmp_ldt));
                                 set_compare_label_b.set(Some(name));
                             })
                             on_edit=Callback::new(move |_| set_view_mode.set(ViewMode::Editor))
@@ -1570,16 +1744,16 @@ pub fn App() -> impl IntoView {
                         <div class="tab-content">
                             {move || match active_tab.get() {
                                 Tab::General => view! {
-                                    <GeneralTab ldt=ldt set_ldt=set_ldt />
+                                    <GeneralTab ldc=ldc set_ldc=set_ldc />
                                 }.into_any(),
                                 Tab::Dimensions => view! {
-                                    <DimensionsTab ldt=ldt set_ldt=set_ldt />
+                                    <DimensionsTab ldc=ldc set_ldc=set_ldc />
                                 }.into_any(),
                                 Tab::LampSets => view! {
-                                    <LampSetsTab ldt=ldt set_ldt=set_ldt selected=selected_lamp_set set_selected=set_selected_lamp_set />
+                                    <LampSetsTab ldc=ldc set_ldc=set_ldc selected=selected_lamp_set set_selected=set_selected_lamp_set />
                                 }.into_any(),
                                 Tab::DirectRatios => view! {
-                                    <DirectRatiosTab ldt=ldt set_ldt=set_ldt />
+                                    <DirectRatiosTab ldc=ldc set_ldc=set_ldc />
                                 }.into_any(),
                                 Tab::Intensity => view! {
                                     <div class="intensity-tab">
@@ -1588,14 +1762,14 @@ pub fn App() -> impl IntoView {
                                                 <span>{move || locale.get().ui.intensity.title.clone()}</span>
                                                 <span class="table-info">
                                                     {move || {
-                                                        let l = ldt.get();
+                                                        let l = ldc.get();
                                                         let template = locale.get().ui.intensity.table_info.clone();
                                                         template.replace("{c_planes}", &l.c_angles.len().to_string())
                                                             .replace("{g_angles}", &l.g_angles.len().to_string())
                                                     }}
                                                 </span>
                                             </div>
-                                            <DataTable ldt=ldt set_ldt=set_ldt />
+                                            <DataTable ldc=ldc set_ldc=set_ldc />
                                         </div>
                                     </div>
                                 }.into_any(),
@@ -1631,9 +1805,9 @@ pub fn App() -> impl IntoView {
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
                                                 {move || match diagram_type.get() {
-                                                    DiagramType::Polar => view! { <PolarDiagram ldt=ldt /> }.into_any(),
-                                                    DiagramType::Cartesian => view! { <CartesianDiagram ldt=ldt /> }.into_any(),
-                                                    DiagramType::BeamAngle => view! { <BeamAngleDiagram ldt=ldt /> }.into_any(),
+                                                    DiagramType::Polar => view! { <PolarDiagram ldc=ldc /> }.into_any(),
+                                                    DiagramType::Cartesian => view! { <CartesianDiagram ldc=ldc /> }.into_any(),
+                                                    DiagramType::BeamAngle => view! { <BeamAngleDiagram ldc=ldc /> }.into_any(),
                                                 }}
                                             </div>
                                         </DiagramZoom>
@@ -1647,7 +1821,7 @@ pub fn App() -> impl IntoView {
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
-                                                <Butterfly3D ldt=ldt />
+                                                <Butterfly3D ldc=ldc />
                                             </div>
                                         </DiagramZoom>
                                     </div>
@@ -1660,7 +1834,7 @@ pub fn App() -> impl IntoView {
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
-                                                <IntensityHeatmap ldt=ldt />
+                                                <IntensityHeatmap ldc=ldc />
                                             </div>
                                         </DiagramZoom>
                                     </div>
@@ -1668,11 +1842,11 @@ pub fn App() -> impl IntoView {
                                 Tab::Cone => {
                                     // Get expanded C-plane angles for the slider
                                     let c_angles = Memo::new(move |_| {
-                                        let l = ldt.get();
+                                        let l = ldc.get();
                                         eulumdat::SymmetryHandler::expand_c_angles(&l)
                                     });
                                     let has_variation = Memo::new(move |_| {
-                                        eulumdat::diagram::ConeDiagram::has_c_plane_variation(&ldt.get())
+                                        eulumdat::diagram::ConeDiagram::has_c_plane_variation(&ldc.get())
                                     });
 
                                     view! {
@@ -1751,10 +1925,10 @@ pub fn App() -> impl IntoView {
                                             }}
                                             <DiagramZoom>
                                                 <div class="diagram-fullwidth">
-                                                    <ConeDiagramView ldt=ldt mounting_height=mounting_height c_plane=selected_c_plane />
+                                                    <ConeDiagramView ldc=ldc mounting_height=mounting_height c_plane=selected_c_plane />
                                                 </div>
                                             </DiagramZoom>
-                                            <ConeIlluminanceTableView ldt=ldt mounting_height=mounting_height c_plane=selected_c_plane />
+                                            <ConeIlluminanceTableView ldc=ldc mounting_height=mounting_height c_plane=selected_c_plane />
                                         </div>
                                     }.into_any()
                                 },
@@ -1815,7 +1989,7 @@ pub fn App() -> impl IntoView {
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
-                                                <BugRating ldt=ldt />
+                                                <BugRating ldc=ldc />
                                             </div>
                                         </DiagramZoom>
                                     </div>
@@ -1828,7 +2002,7 @@ pub fn App() -> impl IntoView {
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
-                                                <LcsClassification ldt=ldt />
+                                                <LcsClassification ldc=ldc />
                                             </div>
                                         </DiagramZoom>
                                     </div>
@@ -1841,7 +2015,7 @@ pub fn App() -> impl IntoView {
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
-                                                <FloodlightCartesian ldt=ldt />
+                                                <FloodlightCartesian ldc=ldc />
                                             </div>
                                         </DiagramZoom>
                                     </div>
@@ -1852,7 +2026,7 @@ pub fn App() -> impl IntoView {
                                             <span class="diagram-title">{move || locale.get().ui.diagram.title_isolux.clone()}</span>
                                             <span class="text-muted">{move || locale.get().ui.floodlight.isolux_subtitle.clone()}</span>
                                         </div>
-                                        <IsoluxFootprint ldt=ldt />
+                                        <IsoluxFootprint ldc=ldc />
                                     </div>
                                 }.into_any(),
                                 Tab::FloodlightIsoView => view! {
@@ -1861,7 +2035,7 @@ pub fn App() -> impl IntoView {
                                             <span class="diagram-title">{move || locale.get().ui.diagram.title_iso_view.clone()}</span>
                                             <span class="text-muted">{move || locale.get().ui.diagram.desc_iso_view.clone()}</span>
                                         </div>
-                                        <IsoluxIsometric ldt=ldt />
+                                        <IsoluxIsometric ldc=ldc />
                                     </div>
                                 }.into_any(),
                                 Tab::FloodlightIsocandela => view! {
@@ -1872,7 +2046,7 @@ pub fn App() -> impl IntoView {
                                         </div>
                                         <DiagramZoom>
                                             <div class="diagram-fullwidth">
-                                                <IsocandelaDiagramView ldt=ldt />
+                                                <IsocandelaDiagramView ldc=ldc />
                                             </div>
                                         </DiagramZoom>
                                     </div>
@@ -1880,16 +2054,16 @@ pub fn App() -> impl IntoView {
                                 Tab::ValidationTab => view! {
                                     <div class="validation-tab">
                                         <h3>{move || locale.get().ui.validation.title.clone()}</h3>
-                                        <ValidationPanel ldt=ldt />
+                                        <ValidationPanel ldc=ldc />
                                     </div>
                                 }.into_any(),
                                 Tab::CompareTab => view! {
                                     <div class="compare-tab">
                                         <ComparePanel
-                                            ldt=ldt
+                                            ldc=ldc
                                             current_file=current_file
-                                            ldt_b=compare_ldt_b
-                                            set_ldt_b=set_compare_ldt_b
+                                            ldc_b=compare_ldc_b
+                                            set_ldc_b=set_compare_ldc_b
                                             label_b=compare_label_b
                                             set_label_b=set_compare_label_b
                                         />
@@ -1926,7 +2100,7 @@ pub fn App() -> impl IntoView {
                                         <div class="diagram-header">
                                             <span class="diagram-title">{move || locale.get().ui.tabs.area_designer.clone()}</span>
                                         </div>
-                                        <AreaDesigner ldt=ldt />
+                                        <AreaDesigner ldc=ldc />
                                     </div>
                                 }.into_any(),
                                 Tab::ZonalDesignerTab => view! {
@@ -1934,7 +2108,7 @@ pub fn App() -> impl IntoView {
                                         <div class="diagram-header">
                                             <span class="diagram-title">{move || locale.get().ui.tabs.zonal_designer.clone()}</span>
                                         </div>
-                                        <ZonalDesigner ldt=ldt />
+                                        <ZonalDesigner ldc=ldc />
                                     </div>
                                 }.into_any(),
                                 Tab::MapsDesignerTab => view! {
@@ -1948,7 +2122,7 @@ pub fn App() -> impl IntoView {
                                     </div>
                                 }.into_any(),
                                 Tab::GonioSimTab => view! {
-                                    <GonioSimDemo ldt=ldt />
+                                    <GonioSimDemo ldc=ldc />
                                 }.into_any(),
                                 Tab::StreetDesignTab => view! {
                                     <div class="street-design-tab">

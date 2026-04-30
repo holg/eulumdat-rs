@@ -9,7 +9,8 @@
 //! The output is a self-contained `<svg>` string — ready to feed into
 //! `inner_html` in Leptos, a Typst template, or a static HTML page.
 
-use super::layout::StreetLayout;
+use super::layout::{Arrangement, StreetLayout};
+use super::optimize::OptimizationCandidate;
 use crate::area::AreaResult;
 use crate::diagram::color::heatmap_color;
 use crate::diagram::contour::marching_squares;
@@ -68,15 +69,47 @@ impl StreetTheme {
 
 /// Compliance threshold used for the optional red-tint overlay.
 ///
-/// Cells whose lux < `avg * ratio_floor` are painted red to show where the
-/// design fails the selected standard's uniformity criterion. Use 0.4 for
-/// typical roadway specs (min/avg ≥ 0.4 ⇔ avg/min ≤ 2.5); RP-8 Major at
-/// 3:1 would use 0.33, EN 13201 C-classes 0.6, and so on. Passing `None`
-/// disables the overlay entirely.
+/// Different standards express their failure criterion differently:
+///
+/// - **RP-8 / CJJ 45** use uniformity ratios (`min/avg ≥ U₀` or
+///   `avg/min ≤ ratio`) that translate to a *relative* floor — cells
+///   dimmer than `avg × ratio_floor` fail.
+/// - **EN 13201 C/P-classes** use an *absolute* minimum illuminance
+///   (`E_min ≥ L lux`), so the floor is independent of the grid's mean.
+///
+/// Use [`Self::RatioFloor`] for the first family and [`Self::AbsoluteLux`]
+/// for the second. Passing `None` to the renderer disables the overlay.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct FailureOverlay {
-    /// Minimum ratio of cell lux to average lux. Cells below this are tinted red.
-    pub ratio_floor: f64,
+pub enum FailureOverlay {
+    /// Tint cells where `lux < avg_lux × min_over_avg`.
+    ///
+    /// `min_over_avg = 0.4` is a reasonable roadway default
+    /// (min/avg ≥ 0.4 ⇔ avg/min ≤ 2.5). RP-8 Major/Collector at 3:1 uses
+    /// ≈ 0.33; CJJ 45 Class III uses 0.35.
+    RatioFloor { min_over_avg: f64 },
+    /// Tint cells where `lux < min_lux` (EN 13201 absolute minimum).
+    AbsoluteLux { min_lux: f64 },
+}
+
+impl FailureOverlay {
+    /// Convenience constructor for the common ratio-based case.
+    pub fn ratio(min_over_avg: f64) -> Self {
+        Self::RatioFloor { min_over_avg }
+    }
+
+    /// Convenience constructor for the absolute-lux case.
+    pub fn absolute(min_lux: f64) -> Self {
+        Self::AbsoluteLux { min_lux }
+    }
+
+    /// Does the cell at `cell_lux` (on a grid whose mean is `avg_lux`)
+    /// count as failing this overlay?
+    pub fn is_failing(&self, cell_lux: f64, avg_lux: f64) -> bool {
+        match *self {
+            Self::RatioFloor { min_over_avg } => cell_lux < avg_lux * min_over_avg,
+            Self::AbsoluteLux { min_lux } => cell_lux < min_lux,
+        }
+    }
 }
 
 /// Options controlling the rendered plan view.
@@ -84,6 +117,11 @@ pub struct FailureOverlay {
 pub struct PlanViewOptions {
     pub theme: StreetTheme,
     pub failure_overlay: Option<FailureOverlay>,
+    /// When true, overlay tiny dots at every illuminance grid cell
+    /// centre. Standards pin the grid spacing (RP-8 / EN 13201 each
+    /// dictate it from `pole_spacing` and lane width), so this layer
+    /// helps verify the right cells are being measured.
+    pub show_grid_points: bool,
 }
 
 impl Default for PlanViewOptions {
@@ -91,6 +129,7 @@ impl Default for PlanViewOptions {
         Self {
             theme: StreetTheme::Dark,
             failure_overlay: None,
+            show_grid_points: false,
         }
     }
 }
@@ -153,7 +192,13 @@ pub fn plan_view_heatmap(
     ));
 
     // ── Sidewalks ──────────────────────────────────────────────────────────
-    if sidewalk > 0.0 {
+    // Only paint the solid sidewalk fill when there is no heatmap data
+    // covering the sidewalk band. When `compute_with_sidewalks` fed this
+    // renderer, the heatmap cells already span the sidewalks; painting the
+    // solid fill on top would hide them.
+    let heatmap_covers_sidewalks =
+        sidewalk > 0.0 && !result.lux_grid.is_empty() && result.area_depth > road_width + 1e-6;
+    if sidewalk > 0.0 && !heatmap_covers_sidewalks {
         // Near sidewalk (y = -sidewalk .. 0)
         svg.push_str(&format!(
             r#"<rect x="{x:.2}" y="{y:.2}" width="{w:.2}" height="{h:.2}" fill="{fill}"/>"#,
@@ -184,18 +229,27 @@ pub fn plan_view_heatmap(
         fill = palette.road
     ));
 
-    // ── Illuminance heatmap (on road surface) ─────────────────────────────
+    // ── Illuminance heatmap ───────────────────────────────────────────────
+    //
+    // If the caller supplied a sidewalk-widened grid (`area_depth` exceeds
+    // `road_width`), the extra rows sit symmetrically on both sides of the
+    // road — anchor the heatmap at world Y = -grid_y_pad_m so sidewalk cells
+    // land in the sidewalk band. For a plain roadway grid `grid_y_pad_m`
+    // is 0 and behavior matches the original renderer.
     let n = result.grid_resolution;
+    let grid_y_span = result.area_depth.max(road_width);
+    let grid_y_pad_m = ((grid_y_span - road_width) / 2.0).max(0.0);
     if n > 0 && !result.lux_grid.is_empty() && result.avg_lux > 0.0 {
         let max_lux = result.max_lux.max(1e-6);
         let cell_w = world_len / n as f64 * scale;
-        let cell_h = road_width / n as f64 * scale;
+        let cell_h = grid_y_span / n as f64 * scale;
+        let grid_top_world_y = -grid_y_pad_m;
         for (row, grid_row) in result.lux_grid.iter().enumerate() {
             for (col, &lux) in grid_row.iter().enumerate() {
                 let normalized = (lux / max_lux).clamp(0.0, 1.0);
                 let color = heatmap_color(normalized);
                 let sx = wx(0.0) + col as f64 * cell_w;
-                let sy = wy(0.0) + row as f64 * cell_h;
+                let sy = wy(grid_top_world_y) + row as f64 * cell_h;
                 svg.push_str(&format!(
                     r#"<rect x="{sx:.2}" y="{sy:.2}" width="{w:.2}" height="{h:.2}" fill="{c}" opacity="0.75"/>"#,
                     w = cell_w + 0.5,
@@ -204,9 +258,13 @@ pub fn plan_view_heatmap(
                 ));
 
                 // Red-tint overlay for cells below the failure threshold.
+                // Only applied to cells on the roadway — sidewalks aren't
+                // subject to the same criteria.
                 if let Some(overlay) = opts.failure_overlay {
-                    let threshold = result.avg_lux * overlay.ratio_floor;
-                    if lux < threshold {
+                    let cell_world_y =
+                        grid_top_world_y + (row as f64 + 0.5) * grid_y_span / n as f64;
+                    let on_road = (0.0..=road_width).contains(&cell_world_y);
+                    if on_road && overlay.is_failing(lux, result.avg_lux) {
                         let w = cell_w + 0.5;
                         let h = cell_h + 0.5;
                         svg.push_str(&format!(
@@ -223,7 +281,7 @@ pub fn plan_view_heatmap(
             .map(|col| wx(0.0) + (col as f64 + 0.5) * cell_w)
             .collect();
         let y_coords: Vec<f64> = (0..n)
-            .map(|row| wy(0.0) + (row as f64 + 0.5) * cell_h)
+            .map(|row| wy(grid_top_world_y) + (row as f64 + 0.5) * cell_h)
             .collect();
         for &level in &contour_levels {
             if level > max_lux || level <= 0.0 {
@@ -234,6 +292,20 @@ pub fn plan_view_heatmap(
                 svg.push_str(&format!(
                     r#"<path d="{path}" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="0.9"/>"#,
                 ));
+            }
+        }
+
+        // ── Calculation grid points (Richard #6) ──────────────────────────
+        // Tiny crosses at every cell centre so the user can verify the
+        // standard's prescribed grid is what's being measured (RP-8: 10
+        // longitudinal × n_lanes × 4 transverse; EN 13201 likewise).
+        if opts.show_grid_points {
+            for &cy in &y_coords {
+                for &cx in &x_coords {
+                    svg.push_str(&format!(
+                        r##"<circle cx="{cx:.2}" cy="{cy:.2}" r="1.2" fill="none" stroke="#ffffff" stroke-width="0.6" opacity="0.85"/>"##,
+                    ));
+                }
             }
         }
     }
@@ -426,6 +498,322 @@ fn pick_scale_length(world_len: f64) -> f64 {
         .unwrap_or(&1.0)
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Layout trade-off chart (Pareto scatter)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Visual options for [`layout_tradeoff_chart`].
+#[derive(Debug, Clone, Copy)]
+pub struct LayoutTradeoffOptions {
+    pub theme: StreetTheme,
+    /// Optional index into the candidate slice; if set, that marker is
+    /// drawn with a halo so the user can spot the layout currently
+    /// selected in their UI.
+    pub highlight_idx: Option<usize>,
+}
+
+impl Default for LayoutTradeoffOptions {
+    fn default() -> Self {
+        Self {
+            theme: StreetTheme::Dark,
+            highlight_idx: None,
+        }
+    }
+}
+
+/// Render a layout-trade-off scatter plot (Pareto front of optimizer candidates).
+///
+/// Each candidate plots at `(poles_per_km, avg_illuminance_lux)`. The
+/// `frontier_indices` slice (typically the output of
+/// [`super::optimize::pareto_front_tradeoff`]) draws a polyline through
+/// the Pareto-optimal points so engineers can read off the
+/// "no-design-strictly-better-than-this" choices at a glance.
+///
+/// Marker color encodes the overall uniformity U₀ (min/avg) on a
+/// red→amber→green scale; marker size scales with luminous flux per
+/// km so brighter installations visually pop. The highlighted index
+/// (if any) is drawn with a white halo.
+///
+/// Returns a self-contained `<svg>` element. For an empty candidate
+/// list, returns a tiny "no data" SVG so callers can drop the result
+/// into an `inner_html` slot without conditionally wrapping it.
+pub fn layout_tradeoff_chart(
+    candidates: &[OptimizationCandidate],
+    frontier_indices: &[usize],
+    svg_width: f64,
+    svg_height: f64,
+    opts: LayoutTradeoffOptions,
+) -> String {
+    let palette = opts.theme.palette();
+
+    let mut svg = String::new();
+    svg.push_str(&format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {svg_width} {svg_height}" font-family="sans-serif">"#,
+    ));
+    svg.push_str(&format!(
+        r#"<rect width="{svg_width}" height="{svg_height}" fill="{}"/>"#,
+        palette.bg
+    ));
+
+    if candidates.is_empty() {
+        svg.push_str(&format!(
+            r#"<text x="{x:.1}" y="{y:.1}" fill="{c}" font-size="13" text-anchor="middle">No passing layouts to plot</text>"#,
+            x = svg_width / 2.0,
+            y = svg_height / 2.0,
+            c = palette.text,
+        ));
+        svg.push_str("</svg>");
+        return svg;
+    }
+
+    // Plot box.
+    let margin_left = 60.0;
+    let margin_right = 24.0;
+    let margin_top = 28.0;
+    let margin_bottom = 56.0;
+    let plot_w = (svg_width - margin_left - margin_right).max(50.0);
+    let plot_h = (svg_height - margin_top - margin_bottom).max(50.0);
+
+    // Domain.
+    let mut x_min = f64::INFINITY;
+    let mut x_max = f64::NEG_INFINITY;
+    let mut y_min = f64::INFINITY;
+    let mut y_max = f64::NEG_INFINITY;
+    let mut flux_max = 0.0_f64;
+    for c in candidates {
+        x_min = x_min.min(c.poles_per_km);
+        x_max = x_max.max(c.poles_per_km);
+        y_min = y_min.min(c.design.avg_illuminance_lux);
+        y_max = y_max.max(c.design.avg_illuminance_lux);
+        flux_max = flux_max.max(c.flux_per_km);
+    }
+    // Add ~5% padding on each axis so markers don't touch the frame.
+    let x_pad = ((x_max - x_min) * 0.05).max(1.0);
+    let y_pad = ((y_max - y_min) * 0.05).max(0.5);
+    let x_lo = (x_min - x_pad).max(0.0);
+    let x_hi = x_max + x_pad;
+    let y_lo = (y_min - y_pad).max(0.0);
+    let y_hi = y_max + y_pad;
+
+    let to_x = |v: f64| -> f64 { margin_left + plot_w * ((v - x_lo) / (x_hi - x_lo).max(1e-9)) };
+    // SVG Y grows downward; flip so higher lux is higher on screen.
+    let to_y =
+        |v: f64| -> f64 { margin_top + plot_h * (1.0 - (v - y_lo) / (y_hi - y_lo).max(1e-9)) };
+
+    // Plot frame.
+    svg.push_str(&format!(
+        r#"<rect x="{x:.1}" y="{y:.1}" width="{w:.1}" height="{h:.1}" fill="none" stroke="{c}" stroke-width="1"/>"#,
+        x = margin_left,
+        y = margin_top,
+        w = plot_w,
+        h = plot_h,
+        c = palette.curb,
+    ));
+
+    // Gridlines + tick labels (5 ticks each axis).
+    for i in 0..=4 {
+        let frac = i as f64 / 4.0;
+        let xv = x_lo + frac * (x_hi - x_lo);
+        let xpx = to_x(xv);
+        svg.push_str(&format!(
+            r##"<line x1="{xpx:.1}" y1="{y1:.1}" x2="{xpx:.1}" y2="{y2:.1}" stroke="{c}" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.5"/>"##,
+            y1 = margin_top,
+            y2 = margin_top + plot_h,
+            c = palette.curb,
+        ));
+        svg.push_str(&format!(
+            r#"<text x="{xpx:.1}" y="{ty:.1}" fill="{c}" font-size="10" text-anchor="middle">{label:.0}</text>"#,
+            ty = margin_top + plot_h + 14.0,
+            c = palette.text,
+            label = xv,
+        ));
+
+        let yv = y_lo + frac * (y_hi - y_lo);
+        let ypx = to_y(yv);
+        svg.push_str(&format!(
+            r##"<line x1="{x1:.1}" y1="{ypx:.1}" x2="{x2:.1}" y2="{ypx:.1}" stroke="{c}" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.5"/>"##,
+            x1 = margin_left,
+            x2 = margin_left + plot_w,
+            c = palette.curb,
+        ));
+        svg.push_str(&format!(
+            r#"<text x="{tx:.1}" y="{ypx:.1}" fill="{c}" font-size="10" text-anchor="end" dominant-baseline="middle">{label:.1}</text>"#,
+            tx = margin_left - 6.0,
+            c = palette.text,
+            label = yv,
+        ));
+    }
+
+    // Axis labels.
+    svg.push_str(&format!(
+        r#"<text x="{x:.1}" y="{y:.1}" fill="{c}" font-size="11" text-anchor="middle">Poles per km (Power axis)</text>"#,
+        x = margin_left + plot_w / 2.0,
+        y = svg_height - 12.0,
+        c = palette.text,
+    ));
+    svg.push_str(&format!(
+        r#"<text x="14" y="{y:.1}" fill="{c}" font-size="11" text-anchor="middle" transform="rotate(-90 14 {y:.1})">Average illuminance (lux) — quality axis</text>"#,
+        y = margin_top + plot_h / 2.0,
+        c = palette.text,
+    ));
+
+    // Frontier polyline (lower-X / higher-Y dominance edge).
+    // We use a neutral dashed line (theme-aware text color) instead of
+    // green so the frontier doesn't visually collide with high-U₀ green
+    // markers — Richard's feedback after the road-lighting deep-dive.
+    if frontier_indices.len() >= 2 {
+        let path: String = frontier_indices
+            .iter()
+            .enumerate()
+            .map(|(i, &idx)| {
+                let c = &candidates[idx];
+                let cmd = if i == 0 { 'M' } else { 'L' };
+                format!(
+                    "{cmd}{:.1},{:.1}",
+                    to_x(c.poles_per_km),
+                    to_y(c.design.avg_illuminance_lux)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(" ");
+        svg.push_str(&format!(
+            r##"<path d="{path}" fill="none" stroke="{c}" stroke-width="1.4" stroke-dasharray="6,3" opacity="0.7"/>"##,
+            c = palette.text,
+        ));
+    }
+
+    // Markers (drawn after the frontier so they sit on top of the line).
+    // Each marker is wrapped in a <g class="tradeoff-marker" data-idx="N">
+    // so the WASM editor can wire up click-to-apply via event delegation.
+    // A <title> child gives free native browser tooltips on hover.
+    let arrangement_label = |a: Arrangement| match a {
+        Arrangement::SingleSide => "single-side",
+        Arrangement::Opposite => "opposite",
+        Arrangement::Staggered => "staggered",
+    };
+    for (i, c) in candidates.iter().enumerate() {
+        let cx = to_x(c.poles_per_km);
+        let cy = to_y(c.design.avg_illuminance_lux);
+        let r = tradeoff_marker_radius(c.flux_per_km, flux_max);
+        let fill = uniformity_color(c.design.uniformity_overall);
+        let on_frontier = frontier_indices.contains(&i);
+
+        svg.push_str(&format!(
+            r#"<g class="tradeoff-marker" data-idx="{i}" data-spacing="{spacing:.1}" data-height="{height:.1}" data-arrangement="{arr}" style="cursor:pointer">"#,
+            spacing = c.pole_spacing_m,
+            height = c.mounting_height_m,
+            arr = arrangement_label(c.arrangement),
+        ));
+
+        // Highlight halo for the user's currently-selected candidate.
+        if Some(i) == opts.highlight_idx {
+            svg.push_str(&format!(
+                r##"<circle cx="{cx:.1}" cy="{cy:.1}" r="{rr:.1}" fill="none" stroke="#ffffff" stroke-width="2"/>"##,
+                rr = r + 4.0,
+            ));
+        }
+
+        // Frontier markers get a thicker outline (no green fill — keeps
+        // U₀ color encoding readable).
+        let stroke_w = if on_frontier { 1.8 } else { 0.6 };
+        svg.push_str(&format!(
+            r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="{r:.1}" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_w}"/>"#,
+            stroke = palette.text,
+        ));
+        // Native tooltip — visible on hover in every browser.
+        let frontier_tag = if on_frontier { " · Pareto" } else { "" };
+        svg.push_str(&format!(
+            "<title>{spacing:.0} m × {height:.0} m, {arr}\n{poles:.1} poles/km · U₀={u:.2} · {avg:.0} lx · {flux:.0} lm/km{tag}\nClick to apply</title>",
+            spacing = c.pole_spacing_m,
+            height = c.mounting_height_m,
+            arr = arrangement_label(c.arrangement),
+            poles = c.poles_per_km,
+            u = c.design.uniformity_overall,
+            avg = c.design.avg_illuminance_lux,
+            flux = c.flux_per_km,
+            tag = frontier_tag,
+        ));
+        svg.push_str("</g>");
+    }
+
+    // Mini-legend: U₀ color ramp + frontier line.
+    let lx = margin_left + plot_w - 168.0;
+    let ly = margin_top + 8.0;
+    svg.push_str(&format!(
+        r#"<rect x="{lx:.1}" y="{ly:.1}" width="160" height="62" fill="{bg}" opacity="0.85" stroke="{c}" stroke-width="0.5" rx="3"/>"#,
+        bg = palette.road,
+        c = palette.curb,
+    ));
+    svg.push_str(&format!(
+        r#"<text x="{x:.1}" y="{y:.1}" fill="{c}" font-size="10" font-weight="bold">U₀ (min/avg)</text>"#,
+        x = lx + 8.0,
+        y = ly + 14.0,
+        c = palette.text,
+    ));
+    for (j, &(u, label)) in [(0.2_f64, "low"), (0.4, "mid"), (0.6, "high")]
+        .iter()
+        .enumerate()
+    {
+        let xx = lx + 8.0 + j as f64 * 50.0;
+        svg.push_str(&format!(
+            r#"<circle cx="{cx:.1}" cy="{cy:.1}" r="4" fill="{fill}"/>"#,
+            cx = xx + 4.0,
+            cy = ly + 30.0,
+            fill = uniformity_color(u),
+        ));
+        svg.push_str(&format!(
+            r#"<text x="{tx:.1}" y="{ty:.1}" fill="{c}" font-size="9">{label}</text>"#,
+            tx = xx + 12.0,
+            ty = ly + 33.0,
+            c = palette.text,
+        ));
+    }
+
+    // Pareto frontier legend entry.
+    let pareto_y = ly + 50.0;
+    svg.push_str(&format!(
+        r##"<line x1="{x1:.1}" y1="{y:.1}" x2="{x2:.1}" y2="{y:.1}" stroke="{c}" stroke-width="1.4" stroke-dasharray="6,3" opacity="0.8"/>"##,
+        x1 = lx + 8.0,
+        x2 = lx + 28.0,
+        y = pareto_y,
+        c = palette.text,
+    ));
+    svg.push_str(&format!(
+        r#"<text x="{tx:.1}" y="{ty:.1}" fill="{c}" font-size="9">Pareto frontier</text>"#,
+        tx = lx + 34.0,
+        ty = pareto_y + 3.0,
+        c = palette.text,
+    ));
+
+    svg.push_str("</svg>");
+    svg
+}
+
+/// Marker radius scaled by flux/km; clamped so a single big-flux
+/// candidate doesn't blow out the chart.
+fn tradeoff_marker_radius(flux: f64, flux_max: f64) -> f64 {
+    if flux_max <= 0.0 {
+        return 4.0;
+    }
+    // 3.5 → 8.0 px radius across the flux range.
+    3.5 + 4.5 * (flux / flux_max).clamp(0.0, 1.0)
+}
+
+/// Map U₀ (min/avg) onto a red → amber → green ramp. RP-8 / EN 13201
+/// targets 0.4 as a typical floor; values above 0.6 are excellent.
+fn uniformity_color(u0: f64) -> &'static str {
+    let u = u0.clamp(0.0, 1.0);
+    if u >= 0.55 {
+        "#22c55e" // green
+    } else if u >= 0.40 {
+        "#eab308" // amber
+    } else if u >= 0.25 {
+        "#f97316" // orange
+    } else {
+        "#ef4444" // red
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -498,10 +886,60 @@ mod tests {
                 theme: StreetTheme::Dark,
                 // Aggressive threshold — guarantees most cells fail so we see
                 // the red tint appear at least once.
-                failure_overlay: Some(FailureOverlay { ratio_floor: 10.0 }),
+                failure_overlay: Some(FailureOverlay::ratio(10.0)),
+                show_grid_points: false,
             },
         );
         assert!(with_overlay.contains("#ff3b3b"));
+    }
+
+    #[test]
+    fn absolute_lux_overlay_triggers_on_low_cells() {
+        let layout = StreetLayout::default();
+        let result = compute_result(&layout);
+
+        // Set the absolute floor above the grid maximum — every cell must fail.
+        let floor = result.max_lux + 1.0;
+        let svg = plan_view_heatmap(
+            &layout,
+            &result,
+            800.0,
+            300.0,
+            PlanViewOptions {
+                theme: StreetTheme::Dark,
+                failure_overlay: Some(FailureOverlay::absolute(floor)),
+                show_grid_points: false,
+            },
+        );
+        assert!(
+            svg.contains("#ff3b3b"),
+            "absolute overlay should tint cells"
+        );
+
+        // And an impossibly low floor → zero tints.
+        let svg_none = plan_view_heatmap(
+            &layout,
+            &result,
+            800.0,
+            300.0,
+            PlanViewOptions {
+                theme: StreetTheme::Dark,
+                failure_overlay: Some(FailureOverlay::absolute(-1.0)),
+                show_grid_points: false,
+            },
+        );
+        assert!(!svg_none.contains("#ff3b3b"));
+    }
+
+    #[test]
+    fn is_failing_matches_variant_semantics() {
+        let ratio = FailureOverlay::ratio(0.5);
+        assert!(ratio.is_failing(4.0, 10.0)); // 4 < 10 * 0.5 = 5
+        assert!(!ratio.is_failing(6.0, 10.0));
+
+        let abs = FailureOverlay::absolute(8.0);
+        assert!(abs.is_failing(5.0, 100.0)); // avg irrelevant
+        assert!(!abs.is_failing(9.0, 1.0));
     }
 
     #[test]
@@ -529,6 +967,7 @@ mod tests {
             PlanViewOptions {
                 theme: StreetTheme::Light,
                 failure_overlay: None,
+                show_grid_points: false,
             },
         );
         assert!(svg.contains("#f6f6f6"), "light background missing");
@@ -545,5 +984,61 @@ mod tests {
         assert_eq!(pick_scale_length(120.0), 20.0);
         assert_eq!(pick_scale_length(600.0), 100.0);
         assert_eq!(pick_scale_length(2.0), 1.0); // tiny road
+    }
+
+    fn synth(p: f64, lux: f64, flux: f64, u0: f64) -> OptimizationCandidate {
+        OptimizationCandidate {
+            pole_spacing_m: 1000.0 / p,
+            mounting_height_m: 10.0,
+            arrangement: Arrangement::SingleSide,
+            design: crate::standards::DesignResult {
+                avg_illuminance_lux: lux,
+                min_illuminance_lux: lux * u0,
+                max_illuminance_lux: lux * 1.5,
+                avg_luminance_cd_m2: None,
+                uniformity_overall: u0,
+                uniformity_longitudinal: None,
+                threshold_increment_pct: None,
+            },
+            cost: p,
+            poles_per_km: p,
+            flux_per_km: flux,
+        }
+    }
+
+    #[test]
+    fn layout_tradeoff_chart_empty_input_produces_placeholder_svg() {
+        let svg = layout_tradeoff_chart(&[], &[], 400.0, 300.0, LayoutTradeoffOptions::default());
+        assert!(svg.contains("<svg"));
+        assert!(svg.contains("No passing layouts"));
+    }
+
+    #[test]
+    fn layout_tradeoff_chart_renders_markers_and_frontier() {
+        let cands = vec![
+            synth(40.0, 25.0, 400_000.0, 0.45),
+            synth(50.0, 30.0, 500_000.0, 0.55),
+            synth(50.0, 20.0, 500_000.0, 0.30),
+        ];
+        let frontier = crate::street::optimize::pareto_front_tradeoff(&cands);
+        let svg = layout_tradeoff_chart(
+            &cands,
+            &frontier,
+            500.0,
+            350.0,
+            LayoutTradeoffOptions {
+                theme: StreetTheme::Dark,
+                highlight_idx: Some(0),
+            },
+        );
+        // Sanity: well-formed SVG with axis labels.
+        assert!(svg.starts_with("<svg"));
+        assert!(svg.ends_with("</svg>"));
+        assert!(svg.contains("Poles per km"));
+        assert!(svg.contains("Average illuminance"));
+        // Three markers + a frontier path + halo for the highlighted one.
+        let circle_count = svg.matches("<circle").count();
+        assert!(circle_count >= 3, "expected ≥3 markers, got {circle_count}");
+        assert!(svg.contains(r#"<path d="M"#), "frontier polyline missing");
     }
 }

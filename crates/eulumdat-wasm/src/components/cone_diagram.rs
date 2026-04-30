@@ -12,7 +12,7 @@ use leptos::prelude::*;
 /// Cone diagram view showing beam and field angle spread
 #[component]
 pub fn ConeDiagramView(
-    ldt: ReadSignal<Eulumdat>,
+    ldc: ReadSignal<Eulumdat>,
     /// Mounting height in meters
     mounting_height: ReadSignal<f64>,
     /// Selected C-plane (None = overall)
@@ -23,13 +23,13 @@ pub fn ConeDiagramView(
 
     view! {
         <div class="cone-diagram" inner_html=move || {
-            let ldt = ldt.get();
+            let ldc = ldc.get();
             let height = mounting_height.get();
             let cp = c_plane.get();
 
             let cone = match cp {
-                Some(c) => ConeDiagram::from_eulumdat_for_plane(&ldt, height, c),
-                None => ConeDiagram::from_eulumdat(&ldt, height),
+                Some(c) => ConeDiagram::from_eulumdat_for_plane(&ldc, height, c),
+                None => ConeDiagram::from_eulumdat(&ldc, height),
             };
 
             let theme = SvgTheme::css_variables_with_locale(&locale.get());
@@ -57,7 +57,7 @@ pub fn ConeDiagramView(
 /// Illuminance table showing beam/field diameters and illuminance at multiple heights
 #[component]
 pub fn ConeIlluminanceTableView(
-    ldt: ReadSignal<Eulumdat>,
+    ldc: ReadSignal<Eulumdat>,
     mounting_height: ReadSignal<f64>,
     c_plane: ReadSignal<Option<f64>>,
 ) -> impl IntoView {
@@ -67,7 +67,7 @@ pub fn ConeIlluminanceTableView(
     view! {
         <div class="illuminance-table-wrapper">
             {move || {
-                let ldt_val = ldt.get();
+                let ldt_val = ldc.get();
                 let _h = mounting_height.get();
                 let cp = c_plane.get();
                 let loc = locale.get();

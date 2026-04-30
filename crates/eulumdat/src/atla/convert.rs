@@ -3,12 +3,10 @@
 //! Provides bidirectional conversion between ATLA S001 / TM-33 / UNI 11733
 //! and the traditional EULUMDAT (LDT) format.
 
-use crate::types::*;
+use crate::atla::types::*;
 
-#[cfg(feature = "eulumdat")]
-use eulumdat::{Eulumdat, LampSet, Symmetry as EulumdatSymmetry, TypeIndicator};
+use crate::{Eulumdat, LampSet, Symmetry as EulumdatSymmetry, TypeIndicator};
 
-#[cfg(feature = "eulumdat")]
 impl From<&Eulumdat> for LuminaireOpticalData {
     fn from(ldt: &Eulumdat) -> Self {
         let mut doc = LuminaireOpticalData::new();
@@ -106,7 +104,6 @@ impl From<&Eulumdat> for LuminaireOpticalData {
 
 /// Create an emitter from a single LampSet.
 /// If `ldt_for_intensity` is Some, includes the intensity distribution.
-#[cfg(feature = "eulumdat")]
 fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumdat>) -> Emitter {
     let cct = parse_cct(&ls.color_appearance);
     let color_rendering = parse_cri(&ls.color_rendering_group).map(|ra| ColorRendering {
@@ -155,7 +152,6 @@ fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumda
     }
 }
 
-#[cfg(feature = "eulumdat")]
 fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
     // Calculate total flux and power from lamp sets
     let total_lumens: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
@@ -255,7 +251,6 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
     }
 }
 
-#[cfg(feature = "eulumdat")]
 impl From<&LuminaireOpticalData> for Eulumdat {
     fn from(doc: &LuminaireOpticalData) -> Self {
         let mut ldt = Eulumdat::default();
@@ -370,7 +365,7 @@ impl From<&LuminaireOpticalData> for Eulumdat {
 
             // Recalculate direct ratios from intensity data (SHR 1.25 is standard)
             ldt.direct_ratios =
-                eulumdat::PhotometricCalculations::calculate_direct_ratios(&ldt, "1.25");
+                crate::PhotometricCalculations::calculate_direct_ratios(&ldt, "1.25");
         }
 
         // Set type indicator based on dimensions
@@ -555,7 +550,6 @@ fn cri_to_group(cri: f64) -> String {
 }
 
 /// Determine symmetry from horizontal angles
-#[cfg(feature = "eulumdat")]
 fn determine_symmetry(horizontal_angles: &[f64]) -> EulumdatSymmetry {
     if horizontal_angles.len() <= 1 {
         return EulumdatSymmetry::VerticalAxis;
@@ -581,7 +575,6 @@ fn determine_symmetry(horizontal_angles: &[f64]) -> EulumdatSymmetry {
 }
 
 /// Calculate downward flux fraction and light output ratio
-#[cfg(feature = "eulumdat")]
 fn calculate_flux_fractions(ldt: &Eulumdat) -> (f64, f64) {
     // Simple approximation based on intensity data
     // Real calculation would require proper integration
@@ -617,7 +610,6 @@ fn calculate_flux_fractions(ldt: &Eulumdat) -> (f64, f64) {
     (dff, lor)
 }
 
-#[cfg(feature = "eulumdat")]
 impl LuminaireOpticalData {
     /// Convert from Eulumdat format
     pub fn from_eulumdat(ldt: &Eulumdat) -> Self {
@@ -630,7 +622,7 @@ impl LuminaireOpticalData {
     }
 }
 
-#[cfg(all(test, feature = "eulumdat"))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -699,7 +691,7 @@ mod tests {
 // Schema-to-Schema Conversion (ATLA S001 <-> TM-33-23)
 // ============================================================================
 
-use crate::error::{AtlaError, Result};
+use crate::atla::error::{AtlaError, Result};
 
 /// Conversion policy for S001 -> TM-33-23 migration
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

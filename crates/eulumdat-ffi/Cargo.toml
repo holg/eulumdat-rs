@@ -8,6 +8,7 @@ repository.workspace = true
 description = "FFI bindings for eulumdat - enables use from Swift, Kotlin, Python, and other languages"
 keywords = ["lighting", "photometry", "ldt", "ies", "ffi"]
 homepage = "https://github.com/holg/eulumdat-rs"
+readme = "README.md"
 
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
@@ -21,8 +22,7 @@ path = "uniffi-bindgen.rs"
 default = []
 
 [dependencies]
-atla = { workspace = true, features = ["eulumdat", "xml", "json", "i18n"] }
-eulumdat = { workspace = true, features = ["i18n"] }
+eulumdat = { workspace = true, features = ["xml", "json", "i18n"] }
 eulumdat-i18n.workspace = true
 thiserror.workspace = true
 uniffi = { version = "0.28", features = ["cli"] }

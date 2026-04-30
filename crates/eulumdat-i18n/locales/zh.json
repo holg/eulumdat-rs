@@ -418,7 +418,7 @@
       "metrics": "指标"
     },
     "dropzone": {
-      "text": "将 LDT、IES 或 ATLA（XML/JSON）文件拖放到此处，或使用上方的打开按钮",
+      "text": "将 LDT、IES、ATLA (XML/JSON) 或 OxyTech OXL 文件拖放到此处,或使用上方的“打开”按钮",
       "current_file": "当前文件："
     },
     "diagram": {
@@ -640,7 +640,7 @@
     },
     "compare": {
       "title": "比较对象：",
-      "drop_hint": "将 .ldt、.ies 或 .xml 文件拖放至此处",
+      "drop_hint": "将 .ldt、.ies、.xml 或 .oxl 文件拖放至此处",
       "browse": "浏览文件",
       "or": "或",
       "select_template": "选择模板...",
@@ -1136,5 +1136,208 @@
     "mat_opal_pmma": "PMMA 乳白 3mm",
     "mat_clear_glass": "玻璃 透明 4mm",
     "mat_satin_glass": "玻璃 磨砂 4mm"
+  },
+  "street": {
+    "title": "道路照明设计器",
+    "source": {
+      "using": "编辑器加载的灯具: ",
+      "hint_none": "尚未加载灯具。请在主编辑器中打开一个 — 它将自动显示在此处。",
+      "live_updates": " — 实时更新",
+      "unnamed": "(未命名)"
+    },
+    "layout": {
+      "legend": "道路几何",
+      "length": "长度",
+      "lane_width": "车道宽度",
+      "num_lanes": "车道数",
+      "pole_spacing": "灯杆间距",
+      "mounting_height": "安装高度",
+      "overhang": "悬臂",
+      "tilt": "倾角",
+      "pole_offset": "灯杆偏移",
+      "sidewalk_width": "人行道",
+      "arrangement_label": "布置:"
+    },
+    "arrangement": {
+      "single_side": "单侧",
+      "opposite": "对称",
+      "staggered": "交错"
+    },
+    "threshold": {
+      "label": "高亮不合格:",
+      "off": "关闭",
+      "rp8": "RP-8 (所选道路等级)",
+      "en13201": "EN 13201 (所选等级)",
+      "cjj45": "CJJ 45 (所选等级)",
+      "custom": "自定义比例",
+      "ratio": "比例:",
+      "below_ratio": "低于均值的 {pct}%",
+      "below_lux": "低于 {lux}"
+    },
+    "stats": {
+      "avg": "均值",
+      "min": "最小",
+      "max": "最大",
+      "lux_suffix": "lux"
+    },
+    "compliance": {
+      "heading": "合规性",
+      "pass": "✓ 通过",
+      "fail": "✗ 未通过",
+      "criterion": "标准",
+      "required": "要求值",
+      "achieved": "实际值"
+    },
+    "placeholder": "在主编辑器中加载灯具 — 平面视图和合规性将自动显示。",
+    "standard_selector": {
+      "legend": "权威标准",
+      "rp8": "ANSI/IES RP-8 (美国)",
+      "en13201": "DIN EN 13201 (欧洲)",
+      "cjj45": "CJJ 45 (中国)"
+    },
+    "rp8_tree": {
+      "legend": "RP-8 决策树",
+      "road_class": "道路功能分类",
+      "major": "主干道",
+      "collector": "集散路",
+      "local": "支路/地方道路",
+      "pedestrian_conflict": "人行冲突区",
+      "ped_high": "高 (> 100 人次/小时)",
+      "ped_medium": "中 (11–100 人次/小时)",
+      "ped_low": "低 (< 11 人次/小时)"
+    },
+    "en13201_tree": {
+      "legend": "EN 13201-1 附录 A(照明等级选择)",
+      "family": "等级族",
+      "family_c": "C — 冲突区域",
+      "family_p": "P — 行人/低速",
+      "design_speed": "设计速度",
+      "speed_very_high": "极高 (> 60 km/h)",
+      "speed_high": "高 (30–60 km/h)",
+      "speed_moderate": "中 (5–30 km/h)",
+      "speed_low": "低(步行)",
+      "traffic_volume": "交通量",
+      "vol_very_high": "极高 (> 80 %)",
+      "vol_high": "高 (65–80 %)",
+      "vol_moderate": "中 (35–65 %)",
+      "vol_low": "低 (15–35 %)",
+      "vol_very_low": "极低 (< 15 %)",
+      "traffic_composition": "交通构成",
+      "comp_mixed": "混合(机动+慢行+非机动)",
+      "comp_mixed_motor": "混合,以机动为主",
+      "comp_motor_only": "仅机动",
+      "separation": "车道分隔",
+      "sep_yes": "分隔",
+      "sep_no": "不分隔",
+      "junction_density": "交叉口密度",
+      "jd_high": "高 (> 3 / km)",
+      "jd_moderate": "中 (≤ 3 / km)",
+      "parked_vehicles": "路侧停车",
+      "parked_yes": "存在",
+      "parked_no": "不存在",
+      "ambient_luminance": "环境亮度",
+      "amb_high": "高",
+      "amb_moderate": "中",
+      "amb_low": "低",
+      "navigational_task": "导航任务",
+      "nav_very_difficult": "非常困难",
+      "nav_difficult": "困难",
+      "nav_easy": "容易",
+      "pedestrian_speed": "行人速度类别",
+      "pspeed_walking": "仅步行",
+      "pspeed_slow_mixed": "慢速混合(可进入机动)",
+      "pspeed_low_motor": "机动车低速行驶",
+      "user_density": "使用者密度",
+      "ud_high": "高",
+      "ud_moderate": "中",
+      "ud_low": "低",
+      "facial_recognition": "需要面部识别",
+      "fr_necessary": "必要",
+      "fr_useful": "有用",
+      "fr_not_needed": "不需要"
+    },
+    "cjj45_tree": {
+      "legend": "CJJ 45 决策树",
+      "road_grade": "道路等级",
+      "expressway": "快速路 (I 级)",
+      "major_arterial": "主干路 (I 级)",
+      "minor_arterial": "次干路 (II 级)",
+      "branch": "支路 (III 级)",
+      "residential": "居住区道路 (IV 级)"
+    },
+    "optimizer": {
+      "legend": "布置优化器",
+      "objective_label": "优化目标",
+      "obj_pole_count": "每公里杆数最少",
+      "obj_flux": "每公里总光通量最低",
+      "obj_safety": "安全裕度最大 (min/均值)",
+      "run": "查找最佳布置",
+      "running": "搜索中…",
+      "no_results": "尚无合规布置 — 选择目标并点击查找。",
+      "col_spacing": "间距",
+      "col_height": "高度",
+      "col_arrangement": "布置方式",
+      "col_poles": "杆/km",
+      "col_flux": "光通量/km",
+      "col_uniformity": "U₀",
+      "col_apply": "",
+      "apply": "应用",
+      "tradeoff_show": "显示布置对比",
+      "tradeoff_hide": "隐藏布置对比"
+    },
+    "principal_planes": {
+      "show": "显示 PV/PC 分布",
+      "hide": "隐藏 PV/PC 分布"
+    },
+    "exports": {
+      "heading": "导出",
+      "plan_svg": "平面图（SVG）",
+      "principal_planes_svg": "PV/PC 图（SVG）",
+      "tradeoff_svg": "权衡图（SVG）",
+      "optimizer_csv": "优化结果（CSV）",
+      "optimizer_json": "优化结果（JSON）",
+      "report_pdf": "完整报告（PDF）",
+      "report_pdf_hint": "通过 Typst 在浏览器中编译为 PDF（首次使用时加载约 10 MB 模块）"
+    },
+    "advisor": {
+      "heading": "建议"
+    },
+    "plan_overlays": {
+      "grid_points": "显示计算网格点"
+    }
+  },
+  "extra": {
+    "gldf.nav.overview": "概览",
+    "gldf.nav.raw_data": "原始数据",
+    "gldf.nav.file_viewer": "文件查看器",
+    "gldf.nav.plugins": "插件",
+    "gldf.nav.ifc_viewer": "IFC 查看器",
+    "gldf.nav.header": "文档头",
+    "gldf.nav.electrical": "电气",
+    "gldf.nav.mechanical": "机械",
+    "gldf.nav.applications": "应用",
+    "gldf.nav.photometry": "光度学",
+    "gldf.nav.statistics": "统计",
+    "gldf.nav.files": "文件",
+    "gldf.nav.light_sources": "光源",
+    "gldf.nav.emitters": "发光体",
+    "gldf.nav.variants": "变体",
+    "gldf.toolbar.edit_mode": "编辑模式",
+    "gldf.toolbar.view_mode": "查看模式",
+    "gldf.toolbar.export_gldf": "导出 GLDF",
+    "gldf.toolbar.export_json": "导出 JSON",
+    "gldf.toolbar.export_xml": "导出 XML",
+    "gldf.toolbar.export_ifc": "导出 IFC",
+    "gldf.toolbar.export_ifc_tooltip": "导出为 IFC(BIM 格式)",
+    "gldf.toolbar.clear": "清除",
+    "gldf.toolbar.clear_tooltip": "清除所有内容并重新开始",
+    "gldf.toolbar.help": "?",
+    "gldf.toolbar.help_tooltip": "显示帮助",
+    "gldf.toolbar.ui_lang_tooltip": "查看器界面语言",
+    "gldf.welcome.open_file": "打开文件…",
+    "gldf.welcome.load_slv_tria_2": "加载 SLV Tria 2",
+    "gldf.welcome.load_floodlight_max": "加载 Ledvance Floodlight Max",
+    "gldf.welcome.load_floodlight_combined": "加载 Floodlight Max 合并版",
+    "gldf.welcome.load_biolux": "加载 Biolux HCL"
   }
 }

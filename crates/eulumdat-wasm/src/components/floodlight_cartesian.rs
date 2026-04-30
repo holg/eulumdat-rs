@@ -7,7 +7,7 @@ use leptos::ev;
 use leptos::prelude::*;
 
 #[component]
-pub fn FloodlightCartesian(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn FloodlightCartesian(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let (log_scale, set_log_scale) = signal(false);
 
@@ -17,7 +17,7 @@ pub fn FloodlightCartesian(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // Generate SVG reactively
     let svg_content = move || {
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         let y_scale = if log_scale.get() {
             YScale::Logarithmic
         } else {
@@ -30,7 +30,7 @@ pub fn FloodlightCartesian(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // NEMA classification
     let nema = move || {
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         PhotometricCalculations::nema_classification(&ldt_val)
     };
 

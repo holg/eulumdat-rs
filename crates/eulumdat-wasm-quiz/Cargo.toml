@@ -6,6 +6,8 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "WebAssembly Photometric Knowledge Quiz - Browser-based lighting science quiz"
+# WASM bundle, not a Rust library — distributed as a JS app.
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -21,8 +23,8 @@ csr = ["leptos/csr"]
 [dependencies]
 console_error_panic_hook.workspace = true
 eulumdat = { workspace = true }
-eulumdat-i18n = { path = "../eulumdat-i18n", version = "0.6.0" }
-eulumdat-quiz = { path = "../eulumdat-quiz", version = "0.6.0" }
+eulumdat-i18n = { path = "../eulumdat-i18n", version = "0.7.0" }
+eulumdat-quiz = { path = "../eulumdat-quiz", version = "0.7.0" }
 js-sys.workspace = true
 leptos.workspace = true
 wasm-bindgen.workspace = true

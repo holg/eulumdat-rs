@@ -16,7 +16,7 @@ fn templates_dir() -> PathBuf {
 #[test]
 fn test_parse_xml_sample() {
     let path = samples_dir().join("fluorescent.xml");
-    let doc = atla::parse_file(&path).expect("Failed to parse XML file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse XML file");
 
     assert_eq!(doc.version, "1.0");
     assert_eq!(
@@ -43,7 +43,7 @@ fn test_parse_xml_sample() {
 #[test]
 fn test_parse_json_sample() {
     let path = samples_dir().join("fluorescent.json");
-    let doc = atla::parse_file(&path).expect("Failed to parse JSON file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse JSON file");
 
     assert_eq!(doc.version, "1.0");
     assert_eq!(
@@ -67,8 +67,8 @@ fn test_xml_json_equivalence() {
     let xml_path = samples_dir().join("fluorescent.xml");
     let json_path = samples_dir().join("fluorescent.json");
 
-    let xml_doc = atla::parse_file(&xml_path).unwrap();
-    let json_doc = atla::parse_file(&json_path).unwrap();
+    let xml_doc = eulumdat::atla::parse_file(&xml_path).unwrap();
+    let json_doc = eulumdat::atla::parse_file(&json_path).unwrap();
 
     // Both should have same core data
     assert_eq!(xml_doc.header.manufacturer, json_doc.header.manufacturer);
@@ -95,13 +95,13 @@ fn test_xml_json_equivalence() {
 #[test]
 fn test_xml_roundtrip() {
     let path = samples_dir().join("fluorescent.xml");
-    let original = atla::parse_file(&path).unwrap();
+    let original = eulumdat::atla::parse_file(&path).unwrap();
 
     // Write to XML
-    let xml_output = atla::xml::write(&original).unwrap();
+    let xml_output = eulumdat::atla::xml::write(&original).unwrap();
 
     // Parse back
-    let reparsed = atla::xml::parse(&xml_output).unwrap();
+    let reparsed = eulumdat::atla::xml::parse(&xml_output).unwrap();
 
     // Core data should match
     assert_eq!(original.version, reparsed.version);
@@ -117,13 +117,13 @@ fn test_xml_roundtrip() {
 #[test]
 fn test_json_roundtrip() {
     let path = samples_dir().join("fluorescent.json");
-    let original = atla::parse_file(&path).unwrap();
+    let original = eulumdat::atla::parse_file(&path).unwrap();
 
     // Write to JSON
-    let json_output = atla::json::write(&original).unwrap();
+    let json_output = eulumdat::atla::json::write(&original).unwrap();
 
     // Parse back
-    let reparsed = atla::json::parse(&json_output).unwrap();
+    let reparsed = eulumdat::atla::json::parse(&json_output).unwrap();
 
     // Core data should match
     assert_eq!(original.version, reparsed.version);
@@ -135,10 +135,10 @@ fn test_json_roundtrip() {
 #[test]
 fn test_xml_to_json_conversion() {
     let xml_path = samples_dir().join("fluorescent.xml");
-    let xml_doc = atla::parse_file(&xml_path).unwrap();
+    let xml_doc = eulumdat::atla::parse_file(&xml_path).unwrap();
 
     // Convert to JSON
-    let json_output = atla::json::write(&xml_doc).unwrap();
+    let json_output = eulumdat::atla::json::write(&xml_doc).unwrap();
 
     // Verify JSON is smaller than XML
     let xml_content = std::fs::read_to_string(&xml_path).unwrap();
@@ -146,7 +146,7 @@ fn test_xml_to_json_conversion() {
     println!("JSON size: {} bytes", json_output.len());
 
     // JSON should be smaller (compact would be even smaller)
-    let compact_json = atla::json::write_compact(&xml_doc).unwrap();
+    let compact_json = eulumdat::atla::json::write_compact(&xml_doc).unwrap();
     println!("Compact JSON size: {} bytes", compact_json.len());
     assert!(compact_json.len() < xml_content.len());
 }
@@ -163,7 +163,7 @@ fn test_ldt_to_atla_conversion() {
     let ldt = eulumdat::Eulumdat::from_file(&ldt_path).expect("Failed to parse LDT file");
 
     // Convert to ATLA
-    let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&ldt);
+    let atla_doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&ldt);
 
     // Verify conversion
     assert!(!atla_doc.emitters.is_empty());
@@ -187,7 +187,7 @@ fn test_ldt_to_atla_conversion() {
 #[test]
 fn test_atla_to_ldt_conversion() {
     let xml_path = samples_dir().join("fluorescent.xml");
-    let atla_doc = atla::parse_file(&xml_path).unwrap();
+    let atla_doc = eulumdat::atla::parse_file(&xml_path).unwrap();
 
     // Convert to LDT
     let ldt = atla_doc.to_eulumdat();
@@ -216,7 +216,7 @@ fn test_ldt_roundtrip_via_atla() {
     let original_ldt = eulumdat::Eulumdat::from_file(&ldt_path).unwrap();
 
     // LDT -> ATLA -> LDT
-    let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&original_ldt);
+    let atla_doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&original_ldt);
     let converted_ldt = atla_doc.to_eulumdat();
 
     // Core photometric data should be preserved
@@ -250,7 +250,7 @@ fn test_ldt_roundtrip_via_atla() {
 #[test]
 fn test_luminaire_calculations() {
     let path = samples_dir().join("fluorescent.xml");
-    let doc = atla::parse_file(&path).unwrap();
+    let doc = eulumdat::atla::parse_file(&path).unwrap();
 
     // Total luminous flux
     assert_eq!(doc.total_luminous_flux(), 8100.0);
@@ -266,7 +266,7 @@ fn test_luminaire_calculations() {
 #[test]
 fn test_intensity_sampling() {
     let path = samples_dir().join("fluorescent.xml");
-    let doc = atla::parse_file(&path).unwrap();
+    let doc = eulumdat::atla::parse_file(&path).unwrap();
 
     let dist = doc.emitters[0].intensity_distribution.as_ref().unwrap();
 
@@ -283,11 +283,11 @@ fn test_intensity_sampling() {
 
 #[test]
 fn test_ir_spectral_templates() {
-    use atla::SpectralMetrics;
+    use eulumdat::atla::SpectralMetrics;
 
     // Test halogen lamp with IR
     let halogen_path = samples_dir().join("halogen_lamp.xml");
-    let halogen = atla::parse_file(&halogen_path).expect("Failed to parse halogen lamp");
+    let halogen = eulumdat::atla::parse_file(&halogen_path).expect("Failed to parse halogen lamp");
 
     let spd = halogen.emitters[0]
         .spectral_distribution
@@ -311,7 +311,7 @@ fn test_ir_spectral_templates() {
 
     // Test heat lamp with high IR
     let heat_path = samples_dir().join("heat_lamp.xml");
-    let heat = atla::parse_file(&heat_path).expect("Failed to parse heat lamp");
+    let heat = eulumdat::atla::parse_file(&heat_path).expect("Failed to parse heat lamp");
 
     let spd = heat.emitters[0]
         .spectral_distribution
@@ -333,10 +333,10 @@ fn test_ir_spectral_templates() {
 
 #[test]
 fn test_uv_spectral_template() {
-    use atla::SpectralMetrics;
+    use eulumdat::atla::SpectralMetrics;
 
     let uv_path = samples_dir().join("uv_blacklight.xml");
-    let uv = atla::parse_file(&uv_path).expect("Failed to parse UV blacklight");
+    let uv = eulumdat::atla::parse_file(&uv_path).expect("Failed to parse UV blacklight");
 
     let spd = uv.emitters[0]
         .spectral_distribution
@@ -370,18 +370,18 @@ fn tm33_samples_dir() -> PathBuf {
 
 #[test]
 fn test_schema_detection() {
-    use atla::SchemaVersion;
+    use eulumdat::atla::SchemaVersion;
 
     // ATLA S001 format
     let s001_xml = r#"<LuminaireOpticalData version="1.0"></LuminaireOpticalData>"#;
     assert_eq!(
-        atla::detect_schema_version(s001_xml),
+        eulumdat::atla::detect_schema_version(s001_xml),
         SchemaVersion::AtlaS001
     );
 
     // TM-33-23 format
     let tm33_xml = r#"<IESTM33-22><Version>1.1</Version></IESTM33-22>"#;
-    assert_eq!(atla::detect_schema_version(tm33_xml), SchemaVersion::Tm3323);
+    assert_eq!(eulumdat::atla::detect_schema_version(tm33_xml), SchemaVersion::Tm3323);
 }
 
 #[test]
@@ -395,10 +395,10 @@ fn test_parse_tm33_23_minimal() {
         return;
     }
 
-    let doc = atla::parse_file(&path).expect("Failed to parse TM-33-23 minimal file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse TM-33-23 minimal file");
 
     // Check schema version was detected
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Check version string
     assert_eq!(doc.version, "1.1");
@@ -428,7 +428,7 @@ fn test_parse_tm33_23_minimal() {
 
     // Check intensity distribution
     let dist = emitter.intensity_distribution.as_ref().unwrap();
-    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Full));
+    assert_eq!(dist.symmetry, Some(eulumdat::atla::SymmetryType::Full));
     assert_eq!(dist.multiplier, Some(1.0));
     assert!(!dist.horizontal_angles.is_empty());
     assert!(!dist.vertical_angles.is_empty());
@@ -445,10 +445,10 @@ fn test_parse_tm33_23_with_custom_data() {
         return;
     }
 
-    let doc = atla::parse_file(&path).expect("Failed to parse TM-33-23 with custom data");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse TM-33-23 with custom data");
 
     // Check schema version
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Check header with multiple comments
     assert!(
@@ -479,7 +479,7 @@ fn test_parse_tm33_23_with_custom_data() {
 
 #[test]
 fn test_tm33_23_validation() {
-    use atla::validate::{validate_with_schema, ValidationSchema};
+    use eulumdat::atla::validate::{validate_with_schema, ValidationSchema};
 
     let path = tm33_samples_dir().join("minimal.xml");
     if !path.exists() {
@@ -487,7 +487,7 @@ fn test_tm33_23_validation() {
         return;
     }
 
-    let doc = atla::parse_file(&path).unwrap();
+    let doc = eulumdat::atla::parse_file(&path).unwrap();
 
     // Should pass TM-33-23 validation
     let result = validate_with_schema(&doc, ValidationSchema::Tm3323);
@@ -510,17 +510,17 @@ fn test_tm33_23_to_s001_conversion() {
         return;
     }
 
-    let doc = atla::parse_file(&path).unwrap();
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    let doc = eulumdat::atla::parse_file(&path).unwrap();
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Convert to S001
     #[cfg(feature = "eulumdat")]
     {
-        use atla::convert::tm33_to_atla;
+        use eulumdat::atla::convert::tm33_to_atla;
         let (s001_doc, log) = tm33_to_atla(&doc);
 
         // Should have S001 schema version
-        assert_eq!(s001_doc.schema_version, atla::SchemaVersion::AtlaS001);
+        assert_eq!(s001_doc.schema_version, eulumdat::atla::SchemaVersion::AtlaS001);
 
         // Core data should be preserved
         assert_eq!(s001_doc.header.manufacturer, doc.header.manufacturer);
@@ -540,17 +540,17 @@ fn test_tm33_23_to_s001_conversion() {
 #[test]
 fn test_s001_to_tm33_23_conversion() {
     let path = samples_dir().join("fluorescent.xml");
-    let doc = atla::parse_file(&path).unwrap();
+    let doc = eulumdat::atla::parse_file(&path).unwrap();
 
     #[cfg(feature = "eulumdat")]
     {
-        use atla::convert::{atla_to_tm33, ConversionPolicy};
+        use eulumdat::atla::convert::{atla_to_tm33, ConversionPolicy};
 
         // Convert with compatible policy (apply defaults)
         let (tm33_doc, log) = atla_to_tm33(&doc, ConversionPolicy::Compatible).unwrap();
 
         // Should have TM-33-23 schema version
-        assert_eq!(tm33_doc.schema_version, atla::SchemaVersion::Tm3323);
+        assert_eq!(tm33_doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
         // Core data should be preserved
         assert_eq!(tm33_doc.header.manufacturer, doc.header.manufacturer);
@@ -588,11 +588,11 @@ fn test_tm33_23_write_roundtrip() {
         return;
     }
 
-    let original = atla::parse_file(&path).unwrap();
+    let original = eulumdat::atla::parse_file(&path).unwrap();
 
     // Write as TM-33-23
     let xml_output =
-        atla::xml::write_with_schema(&original, atla::SchemaVersion::Tm3323, Some(2)).unwrap();
+        eulumdat::atla::xml::write_with_schema(&original, eulumdat::atla::SchemaVersion::Tm3323, Some(2)).unwrap();
 
     // Should have TM-33-23 root element
     assert!(
@@ -605,10 +605,10 @@ fn test_tm33_23_write_roundtrip() {
     );
 
     // Parse back
-    let reparsed = atla::xml::parse(&xml_output).unwrap();
+    let reparsed = eulumdat::atla::xml::parse(&xml_output).unwrap();
 
     // Schema version should be preserved
-    assert_eq!(reparsed.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(reparsed.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Core data should match
     assert_eq!(original.header.manufacturer, reparsed.header.manufacturer);
@@ -634,10 +634,10 @@ fn test_parse_horticultural_led() {
         return;
     }
 
-    let doc = atla::parse_file(&path).expect("Failed to parse horticultural LED file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse horticultural LED file");
 
     // Check schema version
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
     assert_eq!(doc.version, "1.1");
 
     // Check header
@@ -662,7 +662,7 @@ fn test_parse_horticultural_led() {
 
     // Check intensity distribution with symmetry
     let dist = emitter.intensity_distribution.as_ref().unwrap();
-    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Quad));
+    assert_eq!(dist.symmetry, Some(eulumdat::atla::SymmetryType::Quad));
     assert_eq!(dist.multiplier, Some(1.0));
 
     // Check spectral distribution is present
@@ -696,10 +696,10 @@ fn test_parse_far_red_supplemental() {
         return;
     }
 
-    let doc = atla::parse_file(&path).expect("Failed to parse far-red supplemental file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse far-red supplemental file");
 
     // Check schema version
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Check emitter
     let emitter = &doc.emitters[0];
@@ -707,7 +707,7 @@ fn test_parse_far_red_supplemental() {
 
     // Check bilateral symmetry
     let dist = emitter.intensity_distribution.as_ref().unwrap();
-    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Bi90));
+    assert_eq!(dist.symmetry, Some(eulumdat::atla::SymmetryType::Bi90));
 
     // Check spectral distribution for far-red peak
     let spd = emitter.spectral_distribution.as_ref().unwrap();
@@ -738,7 +738,7 @@ fn test_parse_far_red_supplemental() {
 
 #[test]
 fn test_parse_uv_supplemental() {
-    use atla::SpectralMetrics;
+    use eulumdat::atla::SpectralMetrics;
 
     let path = tm33_samples_dir().join("uv_supplemental.xml");
     if !path.exists() {
@@ -746,14 +746,14 @@ fn test_parse_uv_supplemental() {
         return;
     }
 
-    let doc = atla::parse_file(&path).expect("Failed to parse UV supplemental file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse UV supplemental file");
 
     // Check schema version
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Check full symmetry
     let dist = doc.emitters[0].intensity_distribution.as_ref().unwrap();
-    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Full));
+    assert_eq!(dist.symmetry, Some(eulumdat::atla::SymmetryType::Full));
 
     // Check spectral distribution has UV
     let spd = doc.emitters[0].spectral_distribution.as_ref().unwrap();
@@ -785,10 +785,10 @@ fn test_parse_seedling_propagation() {
         return;
     }
 
-    let doc = atla::parse_file(&path).expect("Failed to parse seedling propagation file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse seedling propagation file");
 
     // Check schema version
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Check emitter with high CCT (blue-shifted)
     let emitter = &doc.emitters[0];
@@ -797,7 +797,7 @@ fn test_parse_seedling_propagation() {
 
     // Check quadrilateral symmetry
     let dist = emitter.intensity_distribution.as_ref().unwrap();
-    assert_eq!(dist.symmetry, Some(atla::SymmetryType::Quad));
+    assert_eq!(dist.symmetry, Some(eulumdat::atla::SymmetryType::Quad));
 
     // Verify spectral data has blue peak
     let spd = emitter.spectral_distribution.as_ref().unwrap();
@@ -827,7 +827,7 @@ fn test_parse_seedling_propagation() {
 
 #[test]
 fn test_horticultural_validation() {
-    use atla::validate::{validate_with_schema, ValidationSchema};
+    use eulumdat::atla::validate::{validate_with_schema, ValidationSchema};
 
     let files = [
         "horticultural_led.xml",
@@ -842,7 +842,7 @@ fn test_horticultural_validation() {
             continue;
         }
 
-        let doc = atla::parse_file(&path).unwrap();
+        let doc = eulumdat::atla::parse_file(&path).unwrap();
         let result = validate_with_schema(&doc, ValidationSchema::Tm3323);
 
         assert!(
@@ -860,10 +860,10 @@ fn test_horticultural_validation() {
 
 #[test]
 fn test_bim_parameters_from_atla() {
-    use atla::BimParameters;
+    use eulumdat::atla::BimParameters;
 
     let path = samples_dir().join("fluorescent.xml");
-    let doc = atla::parse_file(&path).expect("Failed to parse XML file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse XML file");
 
     let bim = BimParameters::from_atla(&doc);
 
@@ -888,7 +888,7 @@ fn test_bim_parameters_from_atla() {
 
 #[test]
 fn test_bim_parameters_from_tm33_horticultural() {
-    use atla::BimParameters;
+    use eulumdat::atla::BimParameters;
 
     let path = tm33_samples_dir().join("horticultural_led.xml");
     if !path.exists() {
@@ -896,7 +896,7 @@ fn test_bim_parameters_from_tm33_horticultural() {
         return;
     }
 
-    let doc = atla::parse_file(&path).expect("Failed to parse horticultural file");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse horticultural file");
     let bim = BimParameters::from_atla(&doc);
 
     // Check manufacturer
@@ -919,7 +919,7 @@ fn test_bim_parameters_from_tm33_horticultural() {
 
 #[test]
 fn test_bim_enum_parsing() {
-    use atla::{HousingShape, LedDriveType, MountingType, VoltageType};
+    use eulumdat::atla::{HousingShape, LedDriveType, MountingType, VoltageType};
 
     // VoltageType
     assert_eq!(VoltageType::parse("AC"), Some(VoltageType::AC));
@@ -965,14 +965,14 @@ fn tm32_24_samples_dir() -> PathBuf {
 
 #[test]
 fn test_tm32_24_office_downlight_validation() {
-    use atla::validate::{validate_with_schema, ValidationSchema};
-    use atla::BimParameters;
+    use eulumdat::atla::validate::{validate_with_schema, ValidationSchema};
+    use eulumdat::atla::BimParameters;
 
     let path = tm32_24_samples_dir().join("office_downlight_bim.xml");
-    let doc = atla::parse_file(&path).expect("Failed to parse office_downlight_bim.xml");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse office_downlight_bim.xml");
 
     // Should be detected as TM-33-24 (BIM)
-    assert_eq!(doc.schema_version, atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Validate against TM-33-23 rules (base requirements)
     let result_tm33 = validate_with_schema(&doc, ValidationSchema::Tm3323);
@@ -1007,11 +1007,11 @@ fn test_tm32_24_office_downlight_validation() {
 
 #[test]
 fn test_tm32_24_road_luminaire_validation() {
-    use atla::validate::{validate_with_schema, ValidationSchema};
-    use atla::BimParameters;
+    use eulumdat::atla::validate::{validate_with_schema, ValidationSchema};
+    use eulumdat::atla::BimParameters;
 
     let path = tm32_24_samples_dir().join("road_luminaire_bim.xml");
-    let doc = atla::parse_file(&path).expect("Failed to parse road_luminaire_bim.xml");
+    let doc = eulumdat::atla::parse_file(&path).expect("Failed to parse road_luminaire_bim.xml");
 
     // Validate against TM-33-23 rules
     let result_tm33 = validate_with_schema(&doc, ValidationSchema::Tm3323);
@@ -1050,7 +1050,7 @@ fn test_tm32_24_samples_have_required_header_fields() {
     for filename in ["office_downlight_bim.xml", "road_luminaire_bim.xml"] {
         let path = tm32_24_samples_dir().join(filename);
         let doc =
-            atla::parse_file(&path).unwrap_or_else(|_| panic!("Failed to parse {}", filename));
+            eulumdat::atla::parse_file(&path).unwrap_or_else(|_| panic!("Failed to parse {}", filename));
 
         // Required TM-33-23 fields
         assert!(

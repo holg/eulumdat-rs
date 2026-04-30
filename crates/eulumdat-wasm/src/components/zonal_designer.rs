@@ -125,7 +125,7 @@ async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
 
 /// Zonal Cavity Interior Lighting Designer component.
 #[component]
-pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let units = super::app::use_unit_system();
 
@@ -303,7 +303,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     };
 
     // ─── CU table (Memo — computed once per LDT change) ────────────────
-    let cu_table = Memo::new(move |_| CuTable::calculate(&ldt.get()));
+    let cu_table = Memo::new(move |_| CuTable::calculate(&ldc.get()));
 
     // ─── Main computation (reactive) ────────────────────────────────────
     let result = Memo::new(move |_| {
@@ -319,7 +319,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         let ct = cu_table.get();
 
         let mut zr = compute_zonal(
-            &ldt.get(),
+            &ldc.get(),
             &room,
             &reflectances,
             &llf,
@@ -333,7 +333,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
         // PPB overlay (for heatmap view or 3D scene lighting)
         if (show_ppb.get() || show_3d.get()) && zr.layout.count > 0 {
             let ppb = compute_ppb_overlay(
-                &ldt.get(),
+                &ldc.get(),
                 &zr.layout,
                 &room,
                 30, // grid resolution
@@ -358,7 +358,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // ─── Luminaire info ─────────────────────────────────────────────────
     let luminaire_info = Memo::new(move |_| {
-        let l = ldt.get();
+        let l = ldc.get();
         let flux: f64 = l
             .lamp_sets
             .iter()
@@ -375,7 +375,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     });
 
     // ─── Zonal lumen summary ────────────────────────────────────────────
-    let zonal_lumens = Memo::new(move |_| PhotometricCalculations::zonal_lumens_30deg(&ldt.get()));
+    let zonal_lumens = Memo::new(move |_| PhotometricCalculations::zonal_lumens_30deg(&ldc.get()));
 
     // ─── Render ─────────────────────────────────────────────────────────
     view! {
@@ -642,7 +642,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         // IESNA Classification + BUG Rating
                         <div class="zonal-info-grid" style="margin-top: 8px; font-size: 0.8rem;">
                             {move || {
-                                let l = ldt.get();
+                                let l = ldc.get();
                                 let cls = eulumdat::iesna_classify(&l);
                                 let bug = eulumdat::BugRating::from_eulumdat(&l);
                                 let zone = bug.most_restrictive_zone()
@@ -831,7 +831,7 @@ pub fn ZonalDesigner(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
                         <button class="zonal-export-btn"
                             disabled=move || pdf_exporting.get()
                             on:click=move |_| {
-                                let ldt_val = ldt.get();
+                                let ldt_val = ldc.get();
                                 let u = units.get();
                                 let r = result.get();
                                 let ct = cu_table.get();

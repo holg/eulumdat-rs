@@ -125,11 +125,11 @@ fn main() -> Result<()> {
                         Ok(ldt) => println!("Parse:       OK (IES name: {})", ldt.luminaire_name),
                         Err(e) => println!("Parse:       FAIL - {}", e),
                     },
-                    TemplateFormat::AtlaXml => match atla::xml::parse(&content) {
+                    TemplateFormat::AtlaXml => match eulumdat::atla::xml::parse(&content) {
                         Ok(_) => println!("Parse:       OK (ATLA XML)"),
                         Err(e) => println!("Parse:       FAIL - {}", e),
                     },
-                    TemplateFormat::AtlaJson => match atla::json::parse(&content) {
+                    TemplateFormat::AtlaJson => match eulumdat::atla::json::parse(&content) {
                         Ok(_) => println!("Parse:       OK (ATLA JSON)"),
                         Err(e) => println!("Parse:       FAIL - {}", e),
                     },

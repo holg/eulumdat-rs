@@ -19,13 +19,14 @@ use super::{ComplianceItem, ComplianceResult, DesignResult, LightingStandard, Re
 /// CJJ 45 motorized road classes.
 ///
 /// The Chinese spec orders these by importance/volume: ClassI is highest
-/// (expressways and main arterials), ClassIV is residential/branch roads.
+/// (expressways and main arterials), ClassIV is residential roads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Cjj45Class {
-    /// 快速路 / 主干路 — expressway / main arterial.
+    /// 快速路 / 主干路 — expressway and major arterial. Both road types
+    /// share the same lighting requirements per CJJ 45-2015 Table 3.3.2.
     ClassI,
-    /// 次干路 — secondary arterial.
+    /// 次干路 — secondary / minor arterial.
     ClassII,
     /// 支路 — branch road.
     ClassIII,
@@ -36,10 +37,10 @@ pub enum Cjj45Class {
 impl std::fmt::Display for Cjj45Class {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ClassI => write!(f, "Class I (Expressway)"),
-            Self::ClassII => write!(f, "Class II (Secondary)"),
-            Self::ClassIII => write!(f, "Class III (Branch)"),
-            Self::ClassIV => write!(f, "Class IV (Residential)"),
+            Self::ClassI => write!(f, "Class I (快速路/主干路)"),
+            Self::ClassII => write!(f, "Class II (次干路)"),
+            Self::ClassIII => write!(f, "Class III (支路)"),
+            Self::ClassIV => write!(f, "Class IV (居住区道路)"),
         }
     }
 }
@@ -59,16 +60,29 @@ impl Cjj45Class {
     /// Reference values from public summaries of CJJ 45-2015 Table 3.3.2.
     /// Confirm against the official specification before certification use.
     pub fn criteria(self) -> Cjj45Criteria {
+        // CJJ 45-2015 Table 3.3.2 (illuminance method):
+        //   Class I  快速路/主干路   Ē ≥ 20 (lower-bound), U₀ ≥ 0.4
+        //   Class II 次干路          Ē ≥ 15,                U₀ ≥ 0.4
+        //   Class III 支路            Ē ≥ 8,                 U₀ ≥ 0.35
+        //   Class IV 居住区道路      Ē ≥ 5,                 U₀ ≥ 0.3
         let (avg, u0) = match self {
             Self::ClassI => (20.0, 0.4),
             Self::ClassII => (15.0, 0.4),
-            Self::ClassIII => (10.0, 0.35),
-            Self::ClassIV => (8.0, 0.3),
+            Self::ClassIII => (8.0, 0.35),
+            Self::ClassIV => (5.0, 0.3),
         };
         Cjj45Criteria {
             avg_illuminance_lux: avg,
             min_uniformity_min_avg: u0,
         }
+    }
+
+    /// Threshold for the plan-view "highlight failures" overlay.
+    ///
+    /// CJJ 45 specifies `U₀ = min/avg ≥ Uₘᵢₙ`, which maps directly to a
+    /// ratio floor.
+    pub fn failure_overlay(self) -> crate::street::FailureOverlay {
+        crate::street::FailureOverlay::ratio(self.criteria().min_uniformity_min_avg)
     }
 }
 
@@ -175,6 +189,22 @@ mod tests {
                 w[0] >= w[1],
                 "higher-tier class should have higher illuminance target"
             );
+        }
+    }
+
+    #[test]
+    fn failure_overlay_matches_uniformity_u0() {
+        use crate::street::FailureOverlay;
+
+        // Class I wants U₀ ≥ 0.4.
+        match Cjj45Class::ClassI.failure_overlay() {
+            FailureOverlay::RatioFloor { min_over_avg } => assert_eq!(min_over_avg, 0.4),
+            other => panic!("expected RatioFloor, got {other:?}"),
+        }
+        // Class IV wants U₀ ≥ 0.3.
+        match Cjj45Class::ClassIV.failure_overlay() {
+            FailureOverlay::RatioFloor { min_over_avg } => assert_eq!(min_over_avg, 0.3),
+            other => panic!("expected RatioFloor, got {other:?}"),
         }
     }
 }

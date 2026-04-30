@@ -11,13 +11,13 @@
 //!
 //! The validator automatically detects the schema version and applies appropriate rules.
 
-use crate::error::{AtlaError, Result};
-use crate::types::*;
+use crate::atla::error::{AtlaError, Result};
+use crate::atla::types::*;
 use std::path::Path;
 use std::process::Command;
 
 /// Embedded XSD schema for ATLA S001 / TM-33-18 / UNI 11733
-pub const ATLA_XSD_SCHEMA: &str = include_str!("../../../docs/atla-s001.xsd");
+pub const ATLA_XSD_SCHEMA: &str = include_str!("../../../../docs/atla-s001.xsd");
 
 /// Schema type for validation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -287,7 +287,7 @@ fn validate_tm33_23(doc: &LuminaireOpticalData, result: &mut ValidationResult) {
 /// parameters for lighting equipment. It requires all TM-33-23 fields plus
 /// additional BIM-specific requirements.
 fn validate_tm32_24(doc: &LuminaireOpticalData, result: &mut ValidationResult) {
-    use crate::bim::BimParameters;
+    use crate::atla::bim::BimParameters;
 
     // TM-32-24 requires Manufacturer for BIM integration
     if doc.header.manufacturer.is_none()

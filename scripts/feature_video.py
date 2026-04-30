@@ -273,26 +273,26 @@ SCENES = [
         actions=[("wait", 3)],
     ),
 
-    # ═══ Act 8: Obscura ═══
+    # ═══ Act 8: Skyglow ═══
     Scene(
-        name="16_obscura_launch",
-        narrator="The Obscura darkness preservation simulator — "
+        name="16_skyglow_launch",
+        narrator="The Skyglow darkness preservation simulator — "
                  "Bevy engine, WebGPU, right in the browser.",
         min_duration=20,
         actions=[
-            ("navigate", "/?wasm=obscura_demo"),
+            ("navigate", "/?wasm=skyglow_demo"),
             ("wait", 3),
             ("click", "button:has-text('Launch')"),
             ("wait", 15),
         ],
     ),
     Scene(
-        name="17_obscura_sliders",
+        name="17_skyglow_sliders",
         narrator="Uplight percentage controls sky glow. "
                  "Let's increase it with the right bracket key.",
         min_duration=10,
         actions=[
-            ("click", "#obscura-canvas"),
+            ("click", "#skyglow-canvas"),
             ("wait", 0.5),
             ("key_press", "]"),
             ("wait", 1.5),
@@ -300,84 +300,84 @@ SCENES = [
             ("wait", 1.5),
             ("key_press", "]"),
             ("wait", 1.5),
-            ("mouse_drag", "#obscura-canvas", 960, 540, 700, 400, 2.0),
+            ("mouse_drag", "#skyglow-canvas", 960, 540, 700, 400, 2.0),
             ("wait", 1),
         ],
     ),
     Scene(
-        name="18_obscura_haze",
+        name="18_skyglow_haze",
         narrator="Increase haze — atmospheric scattering amplifies sky glow.",
         min_duration=8,
         actions=[
-            ("click", "#obscura-canvas"),
+            ("click", "#skyglow-canvas"),
             ("key_press", "0"),
             ("wait", 1.5),
             ("key_press", "0"),
             ("wait", 1.5),
             ("key_press", "0"),
             ("wait", 1.5),
-            ("mouse_drag", "#obscura-canvas", 960, 540, 1100, 500, 2.0),
+            ("mouse_drag", "#skyglow-canvas", 960, 540, 1100, 500, 2.0),
             ("wait", 1),
         ],
     ),
     Scene(
-        name="19_obscura_sponza",
+        name="19_skyglow_sponza",
         narrator="Press one — Sponza Atrium, a classic test scene.",
         min_duration=10,
         actions=[
-            ("click", "#obscura-canvas"),
+            ("click", "#skyglow-canvas"),
             ("key_press", "1"),
             ("wait", 6),
-            ("mouse_drag", "#obscura-canvas", 960, 540, 600, 380, 2.0),
+            ("mouse_drag", "#skyglow-canvas", 960, 540, 600, 380, 2.0),
             ("key_hold", "w", 1.5),
             ("wait", 1),
         ],
     ),
     Scene(
-        name="20_obscura_bistro",
+        name="20_skyglow_bistro",
         narrator="Press three — Bistro Exterior. Twenty-five megabytes, "
                  "cobblestone streets, building facades, all in the browser.",
         min_duration=18,
         actions=[
-            ("click", "#obscura-canvas"),
+            ("click", "#skyglow-canvas"),
             ("key_press", "3"),
             ("wait", 12),
             ("key_hold", "w", 2.0),
-            ("mouse_drag", "#obscura-canvas", 960, 540, 700, 540, 1.5),
+            ("mouse_drag", "#skyglow-canvas", 960, 540, 700, 540, 1.5),
             ("key_hold", "w", 2.0),
             ("wait", 1),
         ],
     ),
     Scene(
-        name="21_obscura_walk",
+        name="21_skyglow_walk",
         narrator="Photometric lights use actual L-D-T road luminaire data.",
         min_duration=12,
         actions=[
-            ("click", "#obscura-canvas"),
-            ("mouse_drag", "#obscura-canvas", 960, 540, 600, 540, 2.0),
+            ("click", "#skyglow-canvas"),
+            ("mouse_drag", "#skyglow-canvas", 960, 540, 600, 540, 2.0),
             ("key_hold", "w", 3.0),
-            ("mouse_drag", "#obscura-canvas", 600, 540, 1100, 480, 2.0),
+            ("mouse_drag", "#skyglow-canvas", 600, 540, 1100, 480, 2.0),
             ("key_hold", "w", 2.0),
             ("wait", 1),
         ],
     ),
     Scene(
-        name="22_obscura_sky",
+        name="22_skyglow_sky",
         narrator="Look up. Rise with Q above the rooftops.",
         min_duration=8,
         actions=[
-            ("click", "#obscura-canvas"),
-            ("mouse_drag", "#obscura-canvas", 960, 540, 960, 250, 2.5),
+            ("click", "#skyglow-canvas"),
+            ("mouse_drag", "#skyglow-canvas", 960, 540, 960, 250, 2.5),
             ("key_hold", "q", 3.0),
             ("wait", 1),
         ],
     ),
     Scene(
-        name="23_obscura_reduce",
+        name="23_skyglow_reduce",
         narrator="Lower uplight percentage — less light going into the sky.",
         min_duration=10,
         actions=[
-            ("click", "#obscura-canvas"),
+            ("click", "#skyglow-canvas"),
             ("key_press", "["),
             ("wait", 1.2),
             ("key_press", "["),
@@ -391,11 +391,11 @@ SCENES = [
         ],
     ),
     Scene(
-        name="24_obscura_clear",
+        name="24_skyglow_clear",
         narrator="Reduce haze and intensity.",
         min_duration=8,
         actions=[
-            ("click", "#obscura-canvas"),
+            ("click", "#skyglow-canvas"),
             ("key_press", "9"),
             ("wait", 1),
             ("key_press", "9"),
@@ -409,7 +409,7 @@ SCENES = [
         ],
     ),
     Scene(
-        name="25_obscura_stars",
+        name="25_skyglow_stars",
         narrator="The stars are emerging. "
                  "Each star uses multiple lights for color temperature and spectral accuracy. "
                  "We apologize for the oversized stars — "
@@ -417,12 +417,12 @@ SCENES = [
                  "This is what our night sky could look like.",
         min_duration=15,
         actions=[
-            ("click", "#obscura-canvas"),
+            ("click", "#skyglow-canvas"),
             ("key_press", "["),
             ("wait", 2),
-            ("mouse_drag", "#obscura-canvas", 960, 300, 700, 250, 3.0),
+            ("mouse_drag", "#skyglow-canvas", 960, 300, 700, 250, 3.0),
             ("wait", 2),
-            ("mouse_drag", "#obscura-canvas", 700, 250, 1100, 300, 3.0),
+            ("mouse_drag", "#skyglow-canvas", 700, 250, 1100, 300, 3.0),
             ("wait", 3),
         ],
     ),

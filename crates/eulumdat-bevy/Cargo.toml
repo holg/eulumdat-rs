@@ -8,6 +8,11 @@ repository.workspace = true
 description = "3D scene viewer for photometric data using Bevy game engine"
 keywords = ["lighting", "photometry", "bevy", "3d", "visualization"]
 categories = ["game-development", "visualization"]
+# Depends on `bevy = { git = "https://github.com/holg/bevy.git" }` (the
+# `photometric_proposal` branch). crates.io rejects git deps, so this
+# crate cannot be published until the photometric proposal merges into
+# upstream Bevy. Flip back to `publish = true` once that happens.
+publish = false
 
 [lib]
 name = "eulumdat_bevy"
@@ -18,15 +23,15 @@ name = "eulumdat-3d"
 path = "src/main.rs"
 required-features = ["standalone"]
 
-# Obscura Demo binary — buildable for native and WASM
+# Skyglow Demo binary — buildable for native and WASM
 [[bin]]
-name = "obscura-demo"
-path = "examples/obscura_demo.rs"
+name = "skyglow-demo"
+path = "examples/skyglow_demo.rs"
 required-features = ["post-process"]
 
 [features]
-# Default: full viewer with demo scenes
-default = ["viewer"]
+# Default: full viewer with demo scenes, WebGPU rendering
+default = ["viewer", "webgpu"]
 
 # General-purpose photometric lighting (minimal, no scenes/camera)
 # Use this when embedding in your own Bevy app
@@ -35,8 +40,17 @@ photometric = []
 # Full viewer with demo scenes, camera, and controls (implies photometric)
 viewer = ["photometric"]
 
-# Enable WebGL2 for WASM builds
-webgl = ["bevy/webgl2"]
+# ── Render backend selection (mutually exclusive) ──────────────────────
+# Pick exactly one. The WASM target needs one or builds fail with a
+# wgpu link error.
+#
+# webgpu — primary path. Modern browsers (Chrome / Edge / Safari Tahoe).
+webgpu = ["bevy/webgpu"]
+# webgl2 — fallback path for the Skyglow demo. Drops compute-driven
+# features (Bloom, KTX2 zstd cubemaps, photometric IES storage textures)
+# in favor of standard PointLight / SpotLight + hand-driven CCT colors.
+# See `cfg(feature = "webgl2")` blocks in `examples/skyglow_demo.rs`.
+webgl2 = ["bevy/webgl2"]
 
 # Enable localStorage sync for WASM hot-reload (requires wasm-bindgen)
 wasm-sync = ["viewer", "wasm-bindgen", "wasm-bindgen-futures", "web-sys", "js-sys"]
@@ -57,13 +71,20 @@ bevy-ui = [
     "bevy/ui_picking",
 ]
 
-# Enable post-processing effects (Bloom, SSAO)
+# Enable post-processing effects (Bloom, SSAO).
+# Implicitly disabled in WebGL2 builds — Bloom needs storage textures.
 post-process = ["bevy/bevy_post_process"]
 
 # Enable native egui settings panel (WIP — egui_panel module)
 egui-ui = []
 
 [dependencies]
+# Pinned to the holg/bevy.git#photometric_proposal fork because stock
+# Bevy 0.18 lacks the `pbr_photometric_lights` shader path (storage-
+# texture-driven IES distribution) and renamed several light fields
+# (e.g. `shadow_maps_enabled` vs `shadows_enabled`). The proposal is
+# being upstreamed into Bevy 0.19; once it merges we switch to the
+# published `bevy = "0.19"` and flip this crate back to `publish = true`.
 bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposal", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
@@ -99,6 +120,9 @@ bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposa
 rfd = "0.15"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+# WASM Bevy: backend (webgpu / webgl2) is selected by this crate's
+# top-level feature — see [features] above. Don't add `webgpu` or
+# `webgl2` here directly, or features can't swap them at build time.
 bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposal", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
@@ -110,7 +134,6 @@ bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposa
     "bevy_scene",
     "bevy_gltf",
     "bevy_log",
-    "webgpu",
     "tonemapping_luts",
     "png",
     "jpeg",
@@ -120,13 +143,13 @@ bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposa
 getrandom = { version = "0.3", features = ["wasm_js"] }
 js-sys = { version = "0.3", optional = true }
 # Optional WASM dependencies - only needed for standalone/wasm-sync
-wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen = { version = "=0.2.114", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 web-sys = { version = "0.3", features = ["Window", "Storage"], optional = true }
 
 # File dialogs (native only)
 [[example]]
-name = "obscura_demo"
+name = "skyglow_demo"
 required-features = ["post-process"]
 
 [[example]]

@@ -8,7 +8,7 @@ pub struct InfoPanel;
 
 impl InfoPanel {
     /// Show the info panel (read-only view)
-    pub fn show(ui: &mut Ui, ldt: &Eulumdat) {
+    pub fn show(ui: &mut Ui, ldc: &Eulumdat) {
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.heading("Luminaire Information");
             ui.separator();
@@ -18,13 +18,13 @@ impl InfoPanel {
                 .spacing([40.0, 6.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    Self::row(ui, "Name", &ldt.luminaire_name);
-                    Self::row(ui, "Manufacturer", &ldt.identification);
-                    Self::row(ui, "Number", &ldt.luminaire_number);
-                    Self::row(ui, "File Name", &ldt.file_name);
-                    Self::row(ui, "Date/User", &ldt.date_user);
-                    Self::row(ui, "Type", &format!("{:?}", ldt.type_indicator));
-                    Self::row(ui, "Symmetry", &format!("{:?}", ldt.symmetry));
+                    Self::row(ui, "Name", &ldc.luminaire_name);
+                    Self::row(ui, "Manufacturer", &ldc.identification);
+                    Self::row(ui, "Number", &ldc.luminaire_number);
+                    Self::row(ui, "File Name", &ldc.file_name);
+                    Self::row(ui, "Date/User", &ldc.date_user);
+                    Self::row(ui, "Type", &format!("{:?}", ldc.type_indicator));
+                    Self::row(ui, "Symmetry", &format!("{:?}", ldc.symmetry));
                 });
 
             ui.add_space(20.0);
@@ -36,15 +36,15 @@ impl InfoPanel {
                 .spacing([40.0, 6.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    Self::row(ui, "Length", &format!("{:.1} mm", ldt.length));
-                    Self::row(ui, "Width", &format!("{:.1} mm", ldt.width));
-                    Self::row(ui, "Height", &format!("{:.1} mm", ldt.height));
+                    Self::row(ui, "Length", &format!("{:.1} mm", ldc.length));
+                    Self::row(ui, "Width", &format!("{:.1} mm", ldc.width));
+                    Self::row(ui, "Height", &format!("{:.1} mm", ldc.height));
                     Self::row(
                         ui,
                         "Luminous Area",
                         &format!(
                             "{:.1} × {:.1} mm",
-                            ldt.luminous_area_length, ldt.luminous_area_width
+                            ldc.luminous_area_length, ldc.luminous_area_width
                         ),
                     );
                 });
@@ -58,45 +58,45 @@ impl InfoPanel {
                 .spacing([40.0, 6.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    Self::row(ui, "C-planes", &format!("{}", ldt.c_angles.len()));
+                    Self::row(ui, "C-planes", &format!("{}", ldc.c_angles.len()));
                     Self::row(
                         ui,
                         "C-plane Range",
                         &format!(
                             "{:.0}° - {:.0}°",
-                            ldt.c_angles.first().unwrap_or(&0.0),
-                            ldt.c_angles.last().unwrap_or(&0.0)
+                            ldc.c_angles.first().unwrap_or(&0.0),
+                            ldc.c_angles.last().unwrap_or(&0.0)
                         ),
                     );
-                    Self::row(ui, "Gamma Angles", &format!("{}", ldt.g_angles.len()));
+                    Self::row(ui, "Gamma Angles", &format!("{}", ldc.g_angles.len()));
                     Self::row(
                         ui,
                         "Gamma Range",
                         &format!(
                             "{:.0}° - {:.0}°",
-                            ldt.g_angles.first().unwrap_or(&0.0),
-                            ldt.g_angles.last().unwrap_or(&0.0)
+                            ldc.g_angles.first().unwrap_or(&0.0),
+                            ldc.g_angles.last().unwrap_or(&0.0)
                         ),
                     );
                     Self::row(
                         ui,
                         "Max Intensity",
-                        &format!("{:.1} cd/klm", ldt.max_intensity()),
+                        &format!("{:.1} cd/klm", ldc.max_intensity()),
                     );
                     Self::row(
                         ui,
                         "Total Flux",
-                        &format!("{:.0} lm", ldt.total_luminous_flux()),
+                        &format!("{:.0} lm", ldc.total_luminous_flux()),
                     );
                 });
 
             // Lamp sets
-            if !ldt.lamp_sets.is_empty() {
+            if !ldc.lamp_sets.is_empty() {
                 ui.add_space(20.0);
                 ui.heading("Lamp Sets");
                 ui.separator();
 
-                for (i, lamp) in ldt.lamp_sets.iter().enumerate() {
+                for (i, lamp) in ldc.lamp_sets.iter().enumerate() {
                     ui.collapsing(format!("Lamp Set {}", i + 1), |ui| {
                         egui::Grid::new(format!("lamp_grid_{}", i))
                             .num_columns(2)
@@ -122,13 +122,13 @@ impl InfoPanel {
             }
 
             // Direct ratios
-            if ldt.direct_ratios.iter().any(|&r| r > 0.0) {
+            if ldc.direct_ratios.iter().any(|&r| r > 0.0) {
                 ui.add_space(20.0);
                 ui.heading("Direct Ratios (DFF)");
                 ui.separator();
 
                 ui.horizontal_wrapped(|ui| {
-                    for (i, &ratio) in ldt.direct_ratios.iter().enumerate() {
+                    for (i, &ratio) in ldc.direct_ratios.iter().enumerate() {
                         if ratio > 0.0 {
                             ui.label(format!("DFF{}: {:.1}%", i + 1, ratio * 100.0));
                         }

@@ -36,7 +36,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use atla::{LuminaireOpticalData, xml};
+//! use eulumdat::atla::{LuminaireOpticalData, xml};
 //!
 //! // Parse from XML
 //! let xml_content = std::fs::read_to_string("luminaire.xml")?;
@@ -48,7 +48,7 @@
 //!
 //! // With the 'json' feature, convert to JSON (90% smaller)
 //! #[cfg(feature = "json")]
-//! let json_output = atla::json::write(&doc)?;
+//! let json_output = eulumdat::atla::json::write(&doc)?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!
@@ -57,7 +57,7 @@
 //! With the `eulumdat` feature enabled, you can convert between formats:
 //!
 //! ```rust,ignore
-//! use atla::LuminaireOpticalData;
+//! use eulumdat::atla::LuminaireOpticalData;
 //! use eulumdat::Eulumdat;
 //!
 //! // LDT -> ATLA
@@ -93,7 +93,9 @@ pub mod spdx;
 #[cfg(feature = "json")]
 pub mod json;
 
-#[cfg(feature = "eulumdat")]
+#[cfg(feature = "xml")]
+pub mod oxl;
+
 pub mod convert;
 
 // Re-exports
@@ -121,7 +123,7 @@ pub use validate::{
 ///
 /// # Example
 /// ```rust
-/// use atla::{detect_schema_version, SchemaVersion};
+/// use eulumdat::atla::{detect_schema_version, SchemaVersion};
 ///
 /// let xml = r#"<IESTM33-22><Version>1.1</Version></IESTM33-22>"#;
 /// assert_eq!(detect_schema_version(xml), SchemaVersion::Tm3323);
@@ -200,6 +202,27 @@ pub fn parse_file(path: impl AsRef<std::path::Path>) -> Result<LuminaireOpticalD
             "xml" => {
                 #[cfg(feature = "xml")]
                 return xml::parse(&content);
+                #[cfg(not(feature = "xml"))]
+                return Err(AtlaError::XmlParse(
+                    "XML support not enabled. Enable the 'xml' feature.".to_string(),
+                ));
+            }
+            // OXL / OXC are OxyTech LITESTAR's multi-luminaire XML
+            // catalogs. The first luminaire is returned through this
+            // single-document entry point — callers wanting all of them
+            // must use `oxl::parse` / `oxl::parse_file` directly.
+            "oxl" | "oxc" => {
+                #[cfg(feature = "xml")]
+                {
+                    let pkg = oxl::parse(&content)?;
+                    return pkg.luminaires.into_iter().next().ok_or_else(|| {
+                        AtlaError::XmlParse(
+                            "OXL/OXC file contains no luminaires (commercial-only?). \
+                             Use oxl::parse for catalog-level metadata."
+                                .into(),
+                        )
+                    });
+                }
                 #[cfg(not(feature = "xml"))]
                 return Err(AtlaError::XmlParse(
                     "XML support not enabled. Enable the 'xml' feature.".to_string(),

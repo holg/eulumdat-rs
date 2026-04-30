@@ -418,7 +418,7 @@
       "metrics": "Métricas"
     },
     "dropzone": {
-      "text": "Arrastre y suelte un archivo LDT, IES o ATLA (XML/JSON) aquí, o use el botón Abrir arriba",
+      "text": "Arrastre y suelte un archivo LDT, IES, ATLA (XML/JSON) o OxyTech OXL aquí, o use el botón Abrir arriba",
       "current_file": "Archivo actual:"
     },
     "diagram": {
@@ -640,7 +640,7 @@
     },
     "compare": {
       "title": "Comparar con:",
-      "drop_hint": "Suelte un archivo .ldt, .ies o .xml aquí",
+      "drop_hint": "Suelte un archivo .ldt, .ies, .xml o .oxl aquí",
       "browse": "Buscar archivo",
       "or": "o",
       "select_template": "Seleccionar plantilla...",
@@ -1136,5 +1136,208 @@
     "mat_opal_pmma": "PMMA ópalo 3mm",
     "mat_clear_glass": "Vidrio claro 4mm",
     "mat_satin_glass": "Vidrio satinado 4mm"
+  },
+  "street": {
+    "title": "Diseñador de Iluminación Vial",
+    "source": {
+      "using": "Luminaria desde el editor: ",
+      "hint_none": "No hay luminaria cargada. Abre una en el editor principal — aparecerá aquí automáticamente.",
+      "live_updates": " — se actualiza en vivo",
+      "unnamed": "(sin nombre)"
+    },
+    "layout": {
+      "legend": "Geometría de la calle",
+      "length": "Longitud",
+      "lane_width": "Ancho de carril",
+      "num_lanes": "Nº carriles",
+      "pole_spacing": "Separación postes",
+      "mounting_height": "Altura de montaje",
+      "overhang": "Voladizo",
+      "tilt": "Inclinación",
+      "pole_offset": "Retranqueo poste",
+      "sidewalk_width": "Acera",
+      "arrangement_label": "Disposición:"
+    },
+    "arrangement": {
+      "single_side": "Un lado",
+      "opposite": "Opuesta",
+      "staggered": "Tresbolillo"
+    },
+    "threshold": {
+      "label": "Resaltar incumplimientos:",
+      "off": "Desactivado",
+      "rp8": "RP-8 (clase seleccionada)",
+      "en13201": "EN 13201 (clase seleccionada)",
+      "cjj45": "CJJ 45 (clase seleccionada)",
+      "custom": "Ratio personalizado",
+      "ratio": "Ratio:",
+      "below_ratio": "por debajo del {pct}% de la media",
+      "below_lux": "por debajo de {lux}"
+    },
+    "stats": {
+      "avg": "med",
+      "min": "mín",
+      "max": "máx",
+      "lux_suffix": "lux"
+    },
+    "compliance": {
+      "heading": "Cumplimiento",
+      "pass": "✓ CUMPLE",
+      "fail": "✗ NO CUMPLE",
+      "criterion": "Criterio",
+      "required": "Requerido",
+      "achieved": "Alcanzado"
+    },
+    "placeholder": "Carga una luminaria en el editor principal — aparecerá aquí para vista en planta y cumplimiento.",
+    "standard_selector": {
+      "legend": "Norma autoritativa",
+      "rp8": "ANSI/IES RP-8 (EE. UU.)",
+      "en13201": "DIN EN 13201 (Europa)",
+      "cjj45": "CJJ 45 (China)"
+    },
+    "rp8_tree": {
+      "legend": "Árbol de decisión RP-8",
+      "road_class": "Clase funcional de la vía",
+      "major": "Principal",
+      "collector": "Colectora",
+      "local": "Local",
+      "pedestrian_conflict": "Zona de conflicto peatonal",
+      "ped_high": "Alto (> 100 peat/h)",
+      "ped_medium": "Medio (11–100 peat/h)",
+      "ped_low": "Bajo (< 11 peat/h)"
+    },
+    "en13201_tree": {
+      "legend": "EN 13201-1 Anexo A (selección de clase)",
+      "family": "Familia de clase",
+      "family_c": "C — zona de conflicto",
+      "family_p": "P — peatonal / baja velocidad",
+      "design_speed": "Velocidad de diseño",
+      "speed_very_high": "Muy alta (> 60 km/h)",
+      "speed_high": "Alta (30–60 km/h)",
+      "speed_moderate": "Moderada (5–30 km/h)",
+      "speed_low": "Baja (peatonal)",
+      "traffic_volume": "Volumen de tráfico",
+      "vol_very_high": "Muy alto (> 80 %)",
+      "vol_high": "Alto (65–80 %)",
+      "vol_moderate": "Moderado (35–65 %)",
+      "vol_low": "Bajo (15–35 %)",
+      "vol_very_low": "Muy bajo (< 15 %)",
+      "traffic_composition": "Composición del tráfico",
+      "comp_mixed": "Mixto (motor + lento + no motor)",
+      "comp_mixed_motor": "Mixto, dominio motorizado",
+      "comp_motor_only": "Solo motorizado",
+      "separation": "Separación de calzadas",
+      "sep_yes": "Separadas",
+      "sep_no": "No separadas",
+      "junction_density": "Densidad de cruces",
+      "jd_high": "Alta (> 3 / km)",
+      "jd_moderate": "Moderada (≤ 3 / km)",
+      "parked_vehicles": "Vehículos estacionados",
+      "parked_yes": "Presentes",
+      "parked_no": "No presentes",
+      "ambient_luminance": "Luminancia ambiental",
+      "amb_high": "Alta",
+      "amb_moderate": "Moderada",
+      "amb_low": "Baja",
+      "navigational_task": "Tarea de navegación",
+      "nav_very_difficult": "Muy difícil",
+      "nav_difficult": "Difícil",
+      "nav_easy": "Fácil",
+      "pedestrian_speed": "Categoría de velocidad peatonal",
+      "pspeed_walking": "Solo caminar",
+      "pspeed_slow_mixed": "Mixto lento (acceso vehicular)",
+      "pspeed_low_motor": "Motor a baja velocidad",
+      "user_density": "Densidad de usuarios",
+      "ud_high": "Alta",
+      "ud_moderate": "Moderada",
+      "ud_low": "Baja",
+      "facial_recognition": "Reconocimiento facial necesario",
+      "fr_necessary": "Necesario",
+      "fr_useful": "Útil",
+      "fr_not_needed": "No necesario"
+    },
+    "cjj45_tree": {
+      "legend": "Árbol de decisión CJJ 45",
+      "road_grade": "Categoría de vía",
+      "expressway": "Autopista urbana 快速路 (Clase I)",
+      "major_arterial": "Arteria principal 主干路 (Clase I)",
+      "minor_arterial": "Arteria menor 次干路 (Clase II)",
+      "branch": "Vía local 支路 (Clase III)",
+      "residential": "Vía residencial 居住区道路 (Clase IV)"
+    },
+    "optimizer": {
+      "legend": "Optimizador de diseño",
+      "objective_label": "Objetivo",
+      "obj_pole_count": "Menos postes por km",
+      "obj_flux": "Menor flujo total por km",
+      "obj_safety": "Mayor margen de seguridad (mín/med)",
+      "run": "Buscar disposición óptima",
+      "running": "Buscando…",
+      "no_results": "Sin disposiciones válidas — elija un objetivo y haga clic en Buscar.",
+      "col_spacing": "Separación",
+      "col_height": "Altura",
+      "col_arrangement": "Disposición",
+      "col_poles": "Postes / km",
+      "col_flux": "Flujo / km",
+      "col_uniformity": "U₀",
+      "col_apply": "",
+      "apply": "Aplicar",
+      "tradeoff_show": "Mostrar comparación de layouts",
+      "tradeoff_hide": "Ocultar comparación de layouts"
+    },
+    "principal_planes": {
+      "show": "Mostrar distribución PV/PC",
+      "hide": "Ocultar distribución PV/PC"
+    },
+    "exports": {
+      "heading": "Exportar",
+      "plan_svg": "Vista en planta (SVG)",
+      "principal_planes_svg": "Diagrama PV/PC (SVG)",
+      "tradeoff_svg": "Gráfico de compromiso (SVG)",
+      "optimizer_csv": "Resultados del optimizador (CSV)",
+      "optimizer_json": "Resultados del optimizador (JSON)",
+      "report_pdf": "Informe completo (PDF)",
+      "report_pdf_hint": "Compila a PDF en el navegador con Typst (módulo de ≈10 MB se carga en el primer uso)"
+    },
+    "advisor": {
+      "heading": "Recomendaciones"
+    },
+    "plan_overlays": {
+      "grid_points": "Mostrar puntos de cálculo"
+    }
+  },
+  "extra": {
+    "gldf.nav.overview": "Resumen",
+    "gldf.nav.raw_data": "Datos en bruto",
+    "gldf.nav.file_viewer": "Visor de archivos",
+    "gldf.nav.plugins": "Complementos",
+    "gldf.nav.ifc_viewer": "Visor IFC",
+    "gldf.nav.header": "Cabecera",
+    "gldf.nav.electrical": "Eléctrico",
+    "gldf.nav.mechanical": "Mecánico",
+    "gldf.nav.applications": "Aplicaciones",
+    "gldf.nav.photometry": "Fotometría",
+    "gldf.nav.statistics": "Estadísticas",
+    "gldf.nav.files": "Archivos",
+    "gldf.nav.light_sources": "Fuentes de luz",
+    "gldf.nav.emitters": "Emisores",
+    "gldf.nav.variants": "Variantes",
+    "gldf.toolbar.edit_mode": "Modo edición",
+    "gldf.toolbar.view_mode": "Modo vista",
+    "gldf.toolbar.export_gldf": "Exportar GLDF",
+    "gldf.toolbar.export_json": "Exportar JSON",
+    "gldf.toolbar.export_xml": "Exportar XML",
+    "gldf.toolbar.export_ifc": "Exportar IFC",
+    "gldf.toolbar.export_ifc_tooltip": "Exportar a IFC (formato BIM)",
+    "gldf.toolbar.clear": "Borrar",
+    "gldf.toolbar.clear_tooltip": "Borrar todo y empezar de nuevo",
+    "gldf.toolbar.help": "?",
+    "gldf.toolbar.help_tooltip": "Mostrar ayuda",
+    "gldf.toolbar.ui_lang_tooltip": "Idioma de la interfaz del visor",
+    "gldf.welcome.open_file": "Abrir archivo…",
+    "gldf.welcome.load_slv_tria_2": "Cargar SLV Tria 2",
+    "gldf.welcome.load_floodlight_max": "Cargar Ledvance Floodlight Max",
+    "gldf.welcome.load_floodlight_combined": "Cargar Floodlight Max combinado",
+    "gldf.welcome.load_biolux": "Cargar Biolux HCL"
   }
 }

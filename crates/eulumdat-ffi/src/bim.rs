@@ -25,8 +25,8 @@ pub struct BimData {
 #[uniffi::export]
 pub fn get_bim_parameters(ldt: &Eulumdat) -> BimData {
     let core_ldt = to_core_eulumdat(ldt);
-    let doc = atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
-    let bim = atla::bim::BimParameters::from_atla(&doc);
+    let doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
+    let bim = eulumdat::atla::bim::BimParameters::from_atla(&doc);
 
     let rows: Vec<BimParameterRow> = bim
         .to_table_rows()
@@ -55,7 +55,7 @@ pub fn get_bim_parameters(ldt: &Eulumdat) -> BimData {
 #[uniffi::export]
 pub fn has_bim_data(ldt: &Eulumdat) -> bool {
     let core_ldt = to_core_eulumdat(ldt);
-    let doc = atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
-    let bim = atla::bim::BimParameters::from_atla(&doc);
+    let doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
+    let bim = eulumdat::atla::bim::BimParameters::from_atla(&doc);
     bim.populated_count() > 0
 }

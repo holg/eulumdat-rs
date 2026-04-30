@@ -6,6 +6,8 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Lazy-loaded template files for the Eulumdat WASM editor"
+# WASM bundle, not a Rust library — distributed as a JS app.
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -22,7 +24,7 @@ required-features = ["egui-app"]
 
 [features]
 default = []
-manager = ["dep:serde", "dep:toml", "dep:anyhow", "dep:eulumdat", "dep:atla"]
+manager = ["dep:serde", "dep:toml", "dep:anyhow", "dep:eulumdat"]
 cli = ["manager", "dep:clap"]
 egui-app = ["manager", "dep:eframe", "dep:egui", "dep:rfd"]
 
@@ -31,8 +33,7 @@ wasm-bindgen = { workspace = true }
 
 # Manager core (behind "manager" feature)
 anyhow = { workspace = true, optional = true }
-atla = { workspace = true, optional = true, features = ["xml", "json"] }
-eulumdat = { workspace = true, optional = true }
+eulumdat = { workspace = true, optional = true, features = ["xml", "json"] }
 serde = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 

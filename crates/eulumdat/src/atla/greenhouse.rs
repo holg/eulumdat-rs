@@ -3,7 +3,7 @@
 //! Creates SVG visualizations showing PPFD (Photosynthetic Photon Flux Density)
 //! at different distances from the luminaire for horticultural applications.
 
-use crate::types::{LuminaireOpticalData, SpectralDistribution};
+use crate::atla::types::{LuminaireOpticalData, SpectralDistribution};
 
 /// Localized labels for greenhouse/PPFD diagram
 #[derive(Debug, Clone)]
@@ -239,10 +239,23 @@ impl GreenhouseDiagram {
     pub fn from_atla_with_height(doc: &LuminaireOpticalData, max_height: f64) -> Self {
         let emitter = doc.emitters.first();
 
-        // Get power and lumens
-        let watts = emitter.and_then(|e| e.input_watts).unwrap_or(100.0);
+        // Get power and lumens. Filter out zero values explicitly: many
+        // EULUMDAT files store 0 in `wattage_with_ballast` or
+        // `total_luminous_flux` when the field is unknown, and the
+        // atla converter passes those through as `Some(0.0)` rather
+        // than `None`. A plain `.or` chain wouldn't fall back through
+        // `Some(0.0)`, leaving us with PPF = 0 and the entire grid
+        // rendering empty.
+        let watts = emitter
+            .and_then(|e| e.input_watts)
+            .filter(|&v| v > 0.0)
+            .unwrap_or(100.0);
         let lumens = emitter
-            .and_then(|e| e.measured_lumens.or(e.rated_lumens))
+            .and_then(|e| {
+                e.measured_lumens
+                    .filter(|&v| v > 0.0)
+                    .or(e.rated_lumens.filter(|&v| v > 0.0))
+            })
             .unwrap_or(10000.0);
 
         // Estimate PPF from lumens (conversion factor depends on spectrum)
@@ -263,6 +276,12 @@ impl GreenhouseDiagram {
             .unwrap_or(120.0);
 
         // Calculate PPFD at various distances based on max_height
+        // Clamp the beam angle into a sane range so the coverage maths
+        // doesn't degenerate. Anything ≤ 0° would zero out the area;
+        // anything ≥ 180° drives `tan(beam/2)` to infinity. 5°/170° are
+        // the practical bounds of realistic luminaires.
+        let beam_angle = beam_angle.clamp(5.0, 170.0);
+
         // Generate 6-7 distance levels from 0.15*max to max
         let distances = Self::generate_distances(max_height);
         let ppfd_levels: Vec<PpfdAtDistance> = distances
@@ -553,27 +572,66 @@ fn estimate_ppf_factor(spd: &SpectralDistribution) -> f64 {
     }
 }
 
-/// Estimate beam angle from intensity distribution
-fn estimate_beam_angle(dist: &crate::types::IntensityDistribution) -> f64 {
-    // Find angle where intensity drops to 50% of peak
+/// Estimate beam angle from intensity distribution.
+///
+/// Beam angle ≈ 2 × the angular distance from the peak intensity to the
+/// 50%-of-peak shoulder. For a symmetric downlight the peak sits at
+/// gamma=0 and the old "scan from index 0" heuristic worked, but for
+/// asymmetric road luminaires (and OxyTech-style office downlights
+/// where the peak is offset from nadir) the peak is somewhere in the
+/// middle of the distribution. We anchor on the actual peak index and
+/// walk outward.
+fn estimate_beam_angle(dist: &crate::atla::types::IntensityDistribution) -> f64 {
     if dist.intensities.is_empty() || dist.vertical_angles.is_empty() {
         return 120.0;
     }
 
-    // Get first C-plane
     let intensities = &dist.intensities[0];
-    let peak = intensities.iter().copied().fold(0.0_f64, f64::max);
-    let half_peak = peak * 0.5;
-
-    for (i, &val) in intensities.iter().enumerate() {
-        if val < half_peak {
-            if let Some(&angle) = dist.vertical_angles.get(i) {
-                return angle * 2.0; // Full beam angle is 2x half-angle
-            }
-        }
+    if intensities.is_empty() {
+        return 120.0;
     }
 
-    120.0 // Default wide beam
+    // Locate the peak.
+    let mut peak_idx = 0;
+    let mut peak = intensities[0];
+    for (i, &v) in intensities.iter().enumerate() {
+        if v > peak {
+            peak = v;
+            peak_idx = i;
+        }
+    }
+    if peak <= 0.0 {
+        return 120.0;
+    }
+    let half_peak = peak * 0.5;
+
+    // Find the half-peak shoulder above the peak (larger gamma side).
+    let high_shoulder: Option<f64> = intensities
+        .iter()
+        .enumerate()
+        .skip(peak_idx)
+        .find(|(_, &v)| v < half_peak)
+        .and_then(|(i, _)| dist.vertical_angles.get(i).copied());
+
+    // And below the peak (smaller gamma side).
+    let low_shoulder: Option<f64> = intensities
+        .iter()
+        .enumerate()
+        .take(peak_idx + 1)
+        .rev()
+        .find(|(_, &v)| v < half_peak)
+        .and_then(|(i, _)| dist.vertical_angles.get(i).copied());
+
+    let peak_angle = dist.vertical_angles.get(peak_idx).copied().unwrap_or(0.0);
+    match (low_shoulder, high_shoulder) {
+        (Some(lo), Some(hi)) => (hi - lo).abs(),
+        // One-sided shoulder: assume symmetric distribution, mirror it.
+        (None, Some(hi)) => 2.0 * (hi - peak_angle).abs(),
+        (Some(lo), None) => 2.0 * (peak_angle - lo).abs(),
+        // No shoulder reached within the sampled distribution — the beam
+        // is wider than the angular range we have. Fall back to wide.
+        (None, None) => 120.0,
+    }
 }
 
 #[cfg(test)]
@@ -596,5 +654,98 @@ mod tests {
         assert!(svg.contains("<svg"));
         assert!(svg.contains("PPFD"));
         assert!(svg.contains("µmol"));
+    }
+
+    /// Regression: an emitter whose peak intensity sits *off* gamma=0
+    /// (typical of asymmetric office downlights and road luminaires)
+    /// previously produced beam_angle = 0 and PPFD = 0 everywhere.
+    /// The peak-anchored estimator now finds the half-peak shoulder
+    /// correctly.
+    #[test]
+    fn asymmetric_distribution_yields_nonzero_ppfd() {
+        use crate::atla::types::{Emitter, IntensityDistribution};
+
+        // Synthetic distribution: peak at gamma=20°, ~half-peak at
+        // gamma=10° and gamma=40°. Modeled after the BIOLUX / Pinco-
+        // shape downlights where the brightest direction is offset
+        // from nadir.
+        let intensities = vec![vec![
+            100.0, // 0°
+            300.0, // 5°
+            450.0, // 10°
+            550.0, // 15°
+            600.0, // 20° ← peak
+            500.0, // 25°
+            400.0, // 30°
+            300.0, // 35°
+            200.0, // 40°
+            100.0, // 45°
+            50.0,  // 50°
+            10.0,  // 55°
+            0.0,   // 60°
+        ]];
+        let vertical = (0..13).map(|i| (i as f64) * 5.0).collect();
+        let dist = IntensityDistribution {
+            vertical_angles: vertical,
+            horizontal_angles: vec![0.0],
+            intensities,
+            ..Default::default()
+        };
+        let emitter = Emitter {
+            quantity: 1,
+            rated_lumens: Some(4247.0),
+            input_watts: Some(84.5),
+            intensity_distribution: Some(dist),
+            ..Default::default()
+        };
+        let mut doc = LuminaireOpticalData::new();
+        doc.emitters.push(emitter);
+
+        let diagram = GreenhouseDiagram::from_atla_with_height(&doc, 2.0);
+        // PPF should be lumens × ~1.2 / 1000 × 15 ≈ 76 µmol/s.
+        assert!(
+            (70.0..90.0).contains(&diagram.ppf),
+            "PPF out of expected band: {}",
+            diagram.ppf
+        );
+        // Beam angle from the synthetic peak-at-20 / half-at-10/40
+        // distribution should be ~30°, definitely not 0.
+        assert!(
+            diagram.beam_angle > 5.0,
+            "beam_angle collapsed to {}; estimator regressed",
+            diagram.beam_angle
+        );
+        // And PPFD at the closest distance must be > 0.
+        assert!(
+            diagram.ppfd_levels.iter().any(|l| l.ppfd > 1.0),
+            "every PPFD row was below 1 µmol/m²/s; diagram = {:#?}",
+            diagram.ppfd_levels
+        );
+    }
+
+    /// Regression: an emitter where the lamp set stored 0.0 for the
+    /// flux/wattage fields (rzb.ldt-class) used to produce PPFD = 0.
+    /// The zero-filtering on `lumens`/`watts` lookup falls back to the
+    /// sane defaults in that case so the diagram still renders.
+    #[test]
+    fn zero_lamp_flux_falls_back_to_defaults() {
+        use crate::atla::types::Emitter;
+
+        let emitter = Emitter {
+            quantity: 1,
+            rated_lumens: Some(0.0),
+            measured_lumens: Some(0.0),
+            input_watts: Some(0.0),
+            ..Default::default()
+        };
+        let mut doc = LuminaireOpticalData::new();
+        doc.emitters.push(emitter);
+
+        let diagram = GreenhouseDiagram::from_atla_with_height(&doc, 2.0);
+        assert!(
+            diagram.ppf > 0.0,
+            "zero-flux fallback failed; PPF = {}",
+            diagram.ppf
+        );
     }
 }

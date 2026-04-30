@@ -1,7 +1,7 @@
 //! Main application state and UI
 
-use atla::LuminaireOpticalData;
 use eframe::egui::{self, Color32, DragValue, Margin, RichText, Rounding, TextureHandle, Vec2};
+use eulumdat::atla::LuminaireOpticalData;
 use eulumdat::compare::{PhotometricComparison, Significance};
 use eulumdat::diagram::{CartesianDiagram, ConeDiagram, PolarDiagram};
 use eulumdat::{Eulumdat, IesExporter, PhotometricCalculations};
@@ -201,7 +201,7 @@ impl EulumdatApp {
         match ext.as_str() {
             "xml" => {
                 // ATLA XML format
-                match atla::xml::parse(&content) {
+                match eulumdat::atla::xml::parse(&content) {
                     Ok(doc) => {
                         self.eulumdat = Some(doc.to_eulumdat());
                         self.atla_doc = Some(doc);
@@ -216,7 +216,7 @@ impl EulumdatApp {
             }
             "json" => {
                 // ATLA JSON format
-                match atla::json::parse(&content) {
+                match eulumdat::atla::json::parse(&content) {
                     Ok(doc) => {
                         self.eulumdat = Some(doc.to_eulumdat());
                         self.atla_doc = Some(doc);
@@ -232,9 +232,9 @@ impl EulumdatApp {
             "ies" => {
                 // IES format
                 match eulumdat::IesParser::parse(&content) {
-                    Ok(ldt) => {
-                        self.atla_doc = Some(LuminaireOpticalData::from_eulumdat(&ldt));
-                        self.eulumdat = Some(ldt);
+                    Ok(ldc) => {
+                        self.atla_doc = Some(LuminaireOpticalData::from_eulumdat(&ldc));
+                        self.eulumdat = Some(ldc);
                         self.current_file = Some(path);
                         self.butterfly_3d
                             .update_from_eulumdat(self.eulumdat.as_ref());
@@ -247,17 +247,17 @@ impl EulumdatApp {
             _ => {
                 // Try LDT first, then IES
                 match Eulumdat::parse(&content) {
-                    Ok(ldt) => {
-                        self.atla_doc = Some(LuminaireOpticalData::from_eulumdat(&ldt));
-                        self.eulumdat = Some(ldt);
+                    Ok(ldc) => {
+                        self.atla_doc = Some(LuminaireOpticalData::from_eulumdat(&ldc));
+                        self.eulumdat = Some(ldc);
                         self.current_file = Some(path);
                         self.butterfly_3d
                             .update_from_eulumdat(self.eulumdat.as_ref());
                     }
                     Err(e) => match eulumdat::IesParser::parse(&content) {
-                        Ok(ldt) => {
-                            self.atla_doc = Some(LuminaireOpticalData::from_eulumdat(&ldt));
-                            self.eulumdat = Some(ldt);
+                        Ok(ldc) => {
+                            self.atla_doc = Some(LuminaireOpticalData::from_eulumdat(&ldc));
+                            self.eulumdat = Some(ldc);
                             self.current_file = Some(path);
                             self.butterfly_3d
                                 .update_from_eulumdat(self.eulumdat.as_ref());
@@ -299,26 +299,26 @@ impl EulumdatApp {
 
     /// Generate SVG for current diagram
     fn generate_current_svg(&self) -> Option<String> {
-        let ldt = self.eulumdat.as_ref()?;
+        let ldc = self.eulumdat.as_ref()?;
         let atla = self.atla_doc.as_ref()?;
 
         match self.sub_tab {
             SubTab::Polar => {
-                let diagram = eulumdat::diagram::PolarDiagram::from_eulumdat(ldt);
-                let summary = eulumdat::PhotometricSummary::from_eulumdat(ldt);
+                let diagram = eulumdat::diagram::PolarDiagram::from_eulumdat(ldc);
+                let summary = eulumdat::PhotometricSummary::from_eulumdat(ldc);
                 let theme = self.svg_theme();
                 Some(diagram.to_svg_with_summary(800.0, 800.0, &theme, &summary))
             }
             SubTab::Cartesian => {
                 let diagram =
-                    eulumdat::diagram::CartesianDiagram::from_eulumdat(ldt, 800.0, 600.0, 8);
-                let summary = eulumdat::PhotometricSummary::from_eulumdat(ldt);
+                    eulumdat::diagram::CartesianDiagram::from_eulumdat(ldc, 800.0, 600.0, 8);
+                let summary = eulumdat::PhotometricSummary::from_eulumdat(ldc);
                 let theme = self.svg_theme();
                 Some(diagram.to_svg_with_summary(800.0, 600.0, &theme, &summary))
             }
             SubTab::BeamAngle => {
-                let diagram = eulumdat::diagram::PolarDiagram::from_eulumdat(ldt);
-                let analysis = eulumdat::PhotometricCalculations::beam_field_analysis(ldt);
+                let diagram = eulumdat::diagram::PolarDiagram::from_eulumdat(ldc);
+                let analysis = eulumdat::PhotometricCalculations::beam_field_analysis(ldc);
                 let theme = self.svg_theme();
                 Some(diagram.to_svg_with_beam_field_angles(
                     800.0,
@@ -330,26 +330,26 @@ impl EulumdatApp {
             }
             SubTab::Butterfly3D => {
                 let diagram =
-                    eulumdat::diagram::ButterflyDiagram::from_eulumdat(ldt, 800.0, 640.0, 60.0);
+                    eulumdat::diagram::ButterflyDiagram::from_eulumdat(ldc, 800.0, 640.0, 60.0);
                 let theme = self.svg_theme();
                 Some(diagram.to_svg(800.0, 640.0, &theme))
             }
             SubTab::Heatmap => {
-                let diagram = eulumdat::diagram::HeatmapDiagram::from_eulumdat(ldt, 800.0, 560.0);
+                let diagram = eulumdat::diagram::HeatmapDiagram::from_eulumdat(ldc, 800.0, 560.0);
                 let theme = self.svg_theme();
                 Some(diagram.to_svg(800.0, 560.0, &theme))
             }
             SubTab::Cone => {
                 let diagram =
-                    eulumdat::diagram::ConeDiagram::from_eulumdat(ldt, self.mounting_height);
+                    eulumdat::diagram::ConeDiagram::from_eulumdat(ldc, self.mounting_height);
                 let theme = self.svg_theme();
                 Some(diagram.to_svg(800.0, 600.0, &theme))
             }
             SubTab::Spectral => {
                 let theme = if self.dark_theme {
-                    atla::spectral::SpectralTheme::dark_with_locale(&self.locale)
+                    eulumdat::atla::spectral::SpectralTheme::dark_with_locale(&self.locale)
                 } else {
-                    atla::spectral::SpectralTheme::light_with_locale(&self.locale)
+                    eulumdat::atla::spectral::SpectralTheme::light_with_locale(&self.locale)
                 };
                 // Try to get spectral data from emitters
                 if let Some(spd) = atla
@@ -358,13 +358,14 @@ impl EulumdatApp {
                     .filter_map(|e| e.spectral_distribution.as_ref())
                     .next()
                 {
-                    let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+                    let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(spd);
                     Some(diagram.to_svg(800.0, 480.0, &theme))
                 } else if let Some(emitter) = atla.emitters.first() {
                     if let Some(cct) = emitter.cct {
                         let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
-                        let spd = atla::spectral::synthesize_spectrum(cct, cri);
-                        let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+                        let spd = eulumdat::atla::spectral::synthesize_spectrum(cct, cri);
+                        let diagram =
+                            eulumdat::atla::spectral::SpectralDiagram::from_spectral(&spd);
                         Some(diagram.to_svg(800.0, 480.0, &theme))
                     } else {
                         None
@@ -375,23 +376,23 @@ impl EulumdatApp {
             }
             SubTab::Greenhouse => {
                 let theme = if self.dark_theme {
-                    atla::greenhouse::GreenhouseTheme::dark()
+                    eulumdat::atla::greenhouse::GreenhouseTheme::dark()
                 } else {
-                    atla::greenhouse::GreenhouseTheme::light()
+                    eulumdat::atla::greenhouse::GreenhouseTheme::light()
                 };
-                let diagram = atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
+                let diagram = eulumdat::atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
                     atla,
                     self.greenhouse_height,
                 );
                 Some(diagram.to_svg(800.0, 600.0, &theme))
             }
             SubTab::BugRating => {
-                let diagram = eulumdat::BugDiagram::from_eulumdat(ldt);
+                let diagram = eulumdat::BugDiagram::from_eulumdat(ldc);
                 let theme = self.svg_theme();
                 Some(diagram.to_svg_with_details(800.0, 560.0, &theme))
             }
             SubTab::Lcs => {
-                let diagram = eulumdat::BugDiagram::from_eulumdat(ldt);
+                let diagram = eulumdat::BugDiagram::from_eulumdat(ldc);
                 let theme = self.svg_theme();
                 Some(diagram.to_lcs_svg(800.0, 504.0, &theme))
             }
@@ -570,8 +571,8 @@ impl EulumdatApp {
 
     /// Render the diagram panel for the current sub-tab
     fn render_diagram(&mut self, ui: &mut egui::Ui) {
-        let ldt = match &self.eulumdat {
-            Some(ldt) => ldt,
+        let ldc = match &self.eulumdat {
+            Some(ldc) => ldc,
             None => {
                 ui.centered_and_justified(|ui| {
                     ui.label("No data loaded");
@@ -599,7 +600,7 @@ impl EulumdatApp {
                 c_plane: self.selected_c_plane,
             };
             if let Some(svg) = generate_svg_with_height(
-                ldt,
+                ldc,
                 self.sub_tab_to_diagram_type(),
                 size as f64,
                 size as f64,
@@ -690,7 +691,7 @@ impl EulumdatApp {
             }
         };
 
-        let bim = atla::bim::BimParameters::from_atla(atla_doc);
+        let bim = eulumdat::atla::bim::BimParameters::from_atla(atla_doc);
 
         if bim.populated_count() < 3 {
             ui.vertical_centered(|ui| {
@@ -762,7 +763,7 @@ impl EulumdatApp {
     /// Render the compare panel
     fn render_compare_panel(&mut self, ui: &mut egui::Ui) {
         let ldt_a = match &self.eulumdat {
-            Some(ldt) => ldt.clone(),
+            Some(ldc) => ldc.clone(),
             None => {
                 ui.centered_and_justified(|ui| {
                     ui.label("No data loaded");
@@ -820,9 +821,9 @@ impl EulumdatApp {
                     }
                 });
                 if let Some(template) = template_to_load {
-                    if let Ok(ldt) = template.parse() {
+                    if let Ok(ldc) = template.parse() {
                         self.compare_file_name = template.name.to_string();
-                        self.compare_ldt = Some(ldt);
+                        self.compare_ldt = Some(ldc);
                         self.compare_texture_dirty = true;
                     }
                 }
@@ -830,7 +831,7 @@ impl EulumdatApp {
             return;
         }
 
-        let ldt_b = self.compare_ldt.as_ref().unwrap().clone();
+        let ldc_b = self.compare_ldt.as_ref().unwrap().clone();
         let label_a = self
             .current_file
             .as_ref()
@@ -933,7 +934,7 @@ impl EulumdatApp {
                     let polar_a =
                         PolarDiagram::from_eulumdat_for_plane(&ldt_a, self.compare_c_plane_a);
                     let polar_b =
-                        PolarDiagram::from_eulumdat_for_plane(&ldt_b, self.compare_c_plane_b);
+                        PolarDiagram::from_eulumdat_for_plane(&ldc_b, self.compare_c_plane_b);
                     let theme = self.svg_theme();
                     let svg = PolarDiagram::to_overlay_svg(
                         &polar_a,
@@ -959,7 +960,7 @@ impl EulumdatApp {
                         h as f64,
                     );
                     let cart_b = CartesianDiagram::from_eulumdat_for_plane(
-                        &ldt_b,
+                        &ldc_b,
                         self.compare_c_plane_b,
                         w as f64,
                         h as f64,
@@ -1026,7 +1027,7 @@ impl EulumdatApp {
                     // File B
                     cols[1].label(RichText::new(&label_b).small().strong());
                     if let Some(svg_b) = generate_svg_with_height(
-                        &ldt_b,
+                        &ldc_b,
                         diagram_type,
                         half_w,
                         half_h,
@@ -1055,7 +1056,7 @@ impl EulumdatApp {
         ui.separator();
         let comparison = PhotometricComparison::from_eulumdat_with_locale(
             &ldt_a,
-            &ldt_b,
+            &ldc_b,
             &label_a,
             &label_b,
             &self.locale,
@@ -1175,10 +1176,10 @@ impl EulumdatApp {
             .to_lowercase();
 
         let result: Result<Eulumdat, String> = match ext.as_str() {
-            "xml" => atla::xml::parse(&content)
+            "xml" => eulumdat::atla::xml::parse(&content)
                 .map(|doc| doc.to_eulumdat())
                 .map_err(|e| e.to_string()),
-            "json" => atla::json::parse(&content)
+            "json" => eulumdat::atla::json::parse(&content)
                 .map(|doc| doc.to_eulumdat())
                 .map_err(|e| e.to_string()),
             "ies" => eulumdat::IesParser::parse(&content).map_err(|e| e.to_string()),
@@ -1187,13 +1188,13 @@ impl EulumdatApp {
                 .map_err(|e| e.to_string()),
         };
 
-        if let Ok(ldt) = result {
+        if let Ok(ldc) = result {
             self.compare_file_name = path
                 .file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("File B")
                 .to_string();
-            self.compare_ldt = Some(ldt);
+            self.compare_ldt = Some(ldc);
             self.compare_texture_dirty = true;
         }
     }
@@ -1553,8 +1554,8 @@ impl eframe::App for EulumdatApp {
                             if ui.checkbox(&mut self.log_scale, "Log scale").changed() {
                                 self.texture_dirty = true;
                             }
-                            if let Some(ldt) = &self.eulumdat {
-                                let nema = PhotometricCalculations::nema_classification(ldt);
+                            if let Some(ldc) = &self.eulumdat {
+                                let nema = PhotometricCalculations::nema_classification(ldc);
                                 ui.separator();
                                 ui.label(
                                     RichText::new(&nema.designation)
@@ -1569,13 +1570,13 @@ impl eframe::App for EulumdatApp {
                             self.sub_tab,
                             SubTab::Polar | SubTab::Cartesian | SubTab::Cone
                         ) {
-                            if let Some(ldt) = &self.eulumdat {
-                                if ConeDiagram::has_c_plane_variation(ldt) {
+                            if let Some(ldc) = &self.eulumdat {
+                                if ConeDiagram::has_c_plane_variation(ldc) {
                                     ui.separator();
                                     if let Some(cp) = &mut self.selected_c_plane {
                                         ui.label(RichText::new(format!("C {:.0}°", cp)).small());
-                                        let step = if ldt.c_angles.len() > 1 {
-                                            ldt.c_angles[1] - ldt.c_angles[0]
+                                        let step = if ldc.c_angles.len() > 1 {
+                                            ldc.c_angles[1] - ldc.c_angles[0]
                                         } else {
                                             15.0
                                         };
@@ -1624,14 +1625,14 @@ impl eframe::App for EulumdatApp {
                         );
                     }
 
-                    if let Some(ldt) = &self.eulumdat {
+                    if let Some(ldc) = &self.eulumdat {
                         ui.separator();
                         ui.label(
-                            RichText::new(format!("{:.0} cd/klm", ldt.max_intensity())).size(11.0),
+                            RichText::new(format!("{:.0} cd/klm", ldc.max_intensity())).size(11.0),
                         );
                         ui.separator();
                         ui.label(
-                            RichText::new(format!("{:.0} lm", ldt.total_luminous_flux()))
+                            RichText::new(format!("{:.0} lm", ldc.total_luminous_flux()))
                                 .size(11.0),
                         );
                     }
@@ -1663,8 +1664,8 @@ impl eframe::App for EulumdatApp {
                         .inner_margin(Margin::same(12.0)),
                 )
                 .show(ctx, |ui| {
-                    if let Some(ldt) = &self.eulumdat {
-                        render_info_panel(ui, ldt);
+                    if let Some(ldc) = &self.eulumdat {
+                        render_info_panel(ui, ldc);
                     }
                 });
         }
@@ -1688,20 +1689,20 @@ impl eframe::App for EulumdatApp {
                             ui.label(RichText::new(error).color(Color32::from_rgb(185, 28, 28)));
                         });
                 });
-            } else if let Some(ldt) = &mut self.eulumdat.clone() {
+            } else if let Some(ldc) = &mut self.eulumdat.clone() {
                 match self.sub_tab {
                     // Info tabs
-                    SubTab::General => render_general_tab(ui, ldt),
-                    SubTab::Dimensions => render_dimensions_tab(ui, ldt),
-                    SubTab::LampSets => render_lamps_tab(ui, ldt),
-                    SubTab::Optical => render_optical_tab(ui, ldt),
+                    SubTab::General => render_general_tab(ui, ldc),
+                    SubTab::Dimensions => render_dimensions_tab(ui, ldc),
+                    SubTab::LampSets => render_lamps_tab(ui, ldc),
+                    SubTab::Optical => render_optical_tab(ui, ldc),
 
                     // Data tabs
                     SubTab::Intensity => {
                         let mut state = IntensityTabState {
                             show_colors: self.intensity_show_colors,
                         };
-                        render_intensity_tab(ui, ldt, &mut state);
+                        render_intensity_tab(ui, ldc, &mut state);
                         self.intensity_show_colors = state.show_colors;
                     }
 
@@ -1733,7 +1734,7 @@ impl eframe::App for EulumdatApp {
                     }
 
                     // Validation
-                    SubTab::ValidationPanel => render_validation_tab(ui, ldt),
+                    SubTab::ValidationPanel => render_validation_tab(ui, ldc),
                 }
             } else {
                 self.render_welcome(ui);

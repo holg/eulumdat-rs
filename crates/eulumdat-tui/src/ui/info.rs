@@ -10,7 +10,7 @@ use ratatui::{
 pub fn render_info(
     area: Rect,
     buf: &mut Buffer,
-    ldt: &Eulumdat,
+    ldc: &Eulumdat,
     summary: &PhotometricSummary,
     warnings: &[ValidationWarning],
     scroll: u16,
@@ -31,17 +31,17 @@ pub fn render_info(
             .fg(Color::Cyan)
             .add_modifier(Modifier::BOLD),
     ));
-    add_field(&mut lines, "Name", &ldt.luminaire_name);
-    add_field(&mut lines, "Manufacturer", &ldt.identification);
-    add_field(&mut lines, "Number", &ldt.luminaire_number);
-    add_field(&mut lines, "Symmetry", &format!("{:?}", ldt.symmetry));
-    add_field(&mut lines, "Type", &format!("{:?}", ldt.type_indicator));
+    add_field(&mut lines, "Name", &ldc.luminaire_name);
+    add_field(&mut lines, "Manufacturer", &ldc.identification);
+    add_field(&mut lines, "Number", &ldc.luminaire_number);
+    add_field(&mut lines, "Symmetry", &format!("{:?}", ldc.symmetry));
+    add_field(&mut lines, "Type", &format!("{:?}", ldc.type_indicator));
     add_field(
         &mut lines,
         "Dimensions",
         &format!(
             "{:.0} x {:.0} x {:.0} mm",
-            ldt.length, ldt.width, ldt.height
+            ldc.length, ldc.width, ldc.height
         ),
     );
     add_field(
@@ -49,7 +49,7 @@ pub fn render_info(
         "Luminous area",
         &format!(
             "{:.0} x {:.0} mm",
-            ldt.luminous_area_length, ldt.luminous_area_width
+            ldc.luminous_area_length, ldc.luminous_area_width
         ),
     );
     add_field(
@@ -57,8 +57,8 @@ pub fn render_info(
         "C-planes",
         &format!(
             "{} ({:.1}\u{00b0} step)",
-            ldt.c_angles.len(),
-            ldt.c_plane_distance
+            ldc.c_angles.len(),
+            ldc.c_plane_distance
         ),
     );
     add_field(
@@ -66,8 +66,8 @@ pub fn render_info(
         "G-angles",
         &format!(
             "{} ({:.1}\u{00b0} step)",
-            ldt.g_angles.len(),
-            ldt.g_plane_distance
+            ldc.g_angles.len(),
+            ldc.g_plane_distance
         ),
     );
     lines.push(Line::raw(""));
@@ -79,8 +79,8 @@ pub fn render_info(
             .fg(Color::Cyan)
             .add_modifier(Modifier::BOLD),
     ));
-    for (i, lamp) in ldt.lamp_sets.iter().enumerate() {
-        if ldt.lamp_sets.len() > 1 {
+    for (i, lamp) in ldc.lamp_sets.iter().enumerate() {
+        if ldc.lamp_sets.len() > 1 {
             lines.push(Line::styled(
                 format!("  Set {}", i + 1),
                 Style::default().fg(Color::Yellow),

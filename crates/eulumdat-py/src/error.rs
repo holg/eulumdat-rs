@@ -8,8 +8,8 @@ pub fn to_py_err(err: eulumdat::Error) -> PyErr {
     PyValueError::new_err(err.to_string())
 }
 
-/// Convert atla::AtlaError to PyErr
-pub fn atla_to_py_err(err: atla::AtlaError) -> PyErr {
+/// Convert eulumdat::atla::AtlaError to PyErr
+pub fn atla_to_py_err(err: eulumdat::atla::AtlaError) -> PyErr {
     PyValueError::new_err(err.to_string())
 }
 
@@ -29,7 +29,7 @@ impl<T> ToPyResult<T> for Result<T, eulumdat::Error> {
     }
 }
 
-impl<T> ToPyResult<T> for Result<T, atla::AtlaError> {
+impl<T> ToPyResult<T> for Result<T, eulumdat::atla::AtlaError> {
     fn to_py(self) -> pyo3::PyResult<T> {
         self.map_err(atla_to_py_err)
     }

@@ -9,7 +9,7 @@ pub struct CartesianWidget;
 
 impl CartesianWidget {
     /// Show the cartesian diagram
-    pub fn show(ui: &mut egui::Ui, ldt: &Eulumdat, theme: &Theme) {
+    pub fn show(ui: &mut egui::Ui, ldc: &Eulumdat, theme: &Theme) {
         let available_size = ui.available_size();
         let width = available_size.x.min(800.0);
         let height = (width * 0.6).min(available_size.y - 50.0);
@@ -25,7 +25,7 @@ impl CartesianWidget {
         painter.rect_filled(rect, 0.0, theme.background);
 
         // Generate diagram data (max 8 curves)
-        let cartesian = CartesianDiagram::from_eulumdat(ldt, width as f64, height as f64, 8);
+        let cartesian = CartesianDiagram::from_eulumdat(ldc, width as f64, height as f64, 8);
 
         // Draw grid
         Self::draw_grid(&painter, plot_rect, &cartesian, theme);

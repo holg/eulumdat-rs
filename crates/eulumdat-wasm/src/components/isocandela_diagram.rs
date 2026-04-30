@@ -6,12 +6,12 @@ use eulumdat::Eulumdat;
 use leptos::prelude::*;
 
 #[component]
-pub fn IsocandelaDiagramView(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn IsocandelaDiagramView(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
     // Generate SVG reactively
     let svg_content = move || {
-        let ldt_val = ldt.get();
+        let ldt_val = ldc.get();
         let theme = SvgTheme::css_variables_with_locale(&locale.get());
         let diagram = IsocandelaDiagram::from_eulumdat(&ldt_val, 600.0, 500.0);
         diagram.to_svg(600.0, 500.0, &theme)

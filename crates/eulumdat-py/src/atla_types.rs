@@ -5,7 +5,7 @@
 
 use pyo3::prelude::*;
 
-use atla::LuminaireOpticalData as CoreAtla;
+use eulumdat::atla::LuminaireOpticalData as CoreAtla;
 
 use crate::diagram::SvgTheme;
 use crate::error::{atla_to_py_err, io_to_py_err, to_py_err};
@@ -47,25 +47,25 @@ impl SpectralDistribution {
     }
 }
 
-impl From<&atla::SpectralDistribution> for SpectralDistribution {
-    fn from(spd: &atla::SpectralDistribution) -> Self {
+impl From<&eulumdat::atla::SpectralDistribution> for SpectralDistribution {
+    fn from(spd: &eulumdat::atla::SpectralDistribution) -> Self {
         Self {
             wavelengths: spd.wavelengths.clone(),
             values: spd.values.clone(),
-            is_relative: matches!(spd.units, atla::SpectralUnits::Relative),
+            is_relative: matches!(spd.units, eulumdat::atla::SpectralUnits::Relative),
         }
     }
 }
 
-impl From<&SpectralDistribution> for atla::SpectralDistribution {
+impl From<&SpectralDistribution> for eulumdat::atla::SpectralDistribution {
     fn from(spd: &SpectralDistribution) -> Self {
-        atla::SpectralDistribution {
+        eulumdat::atla::SpectralDistribution {
             wavelengths: spd.wavelengths.clone(),
             values: spd.values.clone(),
             units: if spd.is_relative {
-                atla::SpectralUnits::Relative
+                eulumdat::atla::SpectralUnits::Relative
             } else {
-                atla::SpectralUnits::WattsPerNanometer
+                eulumdat::atla::SpectralUnits::WattsPerNanometer
             },
             start_wavelength: None,
             wavelength_interval: None,
@@ -117,8 +117,8 @@ impl ColorRendering {
     }
 }
 
-impl From<&atla::ColorRendering> for ColorRendering {
-    fn from(cr: &atla::ColorRendering) -> Self {
+impl From<&eulumdat::atla::ColorRendering> for ColorRendering {
+    fn from(cr: &eulumdat::atla::ColorRendering) -> Self {
         Self {
             ra: cr.ra,
             r9: cr.r9,
@@ -128,9 +128,9 @@ impl From<&atla::ColorRendering> for ColorRendering {
     }
 }
 
-impl From<&ColorRendering> for atla::ColorRendering {
+impl From<&ColorRendering> for eulumdat::atla::ColorRendering {
     fn from(cr: &ColorRendering) -> Self {
-        atla::ColorRendering {
+        eulumdat::atla::ColorRendering {
             ra: cr.ra,
             r9: cr.r9,
             rf: cr.rf,
@@ -258,7 +258,7 @@ impl AtlaDocument {
     /// Parse from ATLA XML string
     #[staticmethod]
     fn parse_xml(content: &str) -> PyResult<Self> {
-        atla::xml::parse(content)
+        eulumdat::atla::xml::parse(content)
             .map(|inner| Self { inner })
             .map_err(atla_to_py_err)
     }
@@ -266,7 +266,7 @@ impl AtlaDocument {
     /// Parse from ATLA JSON string
     #[staticmethod]
     fn parse_json(content: &str) -> PyResult<Self> {
-        atla::json::parse(content)
+        eulumdat::atla::json::parse(content)
             .map(|inner| Self { inner })
             .map_err(atla_to_py_err)
     }
@@ -315,12 +315,12 @@ impl AtlaDocument {
 
     /// Export to ATLA XML string
     fn to_xml(&self) -> PyResult<String> {
-        atla::xml::write(&self.inner).map_err(atla_to_py_err)
+        eulumdat::atla::xml::write(&self.inner).map_err(atla_to_py_err)
     }
 
     /// Export to ATLA JSON string
     fn to_json(&self) -> PyResult<String> {
-        atla::json::write(&self.inner).map_err(atla_to_py_err)
+        eulumdat::atla::json::write(&self.inner).map_err(atla_to_py_err)
     }
 
     /// Export to LDT string
@@ -462,9 +462,9 @@ impl AtlaDocument {
     #[pyo3(signature = (width=700.0, height=400.0, dark=false))]
     fn spectral_svg(&self, width: f64, height: f64, dark: bool) -> PyResult<String> {
         let theme = if dark {
-            atla::spectral::SpectralTheme::dark()
+            eulumdat::atla::spectral::SpectralTheme::dark()
         } else {
-            atla::spectral::SpectralTheme::light()
+            eulumdat::atla::spectral::SpectralTheme::light()
         };
 
         // Try to get spectral data from emitters
@@ -475,7 +475,7 @@ impl AtlaDocument {
             .filter_map(|e| e.spectral_distribution.as_ref())
             .next()
         {
-            let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+            let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(spd);
             return Ok(diagram.to_svg(width, height, &theme));
         }
 
@@ -483,8 +483,8 @@ impl AtlaDocument {
         if let Some(emitter) = self.inner.emitters.first() {
             if let Some(cct) = emitter.cct {
                 let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
-                let spd = atla::spectral::synthesize_spectrum(cct, cri);
-                let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+                let spd = eulumdat::atla::spectral::synthesize_spectrum(cct, cri);
+                let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(&spd);
                 return Ok(diagram.to_svg(width, height, &theme));
             }
         }
@@ -500,12 +500,14 @@ impl AtlaDocument {
     #[pyo3(signature = (width=600.0, height=450.0, max_height=2.0, dark=false))]
     fn greenhouse_svg(&self, width: f64, height: f64, max_height: f64, dark: bool) -> String {
         let theme = if dark {
-            atla::greenhouse::GreenhouseTheme::dark()
+            eulumdat::atla::greenhouse::GreenhouseTheme::dark()
         } else {
-            atla::greenhouse::GreenhouseTheme::light()
+            eulumdat::atla::greenhouse::GreenhouseTheme::light()
         };
-        let diagram =
-            atla::greenhouse::GreenhouseDiagram::from_atla_with_height(&self.inner, max_height);
+        let diagram = eulumdat::atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
+            &self.inner,
+            max_height,
+        );
         diagram.to_svg(width, height, &theme)
     }
 

@@ -162,14 +162,14 @@ impl Renderer3D {
         self.theme_colors = get_theme_colors();
     }
 
-    fn build_wings(&mut self, ldt: &Eulumdat) {
+    fn build_wings(&mut self, ldc: &Eulumdat) {
         self.wings.clear();
 
-        if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
+        if ldc.intensities.is_empty() || ldc.g_angles.is_empty() {
             return;
         }
 
-        self.max_intensity = ldt
+        self.max_intensity = ldc
             .intensities
             .iter()
             .flat_map(|plane| plane.iter())
@@ -177,7 +177,7 @@ impl Renderer3D {
             .fold(0.0_f64, f64::max)
             .max(1.0);
 
-        let c_plane_data = expand_c_planes(ldt);
+        let c_plane_data = expand_c_planes(ldc);
 
         for (c_angle, intensities) in c_plane_data {
             let c_rad = c_angle.to_radians();
@@ -185,7 +185,7 @@ impl Renderer3D {
 
             points.push(Point3D::new(0.0, 0.0, 0.0));
 
-            for (j, &g_angle) in ldt.g_angles.iter().enumerate() {
+            for (j, &g_angle) in ldc.g_angles.iter().enumerate() {
                 let intensity = intensities.get(j).copied().unwrap_or(0.0);
                 let r = intensity / self.max_intensity;
 
@@ -395,28 +395,28 @@ impl Renderer3D {
     }
 }
 
-fn expand_c_planes(ldt: &Eulumdat) -> Vec<(f64, Vec<f64>)> {
-    if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
+fn expand_c_planes(ldc: &Eulumdat) -> Vec<(f64, Vec<f64>)> {
+    if ldc.intensities.is_empty() || ldc.g_angles.is_empty() {
         return Vec::new();
     }
 
     let mut result = Vec::new();
-    let c_start = match ldt.symmetry {
-        Symmetry::PlaneC90C270 => ldt.c_angles.iter().position(|&c| c >= 90.0).unwrap_or(0),
+    let c_start = match ldc.symmetry {
+        Symmetry::PlaneC90C270 => ldc.c_angles.iter().position(|&c| c >= 90.0).unwrap_or(0),
         _ => 0,
     };
 
-    match ldt.symmetry {
+    match ldc.symmetry {
         Symmetry::VerticalAxis => {
-            let intensities = &ldt.intensities[0];
+            let intensities = &ldc.intensities[0];
             for i in 0..12 {
                 let c_angle = i as f64 * 30.0;
                 result.push((c_angle, intensities.clone()));
             }
         }
         Symmetry::PlaneC0C180 => {
-            for (i, intensities) in ldt.intensities.iter().enumerate() {
-                if let Some(&c_angle) = ldt.c_angles.get(c_start + i) {
+            for (i, intensities) in ldc.intensities.iter().enumerate() {
+                if let Some(&c_angle) = ldc.c_angles.get(c_start + i) {
                     result.push((c_angle, intensities.clone()));
                     if c_angle > 0.0 && c_angle < 180.0 {
                         result.push((360.0 - c_angle, intensities.clone()));
@@ -425,8 +425,8 @@ fn expand_c_planes(ldt: &Eulumdat) -> Vec<(f64, Vec<f64>)> {
             }
         }
         Symmetry::PlaneC90C270 => {
-            for (i, intensities) in ldt.intensities.iter().enumerate() {
-                if let Some(&c_angle) = ldt.c_angles.get(i) {
+            for (i, intensities) in ldc.intensities.iter().enumerate() {
+                if let Some(&c_angle) = ldc.c_angles.get(i) {
                     result.push((c_angle, intensities.clone()));
                     if c_angle > 0.0 && c_angle < 180.0 {
                         let mirrored = 360.0 - c_angle;
@@ -436,8 +436,8 @@ fn expand_c_planes(ldt: &Eulumdat) -> Vec<(f64, Vec<f64>)> {
             }
         }
         Symmetry::BothPlanes => {
-            for (i, intensities) in ldt.intensities.iter().enumerate() {
-                if let Some(&c_angle) = ldt.c_angles.get(c_start + i) {
+            for (i, intensities) in ldc.intensities.iter().enumerate() {
+                if let Some(&c_angle) = ldc.c_angles.get(c_start + i) {
                     result.push((c_angle, intensities.clone()));
                     if c_angle > 0.0 && c_angle < 90.0 {
                         result.push((180.0 - c_angle, intensities.clone()));
@@ -450,8 +450,8 @@ fn expand_c_planes(ldt: &Eulumdat) -> Vec<(f64, Vec<f64>)> {
             }
         }
         Symmetry::None => {
-            for (i, intensities) in ldt.intensities.iter().enumerate() {
-                if let Some(&c_angle) = ldt.c_angles.get(c_start + i) {
+            for (i, intensities) in ldc.intensities.iter().enumerate() {
+                if let Some(&c_angle) = ldc.c_angles.get(c_start + i) {
                     result.push((c_angle, intensities.clone()));
                 }
             }
@@ -484,7 +484,7 @@ fn hsl_to_rgb(h: f64, s: f64, l: f64) -> (u8, u8, u8) {
 }
 
 #[component]
-pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
+pub fn Butterfly3D(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let renderer = Rc::new(RefCell::new(Renderer3D::new()));
@@ -499,8 +499,8 @@ pub fn Butterfly3D(ldt: ReadSignal<Eulumdat>) -> impl IntoView {
     Effect::new({
         let renderer = renderer.clone();
         move |_| {
-            let ldt = ldt.get();
-            renderer.borrow_mut().build_wings(&ldt);
+            let ldc = ldc.get();
+            renderer.borrow_mut().build_wings(&ldc);
         }
     });
 

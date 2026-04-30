@@ -9,8 +9,8 @@
 //! - `<LuminaireOpticalData>` → ATLA S001 / TM-33-18
 //! - `<IESTM33-22>` → TM-33-23
 
-use crate::error::{AtlaError, Result};
-use crate::types::*;
+use crate::atla::error::{AtlaError, Result};
+use crate::atla::types::*;
 use quick_xml::events::{BytesEnd, BytesStart, BytesText, Event};
 use quick_xml::reader::Reader;
 use quick_xml::writer::Writer;
@@ -19,7 +19,7 @@ use std::io::Cursor;
 /// Parse ATLA XML document from string, auto-detecting schema version
 pub fn parse(xml: &str) -> Result<LuminaireOpticalData> {
     // Detect schema version from content
-    let schema_version = crate::detect_schema_version(xml);
+    let schema_version = crate::atla::detect_schema_version(xml);
 
     match schema_version {
         SchemaVersion::Tm3323 | SchemaVersion::Tm3324 => parse_tm33_23(xml),

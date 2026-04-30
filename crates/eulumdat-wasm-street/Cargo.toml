@@ -6,6 +6,8 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Street / roadway lighting designer — multi-luminaire compliance against RP-8, EN 13201, CJJ 45 (lazy-loaded WASM companion)"
+# WASM bundle, not a Rust library — distributed as a JS app.
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -21,9 +23,11 @@ csr = ["leptos/csr"]
 [dependencies]
 console_error_panic_hook.workspace = true
 eulumdat = { workspace = true, features = ["serde"] }
+eulumdat-i18n.workspace = true
 js-sys.workspace = true
 leptos.workspace = true
 wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
 
 [dependencies.web-sys]
 version = "0.3"
@@ -32,12 +36,15 @@ features = [
     "Document",
     "Element",
     "HtmlElement",
+    "HtmlAnchorElement",
     "HtmlInputElement",
     "HtmlSelectElement",
     "File",
     "FileList",
     "FileReader",
     "Blob",
+    "BlobPropertyBag",
+    "Url",
     "Storage",
     "console",
 ]

@@ -80,25 +80,25 @@ impl Butterfly3DRenderer {
         self.rotation_y = 0.0;
     }
 
-    pub fn update_from_eulumdat(&mut self, ldt: Option<&Eulumdat>) {
+    pub fn update_from_eulumdat(&mut self, ldc: Option<&Eulumdat>) {
         self.wings.clear();
 
-        let Some(ldt) = ldt else { return };
+        let Some(ldc) = ldc else { return };
 
-        if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
+        if ldc.intensities.is_empty() || ldc.g_angles.is_empty() {
             return;
         }
 
-        self.max_intensity = ldt.max_intensity().max(1.0);
+        self.max_intensity = ldc.max_intensity().max(1.0);
 
         // Expand C-planes based on symmetry
-        let expanded = self.expand_c_planes(ldt);
+        let expanded = self.expand_c_planes(ldc);
 
         for (c_angle, intensities) in expanded {
             let c_rad = c_angle.to_radians();
             let mut points = vec![Point3D::new(0.0, 0.0, 0.0)];
 
-            for (j, g_angle) in ldt.g_angles.iter().enumerate() {
+            for (j, g_angle) in ldc.g_angles.iter().enumerate() {
                 let intensity = intensities.get(j).copied().unwrap_or(0.0);
                 let r = intensity / self.max_intensity;
 
@@ -121,13 +121,13 @@ impl Butterfly3DRenderer {
         }
     }
 
-    fn expand_c_planes(&self, ldt: &Eulumdat) -> Vec<(f64, Vec<f64>)> {
+    fn expand_c_planes(&self, ldc: &Eulumdat) -> Vec<(f64, Vec<f64>)> {
         let mut result = Vec::new();
 
-        match ldt.symmetry {
+        match ldc.symmetry {
             eulumdat::Symmetry::VerticalAxis => {
                 // Rotationally symmetric - replicate C0 around
-                if let Some(intensities) = ldt.intensities.first() {
+                if let Some(intensities) = ldc.intensities.first() {
                     for i in 0..12 {
                         result.push((i as f64 * 30.0, intensities.clone()));
                     }
@@ -135,8 +135,8 @@ impl Butterfly3DRenderer {
             }
             eulumdat::Symmetry::PlaneC0C180 => {
                 // Mirror across C0-C180
-                for (i, intensities) in ldt.intensities.iter().enumerate() {
-                    let c_angle = ldt.c_angles.get(i).copied().unwrap_or(0.0);
+                for (i, intensities) in ldc.intensities.iter().enumerate() {
+                    let c_angle = ldc.c_angles.get(i).copied().unwrap_or(0.0);
                     result.push((c_angle, intensities.clone()));
                     if c_angle > 0.0 && c_angle < 180.0 {
                         result.push((360.0 - c_angle, intensities.clone()));
@@ -145,15 +145,15 @@ impl Butterfly3DRenderer {
             }
             eulumdat::Symmetry::PlaneC90C270 => {
                 // Mirror across C90-C270
-                for (i, intensities) in ldt.intensities.iter().enumerate() {
-                    let c_angle = ldt.c_angles.get(i).copied().unwrap_or(0.0);
+                for (i, intensities) in ldc.intensities.iter().enumerate() {
+                    let c_angle = ldc.c_angles.get(i).copied().unwrap_or(0.0);
                     result.push((c_angle, intensities.clone()));
                 }
             }
             eulumdat::Symmetry::BothPlanes => {
                 // Quarter data - mirror both ways
-                for (i, intensities) in ldt.intensities.iter().enumerate() {
-                    let c_angle = ldt.c_angles.get(i).copied().unwrap_or(0.0);
+                for (i, intensities) in ldc.intensities.iter().enumerate() {
+                    let c_angle = ldc.c_angles.get(i).copied().unwrap_or(0.0);
                     result.push((c_angle, intensities.clone()));
                     if c_angle > 0.0 && c_angle < 90.0 {
                         result.push((180.0 - c_angle, intensities.clone()));
@@ -166,8 +166,8 @@ impl Butterfly3DRenderer {
             }
             eulumdat::Symmetry::None => {
                 // Full data
-                for (i, intensities) in ldt.intensities.iter().enumerate() {
-                    let c_angle = ldt.c_angles.get(i).copied().unwrap_or(0.0);
+                for (i, intensities) in ldc.intensities.iter().enumerate() {
+                    let c_angle = ldc.c_angles.get(i).copied().unwrap_or(0.0);
                     result.push((c_angle, intensities.clone()));
                 }
             }

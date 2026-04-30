@@ -151,7 +151,7 @@ BUILD_BEVY=$(toml_get "bundles.bevy" "true")
 BUILD_TYPST=$(toml_get "bundles.typst" "false")
 BUILD_GMAPS=$(toml_get "bundles.gmaps" "false")
 BUILD_TEMPLATES=$(toml_get "bundles.templates" "false")
-BUILD_OBSCURA=$(toml_get "bundles.obscura" "false")
+BUILD_SKYGLOW=$(toml_get "bundles.skyglow" "false")
 BUILD_STREET=$(toml_get "bundles.street" "false")
 
 # Deploy settings
@@ -183,7 +183,15 @@ fi
 CACHE_FILE="$ROOT_DIR/target/.wasm-build-cache"
 FORCE_REBUILD=false
 
-# Calculate hash of source files for a crate
+# Calculate hash of source files for a crate.
+#
+# The bundle crate rarely changes in isolation — most edits happen in the
+# workspace crates it depends on (eulumdat core, atla, etc.). Hashing only
+# the bundle crate's own src/ led to false "unchanged" skips and stale
+# deploys. Solution: hash every `crates/*/src/**/*.rs` + every Cargo.toml
+# + the root Cargo.lock. Any workspace edit invalidates every bundle's
+# cache, which is the correct conservative default.
+#
 # Usage: calculate_source_hash <crate_dir>
 calculate_source_hash() {
     local crate_dir="$1"
@@ -191,10 +199,19 @@ calculate_source_hash() {
         echo "0"
         return
     fi
-    # Hash all .rs files and Cargo.toml
-    find "$crate_dir/src" -name "*.rs" -type f 2>/dev/null | sort | xargs cat 2>/dev/null | \
-        cat - "$crate_dir/Cargo.toml" 2>/dev/null | \
-        if command -v md5sum &> /dev/null; then md5sum | cut -c1-16; else md5 -q | cut -c1-16; fi
+    {
+        # All .rs under every crate — captures workspace-wide changes.
+        find "$ROOT_DIR/crates" -type f -name "*.rs" 2>/dev/null | sort | xargs cat 2>/dev/null
+        # All Cargo.toml under every crate — catches feature / dep edits.
+        find "$ROOT_DIR/crates" -type f -name "Cargo.toml" 2>/dev/null | sort | xargs cat 2>/dev/null
+        # Lockfile — catches upstream version bumps.
+        cat "$ROOT_DIR/Cargo.lock" 2>/dev/null
+        # Keep the crate_dir argument honest: if a caller points us at a
+        # path outside crates/ (future-proofing) we still mix it in.
+        if [[ "$crate_dir" != "$ROOT_DIR/crates/"* ]]; then
+            find "$crate_dir" -type f \( -name "*.rs" -o -name "Cargo.toml" \) 2>/dev/null | sort | xargs cat 2>/dev/null
+        fi
+    } | if command -v md5sum &> /dev/null; then md5sum | cut -c1-16; else md5 -q | cut -c1-16; fi
 }
 
 # Get cached hash for a component
@@ -227,8 +244,17 @@ needs_rebuild() {
     local component="$1"
     local crate_dir="$2"
 
+    # Blanket force wins over everything.
     if [[ "$FORCE_REBUILD" == "true" ]]; then
         return 0
+    fi
+
+    # Selective force: only the named component(s) rebuild; others fall
+    # through to the normal hash check.
+    if [[ -n "$FORCE_MODULE" ]]; then
+        case " $FORCE_MODULE " in
+            *" $component "*) return 0 ;;
+        esac
     fi
 
     local current_hash=$(calculate_source_hash "$crate_dir")
@@ -238,6 +264,45 @@ needs_rebuild() {
         return 1  # No rebuild needed
     fi
     return 0  # Rebuild needed
+}
+
+# Names of bundles that support selective `force <module>` rebuilds.
+# Keep in sync with the `needs_rebuild` call sites below.
+FORCE_MODULE_NAMES=("leptos" "bevy" "street" "skyglow" "templates" "eulumdat-core")
+
+# Map bundle name → cargo crate that should be `cargo clean -p`ed when
+# forcing just that module. Without this, `force street` on an unchanged
+# tree is a no-op because cargo sees its build artifacts already match
+# the sources — no new bytes → no new content hash → nothing re-deploys.
+# Modules not listed here (e.g. `eulumdat-core`, which isn't a bundle)
+# are ignored.
+force_module_crate() {
+    case "$1" in
+        leptos)    echo "eulumdat-wasm" ;;
+        bevy)      echo "eulumdat-bevy" ;;
+        street)    echo "eulumdat-wasm-street" ;;
+        skyglow)   echo "eulumdat-bevy" ;;
+        templates) echo "eulumdat-wasm-templates" ;;
+        *)         echo "" ;;
+    esac
+}
+
+print_force_help() {
+    echo "Usage: $0 force [<module>...]"
+    echo ""
+    echo "Without <module>: rebuild every bundle unconditionally."
+    echo "With <module>:    force rebuild only the named bundle(s)."
+    echo "                  Multiple modules can be listed, space-separated."
+    echo ""
+    echo "Available modules:"
+    for m in "${FORCE_MODULE_NAMES[@]}"; do
+        echo "  - $m"
+    done
+    echo ""
+    echo "Examples:"
+    echo "  $0 force                    # rebuild everything"
+    echo "  $0 force street             # rebuild just the street designer"
+    echo "  $0 force street leptos      # rebuild street + leptos editor"
 }
 
 # =============================================================================
@@ -254,8 +319,61 @@ elif [[ "$1" == "servesimple" ]]; then
     ACTION="servesimple"
     SKIP_BROTLI=true
 elif [[ "$1" == "force" ]]; then
-    FORCE_REBUILD=true
     ACTION="build"
+    shift
+    if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+        print_force_help
+        exit 0
+    fi
+    if [[ $# -eq 0 ]]; then
+        # `force` alone → rebuild everything (legacy behavior).
+        FORCE_REBUILD=true
+    else
+        # `force <module> [<module>...]` → selective rebuild. Validate
+        # each name against the known module list so typos fail loudly
+        # instead of silently doing nothing.
+        FORCE_MODULE=""
+        for arg in "$@"; do
+            valid=false
+            for m in "${FORCE_MODULE_NAMES[@]}"; do
+                if [[ "$m" == "$arg" ]]; then
+                    valid=true
+                    break
+                fi
+                # Bash "in_array" substring check handled in loop.
+            done
+            if [[ "$valid" == "false" ]]; then
+                echo "Error: unknown module '$arg'." >&2
+                echo "" >&2
+                print_force_help >&2
+                exit 2
+            fi
+            FORCE_MODULE="$FORCE_MODULE $arg"
+        done
+        FORCE_MODULE="${FORCE_MODULE# }"
+        echo "Forcing rebuild of: $FORCE_MODULE"
+
+        # Wipe the cached cargo artifacts + wasm-bindgen output for each
+        # forced module so the rebuild genuinely produces fresh bytes.
+        # Without this, `force <module>` on an unchanged tree is a no-op:
+        # cargo sees the build artifacts as up-to-date, same WASM bytes
+        # come out, same content hash, dist/ files untouched.
+        for arg in $FORCE_MODULE; do
+            crate=$(force_module_crate "$arg")
+            if [[ -n "$crate" ]]; then
+                echo "  wiping cargo cache for $crate (target: wasm32)"
+                cargo clean -p "$crate" --target wasm32-unknown-unknown \
+                    >/dev/null 2>&1 || true
+            fi
+            # Wipe bindgen output too — mapped per bundle.
+            case "$arg" in
+                street)    rm -rf "$ROOT_DIR/target/street-wasm-bindgen" ;;
+                skyglow)   rm -rf "$ROOT_DIR/target/skyglow-wasm-bindgen" ;;
+                templates) rm -rf "$ROOT_DIR/target/templates-wasm-bindgen" ;;
+                # leptos / bevy do not use this intermediate dir.
+            esac
+        done
+    fi
 elif [[ "$1" == "clean" ]]; then
     echo "Cleaning build cache..."
     rm -f "$CACHE_FILE"
@@ -266,13 +384,15 @@ elif [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
     echo "Usage: $0 [command]"
     echo ""
     echo "Commands:"
-    echo "  (none)       Build WASM bundles (incremental - skips unchanged)"
-    echo "  force        Force rebuild all bundles (ignore cache)"
-    echo "  deploy       Build and deploy via rsync to configured target"
-    echo "  serve        Build and start local development server (with Brotli)"
-    echo "  servesimple  Build and serve locally (skip Brotli, use python3)"
-    echo "  clean        Remove build cache and dist directory"
-    echo "  --help       Show this help"
+    echo "  (none)            Build WASM bundles (incremental - skips unchanged)"
+    echo "  force             Force rebuild all bundles (ignore cache)"
+    echo "  force <module>    Force rebuild only the named module(s)"
+    echo "  force -h          List available module names for selective force"
+    echo "  deploy            Build and deploy via rsync to configured target"
+    echo "  serve             Build and start local development server (with Brotli)"
+    echo "  servesimple       Build and serve locally (skip Brotli, use python3)"
+    echo "  clean             Remove build cache and dist directory"
+    echo "  --help            Show this help"
     echo ""
     echo "Configuration: $CONFIG_FILE"
     echo ""
@@ -302,8 +422,8 @@ fi
 if [[ "$BUILD_TEMPLATES" == "true" ]]; then
     echo "  Bundle 4: Templates (loads on demand)"
 fi
-if [[ "$BUILD_OBSCURA" == "true" ]]; then
-    echo "  Bundle 5: Obscura Demo (loads on demand, ?wasm=obscura_demo)"
+if [[ "$BUILD_SKYGLOW" == "true" ]]; then
+    echo "  Bundle 5: Skyglow Demo (loads on demand, ?wasm=skyglow_demo)"
 fi
 if [[ "$BUILD_STREET" == "true" ]]; then
     echo "  Bundle 6: Street Designer (loads on demand)"
@@ -381,57 +501,101 @@ fi
 ((STEP++))
 
 # -----------------------------------------------------------------------------
-# Step 1.5: Build Obscura Demo (from same Bevy crate, different binary)
+# Step 1.5: Build Skyglow Demo (from same Bevy crate, different binary)
+#
+# Two variants:
+#   - WebGPU (primary, full fidelity) → target/wasm32-.../release/
+#     and target/skyglow-wasm-bindgen/
+#   - WebGL2 (fallback, degraded) → target/wasm32-.../release-webgl2/
+#     and target/skyglow-webgl2-wasm-bindgen/
+#
+# The Leptos shell + skyglow-loader.js probe `navigator.gpu` at runtime
+# and load whichever module the user's browser supports. Most users
+# only download the bundle that matches their browser.
 # -----------------------------------------------------------------------------
-OBSCURA_BINARY="obscura-demo"
-OBSCURA_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
-OBSCURA_BINDGEN_OUTPUT="$ROOT_DIR/target/obscura-wasm-bindgen"
-OBSCURA_BUILT=false
-if [[ "$BUILD_OBSCURA" == "true" ]]; then
-    OBSCURA_NEEDS_BUILD=false
-    if needs_rebuild "obscura" "$BEVY_DIR"; then
-        OBSCURA_NEEDS_BUILD=true
-    elif [[ ! -f "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" ]]; then
-        OBSCURA_NEEDS_BUILD=true
+SKYGLOW_BINARY="skyglow-demo"
+SKYGLOW_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
+SKYGLOW_BINDGEN_OUTPUT="$ROOT_DIR/target/skyglow-wasm-bindgen"
+# WebGL2 sibling — same source, different cargo features. Built into a
+# separate target dir (--target-dir) so its release artifacts don't
+# clobber the WebGPU build's `release/skyglow-demo.wasm`.
+SKYGLOW_WEBGL2_TARGET_DIR="$ROOT_DIR/target/skyglow-webgl2"
+SKYGLOW_WEBGL2_OUTPUT="$SKYGLOW_WEBGL2_TARGET_DIR/wasm32-unknown-unknown/release"
+SKYGLOW_WEBGL2_BINDGEN_OUTPUT="$ROOT_DIR/target/skyglow-webgl2-wasm-bindgen"
+SKYGLOW_BUILT=false
+if [[ "$BUILD_SKYGLOW" == "true" ]]; then
+    SKYGLOW_NEEDS_BUILD=false
+    if needs_rebuild "skyglow" "$BEVY_DIR"; then
+        SKYGLOW_NEEDS_BUILD=true
+    elif [[ ! -f "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js" ]]; then
+        SKYGLOW_NEEDS_BUILD=true
+    elif [[ ! -f "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js" ]]; then
+        SKYGLOW_NEEDS_BUILD=true
     fi
 
-    if [[ "$OBSCURA_NEEDS_BUILD" == "true" ]]; then
-        echo "[1.5/$TOTAL_STEPS] Building Obscura Demo for WASM..."
+    if [[ "$SKYGLOW_NEEDS_BUILD" == "true" ]]; then
+        echo "[1.5/$TOTAL_STEPS] Building Skyglow Demo for WASM (WebGPU + WebGL2)..."
         cd "$ROOT_DIR"
 
-        # Build the obscura-demo binary for wasm32
+        # ── WebGPU build (primary) ───────────────────────────────────────
+        echo "  WebGPU bundle..."
         cargo build --release --target wasm32-unknown-unknown \
-            --bin obscura-demo \
+            --bin skyglow-demo \
             --features bevy-ui,post-process,wasm-bindgen,js-sys \
             -p eulumdat-bevy
 
-        # Run wasm-bindgen to generate JS glue
-        mkdir -p "$OBSCURA_BINDGEN_OUTPUT"
-        wasm-bindgen --out-dir "$OBSCURA_BINDGEN_OUTPUT" --target web \
-            "$OBSCURA_OUTPUT/${OBSCURA_BINARY}.wasm"
+        mkdir -p "$SKYGLOW_BINDGEN_OUTPUT"
+        wasm-bindgen --out-dir "$SKYGLOW_BINDGEN_OUTPUT" --target web \
+            "$SKYGLOW_OUTPUT/${SKYGLOW_BINARY}.wasm"
 
-        # Optimize with wasm-opt if available
-        if command -v wasm-opt &> /dev/null && [[ -f "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" ]]; then
-            echo "  Running wasm-opt..."
-            ORIG_SIZE=$(ls -lh "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | awk '{print $5}')
-            wasm-opt -Oz -o "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg_opt.wasm" \
-                "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm"
-            mv "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg_opt.wasm" \
-                "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm"
-            OPT_SIZE=$(ls -lh "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | awk '{print $5}')
-            echo "  Size: $ORIG_SIZE -> $OPT_SIZE"
+        if command -v wasm-opt &> /dev/null && [[ -f "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" ]]; then
+            echo "    Running wasm-opt (WebGPU)..."
+            ORIG_SIZE=$(ls -lh "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg_opt.wasm" \
+                "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm"
+            mv "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg_opt.wasm" \
+                "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm"
+            OPT_SIZE=$(ls -lh "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" | awk '{print $5}')
+            echo "    Size: $ORIG_SIZE -> $OPT_SIZE"
         fi
 
-        save_hash "obscura" "$(calculate_source_hash "$BEVY_DIR")"
-        OBSCURA_BUILT=true
+        # ── WebGL2 build (fallback) ──────────────────────────────────────
+        # --target-dir keeps it separate from the WebGPU build so the
+        # release artifacts don't collide; --no-default-features drops
+        # `webgpu` so the swap to `webgl2` is unambiguous.
+        echo "  WebGL2 bundle..."
+        cargo build --release --target wasm32-unknown-unknown \
+            --target-dir "$SKYGLOW_WEBGL2_TARGET_DIR" \
+            --bin skyglow-demo \
+            --no-default-features \
+            --features viewer,bevy-ui,post-process,wasm-bindgen,js-sys,webgl2 \
+            -p eulumdat-bevy
+
+        mkdir -p "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT"
+        wasm-bindgen --out-dir "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT" --target web \
+            "$SKYGLOW_WEBGL2_OUTPUT/${SKYGLOW_BINARY}.wasm"
+
+        if command -v wasm-opt &> /dev/null && [[ -f "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" ]]; then
+            echo "    Running wasm-opt (WebGL2)..."
+            ORIG_SIZE=$(ls -lh "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg_opt.wasm" \
+                "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm"
+            mv "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg_opt.wasm" \
+                "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm"
+            OPT_SIZE=$(ls -lh "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" | awk '{print $5}')
+            echo "    Size: $ORIG_SIZE -> $OPT_SIZE"
+        fi
+
+        save_hash "skyglow" "$(calculate_source_hash "$BEVY_DIR")"
+        SKYGLOW_BUILT=true
         echo ""
     else
-        echo "[1.5/$TOTAL_STEPS] Obscura Demo: unchanged, skipping build"
+        echo "[1.5/$TOTAL_STEPS] Skyglow Demo: unchanged, skipping build"
     fi
 fi
 
 # -----------------------------------------------------------------------------
-# Step 1.7: Build Street Designer (lazy-loaded companion, same pattern as obscura)
+# Step 1.7: Build Street Designer (lazy-loaded companion, same pattern as skyglow)
 # -----------------------------------------------------------------------------
 STREET_CRATE_NAME="eulumdat-wasm-street"
 STREET_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
@@ -570,41 +734,73 @@ fi
 echo ""
 
 # -----------------------------------------------------------------------------
-# Step 3.5: Add content hashes to Obscura files
+# Step 3.5: Add content hashes to Skyglow files (WebGPU + WebGL2)
 # -----------------------------------------------------------------------------
-OBSCURA_JS_HASH=""
-OBSCURA_WASM_HASH=""
-if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -f "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" ]]; then
+hash_md5() {
     if command -v md5sum &> /dev/null; then
-        OBSCURA_JS_HASH=$(md5sum "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" | cut -c1-16)
-        OBSCURA_WASM_HASH=$(md5sum "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | cut -c1-16)
+        md5sum "$1" | cut -c1-16
     else
-        OBSCURA_JS_HASH=$(md5 -q "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" | cut -c1-16)
-        OBSCURA_WASM_HASH=$(md5 -q "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" | cut -c1-16)
+        md5 -q "$1" | cut -c1-16
+    fi
+}
+sed_inplace() {
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
+SKYGLOW_JS_HASH=""
+SKYGLOW_WASM_HASH=""
+SKYGLOW_WEBGL2_JS_HASH=""
+SKYGLOW_WEBGL2_WASM_HASH=""
+if [[ "$BUILD_SKYGLOW" == "true" ]] && [[ -f "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js" ]]; then
+    SKYGLOW_JS_HASH=$(hash_md5 "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js")
+    SKYGLOW_WASM_HASH=$(hash_md5 "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm")
+    SKYGLOW_JS_TARGET="$DIST_DIR/skyglow/${SKYGLOW_BINARY}-${SKYGLOW_JS_HASH}.js"
+    SKYGLOW_WASM_TARGET="$DIST_DIR/skyglow/${SKYGLOW_BINARY}-${SKYGLOW_WASM_HASH}_bg.wasm"
+
+    # WebGL2 sibling — same naming pattern under skyglow-webgl2/.
+    SKYGLOW_WEBGL2_AVAILABLE=false
+    if [[ -f "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js" ]]; then
+        SKYGLOW_WEBGL2_AVAILABLE=true
+        SKYGLOW_WEBGL2_JS_HASH=$(hash_md5 "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js")
+        SKYGLOW_WEBGL2_WASM_HASH=$(hash_md5 "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm")
+    fi
+    SKYGLOW_WEBGL2_JS_TARGET="$DIST_DIR/skyglow-webgl2/${SKYGLOW_BINARY}-${SKYGLOW_WEBGL2_JS_HASH}.js"
+    SKYGLOW_WEBGL2_WASM_TARGET="$DIST_DIR/skyglow-webgl2/${SKYGLOW_BINARY}-${SKYGLOW_WEBGL2_WASM_HASH}_bg.wasm"
+
+    UNCHANGED=true
+    [[ -f "$SKYGLOW_JS_TARGET" ]] && [[ -f "$SKYGLOW_WASM_TARGET" ]] || UNCHANGED=false
+    if [[ "$SKYGLOW_WEBGL2_AVAILABLE" == "true" ]]; then
+        [[ -f "$SKYGLOW_WEBGL2_JS_TARGET" ]] && [[ -f "$SKYGLOW_WEBGL2_WASM_TARGET" ]] || UNCHANGED=false
     fi
 
-    OBSCURA_JS_TARGET="$DIST_DIR/obscura/${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js"
-    OBSCURA_WASM_TARGET="$DIST_DIR/obscura/${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm"
-
-    if [[ -f "$OBSCURA_JS_TARGET" ]] && [[ -f "$OBSCURA_WASM_TARGET" ]]; then
-        echo "[3.5/$TOTAL_STEPS] Obscura files: unchanged (hash match), skipping"
+    if [[ "$UNCHANGED" == "true" ]]; then
+        echo "[3.5/$TOTAL_STEPS] Skyglow files: unchanged (hash match), skipping"
     else
-        echo "[3.5/$TOTAL_STEPS] Adding content hashes to Obscura files..."
-        mkdir -p "$DIST_DIR/obscura"
+        echo "[3.5/$TOTAL_STEPS] Adding content hashes to Skyglow files..."
 
-        rm -f "$DIST_DIR/obscura/"*.js "$DIST_DIR/obscura/"*.wasm "$DIST_DIR/obscura/"*.br
+        # ── WebGPU primary ──────────────────────────────────────────────
+        mkdir -p "$DIST_DIR/skyglow"
+        rm -f "$DIST_DIR/skyglow/"*.js "$DIST_DIR/skyglow/"*.wasm "$DIST_DIR/skyglow/"*.br
+        cp "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js" "$SKYGLOW_JS_TARGET"
+        cp "$SKYGLOW_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" "$SKYGLOW_WASM_TARGET"
+        sed_inplace "s/${SKYGLOW_BINARY}_bg.wasm/${SKYGLOW_BINARY}-${SKYGLOW_WASM_HASH}_bg.wasm/g" "$SKYGLOW_JS_TARGET"
+        echo "  WebGPU:  ${SKYGLOW_BINARY}-${SKYGLOW_JS_HASH}.js"
+        echo "           ${SKYGLOW_BINARY}-${SKYGLOW_WASM_HASH}_bg.wasm"
 
-        cp "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}.js" "$OBSCURA_JS_TARGET"
-        cp "$OBSCURA_BINDGEN_OUTPUT/${OBSCURA_BINARY}_bg.wasm" "$OBSCURA_WASM_TARGET"
-
-        # Update JS to reference hashed WASM
-        if [[ "$(uname)" == "Darwin" ]]; then
-            sed -i '' "s/${OBSCURA_BINARY}_bg.wasm/${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm/g" "$OBSCURA_JS_TARGET"
-        else
-            sed -i "s/${OBSCURA_BINARY}_bg.wasm/${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm/g" "$OBSCURA_JS_TARGET"
+        # ── WebGL2 fallback ─────────────────────────────────────────────
+        if [[ "$SKYGLOW_WEBGL2_AVAILABLE" == "true" ]]; then
+            mkdir -p "$DIST_DIR/skyglow-webgl2"
+            rm -f "$DIST_DIR/skyglow-webgl2/"*.js "$DIST_DIR/skyglow-webgl2/"*.wasm "$DIST_DIR/skyglow-webgl2/"*.br
+            cp "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}.js" "$SKYGLOW_WEBGL2_JS_TARGET"
+            cp "$SKYGLOW_WEBGL2_BINDGEN_OUTPUT/${SKYGLOW_BINARY}_bg.wasm" "$SKYGLOW_WEBGL2_WASM_TARGET"
+            sed_inplace "s/${SKYGLOW_BINARY}_bg.wasm/${SKYGLOW_BINARY}-${SKYGLOW_WEBGL2_WASM_HASH}_bg.wasm/g" "$SKYGLOW_WEBGL2_JS_TARGET"
+            echo "  WebGL2:  ${SKYGLOW_BINARY}-${SKYGLOW_WEBGL2_JS_HASH}.js"
+            echo "           ${SKYGLOW_BINARY}-${SKYGLOW_WEBGL2_WASM_HASH}_bg.wasm"
         fi
-        echo "  ${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js"
-        echo "  ${OBSCURA_BINARY}-${OBSCURA_WASM_HASH}_bg.wasm"
     fi
 fi
 echo ""
@@ -1057,82 +1253,175 @@ EOF
 fi
 
 # -----------------------------------------------------------------------------
-# Step 6.8: Generate obscura-loader.js (if configured)
+# Step 6.8: Generate skyglow-loader.js (if configured)
 # -----------------------------------------------------------------------------
-OBSCURA_LOADER_HASH=""
-if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -n "$OBSCURA_JS_HASH" ]]; then
-    EXISTING_OBSCURA_LOADER=$(ls "$DIST_DIR/obscura-loader-"*.js 2>/dev/null | head -1)
-    if [[ -n "$EXISTING_OBSCURA_LOADER" ]] && grep -q "${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js" "$EXISTING_OBSCURA_LOADER" 2>/dev/null; then
-        echo "[6.8/$TOTAL_STEPS] obscura-loader.js: unchanged, skipping"
-        OBSCURA_LOADER_HASH=$(echo "$EXISTING_OBSCURA_LOADER" | sed 's/.*obscura-loader-\([^.]*\)\.js/\1/')
+SKYGLOW_LOADER_HASH=""
+if [[ "$BUILD_SKYGLOW" == "true" ]] && [[ -n "$SKYGLOW_JS_HASH" ]]; then
+    # Cache check — only regenerate the loader if either bundle's JS hash
+    # changed. We grep for both because either side rotating means stale.
+    EXISTING_SKYGLOW_LOADER=$(ls "$DIST_DIR/skyglow-loader-"*.js 2>/dev/null | head -1)
+    LOADER_FRESH=false
+    if [[ -n "$EXISTING_SKYGLOW_LOADER" ]] \
+        && grep -q "${SKYGLOW_BINARY}-${SKYGLOW_JS_HASH}.js" "$EXISTING_SKYGLOW_LOADER" 2>/dev/null; then
+        if [[ "$SKYGLOW_WEBGL2_AVAILABLE" != "true" ]] \
+            || grep -q "${SKYGLOW_BINARY}-${SKYGLOW_WEBGL2_JS_HASH}.js" "$EXISTING_SKYGLOW_LOADER" 2>/dev/null; then
+            LOADER_FRESH=true
+        fi
+    fi
+
+    if [[ "$LOADER_FRESH" == "true" ]]; then
+        echo "[6.8/$TOTAL_STEPS] skyglow-loader.js: unchanged, skipping"
+        SKYGLOW_LOADER_HASH=$(echo "$EXISTING_SKYGLOW_LOADER" | sed 's/.*skyglow-loader-\([^.]*\)\.js/\1/')
     else
-        echo "[6.8/$TOTAL_STEPS] Generating obscura-loader.js..."
-        rm -f "$DIST_DIR/obscura-loader-"*.js "$DIST_DIR/obscura-loader-"*.js.br
+        echo "[6.8/$TOTAL_STEPS] Generating skyglow-loader.js..."
+        rm -f "$DIST_DIR/skyglow-loader-"*.js "$DIST_DIR/skyglow-loader-"*.js.br
 
-        cat > "$DIST_DIR/obscura-loader-temp.js" << EOF
-// Obscura Demo loader — Darkness Preservation Simulator
-// Auto-generated with content hashes for cache busting
+        # Two paths embedded; runtime probe picks one. The webgl2 path is
+        # rendered as a JS string literal (or `null`) so we can use
+        # `if (webgl2Path)` directly in the loader.
+        SKYGLOW_WEBGPU_PATH="./skyglow/${SKYGLOW_BINARY}-${SKYGLOW_JS_HASH}.js"
+        if [[ "$SKYGLOW_WEBGL2_AVAILABLE" == "true" ]]; then
+            SKYGLOW_WEBGL2_PATH_JS="\"./skyglow-webgl2/${SKYGLOW_BINARY}-${SKYGLOW_WEBGL2_JS_HASH}.js\""
+            SKYGLOW_WEBGL2_HASH_LINE="; WebGL2 JS: ${SKYGLOW_WEBGL2_JS_HASH}, WASM: ${SKYGLOW_WEBGL2_WASM_HASH}"
+        else
+            SKYGLOW_WEBGL2_PATH_JS="null"
+            SKYGLOW_WEBGL2_HASH_LINE=""
+        fi
 
-let obscuraLoaded = false;
-let obscuraLoading = false;
-let obscuraLoadPromise = null;
+        cat > "$DIST_DIR/skyglow-loader-temp.js" << EOF
+// Skyglow Demo loader — Darkness Preservation Simulator
+// Auto-generated by scripts/build-wasm-split.sh with content hashes for
+// cache busting. Probes WebGPU at runtime and loads the matching Bevy
+// bundle (WebGPU primary, WebGL2 fallback).
 
-async function loadObscuraDemo() {
-    if (obscuraLoaded) {
-        console.log("[Obscura] Already loaded");
+let skyglowLoaded = false;
+let skyglowLoading = false;
+let skyglowLoadPromise = null;
+// 'webgpu' | 'webgl2' | 'unsupported' — set during the probe; the Leptos
+// shell reads window.skyglowBackend to show the right banner.
+window.skyglowBackend = null;
+
+async function probeWebGpu() {
+    if (!navigator.gpu) return false;
+    try {
+        const adapter = await navigator.gpu.requestAdapter();
+        return !!adapter;
+    } catch (_) {
+        return false;
+    }
+}
+
+// ?force=webgl2 / ?force=webgpu overrides the auto-probe. Useful for
+// previewing the fallback experience or writing reply links like
+// "?wasm=skyglow_demo&force=webgl2".
+function forcedBackend() {
+    try {
+        const p = new URLSearchParams(window.location.search).get('force');
+        return p === 'webgl2' || p === 'webgpu' ? p : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+async function loadSkyglowDemo() {
+    if (skyglowLoaded) {
+        console.log("[Skyglow] Already loaded");
         return;
     }
-    if (obscuraLoading && obscuraLoadPromise) {
-        console.log("[Obscura] Loading in progress, waiting...");
-        return obscuraLoadPromise;
+    if (skyglowLoading && skyglowLoadPromise) {
+        console.log("[Skyglow] Loading in progress, waiting...");
+        return skyglowLoadPromise;
     }
 
-    obscuraLoading = true;
-    console.log("[Obscura] Loading Darkness Preservation Simulator...");
+    skyglowLoading = true;
+    console.log("[Skyglow] Probing WebGPU…");
 
-    obscuraLoadPromise = (async () => {
+    skyglowLoadPromise = (async () => {
+        const forced = forcedBackend();
+        const webgpuOk = forced === 'webgl2' ? false
+                       : forced === 'webgpu' ? true
+                       : await probeWebGpu();
+        const webgl2Path = ${SKYGLOW_WEBGL2_PATH_JS};
+        let modulePath;
+
+        if (webgpuOk) {
+            window.skyglowBackend = 'webgpu';
+            modulePath = '${SKYGLOW_WEBGPU_PATH}';
+            console.log(
+                forced === 'webgpu'
+                    ? "[Skyglow] WebGPU forced via ?force=webgpu"
+                    : "[Skyglow] WebGPU available — loading primary bundle"
+            );
+        } else if (webgl2Path) {
+            window.skyglowBackend = 'webgl2';
+            modulePath = webgl2Path;
+            console.warn(
+                (forced === 'webgl2'
+                    ? "[Skyglow] WebGL2 forced via ?force=webgl2.\\n"
+                    : "[Skyglow] WebGPU unavailable — falling back to WebGL2 bundle.\\n") +
+                "  Reduced fidelity: no Bloom, no IBL, simpler clustered lighting.\\n" +
+                "  For full quality: enable WebGPU (Chrome / Edge / Brave on Windows or Mac, " +
+                "Safari Tahoe, Firefox Nightly with dom.webgpu.enabled)."
+            );
+        } else {
+            window.skyglowBackend = 'unsupported';
+            skyglowLoading = false;
+            skyglowLoadPromise = null;
+            const msg = "WebGPU unavailable and no WebGL2 fallback bundle was built.";
+            console.error("[Skyglow]", msg);
+            throw new Error(msg);
+        }
+
         try {
-            const mod = await import('./obscura/${OBSCURA_BINARY}-${OBSCURA_JS_HASH}.js');
+            const mod = await import(modulePath);
             await mod.default();
-            obscuraLoaded = true;
-            obscuraLoading = false;
-            console.log("[Obscura] Demo loaded successfully");
+            skyglowLoaded = true;
+            skyglowLoading = false;
+            console.log("[Skyglow] Demo loaded successfully (" + window.skyglowBackend + ")");
         } catch (error) {
             const errorStr = error.toString();
             if (errorStr.includes("Using exceptions for control flow") ||
                 errorStr.includes("don't mind me")) {
-                console.log("[Obscura] Ignoring control flow exception (not a real error)");
-                obscuraLoaded = true;
-                obscuraLoading = false;
+                console.log("[Skyglow] Ignoring control flow exception (not a real error)");
+                skyglowLoaded = true;
+                skyglowLoading = false;
                 return;
             }
-            console.error("[Obscura] Failed to load:", error);
-            obscuraLoading = false;
-            obscuraLoadPromise = null;
+            console.error("[Skyglow] Failed to load:", error);
+            skyglowLoading = false;
+            skyglowLoadPromise = null;
             throw error;
         }
     })();
 
-    return obscuraLoadPromise;
+    return skyglowLoadPromise;
 }
 
-function isObscuraLoaded() { return obscuraLoaded; }
-function isObscuraLoading() { return obscuraLoading; }
+function isSkyglowLoaded() { return skyglowLoaded; }
+function isSkyglowLoading() { return skyglowLoading; }
+function skyglowBackend() { return window.skyglowBackend; }
 
-window.loadObscuraDemo = loadObscuraDemo;
-window.isObscuraLoaded = isObscuraLoaded;
-window.isObscuraLoading = isObscuraLoading;
+window.loadSkyglowDemo = loadSkyglowDemo;
+window.isSkyglowLoaded = isSkyglowLoaded;
+window.isSkyglowLoading = isSkyglowLoading;
+window.skyglowBackendName = skyglowBackend;
 
-console.log("[Obscura] Loader ready (JS: ${OBSCURA_JS_HASH}, WASM: ${OBSCURA_WASM_HASH})");
+// Backwards-compatible aliases for the legacy "Obscura" naming.
+window.loadObscuraDemo = loadSkyglowDemo;
+window.isObscuraLoaded = isSkyglowLoaded;
+window.isObscuraLoading = isSkyglowLoading;
+
+console.log("[Skyglow] Loader ready " +
+    "(WebGPU JS: ${SKYGLOW_JS_HASH}, WASM: ${SKYGLOW_WASM_HASH}${SKYGLOW_WEBGL2_HASH_LINE})");
 EOF
 
         if command -v md5sum &> /dev/null; then
-            OBSCURA_LOADER_HASH=$(md5sum "$DIST_DIR/obscura-loader-temp.js" | cut -c1-16)
+            SKYGLOW_LOADER_HASH=$(md5sum "$DIST_DIR/skyglow-loader-temp.js" | cut -c1-16)
         else
-            OBSCURA_LOADER_HASH=$(md5 -q "$DIST_DIR/obscura-loader-temp.js" | cut -c1-16)
+            SKYGLOW_LOADER_HASH=$(md5 -q "$DIST_DIR/skyglow-loader-temp.js" | cut -c1-16)
         fi
-        mv "$DIST_DIR/obscura-loader-temp.js" "$DIST_DIR/obscura-loader-${OBSCURA_LOADER_HASH}.js"
-        echo "  obscura-loader-${OBSCURA_LOADER_HASH}.js"
+        mv "$DIST_DIR/skyglow-loader-temp.js" "$DIST_DIR/skyglow-loader-${SKYGLOW_LOADER_HASH}.js"
+        echo "  skyglow-loader-${SKYGLOW_LOADER_HASH}.js"
     fi
     echo ""
 fi
@@ -1244,8 +1533,8 @@ if [[ "$BUILD_TEMPLATES" == "true" ]] && [[ -n "$TEMPLATES_LOADER_HASH" ]]; then
         INDEX_NEEDS_UPDATE=true
     fi
 fi
-if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -n "$OBSCURA_LOADER_HASH" ]]; then
-    if ! grep -q "obscura-loader-${OBSCURA_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
+if [[ "$BUILD_SKYGLOW" == "true" ]] && [[ -n "$SKYGLOW_LOADER_HASH" ]]; then
+    if ! grep -q "skyglow-loader-${SKYGLOW_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
         INDEX_NEEDS_UPDATE=true
     fi
 fi
@@ -1285,10 +1574,10 @@ if [[ "$INDEX_NEEDS_UPDATE" == "true" ]]; then
         sed "${SED_INPLACE[@]}" "s|templates-loader-[a-f0-9]*.js\"|templates-loader-${TEMPLATES_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
     fi
 
-    if [[ "$BUILD_OBSCURA" == "true" ]] && [[ -n "$OBSCURA_LOADER_HASH" ]]; then
-        sed "${SED_INPLACE[@]}" "s|obscura-loader.js\"|obscura-loader-${OBSCURA_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
-        sed "${SED_INPLACE[@]}" "s|obscura-loader.js?v=[0-9]*\"|obscura-loader-${OBSCURA_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
-        sed "${SED_INPLACE[@]}" "s|obscura-loader-[a-f0-9]*.js\"|obscura-loader-${OBSCURA_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+    if [[ "$BUILD_SKYGLOW" == "true" ]] && [[ -n "$SKYGLOW_LOADER_HASH" ]]; then
+        sed "${SED_INPLACE[@]}" "s|skyglow-loader.js\"|skyglow-loader-${SKYGLOW_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|skyglow-loader.js?v=[0-9]*\"|skyglow-loader-${SKYGLOW_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|skyglow-loader-[a-f0-9]*.js\"|skyglow-loader-${SKYGLOW_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
     fi
 
     if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_LOADER_HASH" ]]; then
@@ -1306,7 +1595,7 @@ echo ""
 # -----------------------------------------------------------------------------
 # Step 6.9: Copy packed GLB scenes + env maps into dist/assets/
 # -----------------------------------------------------------------------------
-if [[ "$BUILD_OBSCURA" == "true" ]]; then
+if [[ "$BUILD_SKYGLOW" == "true" ]]; then
     mkdir -p "$DIST_DIR/assets/environment_maps"
     # Copy self-contained GLB scenes (no external texture files needed)
     cp -f "$BEVY_DIR/assets/Sponza_web.glb" "$DIST_DIR/assets/" 2>/dev/null || true
@@ -1327,8 +1616,8 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
     FILES_TO_COMPRESS=()
 
     # Only add files that don't have an up-to-date .br version
-    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/obscura/"*.wasm "$DIST_DIR/street/"*.wasm \
-             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/obscura/"*.js "$DIST_DIR/street/"*.js \
+    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/skyglow/"*.wasm "$DIST_DIR/skyglow-webgl2/"*.wasm "$DIST_DIR/street/"*.wasm \
+             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/skyglow/"*.js "$DIST_DIR/skyglow-webgl2/"*.js "$DIST_DIR/street/"*.js \
              "$DIST_DIR/"*.css; do
         if [[ -f "$f" ]]; then
             # Skip non-hashed loader files (we use hashed versions)
@@ -1337,6 +1626,7 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
                [[ "$basename_f" == "typst-loader.js" ]] || \
                [[ "$basename_f" == "gmaps-loader.js" ]] || \
                [[ "$basename_f" == "templates-loader.js" ]] || \
+               [[ "$basename_f" == "skyglow-loader.js" ]] || \
                [[ "$basename_f" == "street-loader.js" ]]; then
                 continue
             fi

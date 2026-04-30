@@ -19,7 +19,7 @@
 //! // In your egui app
 //! fn update(&mut self, ctx: &egui::Context) {
 //!     egui::CentralPanel::default().show(ctx, |ui| {
-//!         self.editor.show(ui, &mut self.ldt);
+//!         self.editor.show(ui, &mut self.ldc);
 //!     });
 //! }
 //! ```
@@ -65,7 +65,7 @@ impl EulumdatEditor {
     }
 
     /// Show the full editor UI
-    pub fn show(&mut self, ui: &mut egui::Ui, ldt: &mut Option<eulumdat::Eulumdat>) {
+    pub fn show(&mut self, ui: &mut egui::Ui, ldc: &mut Option<eulumdat::Eulumdat>) {
         // Top toolbar
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.active_tab, DiagramTab::Info, "Info");
@@ -80,26 +80,26 @@ impl EulumdatEditor {
         ui.separator();
 
         // Main content area
-        if let Some(ldt) = ldt {
+        if let Some(ldc) = ldc {
             match self.active_tab {
                 DiagramTab::Info => {
-                    InfoPanel::show(ui, ldt);
+                    InfoPanel::show(ui, ldc);
                 }
                 DiagramTab::Polar => {
-                    PolarWidget::show(ui, ldt, &self.theme);
+                    PolarWidget::show(ui, ldc, &self.theme);
                 }
                 DiagramTab::Cartesian => {
-                    CartesianWidget::show(ui, ldt, &self.theme);
+                    CartesianWidget::show(ui, ldc, &self.theme);
                 }
                 DiagramTab::Heatmap => {
-                    HeatmapWidget::show(ui, ldt, &self.theme);
+                    HeatmapWidget::show(ui, ldc, &self.theme);
                 }
                 #[cfg(feature = "3d")]
                 DiagramTab::Viewer3D => {
-                    Viewer3D::show(ui, ldt, &self.theme);
+                    Viewer3D::show(ui, ldc, &self.theme);
                 }
                 DiagramTab::Validation => {
-                    ValidationPanel::show(ui, ldt);
+                    ValidationPanel::show(ui, ldc);
                 }
             }
         } else {

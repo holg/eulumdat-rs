@@ -12,7 +12,7 @@ use super::controls::{
 };
 use super::scenes::ScenePlugin;
 use super::wasm_sync::{
-    load_default_ldt, DesignerTimestamp, LdtTimestamp, ViewerSettingsTimestamp,
+    load_default_ldc, DesignerTimestamp, LdtTimestamp, ViewerSettingsTimestamp,
 };
 use super::ViewerSettings;
 use crate::eulumdat_impl::EulumdatLightBundle;
@@ -44,7 +44,7 @@ use eulumdat::Eulumdat;
 /// ```
 pub struct EulumdatViewerPlugin {
     /// Initial LDT data to display (optional)
-    pub initial_ldt: Option<Eulumdat>,
+    pub initial_ldc: Option<Eulumdat>,
     /// Enable keyboard controls (P, L, H, 1-4 keys). Default: true
     pub enable_keyboard_controls: bool,
     /// Enable localStorage polling for hot-reload (WASM only, requires `wasm-sync` feature).
@@ -55,7 +55,7 @@ pub struct EulumdatViewerPlugin {
 impl Default for EulumdatViewerPlugin {
     fn default() -> Self {
         Self {
-            initial_ldt: None,
+            initial_ldc: None,
             enable_keyboard_controls: true,
             enable_local_storage_sync: cfg!(feature = "wasm-sync"),
         }
@@ -69,9 +69,9 @@ impl EulumdatViewerPlugin {
     }
 
     /// Create a plugin with initial LDT data.
-    pub fn with_ldt(ldt: Eulumdat) -> Self {
+    pub fn with_ldt(ldc: Eulumdat) -> Self {
         Self {
-            initial_ldt: Some(ldt),
+            initial_ldc: Some(ldc),
             enable_keyboard_controls: true,
             enable_local_storage_sync: cfg!(feature = "wasm-sync"),
         }
@@ -88,7 +88,7 @@ impl Plugin for EulumdatViewerPlugin {
 
         // Insert viewer settings
         let settings = ViewerSettings {
-            ldt_data: self.initial_ldt.clone(),
+            ldc_data: self.initial_ldc.clone(),
             ..default()
         };
         app.insert_resource(settings);
@@ -138,15 +138,15 @@ impl Plugin for EulumdatViewerPlugin {
 /// Startup system to spawn the initial photometric lights.
 fn setup_viewer_light(mut commands: Commands, settings: Res<ViewerSettings>) {
     // Try to get LDT data from settings or load default
-    let ldt = settings.ldt_data.clone().or_else(load_default_ldt);
+    let ldc = settings.ldc_data.clone().or_else(load_default_ldc);
 
-    if let Some(ldt_data) = ldt {
+    if let Some(ldc_data) = ldc {
         // Calculate all luminaire positions and rotations
-        let transforms = calculate_all_luminaire_transforms(&settings, &ldt_data);
+        let transforms = calculate_all_luminaire_transforms(&settings, &ldc_data);
 
         for transform in transforms {
             commands.spawn(
-                EulumdatLightBundle::new(ldt_data.clone())
+                EulumdatLightBundle::new(ldc_data.clone())
                     .with_transform(
                         Transform::from_translation(transform.position)
                             .with_rotation(transform.rotation),
@@ -171,21 +171,21 @@ fn sync_ldt_to_light(
         return;
     }
 
-    if let Some(ref new_ldt) = settings.ldt_data {
+    if let Some(ref new_ldc) = settings.ldc_data {
         // Despawn all existing lights
         for entity in lights.iter() {
             commands.entity(entity).despawn();
         }
 
         // Spawn new lights with updated configuration
-        let transforms = calculate_all_luminaire_transforms(&settings, new_ldt);
+        let transforms = calculate_all_luminaire_transforms(&settings, new_ldc);
 
         #[cfg(target_arch = "wasm32")]
         web_sys::console::log_1(&format!("[Bevy] Spawning {} luminaires", transforms.len()).into());
 
         for transform in transforms {
             commands.spawn(
-                EulumdatLightBundle::new(new_ldt.clone())
+                EulumdatLightBundle::new(new_ldc.clone())
                     .with_transform(
                         Transform::from_translation(transform.position)
                             .with_rotation(transform.rotation),

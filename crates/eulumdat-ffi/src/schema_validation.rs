@@ -9,8 +9,8 @@ pub struct SchemaValidationMessage {
     pub message: String,
 }
 
-impl From<&atla::validate::ValidationMessage> for SchemaValidationMessage {
-    fn from(m: &atla::validate::ValidationMessage) -> Self {
+impl From<&eulumdat::atla::validate::ValidationMessage> for SchemaValidationMessage {
+    fn from(m: &eulumdat::atla::validate::ValidationMessage) -> Self {
         Self {
             code: m.code.clone(),
             message: m.message.clone(),
@@ -26,8 +26,8 @@ pub struct SchemaValidationResult {
     pub warnings: Vec<SchemaValidationMessage>,
 }
 
-impl From<atla::validate::ValidationResult> for SchemaValidationResult {
-    fn from(r: atla::validate::ValidationResult) -> Self {
+impl From<eulumdat::atla::validate::ValidationResult> for SchemaValidationResult {
+    fn from(r: eulumdat::atla::validate::ValidationResult) -> Self {
         Self {
             is_valid: r.errors.is_empty(),
             errors: r.errors.iter().map(|e| e.into()).collect(),
@@ -40,9 +40,11 @@ impl From<atla::validate::ValidationResult> for SchemaValidationResult {
 #[uniffi::export]
 pub fn validate_schema_s001(ldt: &Eulumdat) -> SchemaValidationResult {
     let core_ldt = to_core_eulumdat(ldt);
-    let doc = atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
-    let result =
-        atla::validate::validate_with_schema(&doc, atla::validate::ValidationSchema::AtlaS001);
+    let doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
+    let result = eulumdat::atla::validate::validate_with_schema(
+        &doc,
+        eulumdat::atla::validate::ValidationSchema::AtlaS001,
+    );
     result.into()
 }
 
@@ -50,9 +52,11 @@ pub fn validate_schema_s001(ldt: &Eulumdat) -> SchemaValidationResult {
 #[uniffi::export]
 pub fn validate_schema_tm33(ldt: &Eulumdat) -> SchemaValidationResult {
     let core_ldt = to_core_eulumdat(ldt);
-    let doc = atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
-    let result =
-        atla::validate::validate_with_schema(&doc, atla::validate::ValidationSchema::Tm3323);
+    let doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
+    let result = eulumdat::atla::validate::validate_with_schema(
+        &doc,
+        eulumdat::atla::validate::ValidationSchema::Tm3323,
+    );
     result.into()
 }
 
@@ -60,8 +64,10 @@ pub fn validate_schema_tm33(ldt: &Eulumdat) -> SchemaValidationResult {
 #[uniffi::export]
 pub fn validate_schema_tm32(ldt: &Eulumdat) -> SchemaValidationResult {
     let core_ldt = to_core_eulumdat(ldt);
-    let doc = atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
-    let result =
-        atla::validate::validate_with_schema(&doc, atla::validate::ValidationSchema::Tm3224);
+    let doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&core_ldt);
+    let result = eulumdat::atla::validate::validate_with_schema(
+        &doc,
+        eulumdat::atla::validate::ValidationSchema::Tm3224,
+    );
     result.into()
 }

@@ -1,7 +1,7 @@
 //! Command implementations for the CLI
 
 use anyhow::{Context, Result};
-use atla::LuminaireOpticalData;
+use eulumdat::atla::LuminaireOpticalData;
 use eulumdat::{
     batch::{self, BatchInput, ConversionFormat},
     diagram::{CartesianDiagram, PolarDiagram, SvgTheme},
@@ -28,7 +28,7 @@ pub fn load_file(path: &PathBuf) -> Result<Eulumdat> {
         "ies" => IesParser::parse_file(path).context("Failed to parse IES file"),
         "xml" | "json" => {
             // Parse ATLA format and convert to Eulumdat
-            let atla_doc = atla::parse_file(path).context("Failed to parse ATLA file")?;
+            let atla_doc = eulumdat::atla::parse_file(path).context("Failed to parse ATLA file")?;
             Ok(atla_doc.to_eulumdat())
         }
         _ => anyhow::bail!("Unknown file extension: .{ext} (expected .ldt, .ies, .xml, or .json)"),
@@ -44,7 +44,13 @@ pub fn load_atla(path: &PathBuf) -> Result<LuminaireOpticalData> {
         .to_lowercase();
 
     match ext.as_str() {
-        "xml" | "json" => atla::parse_file(path).context("Failed to parse ATLA file"),
+        "xml" | "json" => eulumdat::atla::parse_file(path).context("Failed to parse ATLA file"),
+        "oxl" | "oxc" => {
+            // OXL/OXC are OxyTech LITESTAR multi-luminaire catalogs.
+            // `atla::parse_file` returns the first luminaire; callers
+            // wanting all of them can use `eulumdat::atla::oxl::parse`.
+            eulumdat::atla::parse_file(path).context("Failed to parse OXL/OXC file")
+        }
         "ldt" => {
             let ldt = Eulumdat::from_file(path).context("Failed to parse LDT file")?;
             Ok(LuminaireOpticalData::from_eulumdat(&ldt))
@@ -53,7 +59,9 @@ pub fn load_atla(path: &PathBuf) -> Result<LuminaireOpticalData> {
             let ldt = IesParser::parse_file(path).context("Failed to parse IES file")?;
             Ok(LuminaireOpticalData::from_eulumdat(&ldt))
         }
-        _ => anyhow::bail!("Unknown file extension: .{ext} (expected .ldt, .ies, .xml, or .json)"),
+        _ => anyhow::bail!(
+            "Unknown file extension: .{ext} (expected .ldt, .ies, .xml, .json, .oxl, or .oxc)"
+        ),
     }
 }
 
@@ -193,38 +201,42 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool, rotate: f64) ->
     let content = match (in_ext.as_str(), out_ext.as_str()) {
         // ATLA input -> ATLA output (direct conversion)
         ("xml" | "json", "xml") => {
-            let atla_doc = atla::parse_file(input).context("Failed to parse ATLA file")?;
+            let atla_doc =
+                eulumdat::atla::parse_file(input).context("Failed to parse ATLA file")?;
             if compact {
-                atla::xml::write_compact(&atla_doc).context("Failed to write ATLA XML")?
+                eulumdat::atla::xml::write_compact(&atla_doc).context("Failed to write ATLA XML")?
             } else {
-                atla::xml::write(&atla_doc).context("Failed to write ATLA XML")?
+                eulumdat::atla::xml::write(&atla_doc).context("Failed to write ATLA XML")?
             }
         }
         ("xml" | "json", "json") => {
-            let atla_doc = atla::parse_file(input).context("Failed to parse ATLA file")?;
+            let atla_doc =
+                eulumdat::atla::parse_file(input).context("Failed to parse ATLA file")?;
             if compact {
-                atla::json::write_compact(&atla_doc).context("Failed to write ATLA JSON")?
+                eulumdat::atla::json::write_compact(&atla_doc)
+                    .context("Failed to write ATLA JSON")?
             } else {
-                atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
+                eulumdat::atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
             }
         }
         // LDT/IES input -> ATLA output
         ("ldt" | "ies", "xml") => {
             let ldt = load_with_rotation(input, rotate)?;
-            let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&ldt);
+            let atla_doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&ldt);
             if compact {
-                atla::xml::write_compact(&atla_doc).context("Failed to write ATLA XML")?
+                eulumdat::atla::xml::write_compact(&atla_doc).context("Failed to write ATLA XML")?
             } else {
-                atla::xml::write(&atla_doc).context("Failed to write ATLA XML")?
+                eulumdat::atla::xml::write(&atla_doc).context("Failed to write ATLA XML")?
             }
         }
         ("ldt" | "ies", "json") => {
             let ldt = load_with_rotation(input, rotate)?;
-            let atla_doc = atla::LuminaireOpticalData::from_eulumdat(&ldt);
+            let atla_doc = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&ldt);
             if compact {
-                atla::json::write_compact(&atla_doc).context("Failed to write ATLA JSON")?
+                eulumdat::atla::json::write_compact(&atla_doc)
+                    .context("Failed to write ATLA JSON")?
             } else {
-                atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
+                eulumdat::atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
             }
         }
         // Any input -> LDT output (via Eulumdat)
@@ -337,9 +349,9 @@ pub fn diagram(
         DiagramType::Spectral => {
             let atla_doc = load_atla(input)?;
             let atla_theme = if dark {
-                atla::spectral::SpectralTheme::dark()
+                eulumdat::atla::spectral::SpectralTheme::dark()
             } else {
-                atla::spectral::SpectralTheme::light()
+                eulumdat::atla::spectral::SpectralTheme::light()
             };
 
             // Try to get spectral data from emitters
@@ -349,14 +361,14 @@ pub fn diagram(
                 .filter_map(|e| e.spectral_distribution.as_ref())
                 .next()
             {
-                let diagram = atla::spectral::SpectralDiagram::from_spectral(spd);
+                let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(spd);
                 diagram.to_svg(width, height, &atla_theme)
             } else if let Some(emitter) = atla_doc.emitters.first() {
                 // Try to synthesize from CCT/CRI
                 if let Some(cct) = emitter.cct {
                     let cri = emitter.color_rendering.as_ref().and_then(|cr| cr.ra);
-                    let spd = atla::spectral::synthesize_spectrum(cct, cri);
-                    let diagram = atla::spectral::SpectralDiagram::from_spectral(&spd);
+                    let spd = eulumdat::atla::spectral::synthesize_spectrum(cct, cri);
+                    let diagram = eulumdat::atla::spectral::SpectralDiagram::from_spectral(&spd);
                     diagram.to_svg(width, height, &atla_theme)
                 } else {
                     anyhow::bail!("No spectral data or CCT found in file. Spectral diagram requires spectral distribution or CCT.")
@@ -368,11 +380,11 @@ pub fn diagram(
         DiagramType::Greenhouse => {
             let atla_doc = load_atla(input)?;
             let gh_theme = if dark {
-                atla::greenhouse::GreenhouseTheme::dark()
+                eulumdat::atla::greenhouse::GreenhouseTheme::dark()
             } else {
-                atla::greenhouse::GreenhouseTheme::light()
+                eulumdat::atla::greenhouse::GreenhouseTheme::light()
             };
-            let diagram = atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
+            let diagram = eulumdat::atla::greenhouse::GreenhouseDiagram::from_atla_with_height(
                 &atla_doc,
                 mounting_height,
             );
@@ -785,7 +797,7 @@ pub fn validate_atla(
     schema_type: AtlaSchemaType,
     use_xsd: bool,
 ) -> Result<()> {
-    use atla::validate::{self, ValidationSchema};
+    use eulumdat::atla::validate::{self, ValidationSchema};
 
     let ext = file
         .extension()
@@ -842,13 +854,13 @@ pub fn validate_atla(
     }
 
     // Parse and do structural validation
-    let doc = atla::parse(&content).context("Failed to parse ATLA file")?;
+    let doc = eulumdat::atla::parse(&content).context("Failed to parse ATLA file")?;
 
     // Display detected schema version
     let detected_version = match doc.schema_version {
-        atla::SchemaVersion::AtlaS001 => "ATLA S001 / TM-33-18",
-        atla::SchemaVersion::Tm3323 => "TM-33-23 (IESTM33-22)",
-        atla::SchemaVersion::Tm3324 => "TM-33-24",
+        eulumdat::atla::SchemaVersion::AtlaS001 => "ATLA S001 / TM-33-18",
+        eulumdat::atla::SchemaVersion::Tm3323 => "TM-33-23 (IESTM33-22)",
+        eulumdat::atla::SchemaVersion::Tm3324 => "TM-33-24",
     };
 
     println!("Structural validation for {}:", file.display());
@@ -890,8 +902,10 @@ pub fn validate_atla(
 
         // Return success if valid for at least one schema (the detected one)
         let detected_valid = match doc.schema_version {
-            atla::SchemaVersion::AtlaS001 => s001_valid,
-            atla::SchemaVersion::Tm3323 | atla::SchemaVersion::Tm3324 => tm33_valid,
+            eulumdat::atla::SchemaVersion::AtlaS001 => s001_valid,
+            eulumdat::atla::SchemaVersion::Tm3323 | eulumdat::atla::SchemaVersion::Tm3324 => {
+                tm33_valid
+            }
         };
 
         if detected_valid {
@@ -951,7 +965,7 @@ pub fn validate_atla(
 }
 
 /// Helper function to print validation results
-fn print_validation_result(result: &atla::validate::ValidationResult, schema_name: &str) {
+fn print_validation_result(result: &eulumdat::atla::validate::ValidationResult, schema_name: &str) {
     if result.errors.is_empty() && result.warnings.is_empty() {
         println!("  All {} checks passed!", schema_name);
     } else {
@@ -986,35 +1000,35 @@ pub fn atla_convert(
     verbose: bool,
     compact: bool,
 ) -> Result<()> {
-    use atla::convert::{atla_to_tm33, tm33_to_atla, ConversionPolicy};
+    use eulumdat::atla::convert::{atla_to_tm33, tm33_to_atla, ConversionPolicy};
 
     // Parse input file
     let content = std::fs::read_to_string(input).context("Failed to read input file")?;
-    let doc = atla::parse(&content).context("Failed to parse ATLA file")?;
+    let doc = eulumdat::atla::parse(&content).context("Failed to parse ATLA file")?;
 
     // Get source and target schema names
     let source_name = match doc.schema_version {
-        atla::SchemaVersion::AtlaS001 => "ATLA S001",
-        atla::SchemaVersion::Tm3323 => "TM-33-23",
-        atla::SchemaVersion::Tm3324 => "TM-33-24",
+        eulumdat::atla::SchemaVersion::AtlaS001 => "ATLA S001",
+        eulumdat::atla::SchemaVersion::Tm3323 => "TM-33-23",
+        eulumdat::atla::SchemaVersion::Tm3324 => "TM-33-24",
     };
 
     let target_schema = match target {
         AtlaSchemaType::Auto => {
             // Auto: convert to the "other" format
             match doc.schema_version {
-                atla::SchemaVersion::AtlaS001 => atla::SchemaVersion::Tm3323,
-                _ => atla::SchemaVersion::AtlaS001,
+                eulumdat::atla::SchemaVersion::AtlaS001 => eulumdat::atla::SchemaVersion::Tm3323,
+                _ => eulumdat::atla::SchemaVersion::AtlaS001,
             }
         }
-        AtlaSchemaType::S001 => atla::SchemaVersion::AtlaS001,
-        AtlaSchemaType::Tm3323 => atla::SchemaVersion::Tm3323,
+        AtlaSchemaType::S001 => eulumdat::atla::SchemaVersion::AtlaS001,
+        AtlaSchemaType::Tm3323 => eulumdat::atla::SchemaVersion::Tm3323,
     };
 
     let target_name = match target_schema {
-        atla::SchemaVersion::AtlaS001 => "ATLA S001",
-        atla::SchemaVersion::Tm3323 => "TM-33-23",
-        atla::SchemaVersion::Tm3324 => "TM-33-24",
+        eulumdat::atla::SchemaVersion::AtlaS001 => "ATLA S001",
+        eulumdat::atla::SchemaVersion::Tm3323 => "TM-33-23",
+        eulumdat::atla::SchemaVersion::Tm3324 => "TM-33-24",
     };
 
     println!("Converting {} → {}", source_name, target_name);
@@ -1025,8 +1039,8 @@ pub fn atla_convert(
     // Perform conversion
     let (converted_doc, log) = match (doc.schema_version, target_schema) {
         (
-            atla::SchemaVersion::AtlaS001,
-            atla::SchemaVersion::Tm3323 | atla::SchemaVersion::Tm3324,
+            eulumdat::atla::SchemaVersion::AtlaS001,
+            eulumdat::atla::SchemaVersion::Tm3323 | eulumdat::atla::SchemaVersion::Tm3324,
         ) => {
             let conversion_policy = match policy {
                 ConversionPolicyArg::Strict => ConversionPolicy::Strict,
@@ -1035,8 +1049,8 @@ pub fn atla_convert(
             atla_to_tm33(&doc, conversion_policy)?
         }
         (
-            atla::SchemaVersion::Tm3323 | atla::SchemaVersion::Tm3324,
-            atla::SchemaVersion::AtlaS001,
+            eulumdat::atla::SchemaVersion::Tm3323 | eulumdat::atla::SchemaVersion::Tm3324,
+            eulumdat::atla::SchemaVersion::AtlaS001,
         ) => tm33_to_atla(&doc),
         _ => {
             // Same schema - just copy
@@ -1050,12 +1064,12 @@ pub fn atla_convert(
         println!("Conversion log:");
         for entry in &log {
             let action_str = match entry.action {
-                atla::convert::ConversionAction::Preserved => "Preserved",
-                atla::convert::ConversionAction::DefaultApplied => "Default applied",
-                atla::convert::ConversionAction::Renamed => "Renamed",
-                atla::convert::ConversionAction::TypeConverted => "Type converted",
-                atla::convert::ConversionAction::Dropped => "Dropped",
-                atla::convert::ConversionAction::Warning => "Warning",
+                eulumdat::atla::convert::ConversionAction::Preserved => "Preserved",
+                eulumdat::atla::convert::ConversionAction::DefaultApplied => "Default applied",
+                eulumdat::atla::convert::ConversionAction::Renamed => "Renamed",
+                eulumdat::atla::convert::ConversionAction::TypeConverted => "Type converted",
+                eulumdat::atla::convert::ConversionAction::Dropped => "Dropped",
+                eulumdat::atla::convert::ConversionAction::Warning => "Warning",
             };
             println!(
                 "  [{}] {}: {} → {}",
@@ -1080,14 +1094,14 @@ pub fn atla_convert(
     let output_content = match out_ext.as_str() {
         "json" => {
             if compact {
-                atla::json::write_compact(&converted_doc)?
+                eulumdat::atla::json::write_compact(&converted_doc)?
             } else {
-                atla::json::write(&converted_doc)?
+                eulumdat::atla::json::write(&converted_doc)?
             }
         }
         _ => {
             // XML output - use target schema format
-            atla::xml::write_with_schema(&converted_doc, target_schema, indent)?
+            eulumdat::atla::xml::write_with_schema(&converted_doc, target_schema, indent)?
         }
     };
 
@@ -1096,11 +1110,16 @@ pub fn atla_convert(
     // Summary
     let defaults_count = log
         .iter()
-        .filter(|e| matches!(e.action, atla::convert::ConversionAction::DefaultApplied))
+        .filter(|e| {
+            matches!(
+                e.action,
+                eulumdat::atla::convert::ConversionAction::DefaultApplied
+            )
+        })
         .count();
     let dropped_count = log
         .iter()
-        .filter(|e| matches!(e.action, atla::convert::ConversionAction::Dropped))
+        .filter(|e| matches!(e.action, eulumdat::atla::convert::ConversionAction::Dropped))
         .count();
 
     println!("Conversion complete!");

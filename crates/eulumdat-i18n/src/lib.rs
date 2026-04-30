@@ -133,6 +133,14 @@ pub struct Locale {
     pub maps_designer: MapsDesignerLocale,
     #[serde(default)]
     pub goniosim: GoniosimLocale,
+    #[serde(default)]
+    pub street: StreetLocale,
+    /// Flat key→string map for ad-hoc translations from sibling crates
+    /// (gldf-rs, light-other-rs, etc.). Keys should be namespaced
+    /// (`gldf.nav.overview`, `light_other.foo.bar`, …) so different
+    /// consumers don't collide.
+    #[serde(default)]
+    pub extra: std::collections::HashMap<String, String>,
 }
 
 /// Locale metadata
@@ -1623,6 +1631,290 @@ const RU_JSON: &str = include_str!("../locales/ru.json");
 const ES_JSON: &str = include_str!("../locales/es.json");
 const PT_BR_JSON: &str = include_str!("../locales/pt-BR.json");
 
+// ─────────────────────────────────────────────────────────────────────────
+// Street designer translations
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Street lighting designer translations (layout form, compliance panel,
+/// threshold controls, source badge). Everything is `Default`-derived so
+/// missing keys fall back to empty strings — callers decide how to present
+/// those.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetLocale {
+    pub title: String,
+    pub source: StreetSource,
+    pub layout: StreetLayoutLocale,
+    pub arrangement: StreetArrangement,
+    pub threshold: StreetThreshold,
+    pub stats: StreetStats,
+    pub compliance: StreetCompliance,
+    pub placeholder: String,
+    /// Region picker at the top ("which standard is authoritative").
+    pub standard_selector: StreetStandardSelector,
+    /// RP-8 (US) decision tree.
+    pub rp8_tree: StreetRp8Tree,
+    /// EN 13201 (EU) decision tree.
+    pub en13201_tree: StreetEn13201Tree,
+    /// CJJ 45 (CN) decision tree.
+    pub cjj45_tree: StreetCjj45Tree,
+    /// Optimizer panel.
+    pub optimizer: StreetOptimizer,
+    /// Principal-planes (PV/PC) diagram toggle.
+    #[serde(default)]
+    pub principal_planes: StreetPrincipalPlanes,
+    /// Export buttons (SVG / CSV / JSON / PDF).
+    #[serde(default)]
+    pub exports: StreetExports,
+    /// Advisor recommendations on compliance failures.
+    #[serde(default)]
+    pub advisor: StreetAdvisor,
+    /// Toggleable overlays on the plan view.
+    #[serde(default)]
+    pub plan_overlays: StreetPlanOverlays,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetAdvisor {
+    /// Section heading, e.g., "Recommendations".
+    #[serde(default)]
+    pub heading: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetPlanOverlays {
+    /// Toggle label for showing the calculation grid points
+    /// (per EN 13201 / RP-8 prescribed grid locations).
+    #[serde(default)]
+    pub grid_points: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetExports {
+    /// Section heading (e.g., "Export").
+    #[serde(default)]
+    pub heading: String,
+    /// Plan-view SVG download button.
+    #[serde(default)]
+    pub plan_svg: String,
+    /// Principal-planes (PV/PC) SVG download.
+    #[serde(default)]
+    pub principal_planes_svg: String,
+    /// Layout trade-off chart SVG download.
+    #[serde(default)]
+    pub tradeoff_svg: String,
+    /// Optimizer results CSV download.
+    #[serde(default)]
+    pub optimizer_csv: String,
+    /// Optimizer results JSON download.
+    #[serde(default)]
+    pub optimizer_json: String,
+    /// Full PDF report (Typst).
+    #[serde(default)]
+    pub report_pdf: String,
+    /// Tooltip / hint shown on the report download button to clarify
+    /// the workflow ("compile with `typst compile street-report.typ`").
+    #[serde(default)]
+    pub report_pdf_hint: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetPrincipalPlanes {
+    /// "Show PV/PC distribution" toggle label.
+    #[serde(default)]
+    pub show: String,
+    /// "Hide PV/PC distribution" toggle label.
+    #[serde(default)]
+    pub hide: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetStandardSelector {
+    pub legend: String,
+    pub rp8: String,
+    pub en13201: String,
+    pub cjj45: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetRp8Tree {
+    pub legend: String,
+    pub road_class: String,
+    pub major: String,
+    pub collector: String,
+    pub local: String,
+    pub pedestrian_conflict: String,
+    pub ped_high: String,
+    pub ped_medium: String,
+    pub ped_low: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetEn13201Tree {
+    pub legend: String,
+    pub family: String,
+    pub family_c: String,
+    pub family_p: String,
+    pub design_speed: String,
+    pub speed_very_high: String,
+    pub speed_high: String,
+    pub speed_moderate: String,
+    pub speed_low: String,
+    pub traffic_volume: String,
+    pub vol_very_high: String,
+    pub vol_high: String,
+    pub vol_moderate: String,
+    pub vol_low: String,
+    pub vol_very_low: String,
+    pub traffic_composition: String,
+    pub comp_mixed: String,
+    pub comp_mixed_motor: String,
+    pub comp_motor_only: String,
+    pub separation: String,
+    pub sep_yes: String,
+    pub sep_no: String,
+    pub junction_density: String,
+    pub jd_high: String,
+    pub jd_moderate: String,
+    pub parked_vehicles: String,
+    pub parked_yes: String,
+    pub parked_no: String,
+    pub ambient_luminance: String,
+    pub amb_high: String,
+    pub amb_moderate: String,
+    pub amb_low: String,
+    pub navigational_task: String,
+    pub nav_very_difficult: String,
+    pub nav_difficult: String,
+    pub nav_easy: String,
+    pub pedestrian_speed: String,
+    pub pspeed_walking: String,
+    pub pspeed_slow_mixed: String,
+    pub pspeed_low_motor: String,
+    pub user_density: String,
+    pub ud_high: String,
+    pub ud_moderate: String,
+    pub ud_low: String,
+    pub facial_recognition: String,
+    pub fr_necessary: String,
+    pub fr_useful: String,
+    pub fr_not_needed: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetCjj45Tree {
+    pub legend: String,
+    pub road_grade: String,
+    pub expressway: String,
+    pub major_arterial: String,
+    pub minor_arterial: String,
+    /// 支路 (branch / local road) → Class III.
+    #[serde(default)]
+    pub branch: String,
+    /// 居住区道路 (residential street) → Class IV.
+    #[serde(default)]
+    pub residential: String,
+    /// Legacy combined "Branch or residential" key, kept so existing
+    /// translations don't break the deserialization. New keys are
+    /// `branch` and `residential`.
+    #[serde(default, alias = "branch_or_residential")]
+    pub branch_or_residential: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetOptimizer {
+    pub legend: String,
+    pub objective_label: String,
+    pub obj_pole_count: String,
+    pub obj_flux: String,
+    pub obj_safety: String,
+    pub run: String,
+    pub running: String,
+    pub no_results: String,
+    pub col_spacing: String,
+    pub col_height: String,
+    pub col_arrangement: String,
+    pub col_poles: String,
+    pub col_flux: String,
+    pub col_uniformity: String,
+    pub col_apply: String,
+    pub apply: String,
+    /// "Show layout trade-off" toggle label (Pareto scatter plot of
+    /// optimizer candidates).
+    #[serde(default)]
+    pub tradeoff_show: String,
+    /// "Hide layout trade-off" toggle label.
+    #[serde(default)]
+    pub tradeoff_hide: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetSource {
+    /// e.g. "Using luminaire from editor: "
+    pub using: String,
+    /// Hint when no luminaire is loaded anywhere.
+    pub hint_none: String,
+    /// Suffix "— live updates as you edit"
+    pub live_updates: String,
+    /// Placeholder for unnamed luminaires.
+    pub unnamed: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetLayoutLocale {
+    pub legend: String,
+    pub length: String,
+    pub lane_width: String,
+    pub num_lanes: String,
+    pub pole_spacing: String,
+    pub mounting_height: String,
+    pub overhang: String,
+    pub tilt: String,
+    pub pole_offset: String,
+    pub sidewalk_width: String,
+    pub arrangement_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetArrangement {
+    pub single_side: String,
+    pub opposite: String,
+    pub staggered: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetThreshold {
+    pub label: String,
+    pub off: String,
+    pub rp8: String,
+    pub en13201: String,
+    pub cjj45: String,
+    pub custom: String,
+    pub ratio: String,
+    /// Template like "below {pct}% of avg" — caller does the substitution.
+    pub below_ratio: String,
+    /// Template like "below {lux} lux"
+    pub below_lux: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetStats {
+    pub avg: String,
+    pub min: String,
+    pub max: String,
+    /// Unit suffix for illuminance — "lux" or "fc" depending on unit system.
+    pub lux_suffix: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct StreetCompliance {
+    pub heading: String,
+    pub pass: String,
+    pub fail: String,
+    pub criterion: String,
+    pub required: String,
+    pub achieved: String,
+}
+
 impl Locale {
     /// Parse locale from JSON string
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
@@ -1686,6 +1978,15 @@ impl Locale {
     /// Get locale by ISO 639-1 code
     pub fn for_code(code: &str) -> Self {
         Self::for_language(Language::from_code(code))
+    }
+
+    /// Look up a flat translation key from the `extra` section.
+    ///
+    /// Returns `None` if the key is missing in this locale. Most callers
+    /// should prefer the top-level [`crate::t`] / [`crate::t_or`] helpers,
+    /// which add English fallback automatically.
+    pub fn extra_value(&self, key: &str) -> Option<&str> {
+        self.extra.get(key).map(|s| s.as_str())
     }
 
     /// Look up a validation message template by code (e.g. "W001", "E001").
@@ -1795,6 +2096,47 @@ impl Locale {
         };
         Some(s.as_str())
     }
+}
+
+/// Translate a flat key in the requested language, with English fallback.
+///
+/// Lookup order: target language's `extra` map → English `extra` map →
+/// the key itself (so a missing translation produces a visible string
+/// rather than empty space). Useful for sibling crates (gldf-rs etc.)
+/// that want a single shared translation source for UI chrome without
+/// adding new typed structs to the eulumdat-domain `Locale` model.
+///
+/// Keys should be namespaced (e.g. `gldf.nav.overview`) so different
+/// consumers don't collide.
+///
+/// Note: this loads the locale from the embedded JSON on every call.
+/// For perf-sensitive paths, cache a `Locale` instance and call
+/// [`Locale::extra_value`] directly.
+pub fn t(key: &str, lang: Language) -> String {
+    if let Some(v) = Locale::for_language(lang).extra_value(key) {
+        return v.to_string();
+    }
+    if !matches!(lang, Language::English) {
+        if let Some(v) = Locale::english().extra_value(key) {
+            return v.to_string();
+        }
+    }
+    key.to_string()
+}
+
+/// Same as [`t`] but lets the caller supply the fallback string for a
+/// missing key (instead of returning the key itself). Useful when the
+/// English form is what we'd render anyway.
+pub fn t_or(key: &str, lang: Language, fallback: &str) -> String {
+    if let Some(v) = Locale::for_language(lang).extra_value(key) {
+        return v.to_string();
+    }
+    if !matches!(lang, Language::English) {
+        if let Some(v) = Locale::english().extra_value(key) {
+            return v.to_string();
+        }
+    }
+    fallback.to_string()
 }
 
 /// Replace `{0}`, `{1}`, … placeholders in a template string with provided args.

@@ -883,20 +883,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "atla"
-version = "0.6.0"
-dependencies = [
- "anyhow",
- "approx 0.5.1",
- "eulumdat",
- "eulumdat-i18n",
- "quick-xml 0.37.5",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1680,7 +1666,7 @@ dependencies = [
  "glam 0.32.1",
  "itertools 0.14.0",
  "libm",
- "rand 0.10.0",
+ "rand 0.10.1",
  "rand_distr",
  "serde",
  "thiserror 2.0.18",
@@ -3972,17 +3958,20 @@ dependencies = [
 
 [[package]]
 name = "eulumdat"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
  "eulumdat-i18n",
+ "quick-xml 0.37.5",
  "serde",
+ "serde_json",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
 name = "eulumdat-bevy"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "bevy",
  "eulumdat",
@@ -3998,10 +3987,9 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-cli"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
- "atla",
  "clap",
  "eulumdat",
  "eulumdat-typst",
@@ -4011,7 +3999,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-dev-server"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -4021,10 +4009,9 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-egui"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
- "atla",
  "eframe",
  "egui",
  "egui_extras",
@@ -4039,9 +4026,8 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ffi"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
- "atla",
  "eulumdat",
  "eulumdat-i18n",
  "thiserror 1.0.69",
@@ -4050,7 +4036,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-gltf-pack"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "basis-universal",
@@ -4067,7 +4053,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-goniosim"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -4080,7 +4066,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-harmonyos-ffi"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "eulumdat",
  "eulumdat-photweb",
@@ -4088,7 +4074,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-i18n"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4096,7 +4082,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-photweb"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -4104,7 +4090,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-plugin"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4117,16 +4103,15 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-py"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
- "atla",
  "eulumdat",
  "pyo3",
 ]
 
 [[package]]
 name = "eulumdat-quiz"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4134,7 +4119,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-quiz-py"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "eulumdat-quiz",
  "pyo3",
@@ -4142,7 +4127,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-rt"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "bytemuck",
  "env_logger",
@@ -4158,7 +4143,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-server"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -4174,7 +4159,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-tui"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -4185,7 +4170,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-tui-quiz"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "clap",
  "crossterm",
@@ -4197,10 +4182,9 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-typst"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
- "atla",
  "base64 0.22.1",
  "chrono",
  "comemo",
@@ -4213,7 +4197,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ui"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "approx 0.5.1",
  "egui",
@@ -4224,9 +4208,8 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
- "atla",
  "base64 0.22.1",
  "console_error_panic_hook",
  "eulumdat",
@@ -4251,7 +4234,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-quiz"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4266,22 +4249,23 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-street"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
+ "eulumdat-i18n",
  "js-sys",
  "leptos",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
 [[package]]
 name = "eulumdat-wasm-templates"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
- "atla",
  "clap",
  "eframe",
  "egui",
@@ -4294,7 +4278,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-windows-preview"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "embed-resource",
@@ -4771,7 +4755,7 @@ dependencies = [
  "bytemuck",
  "encase",
  "libm",
- "rand 0.10.0",
+ "rand 0.10.1",
  "serde_core",
 ]
 
@@ -8196,12 +8180,12 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc266eb313df6c5c09c1c7b1fbe2510961e5bcd3add930c1e31f7ed9da0feff8"
+checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
 dependencies = [
  "getrandom 0.4.2",
- "rand_core 0.10.0",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -8244,9 +8228,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c8d0fd677905edcbeedbf2edb6494d676f0e98d54d5cf9bda0b061cb8fb8aba"
+checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "rand_distr"
@@ -8255,7 +8239,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
 dependencies = [
  "num-traits",
- "rand 0.10.0",
+ "rand 0.10.1",
 ]
 
 [[package]]

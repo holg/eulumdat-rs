@@ -48,16 +48,16 @@ impl Viewer3D {
     }
 
     /// Show the 3D viewer (static version for simple use)
-    pub fn show(ui: &mut egui::Ui, ldt: &Eulumdat, theme: &Theme) {
+    pub fn show(ui: &mut egui::Ui, ldc: &Eulumdat, theme: &Theme) {
         // Use a stateful viewer stored in egui's memory
         let id = ui.id().with("viewer_3d_state");
         let mut state = ui.data_mut(|d| d.get_temp::<Viewer3D>(id).unwrap_or_default());
-        state.show_interactive(ui, ldt, theme);
+        state.show_interactive(ui, ldc, theme);
         ui.data_mut(|d| d.insert_temp(id, state));
     }
 
     /// Show with controls
-    pub fn show_interactive(&mut self, ui: &mut egui::Ui, ldt: &Eulumdat, theme: &Theme) {
+    pub fn show_interactive(&mut self, ui: &mut egui::Ui, ldc: &Eulumdat, theme: &Theme) {
         // Controls
         ui.horizontal(|ui| {
             ui.checkbox(&mut self.wireframe, "Wireframe");
@@ -104,7 +104,7 @@ impl Viewer3D {
 
         // Generate and render 3D mesh
         let scale = (size / 2.0) * 0.7 * self.zoom;
-        let max_intensity = ldt.max_intensity();
+        let max_intensity = ldc.max_intensity();
 
         if max_intensity <= 0.0 {
             painter.text(
@@ -137,10 +137,10 @@ impl Viewer3D {
                 let g2 = (g_idx + 1) as f64 * g_step;
 
                 // Get intensities at corners
-                let i1 = ldt.sample(c1, g1) / max_intensity;
-                let i2 = ldt.sample(c2, g1) / max_intensity;
-                let i3 = ldt.sample(c2, g2) / max_intensity;
-                let i4 = ldt.sample(c1, g2) / max_intensity;
+                let i1 = ldc.sample(c1, g1) / max_intensity;
+                let i2 = ldc.sample(c2, g1) / max_intensity;
+                let i3 = ldc.sample(c2, g2) / max_intensity;
+                let i4 = ldc.sample(c1, g2) / max_intensity;
 
                 // Convert to 3D points
                 let p1 = self.spherical_to_screen(c1, g1, i1, center, scale);

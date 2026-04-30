@@ -9,7 +9,7 @@ pub struct HeatmapWidget;
 
 impl HeatmapWidget {
     /// Show the heatmap diagram
-    pub fn show(ui: &mut egui::Ui, ldt: &Eulumdat, theme: &Theme) {
+    pub fn show(ui: &mut egui::Ui, ldc: &Eulumdat, theme: &Theme) {
         let available_size = ui.available_size();
         let width = available_size.x.min(800.0);
         let height = (width * 0.5).min(available_size.y - 80.0);
@@ -29,7 +29,7 @@ impl HeatmapWidget {
         painter.rect_filled(rect, 0.0, theme.background);
 
         // Generate heatmap data
-        let heatmap = HeatmapDiagram::from_eulumdat(ldt, width as f64, height as f64);
+        let heatmap = HeatmapDiagram::from_eulumdat(ldc, width as f64, height as f64);
 
         let num_c = heatmap.c_angles.len();
         let num_g = heatmap.g_angles.len();
