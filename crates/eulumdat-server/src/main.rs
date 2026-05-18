@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 use stats::{Stats, StatsEvent};
 
 // Embedded 404 SVG
-const NOT_FOUND_SVG: &str = include_str!("../../../assets/404.svg");
+const NOT_FOUND_SVG: &str = include_str!("../assets/404.svg");
 
 #[derive(Parser, Debug)]
 #[command(name = "eulumdat-server")]
