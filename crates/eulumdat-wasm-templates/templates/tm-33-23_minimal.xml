@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>ATLA Test Manufacturer</Manufacturer>
+        <CatalogNumber>TM33-TEST-001</CatalogNumber>
+        <Description>Minimal TM-33-23 Test Luminaire</Description>
+        <Laboratory>Test Laboratory</Laboratory>
+        <ReportNumber>RPT-2024-001</ReportNumber>
+        <ReportDate>2024-01-15</ReportDate>
+        <UniqueIdentifier>urn:uuid:550e8400-e29b-41d4-a716-446655440000</UniqueIdentifier>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>600</Length>
+            <Width>600</Width>
+            <Height>50</Height>
+        </Dimensions>
+        <Mounting>Recessed</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Gonioradiometer>
+            <Manufacturer>Test Equipment Co</Manufacturer>
+            <Model>GP-5000</Model>
+            <Type>CIE _ C</Type>
+            <Distance>10.0</Distance>
+        </Gonioradiometer>
+    </Equipment>
+    <Emitter>
+        <ID>led-panel-1</ID>
+        <Description>LED Panel Module</Description>
+        <Quantity>1</Quantity>
+        <RatedLumens>4000</RatedLumens>
+        <InputWattage>40</InputWattage>
+        <CCT>4000</CCT>
+        <ColorRendering>
+            <Ra>90</Ra>
+        </ColorRendering>
+        <LuminousData>
+            <PhotometryType>CIE _ C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <SymmType>Symm _ Full</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <IntensityData horz="0" vert="0">300</IntensityData>
+            <IntensityData horz="0" vert="10">298</IntensityData>
+            <IntensityData horz="0" vert="20">290</IntensityData>
+            <IntensityData horz="0" vert="30">275</IntensityData>
+            <IntensityData horz="0" vert="40">250</IntensityData>
+            <IntensityData horz="0" vert="50">210</IntensityData>
+            <IntensityData horz="0" vert="60">160</IntensityData>
+            <IntensityData horz="0" vert="70">100</IntensityData>
+            <IntensityData horz="0" vert="80">40</IntensityData>
+            <IntensityData horz="0" vert="90">0</IntensityData>
+        </LuminousData>
+    </Emitter>
+</IESTM33-22>

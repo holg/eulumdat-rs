@@ -45,6 +45,7 @@ ORDER=(
     eulumdat-tui-quiz
     eulumdat-windows-preview
     eulumdat-cli
+    eulumdat-wasm-templates
     eulumdat-wasm
 )
 

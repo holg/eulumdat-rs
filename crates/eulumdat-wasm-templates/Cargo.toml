@@ -6,8 +6,6 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Lazy-loaded template files for the Eulumdat WASM editor"
-# WASM bundle, not a Rust library — distributed as a JS app.
-publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]

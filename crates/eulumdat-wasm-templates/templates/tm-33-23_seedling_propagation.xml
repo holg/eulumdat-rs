@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>GrowLight Technologies</Manufacturer>
+        <CatalogNumber>GL-SEED-200</CatalogNumber>
+        <Description>Seedling and Clone Propagation LED Fixture with High Blue Ratio</Description>
+        <Laboratory>Photometric Testing Laboratory</Laboratory>
+        <ReportNumber>RPT-HORT-2024-004</ReportNumber>
+        <ReportDate>2024-04-01</ReportDate>
+        <UniqueIdentifier>urn:uuid:d4e5f6a7-b8c9-0123-defa-456789012345</UniqueIdentifier>
+        <DocumentCreator>ATLA Test Suite</DocumentCreator>
+        <DocumentCreationDate>2024-04-01</DocumentCreationDate>
+        <Comments>High blue ratio for compact vegetative growth</Comments>
+        <Comments>Ideal for seedlings, clones, and mother plants</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>600</Length>
+            <Width>300</Width>
+            <Height>50</Height>
+        </Dimensions>
+        <Mounting>Suspended</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Gonioradiometer>
+            <Manufacturer>LightMeasure Inc</Manufacturer>
+            <Model>GM-3000 Spectral</Model>
+            <Type>CIE _ C</Type>
+            <Distance>10.0</Distance>
+        </Gonioradiometer>
+    </Equipment>
+    <Emitter>
+        <ID>seedling-panel-1</ID>
+        <Description>High Blue Seedling LED Panel</Description>
+        <CatalogNumber>LED-SEED-HB</CatalogNumber>
+        <Quantity>1</Quantity>
+        <RatedLumens>18000</RatedLumens>
+        <InputWattage>200</InputWattage>
+        <PowerFactor>0.96</PowerFactor>
+        <BallastFactor>1.0</BallastFactor>
+        <FixedCCT>6500</FixedCCT>
+        <Duv>-0.002</Duv>
+        <ColorRendering>
+            <Ra>92</Ra>
+            <R9>85</R9>
+        </ColorRendering>
+        <LuminousData>
+            <PhotometryType>CIE _ C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <SymmType>Symm _ Quad</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <!-- Very wide, uniform distribution for tray coverage -->
+            <IntensityData horz="0" vert="0">220</IntensityData>
+            <IntensityData horz="0" vert="10">219</IntensityData>
+            <IntensityData horz="0" vert="20">216</IntensityData>
+            <IntensityData horz="0" vert="30">210</IntensityData>
+            <IntensityData horz="0" vert="40">200</IntensityData>
+            <IntensityData horz="0" vert="50">185</IntensityData>
+            <IntensityData horz="0" vert="60">165</IntensityData>
+            <IntensityData horz="0" vert="70">135</IntensityData>
+            <IntensityData horz="0" vert="80">95</IntensityData>
+            <IntensityData horz="0" vert="90">45</IntensityData>
+            <IntensityData horz="45" vert="0">220</IntensityData>
+            <IntensityData horz="45" vert="10">218</IntensityData>
+            <IntensityData horz="45" vert="20">214</IntensityData>
+            <IntensityData horz="45" vert="30">206</IntensityData>
+            <IntensityData horz="45" vert="40">194</IntensityData>
+            <IntensityData horz="45" vert="50">178</IntensityData>
+            <IntensityData horz="45" vert="60">156</IntensityData>
+            <IntensityData horz="45" vert="70">126</IntensityData>
+            <IntensityData horz="45" vert="80">86</IntensityData>
+            <IntensityData horz="45" vert="90">38</IntensityData>
+            <IntensityData horz="90" vert="0">220</IntensityData>
+            <IntensityData horz="90" vert="10">217</IntensityData>
+            <IntensityData horz="90" vert="20">212</IntensityData>
+            <IntensityData horz="90" vert="30">202</IntensityData>
+            <IntensityData horz="90" vert="40">188</IntensityData>
+            <IntensityData horz="90" vert="50">170</IntensityData>
+            <IntensityData horz="90" vert="60">146</IntensityData>
+            <IntensityData horz="90" vert="70">116</IntensityData>
+            <IntensityData horz="90" vert="80">76</IntensityData>
+            <IntensityData horz="90" vert="90">30</IntensityData>
+        </LuminousData>
+        <SpectralDistribution>
+            <!-- High blue spectrum optimized for compact growth -->
+            <Wavelengths>400 420 440 450 460 470 480 500 520 540 560 580 600 620 640 660 680 700 720</Wavelengths>
+            <Values>0.15 0.45 0.85 1.00 0.92 0.75 0.55 0.38 0.42 0.45 0.48 0.44 0.40 0.42 0.50 0.65 0.45 0.15 0.05</Values>
+        </SpectralDistribution>
+    </Emitter>
+    <CustomData>
+        <Name>PropagationMetrics</Name>
+        <UniqueIdentifier>urn:growlight:prop-metrics:v1</UniqueIdentifier>
+        <metrics xmlns="urn:growlight:prop">
+            <ppfd-output>450</ppfd-output>
+            <ppfd-efficacy>2.25</ppfd-efficacy>
+            <blue-ratio>35</blue-ratio>
+            <green-ratio>25</green-ratio>
+            <red-ratio>30</red-ratio>
+            <blue-peak-nm>450</blue-peak-nm>
+            <dli-18h-mol>29.2</dli-18h-mol>
+        </metrics>
+    </CustomData>
+    <CustomData>
+        <Name>RecommendedSettings</Name>
+        <UniqueIdentifier>urn:growlight:settings:v1</UniqueIdentifier>
+        <settings xmlns="urn:growlight:settings">
+            <seedling-height-cm>15</seedling-height-cm>
+            <clone-height-cm>20</clone-height-cm>
+            <mother-plant-height-cm>30</mother-plant-height-cm>
+            <photoperiod-hours>18</photoperiod-hours>
+            <dimming-seedling>60</dimming-seedling>
+            <dimming-clone>70</dimming-clone>
+            <dimming-mother>100</dimming-mother>
+        </settings>
+    </CustomData>
+</IESTM33-22>

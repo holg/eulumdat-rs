@@ -4213,7 +4213,6 @@ dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
  "eulumdat",
- "eulumdat-bevy",
  "eulumdat-goniosim",
  "eulumdat-i18n",
  "eulumdat-rt",

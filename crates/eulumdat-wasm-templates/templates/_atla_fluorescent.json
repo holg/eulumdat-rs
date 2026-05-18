@@ -1,0 +1,42 @@
+{
+    "version": "1.0",
+    "header": {
+        "manufacturer": "ATLA Test Manufacturer",
+        "catalogNumber": "FL-T16-54W",
+        "description": "T16 G5 Fluorescent Luminaire",
+        "laboratory": "Test Laboratory",
+        "reportNumber": "TEST-2024-001",
+        "testDate": "2024-01-15",
+        "luminaireType": "Recessed Linear"
+    },
+    "luminaire": {
+        "dimensions": {
+            "length": 1170,
+            "width": 90,
+            "height": 0
+        },
+        "mounting": "Recessed",
+        "numEmitters": 2
+    },
+    "emitters": [{
+        "id": "lamp-1",
+        "description": "T16 G5 54W Fluorescent",
+        "quantity": 2,
+        "ratedLumens": 8100,
+        "inputWatts": 120,
+        "cct": 6500,
+        "colorRendering": {
+            "ra": 86
+        },
+        "intensityDistribution": {
+            "photometryType": "C",
+            "metric": "Luminous",
+            "horizontalAngles": [0, 90],
+            "verticalAngles": [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90],
+            "intensities": [
+                136, 135, 133, 130, 125, 120, 114, 107, 99, 90, 81, 71, 61, 50, 39, 29, 20, 14, 10,
+                136, 136, 134, 132, 128, 123, 117, 110, 102, 94, 84, 74, 63, 52, 40, 28, 16, 6, 1
+            ]
+        }
+    }]
+}

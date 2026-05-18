@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>GrowLight Technologies</Manufacturer>
+        <CatalogNumber>GL-FR-120</CatalogNumber>
+        <Description>Far-Red Supplemental LED Bar for Flowering Enhancement and Shade Avoidance Response</Description>
+        <Laboratory>Photometric Testing Laboratory</Laboratory>
+        <ReportNumber>RPT-HORT-2024-002</ReportNumber>
+        <ReportDate>2024-03-20</ReportDate>
+        <UniqueIdentifier>urn:uuid:b2c3d4e5-f6a7-8901-bcde-f23456789012</UniqueIdentifier>
+        <DocumentCreator>ATLA Test Suite</DocumentCreator>
+        <DocumentCreationDate>2024-03-20</DocumentCreationDate>
+        <Comments>Far-red (730nm) supplemental lighting for R:FR ratio control</Comments>
+        <Comments>Enhances flowering response in short-day plants</Comments>
+        <Comments>Promotes stem elongation via phytochrome response</Comments>
+    </Header>
+    <Luminaire>
+        <Dimensions>
+            <Length>1200</Length>
+            <Width>50</Width>
+            <Height>40</Height>
+        </Dimensions>
+        <Mounting>Suspended</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+    <Equipment>
+        <Gonioradiometer>
+            <Manufacturer>LightMeasure Inc</Manufacturer>
+            <Model>GM-3000 Spectral</Model>
+            <Type>CIE _ C</Type>
+            <Distance>10.0</Distance>
+        </Gonioradiometer>
+    </Equipment>
+    <Emitter>
+        <ID>far-red-bar-1</ID>
+        <Description>730nm Far-Red LED Bar</Description>
+        <CatalogNumber>LED-FR-730</CatalogNumber>
+        <Quantity>1</Quantity>
+        <RatedLumens>1200</RatedLumens>
+        <InputWattage>120</InputWattage>
+        <PowerFactor>0.95</PowerFactor>
+        <BallastFactor>1.0</BallastFactor>
+        <ColorRendering>
+            <Ra>0</Ra>
+        </ColorRendering>
+        <LuminousData>
+            <PhotometryType>CIE _ C</PhotometryType>
+            <Metric>Luminous</Metric>
+            <SymmType>Symm _ Bi90</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <!-- Linear bar distribution - wide in C90, narrow in C0 -->
+            <IntensityData horz="0" vert="0">150</IntensityData>
+            <IntensityData horz="0" vert="15">148</IntensityData>
+            <IntensityData horz="0" vert="30">140</IntensityData>
+            <IntensityData horz="0" vert="45">125</IntensityData>
+            <IntensityData horz="0" vert="60">100</IntensityData>
+            <IntensityData horz="0" vert="75">60</IntensityData>
+            <IntensityData horz="0" vert="90">15</IntensityData>
+            <IntensityData horz="90" vert="0">150</IntensityData>
+            <IntensityData horz="90" vert="15">145</IntensityData>
+            <IntensityData horz="90" vert="30">130</IntensityData>
+            <IntensityData horz="90" vert="45">105</IntensityData>
+            <IntensityData horz="90" vert="60">70</IntensityData>
+            <IntensityData horz="90" vert="75">30</IntensityData>
+            <IntensityData horz="90" vert="90">5</IntensityData>
+            <IntensityData horz="180" vert="0">150</IntensityData>
+            <IntensityData horz="180" vert="15">148</IntensityData>
+            <IntensityData horz="180" vert="30">140</IntensityData>
+            <IntensityData horz="180" vert="45">125</IntensityData>
+            <IntensityData horz="180" vert="60">100</IntensityData>
+            <IntensityData horz="180" vert="75">60</IntensityData>
+            <IntensityData horz="180" vert="90">15</IntensityData>
+        </LuminousData>
+        <SpectralDistribution>
+            <!-- Narrow-band far-red emission centered at 730nm -->
+            <Wavelengths>680 690 700 710 720 725 730 735 740 750 760 770 780</Wavelengths>
+            <Values>0.00 0.01 0.03 0.12 0.45 0.78 1.00 0.82 0.50 0.18 0.05 0.01 0.00</Values>
+        </SpectralDistribution>
+    </Emitter>
+    <CustomData>
+        <Name>FarRedMetrics</Name>
+        <UniqueIdentifier>urn:growlight:far-red-metrics:v1</UniqueIdentifier>
+        <metrics xmlns="urn:growlight:fr">
+            <peak-wavelength>730</peak-wavelength>
+            <fwhm>25</fwhm>
+            <pfr-output>280</pfr-output>
+            <photon-efficacy>2.33</photon-efficacy>
+            <end-of-day-duration-min>15</end-of-day-duration-min>
+        </metrics>
+    </CustomData>
+</IESTM33-22>

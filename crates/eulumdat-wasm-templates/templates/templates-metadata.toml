@@ -1,0 +1,519 @@
+[[template]]
+id = "aec-maxwell-8-t4-luxeon-5050-square-with-glass-measured-cie"
+name = "AEC_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES"
+description = "Well suited for compare"
+file = "S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_CIE.IES"
+format = "IesLm63"
+sort = 0
+
+[[template]]
+id = "aec-maxwell-8-t4-luxeon-5050-square-with-glass-measured-iesna"
+name = "AEC_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies"
+description = "Well suited for compare"
+file = "S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies"
+format = "IesLm63"
+sort = 1
+
+[[template]]
+id = "atla-grow-light-rb"
+name = "_atla_grow_light_rb.xml"
+description = ""
+file = "_atla_grow_light_rb.xml"
+format = "AtlaXml"
+sort = 2
+
+[[template]]
+id = "atla-grow-light"
+name = "_atla_grow_light.xml"
+description = ""
+file = "_atla_grow_light.xml"
+format = "AtlaXml"
+sort = 3
+
+[[template]]
+id = "atla-halogen-lamp"
+name = "_atla_halogen_lamp.xml"
+description = ""
+file = "_atla_halogen_lamp.xml"
+format = "AtlaXml"
+sort = 4
+
+[[template]]
+id = "atla-heat-lamp"
+name = "_atla_heat_lamp.xml"
+description = ""
+file = "_atla_heat_lamp.xml"
+format = "AtlaXml"
+sort = 5
+
+[[template]]
+id = "atla-incandescent"
+name = "_atla_incandescent.xml"
+description = ""
+file = "_atla_incandescent.xml"
+format = "AtlaXml"
+sort = 6
+
+[[template]]
+id = "atla-uv-blacklight"
+name = "_atla_uv_blacklight.xml"
+description = ""
+file = "_atla_uv_blacklight.xml"
+format = "AtlaXml"
+sort = 7
+
+[[template]]
+id = "italo-1-5p5-s05-3-140-3m"
+name = "ITALO 1 5P5 S05 3.140-3M.IES"
+description = ""
+file = "ITALO 1 5P5 S05 3.140-3M.IES"
+format = "IesLm63"
+sort = 8
+
+[[template]]
+id = "wiki-batwing"
+name = "wiki-batwing.ldt"
+description = "The Example from the WIKI to illustrate the point..."
+file = "wiki-batwing.ldt"
+format = "Ldt"
+sort = 9
+
+[[template]]
+id = "wiki-spotlight"
+name = "wiki-spotlight.ldt"
+description = "The Example from the WIKI to illustrate the point..."
+file = "wiki-spotlight.ldt"
+format = "Ldt"
+sort = 10
+
+[[template]]
+id = "wiki-flood"
+name = "wiki-flood.ldt"
+description = "The Example from the WIKI to illustrate the point..."
+file = "wiki-flood.ldt"
+format = "Ldt"
+sort = 11
+
+[[template]]
+id = "road-luminaire"
+name = "road_luminaire.ldt"
+description = ""
+file = "road_luminaire.ldt"
+format = "Ldt"
+sort = 12
+
+[[template]]
+id = "projector"
+name = "projector.ldt"
+description = ""
+file = "projector.ldt"
+format = "Ldt"
+sort = 13
+
+[[template]]
+id = "floor-uplight"
+name = "floor_uplight.ldt"
+description = ""
+file = "floor_uplight.ldt"
+format = "Ldt"
+sort = 14
+
+[[template]]
+id = "fluorescent-luminaire"
+name = "fluorescent_luminaire.ldt"
+description = ""
+file = "fluorescent_luminaire.ldt"
+format = "Ldt"
+sort = 15
+
+[[template]]
+id = "tm-32-24-road-luminaire-bim"
+name = "tm-32-24_road_luminaire_bim.xml"
+description = ""
+file = "tm-32-24_road_luminaire_bim.xml"
+format = "AtlaXml"
+sort = 16
+
+[[template]]
+id = "atla-fluorescent-json"
+name = "_atla_fluorescent.json"
+description = ""
+file = "_atla_fluorescent.json"
+format = "AtlaJson"
+sort = 17
+
+[[template]]
+id = "atla-fluorescent-xml"
+name = "_atla_fluorescent.xml"
+description = ""
+file = "_atla_fluorescent.xml"
+format = "AtlaXml"
+sort = 18
+
+[[template]]
+id = "tm-32-24-office-downlight-bim"
+name = "tm-32-24_office_downlight_bim.xml"
+description = ""
+file = "tm-32-24_office_downlight_bim.xml"
+format = "AtlaXml"
+sort = 19
+
+[[template]]
+id = "tm-33-23-far-red-supplemental"
+name = "tm-33-23_far_red_supplemental.xml"
+description = ""
+file = "tm-33-23_far_red_supplemental.xml"
+format = "AtlaXml"
+sort = 20
+
+[[template]]
+id = "tm-33-23-horticultural-led"
+name = "tm-33-23_horticultural_led.xml"
+description = ""
+file = "tm-33-23_horticultural_led.xml"
+format = "AtlaXml"
+sort = 21
+
+[[template]]
+id = "tm-33-23-minimal"
+name = "tm-33-23_minimal.xml"
+description = ""
+file = "tm-33-23_minimal.xml"
+format = "AtlaXml"
+sort = 22
+
+[[template]]
+id = "tm-33-23-seedling-propagation"
+name = "tm-33-23_seedling_propagation.xml"
+description = ""
+file = "tm-33-23_seedling_propagation.xml"
+format = "AtlaXml"
+sort = 23
+
+[[template]]
+id = "tm-33-23-uv-supplemental"
+name = "tm-33-23_uv_supplemental.xml"
+description = ""
+file = "tm-33-23_uv_supplemental.xml"
+format = "AtlaXml"
+sort = 24
+
+[[template]]
+id = "tm-33-23-with-custom-data"
+name = "tm-33-23_with_custom_data.xml"
+description = ""
+file = "tm-33-23_with_custom_data.xml"
+format = "AtlaXml"
+sort = 25
+
+[[template]]
+id = "Ledvance-fl-max-lum-1200w-757-asym-50x110wal"
+name = "4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt"
+description = ""
+file = "4058075580695_FL_MAX_LUM_1200W_757_ASYM_50X110WAL.ldt"
+format = "Ldt"
+sort = 26
+
+[[template]]
+id = "Ledvance-fl-max-lum-600w-757-sym-60-wal"
+name = "4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt"
+description = ""
+file = "4058075580602_FL_MAX_LUM_600W_757_SYM_60_WAL.ldt"
+format = "Ldt"
+sort = 27
+
+[[template]]
+id = "Ledvance-fl-max-lum-900w-757-sym-30-wal"
+name = "4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt"
+description = ""
+file = "4058075580633_FL_MAX_LUM_900W_757_SYM_30_WAL.ldt"
+format = "Ldt"
+sort = 28
+
+[[template]]
+id = "Ledvancefl-max-lum-900w-757-sym-60-wal"
+name = "4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt"
+description = ""
+file = "4058075580640_FL_MAX_LUM_900W_757_SYM_60_WAL.ldt"
+format = "Ldt"
+sort = 29
+
+[[template]]
+id = "Ledvance-fl-max-lum-900w-757-asym-50x110-wal"
+name = "4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt"
+description = ""
+file = "4058075580657_FL_MAX_LUM_900W_757_ASYM_50X110_WAL.ldt"
+format = "Ldt"
+sort = 30
+
+[[template]]
+id = "Ledvance-fl-max-lum-1200w-757-sym-10-wal"
+name = "4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt"
+description = ""
+file = "4058075580664_FL_MAX_LUM_1200W_757_SYM_10_WAL.ldt"
+format = "Ldt"
+sort = 31
+
+[[template]]
+id = "Ledvance-fl-max-lum-1200w-757-sym-30-wal"
+name = "4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt"
+description = ""
+file = "4058075580671_FL_MAX_LUM_1200W_757_SYM_30_WAL.ldt"
+format = "Ldt"
+sort = 32
+
+[[template]]
+id = "Ledvance-fl-max-lum-1200w-757-sym-60-wal"
+name = "4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt"
+description = ""
+file = "4058075580688_FL_MAX_LUM_1200W_757_SYM_60_WAL.ldt"
+format = "Ldt"
+sort = 33
+
+[[template]]
+id = "Ledvance-fl-max-lum-600w-757-sym-30-wal"
+name = "4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt"
+description = ""
+file = "4058075580596_FL_MAX_LUM_600W_757_SYM_30_WAL.ldt"
+format = "Ldt"
+sort = 34
+
+[[template]]
+id = "0-0-0"
+name = "0-0-0.ldt"
+description = ""
+file = "0-0-0.ldt"
+format = "Ldt"
+sort = 35
+
+[[template]]
+id = "0-0-1"
+name = "0-0-1.ldt"
+description = ""
+file = "0-0-1.ldt"
+format = "Ldt"
+sort = 36
+
+[[template]]
+id = "0-0-2"
+name = "0-0-2.ldt"
+description = ""
+file = "0-0-2.ldt"
+format = "Ldt"
+sort = 37
+
+[[template]]
+id = "0-1-0"
+name = "0-1-0.ldt"
+description = ""
+file = "0-1-0.ldt"
+format = "Ldt"
+sort = 38
+
+[[template]]
+id = "0-1-1"
+name = "0-1-1.ldt"
+description = ""
+file = "0-1-1.ldt"
+format = "Ldt"
+sort = 39
+
+[[template]]
+id = "0-1-2"
+name = "0-1-2.ldt"
+description = ""
+file = "0-1-2.ldt"
+format = "Ldt"
+sort = 40
+
+[[template]]
+id = "0-2-0"
+name = "0-2-0.ldt"
+description = ""
+file = "0-2-0.ldt"
+format = "Ldt"
+sort = 41
+
+[[template]]
+id = "0-2-1"
+name = "0-2-1.ldt"
+description = ""
+file = "0-2-1.ldt"
+format = "Ldt"
+sort = 42
+
+[[template]]
+id = "0-2-2"
+name = "0-2-2.ldt"
+description = ""
+file = "0-2-2.ldt"
+format = "Ldt"
+sort = 43
+
+[[template]]
+id = "0-3-0"
+name = "0-3-0.ldt"
+description = ""
+file = "0-3-0.ldt"
+format = "Ldt"
+sort = 44
+
+[[template]]
+id = "0-3-1"
+name = "0-3-1.ldt"
+description = ""
+file = "0-3-1.ldt"
+format = "Ldt"
+sort = 45
+
+[[template]]
+id = "0-3-2"
+name = "0-3-2.ldt"
+description = ""
+file = "0-3-2.ldt"
+format = "Ldt"
+sort = 46
+
+[[template]]
+id = "0-4-0"
+name = "0-4-0.ldt"
+description = ""
+file = "0-4-0.ldt"
+format = "Ldt"
+sort = 47
+
+[[template]]
+id = "0-4-1"
+name = "0-4-1.ldt"
+description = ""
+file = "0-4-1.ldt"
+format = "Ldt"
+sort = 48
+
+[[template]]
+id = "0-4-2"
+name = "0-4-2.ldt"
+description = ""
+file = "0-4-2.ldt"
+format = "Ldt"
+sort = 49
+
+[[template]]
+id = "1-0-0"
+name = "1-0-0.ldt"
+description = ""
+file = "1-0-0.ldt"
+format = "Ldt"
+sort = 50
+
+[[template]]
+id = "1-0-1"
+name = "1-0-1.ldt"
+description = ""
+file = "1-0-1.ldt"
+format = "Ldt"
+sort = 51
+
+[[template]]
+id = "1-0-2"
+name = "1-0-2.ldt"
+description = ""
+file = "1-0-2.ldt"
+format = "Ldt"
+sort = 52
+
+[[template]]
+id = "1-1-0"
+name = "1-1-0.ldt"
+description = ""
+file = "1-1-0.ldt"
+format = "Ldt"
+sort = 53
+
+[[template]]
+id = "1-1-1"
+name = "1-1-1.ldt"
+description = ""
+file = "1-1-1.ldt"
+format = "Ldt"
+sort = 54
+
+[[template]]
+id = "1-1-2"
+name = "1-1-2.ldt"
+description = ""
+file = "1-1-2.ldt"
+format = "Ldt"
+sort = 55
+
+[[template]]
+id = "1-2-0"
+name = "1-2-0.ldt"
+description = ""
+file = "1-2-0.ldt"
+format = "Ldt"
+sort = 56
+
+[[template]]
+id = "1-2-1"
+name = "1-2-1.ldt"
+description = ""
+file = "1-2-1.ldt"
+format = "Ldt"
+sort = 57
+
+[[template]]
+id = "1-2-2"
+name = "1-2-2.ldt"
+description = ""
+file = "1-2-2.ldt"
+format = "Ldt"
+sort = 58
+
+[[template]]
+id = "1-3-0"
+name = "1-3-0.ldt"
+description = ""
+file = "1-3-0.ldt"
+format = "Ldt"
+sort = 59
+
+[[template]]
+id = "1-3-1"
+name = "1-3-1.ldt"
+description = ""
+file = "1-3-1.ldt"
+format = "Ldt"
+sort = 60
+
+[[template]]
+id = "1-3-2"
+name = "1-3-2.ldt"
+description = ""
+file = "1-3-2.ldt"
+format = "Ldt"
+sort = 61
+
+[[template]]
+id = "1-4-0"
+name = "1-4-0.ldt"
+description = ""
+file = "1-4-0.ldt"
+format = "Ldt"
+sort = 62
+
+[[template]]
+id = "1-4-1"
+name = "1-4-1.ldt"
+description = ""
+file = "1-4-1.ldt"
+format = "Ldt"
+sort = 63
+
+[[template]]
+id = "1-4-2"
+name = "1-4-2.ldt"
+description = ""
+file = "1-4-2.ldt"
+format = "Ldt"
+sort = 64

@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TM-32-24 BIM Parameters Sample File
+
+  This file demonstrates a complete set of BIM parameters as defined in
+  ANSI/IES TM-32-24 for a typical office LED downlight.
+
+  The BIM parameters are embedded in CustomData sections following the
+  TM-33-23 format, with GUIDs matching NEMA BIM 100-2021.
+-->
+<IESTM33-22>
+    <Version>1.1</Version>
+    <Header>
+        <Manufacturer>LightTech Industries</Manufacturer>
+        <CatalogNumber>LT-DL6-30W-940</CatalogNumber>
+        <Description>6" LED Downlight 30W 4000K</Description>
+        <GTIN>00123456789012</GTIN>
+        <UUID>f47ac10b-58cc-4372-a567-0e02b2c3d479</UUID>
+        <Laboratory>IES Accredited Photometric Lab</Laboratory>
+        <ReportNumber>RPT-2024-0542</ReportNumber>
+        <ReportDate>2024-06-15</ReportDate>
+        <IssueDate>2024-06-20</IssueDate>
+        <DocumentCreator>LightTech Engineering</DocumentCreator>
+        <MoreInfoURI>https://lighttech.example.com/products/LT-DL6-30W-940</MoreInfoURI>
+        <LuminaireType>Recessed Downlight</LuminaireType>
+        <Reference>Energy Star Certified</Reference>
+        <Reference>DLC Premium Listed</Reference>
+        <Comments>High-efficiency office downlight with integrated driver</Comments>
+        <Comments>Suitable for new construction and retrofit applications</Comments>
+    </Header>
+
+    <Luminaire>
+        <Dimensions>
+            <Length>180</Length>
+            <Width>180</Width>
+            <Height>120</Height>
+        </Dimensions>
+        <LuminousOpening>
+            <Shape>Circular</Shape>
+            <Dimensions>
+                <Length>152</Length>
+            </Dimensions>
+        </LuminousOpening>
+        <Mounting>Recessed</Mounting>
+        <NumEmitters>1</NumEmitters>
+    </Luminaire>
+
+    <Equipment>
+        <Goniometer>
+            <Manufacturer>Instrument Systems</Manufacturer>
+            <Model>GON 360</Model>
+            <Type>CIE _ C</Type>
+            <Distance>8.5</Distance>
+        </Goniometer>
+        <IntegratingSphere>
+            <Manufacturer>Labsphere</Manufacturer>
+            <Model>CSLMS-2000</Model>
+            <Diameter>2.0</Diameter>
+        </IntegratingSphere>
+        <Spectroradiometer>
+            <Manufacturer>Instrument Systems</Manufacturer>
+            <Model>CAS 140D</Model>
+            <WavelengthMin>380</WavelengthMin>
+            <WavelengthMax>780</WavelengthMax>
+            <Resolution>1</Resolution>
+        </Spectroradiometer>
+        <Accreditation>
+            <Body>NVLAP</Body>
+            <Number>200123-0</Number>
+            <Scope>Photometric Testing of Solid-State Lighting</Scope>
+        </Accreditation>
+    </Equipment>
+
+    <Emitter>
+        <ID>led-module-1</ID>
+        <Description>30W LED Module 4000K CRI90</Description>
+        <CatalogNumber>LED-MOD-30-940</CatalogNumber>
+        <Quantity>1</Quantity>
+        <RatedLumens>3600</RatedLumens>
+        <MeasuredLumens>3650</MeasuredLumens>
+        <InputWattage>30</InputWattage>
+        <PowerFactor>0.95</PowerFactor>
+        <BallastFactor>1.0</BallastFactor>
+        <FixedCCT>4000</FixedCCT>
+        <Duv>0.001</Duv>
+        <SPRatio>1.85</SPRatio>
+        <ColorRendering>
+            <Ra>92</Ra>
+            <R9>65</R9>
+            <Rf>91</Rf>
+            <Rg>101</Rg>
+        </ColorRendering>
+        <DataGeneration>
+            <Source>Measured</Source>
+            <Scaled>false</Scaled>
+            <Interpolated>false</Interpolated>
+            <Uncertainty>3.0</Uncertainty>
+        </DataGeneration>
+        <Regulatory>
+            <InputWattage>Measured</InputWattage>
+            <PowerFactor>Measured</PowerFactor>
+            <ColorTemperature>Rated</ColorTemperature>
+            <CIECRI>Measured</CIECRI>
+            <IESTM30>Measured</IESTM30>
+            <LuminousFlux>Measured</LuminousFlux>
+        </Regulatory>
+        <LuminousData>
+            <SymmType>Symm _ Full</SymmType>
+            <Multiplier>1.0</Multiplier>
+            <AbsolutePhotometry>false</AbsolutePhotometry>
+            <NumberMeasured>19</NumberMeasured>
+            <IntensityData horz="0" vert="0">320</IntensityData>
+            <IntensityData horz="0" vert="5">318</IntensityData>
+            <IntensityData horz="0" vert="10">312</IntensityData>
+            <IntensityData horz="0" vert="15">302</IntensityData>
+            <IntensityData horz="0" vert="20">288</IntensityData>
+            <IntensityData horz="0" vert="25">270</IntensityData>
+            <IntensityData horz="0" vert="30">248</IntensityData>
+            <IntensityData horz="0" vert="35">222</IntensityData>
+            <IntensityData horz="0" vert="40">194</IntensityData>
+            <IntensityData horz="0" vert="45">164</IntensityData>
+            <IntensityData horz="0" vert="50">132</IntensityData>
+            <IntensityData horz="0" vert="55">100</IntensityData>
+            <IntensityData horz="0" vert="60">70</IntensityData>
+            <IntensityData horz="0" vert="65">44</IntensityData>
+            <IntensityData horz="0" vert="70">24</IntensityData>
+            <IntensityData horz="0" vert="75">10</IntensityData>
+            <IntensityData horz="0" vert="80">4</IntensityData>
+            <IntensityData horz="0" vert="85">1</IntensityData>
+            <IntensityData horz="0" vert="90">0</IntensityData>
+        </LuminousData>
+    </Emitter>
+
+    <!-- TM-32-24 BIM Parameters - General -->
+    <CustomData>
+        <Name>TM32-24-General</Name>
+        <UniqueIdentifier>tm32-24-general-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <LastUpdated guid="8350e45f-5dbb-4391-a637-620154f021c7">2024-06-20T14:30:00Z</LastUpdated>
+            <ProductFamily guid="5102b873-5fab-45b7-a2d0-f83ddee8d345">DL Series</ProductFamily>
+            <ProductDocumentationLink guid="bddc75f4-8e27-4afc-add0-de7358bbf6d3">https://lighttech.example.com/docs/LT-DL6-30W-940.pdf</ProductDocumentationLink>
+            <ProductDatasheetURL>https://lighttech.example.com/datasheets/LT-DL6-30W-940.pdf</ProductDatasheetURL>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Electrical -->
+    <CustomData>
+        <Name>TM32-24-Electrical</Name>
+        <UniqueIdentifier>tm32-24-electrical-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <ApparentPower guid="a1c4f25a-1260-41a5-bac8-97556a57b236" unit="VA">31.6</ApparentPower>
+            <VoltageNominal guid="7bcae613-49d5-40a3-a27e-8df1945ce73e" unit="V">120</VoltageNominal>
+            <VoltageType>AC</VoltageType>
+            <Phase guid="652939b9-9afa-4e8c-9ab1-767525e78a49">Single Phase</Phase>
+            <NominalCurrent unit="A">0.26</NominalCurrent>
+            <NominalFrequency unit="Hz">60</NominalFrequency>
+            <InrushCurrent unit="A">12.5</InrushCurrent>
+            <Dimmable guid="4d4881f3-5a77-41eb-a140-e03a297c2351">true</Dimmable>
+            <DimmingMethod>0-10V</DimmingMethod>
+            <DimmingRange min="10" max="100" unit="%"/>
+            <ColorControllable>false</ColorControllable>
+            <CCTControllable>false</CCTControllable>
+            <ControlInterface>0-10V, DALI-2</ControlInterface>
+            <ControlGear>Integrated LED Driver</ControlGear>
+            <ControlGearIncluded>true</ControlGearIncluded>
+            <LEDDriveType>CC</LEDDriveType>
+            <LEDSecondaryVoltage unit="V">36</LEDSecondaryVoltage>
+            <LightSourceType guid="3cd5049e-0b1e-4cd7-963c-6a59f1b87ee4">LED</LightSourceType>
+            <LampQuantity>1</LampQuantity>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Mechanical -->
+    <CustomData>
+        <Name>TM32-24-Mechanical</Name>
+        <UniqueIdentifier>tm32-24-mechanical-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <HousingShape guid="5f141709-2625-47af-8618-00e1c5e9eac1">Cylinder</HousingShape>
+            <HousingColor guid="2f317fc3-3f64-4214-83fd-390823fc9d91">RAL 9016 Traffic White</HousingColor>
+            <HousingMaterial guid="9704f476-596b-43e9-919a-42f7881c8921">Die-cast Aluminum</HousingMaterial>
+            <ProductLength guid="51782a3a-e0cb-45b4-86b1-2788dd5d6148" unit="mm">180</ProductLength>
+            <ProductWidth guid="d5e464aa-5c32-4e45-91b5-8db19b6f6ebe" unit="mm">180</ProductWidth>
+            <ProductHeight guid="8822b540-105f-47d1-847d-e3df372faa1e" unit="mm">120</ProductHeight>
+            <ProductDiameter guid="c59a50f1-6e72-4981-ad58-2a65b8fbc846" unit="mm">180</ProductDiameter>
+            <LuminousAreaDiameter unit="mm">152</LuminousAreaDiameter>
+            <Weight guid="5de1affc-b992-4202-ab5f-bf414e76a681" unit="kg">0.85</Weight>
+            <WeightShipping unit="kg">1.2</WeightShipping>
+            <ShippingLength unit="mm">220</ShippingLength>
+            <ShippingWidth unit="mm">220</ShippingWidth>
+            <ShippingHeight unit="mm">160</ShippingHeight>
+            <Flexible>false</Flexible>
+            <HalogenFree>true</HalogenFree>
+            <SiliconeFree>false</SiliconeFree>
+            <SealingMaterial>Silicone Gasket</SealingMaterial>
+            <MinimumClearance unit="mm">50</MinimumClearance>
+            <DriveOverRated>false</DriveOverRated>
+            <WalkOverRated>false</WalkOverRated>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Mounting -->
+    <CustomData>
+        <Name>TM32-24-Mounting</Name>
+        <UniqueIdentifier>tm32-24-mounting-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <MountingType guid="61767f07-f194-447c-b6fb-66f9285a7d39">Recessed</MountingType>
+            <CutoutDiameter guid="48ea3b3c-7921-4716-a6ab-cbb9c4d5e5e1" unit="mm">165</CutoutDiameter>
+            <RecessedDepth guid="e9ed463c-ac3f-46fc-9dd8-f661446876d4" unit="mm">100</RecessedDepth>
+            <CeilingThicknessMin unit="mm">10</CeilingThicknessMin>
+            <CeilingThicknessMax unit="mm">25</CeilingThicknessMax>
+            <CoveringInsulationAllowed>false</CoveringInsulationAllowed>
+            <AccessClearanceTop unit="mm">150</AccessClearanceTop>
+            <AccessClearanceBottom unit="mm">0</AccessClearanceBottom>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Photometric -->
+    <CustomData>
+        <Name>TM32-24-Photometric</Name>
+        <UniqueIdentifier>tm32-24-photometric-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <BUGRating guid="1a808da0-3e8d-4e01-82e5-b299efd4e129">B0 U0 G1</BUGRating>
+            <CutoffAngle unit="deg">75</CutoffAngle>
+            <MelanopicFactor>0.72</MelanopicFactor>
+            <FlickerPstLM>0.3</FlickerPstLM>
+            <PhotobiologyClass>1</PhotobiologyClass>
+            <InitialColorTolerance unit="SDCM">3</InitialColorTolerance>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Maintenance -->
+    <CustomData>
+        <Name>TM32-24-Maintenance</Name>
+        <UniqueIdentifier>tm32-24-maintenance-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <LightLossFactor>0.85</LightLossFactor>
+            <LampLumenDepreciation>0.92</LampLumenDepreciation>
+            <LuminaireDirtDepreciation>0.95</LuminaireDirtDepreciation>
+            <LampSurvivalFactor>0.98</LampSurvivalFactor>
+            <BurnInTime unit="hours">100</BurnInTime>
+            <LEDModuleReplaceable>true</LEDModuleReplaceable>
+            <LightSourceIncluded>true</LightSourceIncluded>
+            <ProjectedLifeHours>50000</ProjectedLifeHours>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Environmental -->
+    <CustomData>
+        <Name>TM32-24-Environmental</Name>
+        <UniqueIdentifier>tm32-24-environmental-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <AmbientTemperatureMin unit="C">0</AmbientTemperatureMin>
+            <AmbientTemperatureMax unit="C">40</AmbientTemperatureMax>
+            <RatedAmbientTemperature unit="C">25</RatedAmbientTemperature>
+            <TemperatureOnAperture unit="C">65</TemperatureOnAperture>
+            <RelativeHumidityMin unit="%">5</RelativeHumidityMin>
+            <RelativeHumidityMax unit="%">95</RelativeHumidityMax>
+            <IPRating>IP44</IPRating>
+            <IKRating>IK06</IKRating>
+            <EPDAvailable>true</EPDAvailable>
+            <EPDURL>https://lighttech.example.com/epd/LT-DL6-30W-940.pdf</EPDURL>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Emergency (N/A for this product) -->
+    <CustomData>
+        <Name>TM32-24-Emergency</Name>
+        <UniqueIdentifier>tm32-24-emergency-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <EmergencyCapable guid="04ac16ce-15d8-4607-a43a-1fece8f1cc51">false</EmergencyCapable>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Accessories -->
+    <CustomData>
+        <Name>TM32-24-Accessories</Name>
+        <UniqueIdentifier>tm32-24-accessories-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <WithSwitch>false</WithSwitch>
+            <WithDimmer>false</WithDimmer>
+            <WithPowerPlug>false</WithPowerPlug>
+            <WithConnectingCable>true</WithConnectingCable>
+            <ThroughWiring>true</ThroughWiring>
+            <WithStarter>false</WithStarter>
+        </BIM>
+    </CustomData>
+
+    <!-- TM-32-24 BIM Parameters - Certifications -->
+    <CustomData>
+        <Name>TM32-24-Certifications</Name>
+        <UniqueIdentifier>tm32-24-certifications-v1</UniqueIdentifier>
+        <BIM xmlns="http://ies.org/tm-32-24">
+            <Certifications>
+                <Certification>
+                    <Name>Energy Star</Name>
+                    <Number>ES-2024-12345</Number>
+                    <ValidUntil>2027-12-31</ValidUntil>
+                </Certification>
+                <Certification>
+                    <Name>DLC Premium</Name>
+                    <Number>DLC-QPL-12345</Number>
+                    <ValidUntil>2026-06-30</ValidUntil>
+                </Certification>
+                <Certification>
+                    <Name>UL Listed</Name>
+                    <Number>E123456</Number>
+                </Certification>
+                <Certification>
+                    <Name>FCC Part 15</Name>
+                    <Type>Class B</Type>
+                </Certification>
+            </Certifications>
+        </BIM>
+    </CustomData>
+
+</IESTM33-22>

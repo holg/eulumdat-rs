@@ -22,7 +22,12 @@ default = ["csr"]
 csr = ["leptos/csr"]
 ssr = ["leptos/ssr"]
 hydrate = ["leptos/hydrate"]
-bevy-viewer = ["eulumdat-bevy"]
+# Note: the historical `bevy-viewer` feature is gone. The 3D viewer
+# now lives in eulumdat-bevy and is lazy-loaded as a separate WASM
+# bundle via build-wasm-split.sh (see crates/eulumdat-bevy and the
+# bevy-loader.js shim). Embedding it back into eulumdat-wasm via
+# cargo features would require eulumdat-bevy on crates.io, which is
+# blocked on the upstream Bevy 0.19 photometric proposal merge.
 
 [dependencies]
 console_error_panic_hook.workspace = true
@@ -50,8 +55,10 @@ wasm-bindgen-futures.workspace = true
 base64.workspace = true
 serde_json = "1"
 
-# 3D Scene Viewer (Bevy) - optional for larger WASM bundle
-eulumdat-bevy = { workspace = true, optional = true }
+# eulumdat-bevy intentionally not declared here — it depends on a
+# Bevy git fork (holg/bevy.git#photometric_proposal) that can't publish
+# to crates.io. The 3D viewer is shipped as a separate lazy-loaded
+# WASM bundle (see scripts/build-wasm-split.sh, bevy-loader.js).
 
 [dependencies.web-sys]
 version = "0.3"
