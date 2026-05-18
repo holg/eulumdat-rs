@@ -29,13 +29,13 @@ cd "$(dirname "$0")/.."
 # Publish order (each row must already have its deps on crates.io):
 ORDER=(
     eulumdat-i18n
-    eulumdat-photweb
     eulumdat
+    eulumdat-photweb
     eulumdat-plugin
     eulumdat-typst
     eulumdat-quiz
-    eulumdat-rt
     eulumdat-goniosim
+    eulumdat-rt
     eulumdat-gltf-pack
     eulumdat-ui
     eulumdat-egui

@@ -11,6 +11,15 @@ categories = ["parser-implementations", "science"]
 readme = "README.md"
 homepage = "https://github.com/holg/eulumdat-rs"
 documentation = "https://docs.rs/eulumdat"
+# Exclude dev-only example + bench that reach into sibling crates'
+# test data via `include_str!("../../../...")`. They run fine from
+# the monorepo but break `cargo package` because the referenced files
+# live outside this crate. The other examples (parse_road, generate_*,
+# create_wiki_templates) are self-contained and ship as usual.
+exclude = [
+    "examples/wasm_benchmark.rs",
+    "benches/native_benchmark.rs",
+]
 
 [features]
 # atla XML and JSON parsers ship by default — atla itself (the data model)

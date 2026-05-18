@@ -9,11 +9,11 @@
 use wasm_bindgen::prelude::*;
 
 // Simple LDT for quick benchmarks
-const SAMPLE_LDT: &str = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
+const SAMPLE_LDT: &str = include_str!("../templates/fluorescent_luminaire.ldt");
 
 // Challenging IES file: 263 vertical angles × 361 horizontal planes = ~95,000 intensity values!
 const CHALLENGING_IES: &str =
-    include_str!("../../../tests/files/Preliminar Interlab IPT_fotometria 1.ies");
+    include_str!("../tests-data/Preliminar Interlab IPT_fotometria 1.ies");
 
 /// Benchmark results structure
 #[wasm_bindgen]

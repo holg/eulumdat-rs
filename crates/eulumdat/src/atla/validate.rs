@@ -17,7 +17,7 @@ use std::path::Path;
 use std::process::Command;
 
 /// Embedded XSD schema for ATLA S001 / TM-33-18 / UNI 11733
-pub const ATLA_XSD_SCHEMA: &str = include_str!("../../../../docs/atla-s001.xsd");
+pub const ATLA_XSD_SCHEMA: &str = include_str!("atla-s001.xsd");
 
 /// Schema type for validation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
