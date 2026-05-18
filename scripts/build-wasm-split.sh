@@ -679,7 +679,10 @@ if [[ "$BUILD_LEPTOS" == "true" ]]; then
     if [[ "$LEPTOS_NEEDS_BUILD" == "true" ]]; then
         echo "[$STEP/$TOTAL_STEPS] Building Leptos editor with trunk..."
         cd "$WASM_DIR"
-        trunk build --release
+        # `benchmark` is opt-in (default-off in published crate; the
+        # `include_str!` IES test file isn't shipped to crates.io).
+        # Build script always enables it for the bundled WASM app.
+        trunk build --release --features benchmark
 
         # Save hash after successful build
         save_hash "leptos" "$(calculate_source_hash "$WASM_DIR")"

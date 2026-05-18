@@ -6,6 +6,24 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "WebAssembly Eulumdat (LDT/IES) Editor - Browser-based photometric file editor"
+# Strip deploy-time bundle assets, screenshots, and dev test data from
+# the published tarball. crates.io has a 10 MiB upload cap; with these
+# excluded the package drops from 17.3 MiB to a few hundred KiB.
+#
+# `src/static/typst/typst_wasm_bg.wasm` (38 MB) and the Bevy JS bundle
+# are runtime artifacts loaded by browser code (see typst-loader.js,
+# bevy-loader.js) — they're shipped to the WASM `dist/` via
+# build-wasm-split.sh, not consumed by Rust source. The IES test file
+# under `tests-data/` is only used by the optional benchmark module.
+exclude = [
+    "src/static/typst/*.wasm",
+    "src/static/typst/*.js",
+    "src/static/bevy/*",
+    "tests-data/**",
+    "*.png",
+    "*.webarchive",
+    "Viso Photometric Editor.webarchive",
+]
 
 [package.metadata.bevy_cli.web.release]
 wasm-opt = ["-Oz", "-all"]
@@ -22,6 +40,13 @@ default = ["csr"]
 csr = ["leptos/csr"]
 ssr = ["leptos/ssr"]
 hydrate = ["leptos/hydrate"]
+# `benchmark` exposes the wasm-bindgen perf-measurement module
+# (window.runBenchmark*). Disabled by default in published crate because
+# it `include_str!`s a 1.3 MB challenging-IES test file that lives in
+# this repo's tests-data/ but is excluded from the published tarball
+# (would push the package over crates.io's 10 MiB upload cap). The
+# build-wasm-split.sh and local dev builds opt in explicitly.
+benchmark = []
 # Note: the historical `bevy-viewer` feature is gone. The 3D viewer
 # now lives in eulumdat-bevy and is lazy-loaded as a separate WASM
 # bundle via build-wasm-split.sh (see crates/eulumdat-bevy and the
