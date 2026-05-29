@@ -1,0 +1,29 @@
+# DIAL vs iesna.eu (old, pre-radiosity deploy) discrepancy table.
+# Source: iesna.eu manual comparison against DIALux, May 2026.
+# Luminaires: alya_359lm.ldt (~360 lm), acrux_452lm.ldt (~453 lm), both in this dir.
+#
+# Columns:
+#   lum        fixture key (alya | acrux)
+#   L,W,H      room dimensions, metres
+#   target_lx  design target illuminance
+#   type       buero (office, work plane 0.75 m) | flur (corridor, floor 0.0 m)
+#   nx,ny      luminaire layout (count along L, along W) -> n = nx*ny
+#   iesna_e    iesna.eu OLD-deploy reported avg illuminance (lx)
+#   iesna_u0   iesna.eu OLD-deploy U0
+#   dial_e     DIAL "Prüfung" avg on the SAME nx*ny layout (lx)  <- parity target
+#   dial_u0    DIAL "Prüfung" U0 on the same layout
+#   autocalc   DIAL auto-calc note (its own layout/grid); free text, not asserted
+#
+# The iesna_e column ran systematically HIGH vs dial_e (the discrepancy under
+# investigation). The new radiosity engine + Stockmar grid should land on dial_e.
+lum,L,W,H,target_lx,type,nx,ny,iesna_e,iesna_u0,dial_e,dial_u0,autocalc
+alya,2.0,18.0,2.5,100,flur,2,12,152,0.71,103,0.72,5x5=25 -> 108/0.69
+alya,3.5,22.0,4.0,100,flur,2,23,100,0.70,96,0.72,7x8=56 -> 116/0.73
+alya,2.0,2.0,2.5,100,flur,2,2,117,0.90,88,0.92,2x3=6 -> 131/0.91
+alya,4.0,5.0,2.5,500,buero,5,8,500,0.65,464,0.84,6x8=48 -> 556/0.84
+alya,8.0,14.0,5.0,500,buero,5,47,502,0.66,444,0.73,16x18=288 -> 541/0.74
+acrux,8.0,14.0,3.0,100,flur,5,6,107,0.56,86,0.77,6x7=42 -> 120/0.77
+acrux,8.0,14.0,5.0,100,flur,4,9,102,0.64,73,0.74,6x8=48 -> 109/0.74
+acrux,8.0,14.0,5.0,500,buero,3,59,500,0.62,441,0.75,14x16=224 -> 551/0.74
+acrux,8.0,14.0,7.0,500,buero,10,23,504,0.70,452,0.74,16x17=272 -> 533/0.73
+acrux,22.0,22.0,7.0,500,buero,4,163,501,0.60,421,0.67,>812

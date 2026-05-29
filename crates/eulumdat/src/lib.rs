@@ -187,9 +187,16 @@ pub mod type_b_conversion;
 pub mod units;
 mod validation;
 mod writer;
+pub mod radiosity;
 pub mod zonal;
 
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
+pub use radiosity::{
+    compute_form_factors, direct_illuminance, illuminance_at_point, radiosity_cu, solve_radiosity,
+    surface_average, workplane_stats, workplane_stats_at_height, workplane_stats_normative,
+    EvaluationStandard, FormFactors, Luminaire, Patch, RadiosityResult, RoomMesh, Surface,
+    SurfaceReflectances, Vec3, WorkPlane, WorkplaneStats,
+};
 pub use bug_rating::{BugDiagram, BugRating, LcsZonePercentages, LightingZone, ZoneLumens};
 pub use calculations::{
     BeamFieldAnalysis, CandelaEntry, CandelaTabulation, CieFluxCodes, ComprehensiveBeamAnalysis,
