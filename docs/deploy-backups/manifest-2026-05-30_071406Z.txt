@@ -1,0 +1,16 @@
+  OK    bevy-loader-a7d1751cef83d656.js                               1723 B  7a9465326416e0a4
+  OK    bevy-loader-a7d1751cef83d656.js                        .br        542 B
+  OK    eulumdat-wasm-ae7aee9a05af2e0d.js                            90582 B  10a930a59b2e0b9a
+  OK    eulumdat-wasm-ae7aee9a05af2e0d.js                      .br      12220 B
+  OK    eulumdat-wasm-ae7aee9a05af2e0d_bg.wasm                    18105148 B  59f1c127a635df20
+  OK    eulumdat-wasm-ae7aee9a05af2e0d_bg.wasm                 .br    1729717 B
+  OK    gmaps-loader-34453207a5841135.js                             18757 B  d5f4c7a374ee7451
+  OK    gmaps-loader-34453207a5841135.js                       .br       4609 B
+  OK    skyglow-loader-a96722f5e046ff5f.js                            4692 B  845d0cd594680401
+  OK    skyglow-loader-a96722f5e046ff5f.js                     .br       1337 B
+  OK    street-loader-62fdcbaca8f44cc6.js                             1817 B  1ba916ee890d24da
+  OK    street-loader-62fdcbaca8f44cc6.js                      .br        584 B
+  OK    styles-c1c9c0abb0355731.css                                 101414 B  b9f44a7a89b9db1b
+  OK    styles-c1c9c0abb0355731.css                            .br      13993 B
+  OK    typst-loader-f97c8fafa6a0044a.js                              1375 B  5f40af7fa8b974ed
+  OK    typst-loader-f97c8fafa6a0044a.js                       .br        489 B

@@ -21,7 +21,9 @@
 //! resampled; downstream colorimetry uses trapezoidal integration that handles
 //! non-uniform grids correctly.
 
-use crate::atla::types::{SpectralDistribution, SpectralUnits};
+use crate::atla::types::{
+    ColorRendering, Emitter, Header, LuminaireOpticalData, SpectralDistribution, SpectralUnits,
+};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -370,6 +372,73 @@ fn build_spd(pairs: Vec<(f64, f64)>) -> SpectralDistribution {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// ATLA bridge: turn a LoadedSpd into a LuminaireOpticalData so the rest of
+// the editor (UI, diagrams, exporters) sees an SPD-only file the same way it
+// already sees an SPDX (IES TM-27-14) file.
+// ────────────────────────────────────────────────────────────────────────────
+
+/// Build a minimal ATLA `LuminaireOpticalData` from a loaded SPD: one emitter
+/// carrying the SPD and **no intensity distribution**. When the file is a
+/// Signify lab export, the prelude's CCT / Ra / Duv / S/P are also populated on
+/// the emitter so the dashboard's info panel shows the lab-measured values.
+///
+/// Polar/cartesian diagrams will be empty for these files — the same caveat
+/// as SPDX (see [`crate::atla::spdx::to_atla`]).
+pub fn to_atla(loaded: &LoadedSpd) -> LuminaireOpticalData {
+    let label = if loaded.label.is_empty() { None } else { Some(loaded.label.clone()) };
+    let mut doc = LuminaireOpticalData {
+        header: Header {
+            description: label.clone(),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    let mut emitter = Emitter {
+        description: label,
+        spectral_distribution: Some(loaded.spd.clone()),
+        quantity: 1,
+        ..Default::default()
+    };
+
+    if let Some(r) = &loaded.reference {
+        emitter.cct = r.cct_k;
+        emitter.duv = r.duv;
+        emitter.sp_ratio = r.sp_ratio;
+        // Build a partial ColorRendering only if at least one CRI value is known.
+        if r.ra.is_some() || r.r_special[8].is_some() {
+            emitter.color_rendering = Some(ColorRendering {
+                ra: r.ra,
+                r9: r.r_special[8],
+                rf: None,
+                rg: None,
+            });
+        }
+    }
+
+    doc.emitters = vec![emitter];
+    doc
+}
+
+/// User-facing warnings for an SPD-only load: same shape as `spdx::get_warnings`.
+pub fn get_warnings(loaded: &LoadedSpd) -> Vec<String> {
+    let mut w = vec![
+        "SPD file contains spectral data only — no photometric (intensity) distribution.".to_string(),
+        "Polar/cartesian diagrams will be empty. Only the spectral diagram is available.".to_string(),
+    ];
+    if loaded.spd.wavelengths.len() < 20 {
+        w.push(format!(
+            "Limited spectral resolution: only {} data points.",
+            loaded.spd.wavelengths.len()
+        ));
+    }
+    if loaded.reference.is_some() {
+        w.push("Vendor reference metrics (CCT, Duv, CRI) were parsed from the file prelude.".into());
+    }
+    w
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Tests
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -435,6 +504,38 @@ mod tests {
         assert_eq!(ref_m.blue_light_risk_group.as_deref(), Some("RG0"));
         assert_eq!(r.spd.wavelengths, vec![340.0, 341.0, 342.0]);
         assert_eq!(r.spd.values, vec![0.0, 0.1, 0.2]);
+    }
+
+    #[test]
+    fn to_atla_carries_spd_and_signify_metadata() {
+        // Compose a Signify-shaped string with the metrics we care about.
+        let s = "1,CIE1931 colorspace tristimulus values X,107.88\n\
+                 10,Color temperature CCT(K),2997\n\
+                 14,Color shift Duv,0.0010\n\
+                 15,Color render index Ra,85.9\n\
+                 24,Color render index R9,47.9\n\
+                 35,Light-dark vision ratio S/P,4.860\n\
+                 wavelength\n\
+                 400,0.1\n\
+                 500,0.5\n\
+                 600,1.0\n\
+                 700,0.2\n";
+        let loaded = parse(s).unwrap();
+        let doc = to_atla(&loaded);
+        assert_eq!(doc.emitters.len(), 1);
+        let e = &doc.emitters[0];
+        assert!(e.spectral_distribution.is_some(), "SPD must be attached to emitter");
+        assert_eq!(e.cct, Some(2997.0));
+        assert_eq!(e.duv, Some(0.001));
+        assert_eq!(e.sp_ratio, Some(4.86));
+        let cr = e.color_rendering.as_ref().expect("ColorRendering populated");
+        assert_eq!(cr.ra, Some(85.9));
+        assert_eq!(cr.r9, Some(47.9));
+        // Intensity distribution must NOT be present — this is spectral-only.
+        assert!(e.intensity_distribution.is_none());
+        // Warnings are non-empty and mention SPD-only.
+        let w = get_warnings(&loaded);
+        assert!(w.iter().any(|m| m.contains("spectral data only")));
     }
 
     /// Round-trip every file in docs/SPDs/ that we have. Confirms the loader

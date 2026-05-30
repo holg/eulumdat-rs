@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eulumdat Editor - LDT/IES Photometric File Editor</title>
+    
+<script type="module">
+import init, * as bindings from './eulumdat-wasm-ae7aee9a05af2e0d.js';
+const wasm = await init({ module_or_path: './eulumdat-wasm-ae7aee9a05af2e0d_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+    <link rel="stylesheet" href="./styles-c1c9c0abb0355731.css" integrity="sha384-W18OU92m2o5YfDZ8mTboAkyKTK1wdRFJHHzxV15ZjTmlQSX4dO/JxUurIRHNUxlp"/>
+    <!-- Typst PDF compiler (lazy-loaded on demand for PDF export) -->
+    
+    
+    <!-- Optional loaders for split builds (bevy 3D, gmaps) — harmless no-ops if bundles absent -->
+    
+    
+    
+    
+<link rel="modulepreload" href="./eulumdat-wasm-ae7aee9a05af2e0d.js" crossorigin="anonymous" integrity="sha384-sQQi88YQKYKN10wwSd+8uqAhIzNDTPmNAleJ9Vv+Yq9Akgg45uTH9b0xpcO1K6By"><link rel="preload" href="./eulumdat-wasm-ae7aee9a05af2e0d_bg.wasm" crossorigin="anonymous" integrity="sha384-zX0YoFf+qoE6ZL+7lujprxkKcMJsmoSDMVT6zFIEM6HjbzMO//9xrxxqh/caqUzw" as="fetch" type="application/wasm"></head>
+<body>
+    <!-- Typst PDF compiler (~38MB, loaded on demand when user exports PDF) -->
+    <script src="typst-loader-f97c8fafa6a0044a.js"></script>
+    <!-- Optional: 3D viewer, Maps, Street Designer (no-op if bundles not present) -->
+    <script src="bevy-loader-a7d1751cef83d656.js"></script>
+    <script src="gmaps-loader-34453207a5841135.js"></script>
+    <script src="skyglow-loader-a96722f5e046ff5f.js"></script>
+    <script src="street-loader-62fdcbaca8f44cc6.js"></script>
+    <noscript>This application requires JavaScript to run.</noscript>
+</body>
+</html>

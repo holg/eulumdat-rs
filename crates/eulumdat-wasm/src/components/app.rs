@@ -410,6 +410,80 @@ fn save_unit_system(units: UnitSystem) {
 
 use super::templates::Template;
 
+/// Fetch a text resource over the network, refusing responses larger
+/// than `max_bytes`. Used by the `?url=…` startup loader so a hostile
+/// or accidentally-huge URL can't hang the tab.
+async fn fetch_text_capped(url: &str, max_bytes: usize) -> Result<String, JsValue> {
+    use wasm_bindgen_futures::JsFuture;
+    let window = web_sys::window().ok_or_else(|| JsValue::from_str("no window"))?;
+
+    let opts = web_sys::RequestInit::new();
+    opts.set_method("GET");
+    opts.set_mode(web_sys::RequestMode::Cors);
+
+    let request = web_sys::Request::new_with_str_and_init(url, &opts)?;
+    let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
+    let response: web_sys::Response = resp_value.dyn_into()?;
+    if !response.ok() {
+        return Err(JsValue::from_str(&format!(
+            "HTTP {} when fetching {}",
+            response.status(),
+            url
+        )));
+    }
+    // Cheap upper bound check via Content-Length when the server provides it.
+    if let Ok(Some(len_str)) = response.headers().get("content-length") {
+        if let Ok(len) = len_str.parse::<usize>() {
+            if len > max_bytes {
+                return Err(JsValue::from_str(&format!(
+                    "response too large: {} > {} bytes",
+                    len, max_bytes
+                )));
+            }
+        }
+    }
+    let text = JsFuture::from(response.text()?).await?;
+    let s = text.as_string().ok_or_else(|| JsValue::from_str("not a string"))?;
+    if s.len() > max_bytes {
+        return Err(JsValue::from_str(&format!(
+            "response too large after read: {} > {} bytes",
+            s.len(),
+            max_bytes
+        )));
+    }
+    Ok(s)
+}
+
+/// Return `name` unchanged if it already carries a recognized
+/// photometric extension; otherwise sniff the first non-blank line of
+/// `content` and append a synthetic extension so the routing in
+/// `load_file_content` picks the right parser. Lets `?url=` work
+/// against endpoints that return raw bodies without a `.ldt` suffix
+/// (e.g. gldf-search's `/api/ldc/<hash>/<idx>`).
+fn ensure_extension(name: &str, content: &str) -> String {
+    let lower = name.to_lowercase();
+    const KNOWN: &[&str] = &[
+        ".ldt", ".ies", ".xml", ".json", ".spdx", ".oxl", ".oxc",
+    ];
+    if KNOWN.iter().any(|ext| lower.ends_with(ext)) {
+        return name.to_string();
+    }
+    let head = content.trim_start();
+    let ext = if head.starts_with("IESNA") || head.starts_with("IES:") {
+        ".ies"
+    } else if head.starts_with("<?xml") || head.starts_with('<') {
+        ".xml"
+    } else if head.starts_with('{') {
+        ".json"
+    } else {
+        // EULUMDAT files have no fixed magic — line 1 is the manufacturer
+        // string, line 2 is the type indicator (1..=3). If we can't
+        // identify anything else, assume LDT (the most common case).
+        ".ldt"
+    };
+    format!("{}{}", name, ext)
+}
+
 /// Load a template file (content is lazily fetched from templates WASM module)
 fn load_template(
     template: &Template,
@@ -709,6 +783,14 @@ pub fn App() -> impl IntoView {
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
     let (templates_loading, set_templates_loading) = signal(false);
 
+    // ── Library of opened photometric files ──────────────────────────────
+    // Persists across sessions in localStorage. Every successful
+    // `load_file_content` call appends here (dedup by content hash),
+    // so the dashboard can show the user's full collection. Persisted
+    // automatically on change via the Effect below.
+    let (library, set_library) = signal(crate::library::Library::load());
+    Effect::new(move |_| library.get().save());
+
     // Compare panel: File B state lives here so it persists across tab switches
     let (compare_ldc_b, set_compare_ldc_b) = signal::<Option<Eulumdat>>(None);
     let (compare_label_b, set_compare_label_b) = signal::<Option<String>>(None);
@@ -748,13 +830,35 @@ pub fn App() -> impl IntoView {
     });
 
     // File loading helper - ALL formats convert to ATLA (lossless)
-    let load_file_content = move |name: String, content: String| {
+    //
+    // `source` records provenance for the library entry — pass
+    // `LibrarySource::LocalFile` for drag-drop / file picker,
+    // `LibrarySource::Url(href)` for the `?url=…` startup loader,
+    // `LibrarySource::Template` / `Bundle` for the template buttons.
+    // Every successful parse appends (or refreshes, by content-hash
+    // dedup) an entry in the persistent library.
+    let load_file_content = move |name: String, content: String, source: crate::library::LibrarySource| {
+        // Append to library before parsing so even files that fail to
+        // dispatch through any branch still leave a breadcrumb? No —
+        // unknown formats already log to console; we only want valid
+        // photometric files in the library. Push at the end, but
+        // capture the entry skeleton up front for clarity.
+        let entry = crate::library::LibraryEntry {
+            id: crate::library::content_id(&content),
+            name: name.clone(),
+            content: content.clone(),
+            source,
+            added_at: js_sys::Date::now(),
+        };
         let lower_name = name.to_lowercase();
         let is_ies = lower_name.ends_with(".ies");
         let is_atla_xml = lower_name.ends_with(".xml");
         let is_atla_json = lower_name.ends_with(".json");
         let is_ldt = lower_name.ends_with(".ldt");
         let is_spdx = lower_name.ends_with(".spdx");
+        // Raw SPD inputs: Luxeon `.spd`, generic `wavelength_nm,intensity` CSV,
+        // Signify lab CSV with its metric prelude — auto-detected by content.
+        let is_spd = lower_name.ends_with(".spd") || lower_name.ends_with(".csv");
         // OxyTech LITESTAR exports — `.oxl` carries photometry, `.oxc`
         // is a commercial-only sibling. Both share the LitePack XML
         // schema; our parser handles them identically.
@@ -787,6 +891,28 @@ pub fn App() -> impl IntoView {
                 }
                 Err(e) => {
                     web_sys::console::error_1(&format!("Failed to parse SPDX: {}", e).into());
+                }
+            }
+        } else if is_spd {
+            // Raw SPD (.spd / .csv): Luxeon datasheet `.spd`, generic
+            // `wavelength_nm,intensity` CSV, or Signify lab CSV with metric
+            // prelude. Auto-detected by content; produces a spectral-only
+            // ATLA doc (no intensity distribution) just like SPDX.
+            match eulumdat::atla::spd_loader::parse(&content) {
+                Ok(loaded) => {
+                    for warning in eulumdat::atla::spd_loader::get_warnings(&loaded) {
+                        web_sys::console::warn_1(&format!("SPD: {}", warning).into());
+                    }
+                    let doc = eulumdat::atla::spd_loader::to_atla(&loaded);
+                    clear_pristine_ldc();
+                    set_atla_doc.set(doc);
+                    set_current_file.set(Some(name));
+                    set_selected_lamp_set.set(0);
+                }
+                Err(e) => {
+                    web_sys::console::error_1(
+                        &format!("Failed to parse SPD/CSV: {}", e).into(),
+                    );
                 }
             }
         } else if is_ies {
@@ -892,8 +1018,76 @@ pub fn App() -> impl IntoView {
             }
         } else {
             web_sys::console::error_1(&"Unknown file format".into());
+            return;
         }
+        // Reached only when one of the format branches above produced a
+        // valid ATLA document. Persist the file in the library so the
+        // dashboard's collection survives reloads.
+        set_library.update(|lib| lib.push(entry));
     };
+
+    // ── `?url=…` query param — fetch and load a remote LDT/IES/ATLA ──────
+    //
+    // Drives sharing from sibling services (gldf-search.de, iesna.eu's own
+    // catalog, anyone with a CORS-friendly host). Same shape as a normal
+    // file open: we hand the fetched body to `load_file_content`, which
+    // routes by extension. Fires once at app startup; ignored if absent.
+    //
+    // The remote host MUST send `Access-Control-Allow-Origin` for the
+    // fetch to succeed. We require `https://` in production (HTTPS
+    // pages would block mixed-content `http://` fetches anyway), but
+    // permit `http://` when the editor itself runs over `http://`
+    // (local dev: `127.0.0.1:8042` → `127.0.0.1:3090` gldf-search etc).
+    // Response is capped at 5 MiB to keep a malicious URL from hanging
+    // the tab.
+    Effect::new(move |_| {
+        let Some(window) = web_sys::window() else { return };
+        let Ok(href) = window.location().href() else { return };
+        let Ok(url) = web_sys::Url::new(&href) else { return };
+        let Some(src) = url.search_params().get("url") else { return };
+        let page_is_http = url.protocol() == "http:";
+        let src_ok = src.starts_with("https://")
+            || (page_is_http && src.starts_with("http://"));
+        if !src_ok {
+            web_sys::console::warn_1(
+                &format!("ignoring url param (scheme not allowed): {}", src).into(),
+            );
+            return;
+        }
+        // Best-effort filename from the URL path. Won't always have an
+        // extension (e.g. gldf-search's `/api/ldc/<hash>/<idx>` endpoint
+        // returns raw LDT bytes with no `.ldt` suffix); we'll sniff the
+        // payload after fetch and synthesize one when needed.
+        let url_basename = src
+            .rsplit('/')
+            .next()
+            .and_then(|s| s.split('?').next())
+            .filter(|s| !s.is_empty())
+            .unwrap_or("shared")
+            .to_string();
+
+        let src_for_source = src.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            match fetch_text_capped(&src, 5 * 1024 * 1024).await {
+                Ok(content) => {
+                    let filename = ensure_extension(&url_basename, &content);
+                    // Stay on the dashboard so the library row appears
+                    // and the user can keep loading more `?url=…` links.
+                    // The library list shows everything they've opened.
+                    load_file_content(
+                        filename,
+                        content,
+                        crate::library::LibrarySource::Url(src_for_source),
+                    );
+                }
+                Err(e) => {
+                    web_sys::console::error_1(
+                        &format!("failed to load {}: {:?}", src, e).into(),
+                    );
+                }
+            }
+        });
+    });
 
     // Handlers
     let on_new_file = move |_| {
@@ -1246,7 +1440,7 @@ pub fn App() -> impl IntoView {
                 wasm_bindgen_futures::spawn_local(async move {
                     let text = gloo_file::futures::read_as_text(&file.into()).await;
                     if let Ok(content) = text {
-                        load_content(name, content);
+                        load_content(name, content, crate::library::LibrarySource::LocalFile);
                     }
                 });
             }
@@ -1274,7 +1468,7 @@ pub fn App() -> impl IntoView {
                     wasm_bindgen_futures::spawn_local(async move {
                         let text = gloo_file::futures::read_as_text(&file.into()).await;
                         if let Ok(content) = text {
-                            load_content(name, content);
+                            load_content(name, content, crate::library::LibrarySource::LocalFile);
                         }
                     });
                 }
@@ -1309,7 +1503,7 @@ pub fn App() -> impl IntoView {
                                     {move || locale.get().ui.header.open.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.oxl,.OXL,.oxc,.OXC"
+                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.spd,.SPD,.csv,.CSV,.oxl,.OXL,.oxc,.OXC"
                                         style="display: none;"
                                         on:change=on_file_input
                                         aria-label="Open LDT, IES, SPDX, XML, or JSON file"
@@ -1579,6 +1773,13 @@ pub fn App() -> impl IntoView {
                                     }
                                     set_pdf_exporting.set(false);
                                 });
+                            })
+                            library=library
+                            on_library_remove=Callback::new(move |id: String| {
+                                set_library.update(|lib| lib.remove(&id));
+                            })
+                            on_library_clear=Callback::new(move |_| {
+                                set_library.update(|lib| lib.clear());
                             })
                         />
                     }.into_any(),
