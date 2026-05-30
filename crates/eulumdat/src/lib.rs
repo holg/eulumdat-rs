@@ -190,6 +190,10 @@ mod writer;
 pub mod radiosity;
 pub mod zonal;
 
+pub use atla::colorimetry::{analyze as analyze_spd, Colorimetry};
+pub use atla::spd_loader::{
+    load as load_spd, parse as parse_spd, LoadedSpd, ReferenceMetrics, SpdLoadError,
+};
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
 pub use radiosity::{
     compute_form_factors, direct_illuminance, illuminance_at_point, radiosity_cu, solve_radiosity,
