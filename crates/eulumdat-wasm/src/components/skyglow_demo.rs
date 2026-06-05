@@ -11,10 +11,10 @@
 //! flag. To stop those users seeing a blank canvas, the build script
 //! ships **two** Bevy bundles:
 //!
-//! - `dist/skyglow/`        — WebGPU primary (full fidelity: Bloom, IBL,
-//!                            photometric IES storage textures)
+//! - `dist/skyglow/` — WebGPU primary (full fidelity: Bloom, IBL,
+//!   photometric IES storage textures)
 //! - `dist/skyglow-webgl2/` — WebGL2 fallback (degraded: no Bloom, no
-//!                            IBL, simpler clustered lighting)
+//!   IBL, simpler clustered lighting)
 //!
 //! `skyglow-loader.js` probes `navigator.gpu.requestAdapter()` and loads
 //! whichever bundle matches the user's browser. It sets

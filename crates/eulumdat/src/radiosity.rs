@@ -75,7 +75,7 @@ pub struct Patch {
     pub normal: Vec3,
     /// Patch area (m²).
     pub area: f64,
-    /// Diffuse reflectance ρ ∈ [0,1].
+    /// Diffuse reflectance ρ ∈ `[0,1]`.
     pub reflectance: f64,
     /// Which room surface this patch belongs to (for reporting / work-plane logic).
     pub surface: Surface,
@@ -673,8 +673,16 @@ pub fn workplane_stats(
         e_min = 0.0;
     }
     let u0 = if e_avg > 0.0 { e_min / e_avg } else { 0.0 };
-    let avg_min_ratio = if e_min > 0.0 { e_avg / e_min } else { f64::INFINITY };
-    let max_min_ratio = if e_min > 0.0 { e_max / e_min } else { f64::INFINITY };
+    let avg_min_ratio = if e_min > 0.0 {
+        e_avg / e_min
+    } else {
+        f64::INFINITY
+    };
+    let max_min_ratio = if e_min > 0.0 {
+        e_max / e_min
+    } else {
+        f64::INFINITY
+    };
     WorkplaneStats {
         e_avg,
         e_min,
@@ -822,8 +830,16 @@ pub fn workplane_stats_at_height(
         e_min = 0.0;
     }
     let u0 = if e_avg > 0.0 { e_min / e_avg } else { 0.0 };
-    let avg_min_ratio = if e_min > 0.0 { e_avg / e_min } else { f64::INFINITY };
-    let max_min_ratio = if e_min > 0.0 { e_max / e_min } else { f64::INFINITY };
+    let avg_min_ratio = if e_min > 0.0 {
+        e_avg / e_min
+    } else {
+        f64::INFINITY
+    };
+    let max_min_ratio = if e_min > 0.0 {
+        e_max / e_min
+    } else {
+        f64::INFINITY
+    };
     WorkplaneStats {
         e_avg,
         e_min,
@@ -892,8 +908,16 @@ pub fn workplane_stats_normative(
         e_min = 0.0;
     }
     let u0 = if e_avg > 0.0 { e_min / e_avg } else { 0.0 };
-    let avg_min_ratio = if e_min > 0.0 { e_avg / e_min } else { f64::INFINITY };
-    let max_min_ratio = if e_min > 0.0 { e_max / e_min } else { f64::INFINITY };
+    let avg_min_ratio = if e_min > 0.0 {
+        e_avg / e_min
+    } else {
+        f64::INFINITY
+    };
+    let max_min_ratio = if e_min > 0.0 {
+        e_max / e_min
+    } else {
+        f64::INFINITY
+    };
     WorkplaneStats {
         e_avg,
         e_min,
@@ -920,7 +944,10 @@ mod tests {
 
     /// A committed downlight LDT for the photometry-dependent tests.
     fn test_ldt() -> crate::Eulumdat {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/biolux_dn150.ldt");
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/biolux_dn150.ldt"
+        );
         crate::Eulumdat::from_file(path).expect("biolux_dn150.ldt fixture should parse")
     }
 
@@ -950,8 +977,16 @@ mod tests {
     #[test]
     fn floor_normal_points_up_ceiling_down() {
         let mesh = RoomMesh::new(4.0, 3.0, 2.5, refl(), 3);
-        let floor = mesh.patches.iter().find(|p| p.surface == Surface::Floor).unwrap();
-        let ceil = mesh.patches.iter().find(|p| p.surface == Surface::Ceiling).unwrap();
+        let floor = mesh
+            .patches
+            .iter()
+            .find(|p| p.surface == Surface::Floor)
+            .unwrap();
+        let ceil = mesh
+            .patches
+            .iter()
+            .find(|p| p.surface == Surface::Ceiling)
+            .unwrap();
         assert_eq!(floor.normal, Vec3::new(0.0, 0.0, 1.0));
         assert_eq!(ceil.normal, Vec3::new(0.0, 0.0, -1.0));
         assert!((floor.center.z - 0.0).abs() < 1e-9);
@@ -1081,7 +1116,10 @@ mod tests {
         let rel = (absorbed - emitted).abs() / emitted;
         // Discretisation + downward-only photometry (some flux escapes the model
         // upward at the luminaire plane) keep this loose but meaningful.
-        assert!(rel < 0.12, "energy mismatch: emitted {emitted}, absorbed {absorbed} (rel {rel:.3})");
+        assert!(
+            rel < 0.12,
+            "energy mismatch: emitted {emitted}, absorbed {absorbed} (rel {rel:.3})"
+        );
     }
 
     #[test]
@@ -1095,8 +1133,14 @@ mod tests {
         // IES RP-1 evaluates the full work plane (no EN wall border).
         assert!(EvaluationStandard::IesRp1.border_width(2.0, 8.0) == 0.0);
         // Conventional pairing with the unit system.
-        assert_eq!(EvaluationStandard::for_unit_system(true), EvaluationStandard::En12464_2021);
-        assert_eq!(EvaluationStandard::for_unit_system(false), EvaluationStandard::IesRp1);
+        assert_eq!(
+            EvaluationStandard::for_unit_system(true),
+            EvaluationStandard::En12464_2021
+        );
+        assert_eq!(
+            EvaluationStandard::for_unit_system(false),
+            EvaluationStandard::IesRp1
+        );
     }
 
     #[test]
@@ -1105,10 +1149,22 @@ mod tests {
         let (l, w, h) = (4.0, 3.0, 2.5);
         // A few luminaires so the centre is brighter than the dark edges.
         let lums = vec![
-            Luminaire { pos: Vec3::new(1.0, 1.0, h), flux: 300.0 },
-            Luminaire { pos: Vec3::new(3.0, 1.0, h), flux: 300.0 },
-            Luminaire { pos: Vec3::new(1.0, 2.0, h), flux: 300.0 },
-            Luminaire { pos: Vec3::new(3.0, 2.0, h), flux: 300.0 },
+            Luminaire {
+                pos: Vec3::new(1.0, 1.0, h),
+                flux: 300.0,
+            },
+            Luminaire {
+                pos: Vec3::new(3.0, 1.0, h),
+                flux: 300.0,
+            },
+            Luminaire {
+                pos: Vec3::new(1.0, 2.0, h),
+                flux: 300.0,
+            },
+            Luminaire {
+                pos: Vec3::new(3.0, 2.0, h),
+                flux: 300.0,
+            },
         ];
         let mesh = RoomMesh::new(l, w, h, refl(), 12);
         let ff = compute_form_factors(&mesh);
@@ -1121,8 +1177,18 @@ mod tests {
         assert!(inset.border > 0.0 && inset.patches > 0);
         // Excluding the dark border raises both the average and U₀ — the effect
         // that explains the DIALux gap.
-        assert!(inset.e_avg >= whole.e_avg, "inset avg {} < whole {}", inset.e_avg, whole.e_avg);
-        assert!(inset.u0 > whole.u0, "inset U0 {} !> whole U0 {}", inset.u0, whole.u0);
+        assert!(
+            inset.e_avg >= whole.e_avg,
+            "inset avg {} < whole {}",
+            inset.e_avg,
+            whole.e_avg
+        );
+        assert!(
+            inset.u0 > whole.u0,
+            "inset U0 {} !> whole U0 {}",
+            inset.u0,
+            whole.u0
+        );
     }
 
     #[test]
@@ -1142,7 +1208,11 @@ mod tests {
         let lums: Vec<Luminaire> = (0..2)
             .flat_map(|i| {
                 (0..3).map(move |j| Luminaire {
-                    pos: Vec3::new((i as f64 + 0.5) * (l / 2.0), (j as f64 + 0.5) * (w / 3.0), h),
+                    pos: Vec3::new(
+                        (i as f64 + 0.5) * (l / 2.0),
+                        (j as f64 + 0.5) * (w / 3.0),
+                        h,
+                    ),
                     flux: 306.0,
                 })
             })
@@ -1153,10 +1223,22 @@ mod tests {
         let res = solve_radiosity(&mesh, &ff, &direct, 300, 1e-6);
 
         let floor = workplane_stats_at_height(
-            &mesh, &res, &lums, &ldt, WorkPlane::Warehouse, EvaluationStandard::None, 16,
+            &mesh,
+            &res,
+            &lums,
+            &ldt,
+            WorkPlane::Warehouse,
+            EvaluationStandard::None,
+            16,
         );
         let desk = workplane_stats_at_height(
-            &mesh, &res, &lums, &ldt, WorkPlane::Office, EvaluationStandard::None, 16,
+            &mesh,
+            &res,
+            &lums,
+            &ldt,
+            WorkPlane::Office,
+            EvaluationStandard::None,
+            16,
         );
         assert!(
             desk.e_avg > floor.e_avg,
@@ -1215,10 +1297,22 @@ mod tests {
         let ldt = test_ldt();
         let (l, w, h) = (4.0, 3.0, 2.5);
         let lums = vec![
-            Luminaire { pos: Vec3::new(1.0, 1.0, h), flux: 300.0 },
-            Luminaire { pos: Vec3::new(3.0, 1.0, h), flux: 300.0 },
-            Luminaire { pos: Vec3::new(1.0, 2.0, h), flux: 300.0 },
-            Luminaire { pos: Vec3::new(3.0, 2.0, h), flux: 300.0 },
+            Luminaire {
+                pos: Vec3::new(1.0, 1.0, h),
+                flux: 300.0,
+            },
+            Luminaire {
+                pos: Vec3::new(3.0, 1.0, h),
+                flux: 300.0,
+            },
+            Luminaire {
+                pos: Vec3::new(1.0, 2.0, h),
+                flux: 300.0,
+            },
+            Luminaire {
+                pos: Vec3::new(3.0, 2.0, h),
+                flux: 300.0,
+            },
         ];
         let mesh = RoomMesh::new(l, w, h, refl(), 12);
         let ff = compute_form_factors(&mesh);
@@ -1226,7 +1320,12 @@ mod tests {
         let res = solve_radiosity(&mesh, &ff, &direct, 300, 1e-6);
 
         let norm = workplane_stats_normative(
-            &mesh, &res, &lums, &ldt, WorkPlane::Office, EvaluationStandard::En12464_2021,
+            &mesh,
+            &res,
+            &lums,
+            &ldt,
+            WorkPlane::Office,
+            EvaluationStandard::En12464_2021,
         );
         assert!(norm.patches > 0 && norm.border > 0.0);
         assert!(norm.e_avg > 0.0 && norm.e_min > 0.0);
@@ -1237,7 +1336,12 @@ mod tests {
         // argument to vary — so the result is fully determined by (room,
         // standard). Re-evaluating gives byte-identical stats.
         let norm2 = workplane_stats_normative(
-            &mesh, &res, &lums, &ldt, WorkPlane::Office, EvaluationStandard::En12464_2021,
+            &mesh,
+            &res,
+            &lums,
+            &ldt,
+            WorkPlane::Office,
+            EvaluationStandard::En12464_2021,
         );
         assert_eq!(norm.patches, norm2.patches);
         assert_eq!(norm.e_max.to_bits(), norm2.e_max.to_bits());
@@ -1248,15 +1352,28 @@ mod tests {
         // removes. Both find essentially the same peak field, but the free max
         // depends on `grid` while the normative one does not.
         let coarse = workplane_stats_at_height(
-            &mesh, &res, &lums, &ldt, WorkPlane::Office, EvaluationStandard::En12464_2021, 8,
+            &mesh,
+            &res,
+            &lums,
+            &ldt,
+            WorkPlane::Office,
+            EvaluationStandard::En12464_2021,
+            8,
         );
         let fine = workplane_stats_at_height(
-            &mesh, &res, &lums, &ldt, WorkPlane::Office, EvaluationStandard::En12464_2021, 80,
+            &mesh,
+            &res,
+            &lums,
+            &ldt,
+            WorkPlane::Office,
+            EvaluationStandard::En12464_2021,
+            80,
         );
         assert!(
             (coarse.e_max - fine.e_max).abs() > 1e-9,
             "free-mesh max should drift with the grid arg: coarse {} vs fine {}",
-            coarse.e_max, fine.e_max
+            coarse.e_max,
+            fine.e_max
         );
     }
 
@@ -1270,11 +1387,22 @@ mod tests {
             pos: Vec3::new(l / 2.0, w / 2.0, h),
             flux: 1000.0,
         }];
-        let dark = SurfaceReflectances { ceiling: 0.1, wall: 0.1, floor: 0.1 };
-        let bright = SurfaceReflectances { ceiling: 0.8, wall: 0.7, floor: 0.3 };
+        let dark = SurfaceReflectances {
+            ceiling: 0.1,
+            wall: 0.1,
+            floor: 0.1,
+        };
+        let bright = SurfaceReflectances {
+            ceiling: 0.8,
+            wall: 0.7,
+            floor: 0.3,
+        };
         let (cu_dark, _, _) = radiosity_cu(l, w, h, dark, &lum, &ldt, 8);
         let (cu_bright, _, _) = radiosity_cu(l, w, h, bright, &lum, &ldt, 8);
-        assert!(cu_bright > cu_dark, "cu_bright {cu_bright} !> cu_dark {cu_dark}");
+        assert!(
+            cu_bright > cu_dark,
+            "cu_bright {cu_bright} !> cu_dark {cu_dark}"
+        );
         assert!(cu_dark > 0.0 && cu_bright < 1.5);
     }
 }

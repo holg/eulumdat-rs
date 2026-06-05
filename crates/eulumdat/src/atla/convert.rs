@@ -7,6 +7,18 @@ use crate::atla::types::*;
 
 use crate::{Eulumdat, LampSet, Symmetry as EulumdatSymmetry, TypeIndicator};
 
+/// Map an EULUMDAT lamp count to a valid TM-33 `Quantity` (a non-negative
+/// integer). In EULUMDAT a `num_lamps` of `-1` is the convention for absolute
+/// photometry, which has no lamp count — emit `1` rather than letting the `i32`
+/// wrap to `u32::MAX` (4294967295), which produced nonsensical XML.
+fn lamp_count_to_quantity(num_lamps: i32) -> u32 {
+    if num_lamps <= 0 {
+        1
+    } else {
+        num_lamps as u32
+    }
+}
+
 impl From<&Eulumdat> for LuminaireOpticalData {
     fn from(ldt: &Eulumdat) -> Self {
         let mut doc = LuminaireOpticalData::new();
@@ -78,7 +90,12 @@ impl From<&Eulumdat> for LuminaireOpticalData {
                     position: None,
                 }],
                 mounting: None,
-                num_emitters: Some(ldt.lamp_sets.iter().map(|ls| ls.num_lamps as u32).sum()),
+                num_emitters: Some(
+                    ldt.lamp_sets
+                        .iter()
+                        .map(|ls| lamp_count_to_quantity(ls.num_lamps))
+                        .sum(),
+                ),
             });
         }
 
@@ -130,6 +147,8 @@ fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumda
                 horizontal_angles,
                 vertical_angles: ldt.g_angles.clone(),
                 intensities: ldt.intensities.clone(),
+                // num_lamps == -1 in EULUMDAT means absolute photometry.
+                absolute_photometry: Some(ls.num_lamps < 0),
                 ..Default::default()
             })
         }
@@ -141,7 +160,7 @@ fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumda
         } else {
             Some(ls.lamp_type.clone())
         },
-        quantity: ls.num_lamps as u32,
+        quantity: lamp_count_to_quantity(ls.num_lamps),
         rated_lumens: Some(ls.total_luminous_flux),
         measured_lumens: Some(ls.total_luminous_flux),
         input_watts: Some(ls.wattage_with_ballast),
@@ -184,6 +203,8 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
             // Only take the C-angles that correspond to stored intensity data
             ldt.c_angles[..num_intensity_rows.min(ldt.c_angles.len())].to_vec()
         };
+        // num_lamps == -1 in any lamp set signals absolute photometry.
+        let is_absolute = ldt.lamp_sets.iter().any(|ls| ls.num_lamps < 0);
         Some(IntensityDistribution {
             photometry_type: PhotometryType::TypeC,
             metric: IntensityMetric::Luminous,
@@ -191,6 +212,7 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
             horizontal_angles,
             vertical_angles: ldt.g_angles.clone(),
             intensities: ldt.intensities.clone(),
+            absolute_photometry: Some(is_absolute),
             ..Default::default()
         })
     } else {
@@ -205,7 +227,15 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
             .lamp_sets
             .iter()
             .filter(|ls| !ls.lamp_type.is_empty())
-            .map(|ls| format!("{}x {}", ls.num_lamps, ls.lamp_type))
+            .map(|ls| {
+                // num_lamps == -1 is the absolute-photometry sentinel, not a
+                // real count — don't print "-1x LED". Omit the count prefix.
+                if ls.num_lamps > 0 {
+                    format!("{}x {}", ls.num_lamps, ls.lamp_type)
+                } else {
+                    ls.lamp_type.clone()
+                }
+            })
             .collect();
         if lamp_desc.is_empty() {
             None
@@ -220,7 +250,7 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
         quantity: ldt
             .lamp_sets
             .iter()
-            .map(|ls| ls.num_lamps as u32)
+            .map(|ls| lamp_count_to_quantity(ls.num_lamps))
             .sum::<u32>()
             .max(1),
         rated_lumens: if total_lumens > 0.0 {
@@ -290,8 +320,18 @@ impl From<&LuminaireOpticalData> for Eulumdat {
         // Emitters -> lamp sets and intensity data
         // Each emitter becomes one lamp set (preserving multi-lamp-set data)
         for emitter in &doc.emitters {
+            // Restore EULUMDAT's absolute-photometry convention: -1 lamps.
+            let is_absolute = emitter
+                .intensity_distribution
+                .as_ref()
+                .and_then(|d| d.absolute_photometry)
+                .unwrap_or(false);
             let lamp_set = LampSet {
-                num_lamps: emitter.quantity as i32,
+                num_lamps: if is_absolute {
+                    -1
+                } else {
+                    emitter.quantity as i32
+                },
                 lamp_type: emitter.description.clone().unwrap_or_default(),
                 total_luminous_flux: emitter
                     .measured_lumens

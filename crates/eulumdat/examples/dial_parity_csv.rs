@@ -5,8 +5,8 @@
 //! Run: cargo run -q -p eulumdat --example dial_parity_csv
 
 use eulumdat::{
-    compute_form_factors, direct_illuminance, solve_radiosity, workplane_stats_normative,
-    EvaluationStandard, Eulumdat, Luminaire, RoomMesh, SurfaceReflectances, Vec3, WorkPlane,
+    compute_form_factors, direct_illuminance, solve_radiosity, workplane_stats_normative, Eulumdat,
+    EvaluationStandard, Luminaire, RoomMesh, SurfaceReflectances, Vec3, WorkPlane,
 };
 
 const MF: f64 = 0.80;
@@ -36,7 +36,11 @@ fn produkt(key: &str) -> &'static str {
 
 /// German decimal: dot -> comma, drop trailing ".0" (2.0 -> "2", 2.5 -> "2,5").
 fn de(v: f64) -> String {
-    let s = if v.fract() == 0.0 { format!("{v:.0}") } else { format!("{v}") };
+    let s = if v.fract() == 0.0 {
+        format!("{v:.0}")
+    } else {
+        format!("{v}")
+    };
     s.replace('.', ",")
 }
 
@@ -69,8 +73,11 @@ fn main() {
         }
         let f: Vec<&str> = line.split(',').collect();
         let lum = f[0];
-        let (l, w, h): (f64, f64, f64) =
-            (f[1].parse().unwrap(), f[2].parse().unwrap(), f[3].parse().unwrap());
+        let (l, w, h): (f64, f64, f64) = (
+            f[1].parse().unwrap(),
+            f[2].parse().unwrap(),
+            f[3].parse().unwrap(),
+        );
         let target: f64 = f[4].parse().unwrap();
         let typ = if f[5] == "buero" { "Büro" } else { "Flur" };
         let (nx, ny): (usize, usize) = (f[6].parse().unwrap(), f[7].parse().unwrap());
@@ -96,14 +103,27 @@ fn main() {
                 });
             }
         }
-        let refl = SurfaceReflectances { ceiling: 0.7, wall: 0.5, floor: 0.2 };
+        let refl = SurfaceReflectances {
+            ceiling: 0.7,
+            wall: 0.5,
+            floor: 0.2,
+        };
         let mesh = RoomMesh::new(l, w, h, refl, DIVISIONS);
         let ff = compute_form_factors(&mesh);
         let direct = direct_illuminance(&mesh, &lums, &ldt);
         let res = solve_radiosity(&mesh, &ff, &direct, 250, 1e-6);
-        let plane = if typ == "Büro" { WorkPlane::Office } else { WorkPlane::Corridor };
+        let plane = if typ == "Büro" {
+            WorkPlane::Office
+        } else {
+            WorkPlane::Corridor
+        };
         let s = workplane_stats_normative(
-            &mesh, &res, &lums, &ldt, plane, EvaluationStandard::En12464_2021,
+            &mesh,
+            &res,
+            &lums,
+            &ldt,
+            plane,
+            EvaluationStandard::En12464_2021,
         );
         let ours_pct = (100.0 * s.e_avg / dial_e).round();
 
@@ -127,7 +147,10 @@ fn main() {
         ));
     }
 
-    let path = format!("{}/../../docs/dial_parity_measured.csv", env!("CARGO_MANIFEST_DIR"));
+    let path = format!(
+        "{}/../../docs/dial_parity_measured.csv",
+        env!("CARGO_MANIFEST_DIR")
+    );
     std::fs::write(&path, &out).expect("write csv");
     print!("{out}");
     eprintln!("\n-> wrote {path}");

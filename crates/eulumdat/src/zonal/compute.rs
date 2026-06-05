@@ -447,16 +447,8 @@ pub fn compute_zonal(
     target_lpd: Option<f64>,
 ) -> ZonalResult {
     // Extract luminaire data
-    let luminaire_lumens: f64 = ldt
-        .lamp_sets
-        .iter()
-        .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-        .sum();
-    let luminaire_watts: f64 = ldt
-        .lamp_sets
-        .iter()
-        .map(|ls| ls.wattage_with_ballast * ls.num_lamps.unsigned_abs() as f64)
-        .sum();
+    let luminaire_lumens: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
+    let luminaire_watts: f64 = ldt.lamp_sets.iter().map(|ls| ls.wattage_with_ballast).sum();
     let luminaire_watts = if luminaire_watts > 0.0 {
         luminaire_watts
     } else {

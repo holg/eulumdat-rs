@@ -134,7 +134,12 @@ pub fn parse(content: &str) -> Result<LoadedSpd, SpdLoadError> {
         return parse_signify(content);
     }
     // Generic `wavelength_nm,intensity` header.
-    let first_line = content.lines().next().unwrap_or("").trim().to_ascii_lowercase();
+    let first_line = content
+        .lines()
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
     if first_line.starts_with("wavelength_nm") || first_line == "wavelength,intensity" {
         return parse_named_csv(content);
     }
@@ -166,16 +171,26 @@ fn parse_luxeon_spd(content: &str) -> Result<LoadedSpd, SpdLoadError> {
             }
             continue;
         }
-        let mut it = line.split(|c: char| c.is_whitespace() || c == ',').filter(|s| !s.is_empty());
+        let mut it = line
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty());
         if let (Some(w), Some(v)) = (it.next(), it.next()) {
-            let (Ok(w), Ok(v)) = (w.parse::<f64>(), v.parse::<f64>()) else { continue };
+            let (Ok(w), Ok(v)) = (w.parse::<f64>(), v.parse::<f64>()) else {
+                continue;
+            };
             pairs.push((w, v));
         }
     }
     if pairs.is_empty() {
-        return Err(SpdLoadError::Parse("Luxeon .spd: no wavelength/value rows".into()));
+        return Err(SpdLoadError::Parse(
+            "Luxeon .spd: no wavelength/value rows".into(),
+        ));
     }
-    Ok(LoadedSpd { spd: build_spd(pairs), reference: None, label })
+    Ok(LoadedSpd {
+        spd: build_spd(pairs),
+        reference: None,
+        label,
+    })
 }
 
 fn parse_named_csv(content: &str) -> Result<LoadedSpd, SpdLoadError> {
@@ -190,14 +205,22 @@ fn parse_named_csv(content: &str) -> Result<LoadedSpd, SpdLoadError> {
         }
         let mut it = line.split(',');
         if let (Some(w), Some(v)) = (it.next(), it.next()) {
-            let (Ok(w), Ok(v)) = (w.trim().parse::<f64>(), v.trim().parse::<f64>()) else { continue };
+            let (Ok(w), Ok(v)) = (w.trim().parse::<f64>(), v.trim().parse::<f64>()) else {
+                continue;
+            };
             pairs.push((w, v));
         }
     }
     if pairs.is_empty() {
-        return Err(SpdLoadError::Parse("named CSV: no rows after header".into()));
+        return Err(SpdLoadError::Parse(
+            "named CSV: no rows after header".into(),
+        ));
     }
-    Ok(LoadedSpd { spd: build_spd(pairs), reference: None, label: String::new() })
+    Ok(LoadedSpd {
+        spd: build_spd(pairs),
+        reference: None,
+        label: String::new(),
+    })
 }
 
 fn parse_two_column(content: &str) -> Result<LoadedSpd, SpdLoadError> {
@@ -207,7 +230,9 @@ fn parse_two_column(content: &str) -> Result<LoadedSpd, SpdLoadError> {
         if line.is_empty() {
             continue;
         }
-        let mut it = line.split(|c: char| c.is_whitespace() || c == ',').filter(|s| !s.is_empty());
+        let mut it = line
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|s| !s.is_empty());
         if let (Some(w), Some(v)) = (it.next(), it.next()) {
             if let (Ok(w), Ok(v)) = (w.parse::<f64>(), v.parse::<f64>()) {
                 pairs.push((w, v));
@@ -215,9 +240,15 @@ fn parse_two_column(content: &str) -> Result<LoadedSpd, SpdLoadError> {
         }
     }
     if pairs.is_empty() {
-        return Err(SpdLoadError::Parse("fallback two-column: no numeric rows".into()));
+        return Err(SpdLoadError::Parse(
+            "fallback two-column: no numeric rows".into(),
+        ));
     }
-    Ok(LoadedSpd { spd: build_spd(pairs), reference: None, label: String::new() })
+    Ok(LoadedSpd {
+        spd: build_spd(pairs),
+        reference: None,
+        label: String::new(),
+    })
 }
 
 fn parse_signify(content: &str) -> Result<LoadedSpd, SpdLoadError> {
@@ -263,7 +294,11 @@ fn parse_signify(content: &str) -> Result<LoadedSpd, SpdLoadError> {
             "Signify: prelude parsed but no SPD body after `wavelength` line".into(),
         ));
     }
-    Ok(LoadedSpd { spd: build_spd(pairs), reference: Some(metrics), label: String::new() })
+    Ok(LoadedSpd {
+        spd: build_spd(pairs),
+        reference: Some(metrics),
+        label: String::new(),
+    })
 }
 
 /// Map a Signify prelude label/value pair into the typed [`ReferenceMetrics`].
@@ -276,44 +311,72 @@ fn assign_signify_metric(m: &mut ReferenceMetrics, label: &str, raw: &str) {
     };
     let num = numeric_str.parse::<f64>().ok();
     let l = label;
-    if l.starts_with("CIE1931 colorspace tristimulus values X") { m.cie_x = num; }
-    else if l.starts_with("CIE1931 colorspace tristimulus values Y") { m.cie_y = num; }
-    else if l.starts_with("CIE1931 colorspace tristimulus values Z") { m.cie_z = num; }
-    else if l.starts_with("CIE1931 colorspace chromaticity coordinates x") { m.chromaticity_x = num; }
-    else if l.starts_with("CIE1931 colorspace chromaticity coordinates y") { m.chromaticity_y = num; }
-    else if l.starts_with("CIE1960 colorspace chromaticity coordinates u") && !l.contains('\'') { m.cie1960_u = num; }
-    else if l.starts_with("CIE1960 colorspace chromaticity coordinates v") && !l.contains('\'') { m.cie1960_v = num; }
-    else if l.starts_with("CIE1976 colorspace chromaticity coordinates u'") { m.cie1976_u_prime = num; }
-    else if l.starts_with("CIE1976 colorspace chromaticity coordinates v'") { m.cie1976_v_prime = num; }
-    else if l.starts_with("Color temperature CCT") { m.cct_k = num; }
-    else if l.starts_with("Color shift Duv") { m.duv = num; }
-    else if l.starts_with("Color render index Ra") { m.ra = num; }
-    else if let Some(idx) = l.strip_prefix("Color render index R") {
+    if l.starts_with("CIE1931 colorspace tristimulus values X") {
+        m.cie_x = num;
+    } else if l.starts_with("CIE1931 colorspace tristimulus values Y") {
+        m.cie_y = num;
+    } else if l.starts_with("CIE1931 colorspace tristimulus values Z") {
+        m.cie_z = num;
+    } else if l.starts_with("CIE1931 colorspace chromaticity coordinates x") {
+        m.chromaticity_x = num;
+    } else if l.starts_with("CIE1931 colorspace chromaticity coordinates y") {
+        m.chromaticity_y = num;
+    } else if l.starts_with("CIE1960 colorspace chromaticity coordinates u") && !l.contains('\'') {
+        m.cie1960_u = num;
+    } else if l.starts_with("CIE1960 colorspace chromaticity coordinates v") && !l.contains('\'') {
+        m.cie1960_v = num;
+    } else if l.starts_with("CIE1976 colorspace chromaticity coordinates u'") {
+        m.cie1976_u_prime = num;
+    } else if l.starts_with("CIE1976 colorspace chromaticity coordinates v'") {
+        m.cie1976_v_prime = num;
+    } else if l.starts_with("Color temperature CCT") {
+        m.cct_k = num;
+    } else if l.starts_with("Color shift Duv") {
+        m.duv = num;
+    } else if l.starts_with("Color render index Ra") {
+        m.ra = num;
+    } else if let Some(idx) = l.strip_prefix("Color render index R") {
         if let Ok(i) = idx.parse::<usize>() {
-            if (1..=15).contains(&i) { m.r_special[i - 1] = num; }
+            if (1..=15).contains(&i) {
+                m.r_special[i - 1] = num;
+            }
         }
-    }
-    else if l.starts_with("Peak wavelength Lp") { m.peak_wavelength_nm = num; }
-    else if l.starts_with("Half-peak width HW") { m.half_peak_width_nm = num; }
-    else if l.starts_with("Dominant wavelength Ld") { m.dominant_wavelength_nm = num; }
-    else if l.starts_with("Color purity Purity") { m.purity_pct = num; }
-    else if l.starts_with("Light-dark vision ratio S/P") { m.sp_ratio = num; }
-    else if l.starts_with("Illuminance Lux") { m.illuminance_lx = num; }
-    else if l.starts_with("Irradiance Ee") { m.irradiance_w_m2 = num; }
-    else if l.starts_with("Color quality scale CQS") { m.cqs = num; }
-    else if l.starts_with("Gamut area index GAI_EES") { m.gai_ees = num; }
-    else if l.starts_with("Gamut area index GAI_BB_8") { m.gai_bb_8 = num; }
-    else if l.starts_with("Gamut area index GAI_BB_15") { m.gai_bb_15 = num; }
-    else if l.starts_with("Equivalen melanopic lux EML") { m.eml = num; }
-    else if l.starts_with("Melanopic equivalent daylight illuminance M_EDI") { m.m_edi = num; }
-    else if l.starts_with("Photosynthetically active radiation PAR") { m.par_w_m2 = num; }
-    else if l.starts_with("Photosynthetic photon flux density PPFD") { m.ppfd_umol_m2s = num; }
-    else if l.starts_with("Yield photon flux density YPFD") { m.ypfd_umol_m2s = num; }
-    else if l.starts_with("Blue light hazard weighted irradiance Eb") {
+    } else if l.starts_with("Peak wavelength Lp") {
+        m.peak_wavelength_nm = num;
+    } else if l.starts_with("Half-peak width HW") {
+        m.half_peak_width_nm = num;
+    } else if l.starts_with("Dominant wavelength Ld") {
+        m.dominant_wavelength_nm = num;
+    } else if l.starts_with("Color purity Purity") {
+        m.purity_pct = num;
+    } else if l.starts_with("Light-dark vision ratio S/P") {
+        m.sp_ratio = num;
+    } else if l.starts_with("Illuminance Lux") {
+        m.illuminance_lx = num;
+    } else if l.starts_with("Irradiance Ee") {
+        m.irradiance_w_m2 = num;
+    } else if l.starts_with("Color quality scale CQS") {
+        m.cqs = num;
+    } else if l.starts_with("Gamut area index GAI_EES") {
+        m.gai_ees = num;
+    } else if l.starts_with("Gamut area index GAI_BB_8") {
+        m.gai_bb_8 = num;
+    } else if l.starts_with("Gamut area index GAI_BB_15") {
+        m.gai_bb_15 = num;
+    } else if l.starts_with("Equivalen melanopic lux EML") {
+        m.eml = num;
+    } else if l.starts_with("Melanopic equivalent daylight illuminance M_EDI") {
+        m.m_edi = num;
+    } else if l.starts_with("Photosynthetically active radiation PAR") {
+        m.par_w_m2 = num;
+    } else if l.starts_with("Photosynthetic photon flux density PPFD") {
+        m.ppfd_umol_m2s = num;
+    } else if l.starts_with("Yield photon flux density YPFD") {
+        m.ypfd_umol_m2s = num;
+    } else if l.starts_with("Blue light hazard weighted irradiance Eb") {
         m.blue_light_hazard_w_m2 = num;
         m.blue_light_risk_group = after_slash.map(|s| s.to_string());
-    }
-    else if l.starts_with("Color tolerance SDCM") {
+    } else if l.starts_with("Color tolerance SDCM") {
         // "2.48/3000" → SDCM value is the first part.
         m.sdcm = num;
     }
@@ -385,7 +448,11 @@ fn build_spd(pairs: Vec<(f64, f64)>) -> SpectralDistribution {
 /// Polar/cartesian diagrams will be empty for these files — the same caveat
 /// as SPDX (see [`crate::atla::spdx::to_atla`]).
 pub fn to_atla(loaded: &LoadedSpd) -> LuminaireOpticalData {
-    let label = if loaded.label.is_empty() { None } else { Some(loaded.label.clone()) };
+    let label = if loaded.label.is_empty() {
+        None
+    } else {
+        Some(loaded.label.clone())
+    };
     let mut doc = LuminaireOpticalData {
         header: Header {
             description: label.clone(),
@@ -423,8 +490,10 @@ pub fn to_atla(loaded: &LoadedSpd) -> LuminaireOpticalData {
 /// User-facing warnings for an SPD-only load: same shape as `spdx::get_warnings`.
 pub fn get_warnings(loaded: &LoadedSpd) -> Vec<String> {
     let mut w = vec![
-        "SPD file contains spectral data only — no photometric (intensity) distribution.".to_string(),
-        "Polar/cartesian diagrams will be empty. Only the spectral diagram is available.".to_string(),
+        "SPD file contains spectral data only — no photometric (intensity) distribution."
+            .to_string(),
+        "Polar/cartesian diagrams will be empty. Only the spectral diagram is available."
+            .to_string(),
     ];
     if loaded.spd.wavelengths.len() < 20 {
         w.push(format!(
@@ -433,7 +502,9 @@ pub fn get_warnings(loaded: &LoadedSpd) -> Vec<String> {
         ));
     }
     if loaded.reference.is_some() {
-        w.push("Vendor reference metrics (CCT, Duv, CRI) were parsed from the file prelude.".into());
+        w.push(
+            "Vendor reference metrics (CCT, Duv, CRI) were parsed from the file prelude.".into(),
+        );
     }
     w
 }
@@ -524,11 +595,17 @@ mod tests {
         let doc = to_atla(&loaded);
         assert_eq!(doc.emitters.len(), 1);
         let e = &doc.emitters[0];
-        assert!(e.spectral_distribution.is_some(), "SPD must be attached to emitter");
+        assert!(
+            e.spectral_distribution.is_some(),
+            "SPD must be attached to emitter"
+        );
         assert_eq!(e.cct, Some(2997.0));
         assert_eq!(e.duv, Some(0.001));
         assert_eq!(e.sp_ratio, Some(4.86));
-        let cr = e.color_rendering.as_ref().expect("ColorRendering populated");
+        let cr = e
+            .color_rendering
+            .as_ref()
+            .expect("ColorRendering populated");
         assert_eq!(cr.ra, Some(85.9));
         assert_eq!(cr.r9, Some(47.9));
         // Intensity distribution must NOT be present — this is spectral-only.
@@ -549,14 +626,18 @@ mod tests {
         let mut total = 0;
         for sub in ["Luxeon_SPD_fixed", "luxeon_95CRI", "Youji-Nite", "Signify"] {
             let dir = format!("{root}/{sub}");
-            let Ok(entries) = std::fs::read_dir(&dir) else { continue };
+            let Ok(entries) = std::fs::read_dir(&dir) else {
+                continue;
+            };
             for e in entries.flatten() {
                 let p = e.path();
                 let ok_ext = matches!(
                     p.extension().and_then(|s| s.to_str()),
                     Some("spd") | Some("csv")
                 );
-                if !ok_ext { continue; }
+                if !ok_ext {
+                    continue;
+                }
                 let r = load(&p).unwrap_or_else(|e| panic!("{}: {e}", p.display()));
                 assert!(
                     !r.spd.wavelengths.is_empty() && r.spd.values.len() == r.spd.wavelengths.len(),
@@ -564,7 +645,10 @@ mod tests {
                     p.display()
                 );
                 if sub == "Signify" {
-                    let m = r.reference.as_ref().expect("Signify file must yield metrics");
+                    let m = r
+                        .reference
+                        .as_ref()
+                        .expect("Signify file must yield metrics");
                     assert!(m.cct_k.is_some(), "{}: missing CCT in prelude", p.display());
                     assert!(m.ra.is_some(), "{}: missing Ra in prelude", p.display());
                 }

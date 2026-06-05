@@ -432,7 +432,9 @@ fn validate_inner(
 
     for (i, lamp_set) in ldt.lamp_sets.iter().enumerate() {
         let idx = i + 1;
-        if lamp_set.num_lamps <= 0 {
+        // num_lamps == -1 is the valid EULUMDAT absolute-photometry sentinel;
+        // only a count of 0 (or other negatives) is genuinely invalid.
+        if lamp_set.num_lamps == 0 || lamp_set.num_lamps < -1 {
             warnings.push(ValidationWarning {
                 code: "W025",
                 message: msg("W025", &[&idx, &lamp_set.num_lamps]),

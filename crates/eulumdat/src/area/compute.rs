@@ -98,11 +98,7 @@ pub fn compute_area_illuminance(
     let dy = area_depth / n as f64;
 
     // Flux scale from lamp data
-    let total_flux: f64 = ldt
-        .lamp_sets
-        .iter()
-        .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-        .sum();
+    let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
     let flux_scale = total_flux / 1000.0 * proration_factor;
 
     let mut lux_grid = vec![vec![0.0_f64; n]; n];
@@ -156,11 +152,7 @@ pub fn compute_area_illuminance_mixed(
     let flux_scales: Vec<f64> = ldts
         .iter()
         .map(|ldt| {
-            let total_flux: f64 = ldt
-                .lamp_sets
-                .iter()
-                .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-                .sum();
+            let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
             total_flux / 1000.0 * proration_factor
         })
         .collect();
@@ -338,11 +330,7 @@ pub fn compute_area_illuminance_polygon(
     let dx = area_width / n as f64;
     let dy = area_depth / n as f64;
 
-    let total_flux: f64 = ldt
-        .lamp_sets
-        .iter()
-        .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-        .sum();
+    let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
     let flux_scale = total_flux / 1000.0 * proration_factor;
 
     let mut lux_grid = vec![vec![0.0_f64; n]; n];
@@ -507,11 +495,7 @@ pub fn compute_wall_illuminance(
     normal: (f64, f64, f64),
     proration_factor: f64,
 ) -> Vec<Vec<f64>> {
-    let total_flux: f64 = ldt
-        .lamp_sets
-        .iter()
-        .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-        .sum();
+    let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
     let flux_scale = total_flux / 1000.0 * proration_factor;
 
     wall_points

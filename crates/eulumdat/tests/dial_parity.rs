@@ -12,8 +12,8 @@
 //! This test is the guard that the fix holds.
 
 use eulumdat::{
-    compute_form_factors, direct_illuminance, solve_radiosity, workplane_stats_normative,
-    EvaluationStandard, Eulumdat, Luminaire, RoomMesh, SurfaceReflectances, Vec3, WorkPlane,
+    compute_form_factors, direct_illuminance, solve_radiosity, workplane_stats_normative, Eulumdat,
+    EvaluationStandard, Luminaire, RoomMesh, SurfaceReflectances, Vec3, WorkPlane,
 };
 
 const MF: f64 = 0.80; // DIALux default Wartungsfaktor (maintained value).
@@ -89,13 +89,28 @@ fn evaluate(c: &Case, ldt: &Eulumdat) -> (f64, f64) {
             });
         }
     }
-    let refl = SurfaceReflectances { ceiling: 0.7, wall: 0.5, floor: 0.2 };
+    let refl = SurfaceReflectances {
+        ceiling: 0.7,
+        wall: 0.5,
+        floor: 0.2,
+    };
     let mesh = RoomMesh::new(c.l, c.w, c.h, refl, DIVISIONS);
     let ff = compute_form_factors(&mesh);
     let direct = direct_illuminance(&mesh, &lums, ldt);
     let res = solve_radiosity(&mesh, &ff, &direct, 250, 1e-6);
-    let plane = if c.is_office { WorkPlane::Office } else { WorkPlane::Corridor };
-    let s = workplane_stats_normative(&mesh, &res, &lums, ldt, plane, EvaluationStandard::En12464_2021);
+    let plane = if c.is_office {
+        WorkPlane::Office
+    } else {
+        WorkPlane::Corridor
+    };
+    let s = workplane_stats_normative(
+        &mesh,
+        &res,
+        &lums,
+        ldt,
+        plane,
+        EvaluationStandard::En12464_2021,
+    );
     (s.e_avg, s.u0)
 }
 
@@ -108,7 +123,13 @@ fn office_cases_match_dial_within_5pct() {
         assert!(
             (0.95..=1.05).contains(&ratio),
             "{} {}x{}x{} office: ours {:.0} lx vs DIAL {:.0} lx (ratio {:.3}) outside ±5%",
-            c.lum, c.l, c.w, c.h, e, c.dial_e, ratio
+            c.lum,
+            c.l,
+            c.w,
+            c.h,
+            e,
+            c.dial_e,
+            ratio
         );
     }
 }
@@ -129,7 +150,13 @@ fn office_u0_matches_dial_within_005() {
         assert!(
             (u0 - c.dial_u0).abs() <= 0.05,
             "{} {}x{}x{} office: ours U0 {:.2} vs DIAL {:.2} (Δ {:.2}) outside ±0.05",
-            c.lum, c.l, c.w, c.h, u0, c.dial_u0, (u0 - c.dial_u0).abs()
+            c.lum,
+            c.l,
+            c.w,
+            c.h,
+            u0,
+            c.dial_u0,
+            (u0 - c.dial_u0).abs()
         );
     }
 }
@@ -165,7 +192,12 @@ fn closer_to_dial_than_old_iesna_engine() {
         assert!(
             ours_err <= iesna_err + 1.0, // +1 lx slack for rounding in the table
             "{} {}x{}x{}: ours off DIAL by {:.0} lx, OLD iesna by {:.0} lx — regression",
-            c.lum, c.l, c.w, c.h, ours_err, iesna_err
+            c.lum,
+            c.l,
+            c.w,
+            c.h,
+            ours_err,
+            iesna_err
         );
     }
 }

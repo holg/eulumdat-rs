@@ -227,11 +227,7 @@ impl ConeIlluminanceTable {
     /// * `step` - Height increment in meters
     /// * `max_height` - Maximum height in meters
     pub fn from_eulumdat(ldt: &Eulumdat, step: f64, max_height: f64) -> Self {
-        let total_flux: f64 = ldt
-            .lamp_sets
-            .iter()
-            .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-            .sum();
+        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
 
         let half_beam_c0 = PhotometricCalculations::half_beam_angle_for_plane(ldt, 0.0);
         let half_beam_c90 = PhotometricCalculations::half_beam_angle_for_plane(ldt, 90.0);
@@ -255,11 +251,7 @@ impl ConeIlluminanceTable {
         max_height: f64,
         c_plane: f64,
     ) -> Self {
-        let total_flux: f64 = ldt
-            .lamp_sets
-            .iter()
-            .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-            .sum();
+        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
 
         let half_beam = PhotometricCalculations::half_beam_angle_for_plane(ldt, c_plane);
         // For plane-specific, use the same half-beam for both columns

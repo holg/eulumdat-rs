@@ -397,15 +397,17 @@ fn parse_luminous_data_tm33_23(reader: &mut Reader<&[u8]>) -> Result<IntensityDi
             Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
                 current_element = String::from_utf8_lossy(e.name().as_ref()).to_string();
 
-                if current_element == "IntensityData" {
+                // TM-33-22 uses compact <IntData h="" v="">, TM-33-23/S001 drafts
+                // use verbose <IntensityData horz="" vert="">. Accept both.
+                if current_element == "IntData" || current_element == "IntensityData" {
                     let mut horz = 0.0;
                     let mut vert = 0.0;
                     for attr in e.attributes().flatten() {
                         let key = String::from_utf8_lossy(attr.key.as_ref()).to_string();
                         let val = attr.unescape_value().unwrap_or_default().to_string();
                         match key.as_str() {
-                            "horz" => horz = val.parse().unwrap_or(0.0),
-                            "vert" => vert = val.parse().unwrap_or(0.0),
+                            "h" | "horz" => horz = val.parse().unwrap_or(0.0),
+                            "v" | "vert" => vert = val.parse().unwrap_or(0.0),
                             _ => {}
                         }
                     }
@@ -442,7 +444,7 @@ fn parse_luminous_data_tm33_23(reader: &mut Reader<&[u8]>) -> Result<IntensityDi
                     "NumberMeasured" => {
                         dist.number_measured = text.parse().ok();
                     }
-                    "IntensityData" => {
+                    "IntData" | "IntensityData" => {
                         if let Some(last) = intensity_data.last_mut() {
                             last.2 = text.trim().parse().unwrap_or(0.0);
                         }

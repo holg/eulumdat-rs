@@ -129,13 +129,10 @@ impl IsoluxDiagram {
         let h = params.mounting_height;
         let tilt_rad = params.tilt_angle.to_radians();
 
-        // Use abs(num_lamps) because negative num_lamps signals absolute
-        // photometry (IES), where total_luminous_flux is already the real total.
-        let total_flux: f64 = ldt
-            .lamp_sets
-            .iter()
-            .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-            .sum();
+        // EULUMDAT field 26c (total_luminous_flux) is already the set total,
+        // so we sum across sets — do NOT multiply by num_lamps (that
+        // double-counts multi-lamp luminaires).
+        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
         let flux_scale = total_flux / 1000.0;
 
         // Build grid

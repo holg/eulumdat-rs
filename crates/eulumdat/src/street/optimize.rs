@@ -158,11 +158,7 @@ pub fn optimize_layout_all(
 
     // Per-lamp-set total luminous flux is constant across candidates — we
     // pull it once so the per-km cost is cheap.
-    let luminaire_flux_lm: f64 = ldc
-        .lamp_sets
-        .iter()
-        .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-        .sum();
+    let luminaire_flux_lm: f64 = ldc.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
 
     let spacings = float_range(
         bounds.pole_spacing_m.0,

@@ -179,6 +179,7 @@ mod ies;
 pub mod iesna_classification;
 pub mod interpolate;
 mod parser;
+pub mod radiosity;
 pub mod scene3d;
 pub mod standards;
 pub mod street;
@@ -187,7 +188,6 @@ pub mod type_b_conversion;
 pub mod units;
 mod validation;
 mod writer;
-pub mod radiosity;
 pub mod zonal;
 
 pub use atla::colorimetry::{analyze as analyze_spd, Colorimetry};
@@ -196,12 +196,6 @@ pub use atla::spd_loader::{
     LoadedSpd, ReferenceMetrics, SpdLoadError,
 };
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
-pub use radiosity::{
-    compute_form_factors, direct_illuminance, illuminance_at_point, radiosity_cu, solve_radiosity,
-    surface_average, workplane_stats, workplane_stats_at_height, workplane_stats_normative,
-    EvaluationStandard, FormFactors, Luminaire, Patch, RadiosityResult, RoomMesh, Surface,
-    SurfaceReflectances, Vec3, WorkPlane, WorkplaneStats,
-};
 pub use bug_rating::{BugDiagram, BugRating, LcsZonePercentages, LightingZone, ZoneLumens};
 pub use calculations::{
     BeamFieldAnalysis, CandelaEntry, CandelaTabulation, CieFluxCodes, ComprehensiveBeamAnalysis,
@@ -214,6 +208,12 @@ pub use compare::{ComparisonMetric, PhotometricComparison, Significance};
 pub use iesna_classification::{
     classify as iesna_classify, Applicability as IesnaApplicability, CutoffClass,
     IesnaClassification, LateralType, LongitudinalClass,
+};
+pub use radiosity::{
+    compute_form_factors, direct_illuminance, illuminance_at_point, radiosity_cu, solve_radiosity,
+    surface_average, workplane_stats, workplane_stats_at_height, workplane_stats_normative,
+    EvaluationStandard, FormFactors, Luminaire, Patch, RadiosityResult, RoomMesh, Surface,
+    SurfaceReflectances, Vec3, WorkPlane, WorkplaneStats,
 };
 // i18n re-exports for comparison are available via PhotometricComparison methods
 pub use error::{Error, Result};

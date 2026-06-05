@@ -76,10 +76,10 @@
 //! - `eulumdat` - Conversion to/from EULUMDAT format
 
 pub mod bim;
+pub mod colorimetry;
 pub mod error;
 pub mod greenhouse;
 pub mod labels;
-pub mod colorimetry;
 pub mod spd_loader;
 pub mod spectral;
 pub mod tm30;

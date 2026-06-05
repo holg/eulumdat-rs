@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 fn samples_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/samples")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/atla/samples")
 }
 
 fn templates_dir() -> PathBuf {
@@ -151,7 +151,6 @@ fn test_xml_to_json_conversion() {
     assert!(compact_json.len() < xml_content.len());
 }
 
-#[cfg(feature = "eulumdat")]
 #[test]
 fn test_ldt_to_atla_conversion() {
     let ldt_path = templates_dir().join("fluorescent_luminaire.ldt");
@@ -183,7 +182,6 @@ fn test_ldt_to_atla_conversion() {
     assert_eq!(dist.intensities[0][0], 136.0);
 }
 
-#[cfg(feature = "eulumdat")]
 #[test]
 fn test_atla_to_ldt_conversion() {
     let xml_path = samples_dir().join("fluorescent.xml");
@@ -204,7 +202,142 @@ fn test_atla_to_ldt_conversion() {
     assert_eq!(ldt.width, 90.0);
 }
 
-#[cfg(feature = "eulumdat")]
+/// EULUMDAT uses `num_lamps == -1` for absolute photometry. Casting that `i32`
+/// straight to `u32` wrapped it to 4294967295, which then appeared verbatim as
+/// `<Quantity>4294967295</Quantity>` in exported TM-33 files (a nonsensical
+/// lamp count for a `nonNegativeInteger` field). Quantity must clamp to 1 and
+/// the distribution must be flagged as absolute photometry instead.
+#[test]
+fn test_absolute_photometry_quantity_does_not_wrap() {
+    use eulumdat::{Eulumdat, LampSet};
+
+    let ldt = Eulumdat {
+        lamp_sets: vec![LampSet {
+            num_lamps: -1, // absolute photometry
+            lamp_type: "LED".to_string(),
+            total_luminous_flux: 1000.0,
+            ..Default::default()
+        }],
+        c_angles: vec![0.0],
+        g_angles: vec![0.0, 45.0, 90.0],
+        intensities: vec![vec![100.0, 50.0, 0.0]],
+        ..Default::default()
+    };
+
+    let atla = eulumdat::atla::LuminaireOpticalData::from_eulumdat(&ldt);
+
+    // Quantity must be a sane non-negative count, never u32::MAX.
+    assert_eq!(
+        atla.emitters[0].quantity, 1,
+        "absolute photometry → quantity 1"
+    );
+
+    // The distribution must carry the absolute-photometry flag forward.
+    let dist = atla.emitters[0].intensity_distribution.as_ref().unwrap();
+    assert_eq!(dist.absolute_photometry, Some(true));
+
+    // The description must not print the sentinel as a lamp count ("-1x LED").
+    let desc = atla.emitters[0].description.as_deref().unwrap_or("");
+    assert!(
+        !desc.contains("-1x"),
+        "description must not render the absolute-photometry sentinel: {desc:?}"
+    );
+    assert!(
+        desc.contains("LED"),
+        "description should still mention the lamp type: {desc:?}"
+    );
+
+    // And exported XML must not contain the wrapped value.
+    let xml = eulumdat::atla::xml::write_with_schema(
+        &atla,
+        eulumdat::atla::SchemaVersion::Tm3323,
+        Some(2),
+    )
+    .unwrap();
+    assert!(
+        !xml.contains("4294967295"),
+        "exported TM-33 must not contain the wrapped u32::MAX quantity"
+    );
+    assert!(
+        !xml.contains("-1x"),
+        "exported TM-33 must not contain the '-1x' sentinel description"
+    );
+
+    // Round-trip back to EULUMDAT should restore the -1 convention.
+    let back = atla.to_eulumdat();
+    assert_eq!(
+        back.lamp_sets[0].num_lamps, -1,
+        "absolute photometry must round-trip back to num_lamps = -1"
+    );
+
+    // Absolute photometry must NOT trigger the "invalid lamp count" warning.
+    let warnings = eulumdat::validate(&ldt);
+    assert!(
+        !warnings.iter().any(|w| w.code == "W025"),
+        "num_lamps == -1 is valid absolute photometry, must not warn W025: {:?}",
+        warnings.iter().map(|w| &w.code).collect::<Vec<_>>()
+    );
+
+    // A true zero count, however, IS invalid and must still warn.
+    let mut bad = ldt.clone();
+    bad.lamp_sets[0].num_lamps = 0;
+    let bad_warnings = eulumdat::validate(&bad);
+    assert!(
+        bad_warnings.iter().any(|w| w.code == "W025"),
+        "num_lamps == 0 must still warn W025"
+    );
+}
+
+/// EULUMDAT field 26c (`LampSet.total_luminous_flux`) is the flux for the WHOLE
+/// lamp set, not per-lamp. Several calculation paths (BUG rating, area, zonal,
+/// isolux/heatmap/cone scaling, street optimize) multiplied it by
+/// `num_lamps.unsigned_abs()`, double-counting any multi-lamp luminaire — e.g. a
+/// 2-lamp set was scaled to 2× its real flux. The canonical
+/// `Eulumdat::total_luminous_flux()` only sums, and the DIAL-parity reference
+/// uses that, so the multiply was the outlier. This pins the invariant: a
+/// 2-lamp set must scale identically to a 1-lamp set carrying the same total.
+#[test]
+fn test_multilamp_flux_not_double_counted() {
+    use eulumdat::{BugRating, Eulumdat, LampSet, Symmetry};
+
+    fn make(num_lamps: i32, total_flux: f64) -> Eulumdat {
+        Eulumdat {
+            symmetry: Symmetry::None,
+            c_angles: vec![0.0, 90.0, 180.0, 270.0],
+            g_angles: vec![0.0, 30.0, 60.0, 90.0],
+            num_c_planes: 4,
+            num_g_planes: 4,
+            intensities: vec![vec![200.0, 150.0, 80.0, 5.0]; 4],
+            lamp_sets: vec![LampSet {
+                num_lamps,
+                lamp_type: "LED".to_string(),
+                total_luminous_flux: total_flux,
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    // Two-lamp set with 8100 lm total must behave exactly like a one-lamp set
+    // with 8100 lm total — total_luminous_flux is ALREADY the set total.
+    let two_lamp = make(2, 8100.0);
+    let one_lamp = make(1, 8100.0);
+
+    assert_eq!(
+        two_lamp.total_luminous_flux(),
+        one_lamp.total_luminous_flux(),
+        "canonical total flux must ignore num_lamps"
+    );
+
+    let bug_two = BugRating::from_eulumdat(&two_lamp);
+    let bug_one = BugRating::from_eulumdat(&one_lamp);
+    assert_eq!(
+        (bug_two.b, bug_two.u, bug_two.g),
+        (bug_one.b, bug_one.u, bug_one.g),
+        "BUG rating must not double-count a 2-lamp set's flux"
+    );
+}
+
 #[test]
 fn test_ldt_roundtrip_via_atla() {
     let ldt_path = templates_dir().join("fluorescent_luminaire.ldt");
@@ -381,7 +514,10 @@ fn test_schema_detection() {
 
     // TM-33-23 format
     let tm33_xml = r#"<IESTM33-22><Version>1.1</Version></IESTM33-22>"#;
-    assert_eq!(eulumdat::atla::detect_schema_version(tm33_xml), SchemaVersion::Tm3323);
+    assert_eq!(
+        eulumdat::atla::detect_schema_version(tm33_xml),
+        SchemaVersion::Tm3323
+    );
 }
 
 #[test]
@@ -514,13 +650,15 @@ fn test_tm33_23_to_s001_conversion() {
     assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
 
     // Convert to S001
-    #[cfg(feature = "eulumdat")]
     {
         use eulumdat::atla::convert::tm33_to_atla;
         let (s001_doc, log) = tm33_to_atla(&doc);
 
         // Should have S001 schema version
-        assert_eq!(s001_doc.schema_version, eulumdat::atla::SchemaVersion::AtlaS001);
+        assert_eq!(
+            s001_doc.schema_version,
+            eulumdat::atla::SchemaVersion::AtlaS001
+        );
 
         // Core data should be preserved
         assert_eq!(s001_doc.header.manufacturer, doc.header.manufacturer);
@@ -542,7 +680,6 @@ fn test_s001_to_tm33_23_conversion() {
     let path = samples_dir().join("fluorescent.xml");
     let doc = eulumdat::atla::parse_file(&path).unwrap();
 
-    #[cfg(feature = "eulumdat")]
     {
         use eulumdat::atla::convert::{atla_to_tm33, ConversionPolicy};
 
@@ -550,7 +687,10 @@ fn test_s001_to_tm33_23_conversion() {
         let (tm33_doc, log) = atla_to_tm33(&doc, ConversionPolicy::Compatible).unwrap();
 
         // Should have TM-33-23 schema version
-        assert_eq!(tm33_doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
+        assert_eq!(
+            tm33_doc.schema_version,
+            eulumdat::atla::SchemaVersion::Tm3323
+        );
 
         // Core data should be preserved
         assert_eq!(tm33_doc.header.manufacturer, doc.header.manufacturer);
@@ -591,8 +731,12 @@ fn test_tm33_23_write_roundtrip() {
     let original = eulumdat::atla::parse_file(&path).unwrap();
 
     // Write as TM-33-23
-    let xml_output =
-        eulumdat::atla::xml::write_with_schema(&original, eulumdat::atla::SchemaVersion::Tm3323, Some(2)).unwrap();
+    let xml_output = eulumdat::atla::xml::write_with_schema(
+        &original,
+        eulumdat::atla::SchemaVersion::Tm3323,
+        Some(2),
+    )
+    .unwrap();
 
     // Should have TM-33-23 root element
     assert!(
@@ -604,11 +748,21 @@ fn test_tm33_23_write_roundtrip() {
         "Output should have version 1.1"
     );
 
+    // The writer emits the compact <IntData h="" v=""> form; assert that so the
+    // parser/writer can never silently drift onto different spellings again.
+    assert!(
+        xml_output.contains("<IntData "),
+        "TM-33-23 writer should emit compact <IntData> elements"
+    );
+
     // Parse back
     let reparsed = eulumdat::atla::xml::parse(&xml_output).unwrap();
 
     // Schema version should be preserved
-    assert_eq!(reparsed.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
+    assert_eq!(
+        reparsed.schema_version,
+        eulumdat::atla::SchemaVersion::Tm3323
+    );
 
     // Core data should match
     assert_eq!(original.header.manufacturer, reparsed.header.manufacturer);
@@ -616,6 +770,150 @@ fn test_tm33_23_write_roundtrip() {
     assert_eq!(
         original.emitters[0].rated_lumens,
         reparsed.emitters[0].rated_lumens
+    );
+
+    // Photometry MUST survive the write→read round-trip. This is the assertion
+    // that was missing: the writer emitted <IntData h v> while the parser only
+    // accepted <IntensityData horz vert>, so the intensity grid silently
+    // round-tripped to empty (blank polar diagram) without any test noticing.
+    let orig_dist = original.emitters[0]
+        .intensity_distribution
+        .as_ref()
+        .expect("fixture has intensity data");
+    let re_dist = reparsed.emitters[0]
+        .intensity_distribution
+        .as_ref()
+        .expect("intensity data must survive the round-trip");
+    assert_eq!(
+        orig_dist.horizontal_angles, re_dist.horizontal_angles,
+        "C-plane angles must round-trip"
+    );
+    assert_eq!(
+        orig_dist.vertical_angles, re_dist.vertical_angles,
+        "gamma angles must round-trip"
+    );
+    assert_eq!(
+        orig_dist.intensities, re_dist.intensities,
+        "intensity grid must round-trip exactly"
+    );
+    assert!(
+        re_dist.max_intensity() > 0.0,
+        "reparsed distribution must not be all zeros"
+    );
+}
+
+// ===========================================
+// TM-33-22 Compact IntData Form Tests
+// ===========================================
+//
+// Real-world IESTM33-22 files (e.g. SLV OCULUS, exported by photometric labs)
+// nest the photometry as:
+//
+//   <LuminousData>
+//     <LuminousIntensity>
+//       <NumberHorz>1</NumberHorz>
+//       <NumberVert>37</NumberVert>
+//       <IntData h="0" v="2.5">536.59</IntData>
+//       ...
+//
+// i.e. the *compact* element name `<IntData>` with short `h`/`v` attributes,
+// nested one level under `<LuminousIntensity>`. All of the hand-authored
+// fixtures above instead use the verbose `<IntensityData horz vert>` form, so
+// the parser shipped only recognizing that spelling — real files parsed with an
+// empty intensity grid and rendered a blank polar/cartesian diagram.
+//
+// See atla/xml.rs `parse_luminous_data_tm33_23`.
+
+#[test]
+fn test_parse_tm33_22_compact_intdata_inline() {
+    // Minimal inline document exercising the compact form end to end.
+    const TM33_COMPACT: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<IESTM33-22>
+  <Version>1.1</Version>
+  <Header>
+    <Manufacturer>SLV</Manufacturer>
+    <CatalogNumber>1004664</CatalogNumber>
+    <Description>OCULUS CW</Description>
+  </Header>
+  <Emitter>
+    <Quantity>1</Quantity>
+    <RatedLumens>35</RatedLumens>
+    <LuminousData>
+      <LuminousIntensity>
+        <NumberHorz>1</NumberHorz>
+        <NumberVert>5</NumberVert>
+        <IntData h="0" v="0">537.79</IntData>
+        <IntData h="0" v="2.5">536.59</IntData>
+        <IntData h="0" v="45">246.26</IntData>
+        <IntData h="0" v="60">64.298</IntData>
+        <IntData h="0" v="90">0.79144</IntData>
+      </LuminousIntensity>
+    </LuminousData>
+  </Emitter>
+</IESTM33-22>"#;
+
+    let doc = eulumdat::atla::parse(TM33_COMPACT).expect("parse compact TM-33-22 IntData");
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.emitters.len(), 1);
+
+    let dist = doc.emitters[0]
+        .intensity_distribution
+        .as_ref()
+        .expect("compact IntData must yield an intensity distribution");
+
+    // The h/v attributes must be read (not collapsed onto a single 0,0 cell).
+    assert_eq!(dist.horizontal_angles.len(), 1, "expected single C-plane");
+    assert_eq!(dist.vertical_angles.len(), 5, "expected 5 gamma angles");
+    assert_eq!(dist.sample(0.0, 0.0), Some(537.79), "nadir intensity");
+    assert_eq!(dist.sample(0.0, 45.0), Some(246.26), "mid-beam intensity");
+    assert_eq!(dist.sample(0.0, 90.0), Some(0.79144), "horizon intensity");
+    assert_eq!(dist.max_intensity(), 537.79);
+}
+
+#[test]
+fn test_parse_tm33_22_compact_intdata_real_file() {
+    // Real SLV OCULUS export: 1 C-plane, 37 gamma angles 0..=90 in 2.5° steps.
+    let path = tm33_samples_dir().join("oculus_compact_intdata.tm33.xml");
+    let doc = eulumdat::atla::parse_file(&path).expect("parse real compact TM-33-22 file");
+
+    assert_eq!(doc.schema_version, eulumdat::atla::SchemaVersion::Tm3323);
+    assert_eq!(doc.header.manufacturer, Some("SLV".to_string()));
+    assert_eq!(doc.emitters.len(), 1);
+
+    let dist = doc.emitters[0]
+        .intensity_distribution
+        .as_ref()
+        .expect("real compact file must yield an intensity distribution");
+
+    assert_eq!(dist.horizontal_angles.len(), 1, "single C-plane");
+    assert_eq!(dist.vertical_angles.len(), 37, "37 gamma angles");
+    assert_eq!(dist.sample(0.0, 0.0), Some(537.79), "nadir intensity");
+    assert_eq!(dist.sample(0.0, 90.0), Some(0.79144), "horizon intensity");
+    assert_eq!(dist.sample(0.0, 45.0), Some(246.26), "mid-beam intensity");
+
+    // End-to-end: the conversion that feeds the polar diagram must carry data,
+    // and every gamma reading must round-trip through Eulumdat (not zeroed out).
+    let ldt: eulumdat::Eulumdat = (&doc).into();
+    assert!(!ldt.g_angles.is_empty(), "Eulumdat g_angles populated");
+    assert!(
+        !ldt.intensities.is_empty(),
+        "Eulumdat intensities populated"
+    );
+    assert!(
+        ldt.max_intensity() > 0.0,
+        "polar diagram would be blank: max intensity is zero"
+    );
+    // 37 distinct intensities means the v= attribute was parsed per-row.
+    let nonzero = ldt
+        .intensities
+        .iter()
+        .flatten()
+        .filter(|&&v| v > 0.0)
+        .count();
+    assert!(
+        nonzero >= 36,
+        "expected ~37 non-zero readings, got {} (values collapsing to one cell?)",
+        nonzero
     );
 }
 
@@ -960,7 +1258,7 @@ fn test_bim_enum_parsing() {
 // ==========================================================================
 
 fn tm32_24_samples_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/samples/tm32-24")
+    samples_dir().join("tm32-24")
 }
 
 #[test]
@@ -1049,8 +1347,8 @@ fn test_tm32_24_samples_have_required_header_fields() {
     // Both samples should have all required TM-33-23 header fields
     for filename in ["office_downlight_bim.xml", "road_luminaire_bim.xml"] {
         let path = tm32_24_samples_dir().join(filename);
-        let doc =
-            eulumdat::atla::parse_file(&path).unwrap_or_else(|_| panic!("Failed to parse {}", filename));
+        let doc = eulumdat::atla::parse_file(&path)
+            .unwrap_or_else(|_| panic!("Failed to parse {}", filename));
 
         // Required TM-33-23 fields
         assert!(

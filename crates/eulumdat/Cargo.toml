@@ -42,6 +42,12 @@ thiserror.workspace = true
 [dev-dependencies]
 approx.workspace = true
 
+[[test]]
+# ATLA / TM-33 / TM-32 integration tests live in a subdirectory, so Cargo's
+# automatic tests/*.rs discovery does not pick them up — declare them explicitly.
+name = "atla_integration"
+path = "tests/atla/integration.rs"
+
 [[bench]]
 name = "native_benchmark"
 harness = false

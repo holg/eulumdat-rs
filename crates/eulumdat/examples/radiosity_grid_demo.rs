@@ -6,8 +6,8 @@
 //! Run: cargo run -p eulumdat --example radiosity_grid_demo
 
 use eulumdat::{
-    compute_form_factors, direct_illuminance, solve_radiosity, workplane_stats_normative,
-    EvaluationStandard, Eulumdat, Luminaire, RoomMesh, SurfaceReflectances, Vec3, WorkPlane,
+    compute_form_factors, direct_illuminance, solve_radiosity, workplane_stats_normative, Eulumdat,
+    EvaluationStandard, Luminaire, RoomMesh, SurfaceReflectances, Vec3, WorkPlane,
 };
 
 const TMP: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../light-other-rs/tmp");
@@ -29,16 +29,116 @@ struct Row {
 fn rows() -> Vec<Row> {
     // lum, L,W,H, office, nx,ny, dial_e, dial_u0  (target lx omitted; not used)
     vec![
-        Row { lum: "Alya",  l:2.0,  w:18.0, h:2.5, office:false, nx:2,  ny:12, dial_e:103.0, dial_u0:0.72 },
-        Row { lum: "Alya",  l:3.5,  w:22.0, h:4.0, office:false, nx:2,  ny:23, dial_e:96.0,  dial_u0:0.72 },
-        Row { lum: "Alya",  l:2.0,  w:2.0,  h:2.5, office:false, nx:2,  ny:2,  dial_e:88.0,  dial_u0:0.92 },
-        Row { lum: "Alya",  l:4.0,  w:5.0,  h:2.5, office:true,  nx:5,  ny:8,  dial_e:464.0, dial_u0:0.84 },
-        Row { lum: "Alya",  l:8.0,  w:14.0, h:5.0, office:true,  nx:5,  ny:47, dial_e:444.0, dial_u0:0.73 },
-        Row { lum: "Acrux", l:8.0,  w:14.0, h:3.0, office:false, nx:5,  ny:6,  dial_e:86.0,  dial_u0:0.77 },
-        Row { lum: "Acrux", l:8.0,  w:14.0, h:5.0, office:false, nx:4,  ny:9,  dial_e:73.0,  dial_u0:0.74 },
-        Row { lum: "Acrux", l:8.0,  w:14.0, h:5.0, office:true,  nx:3,  ny:59, dial_e:441.0, dial_u0:0.75 },
-        Row { lum: "Acrux", l:8.0,  w:14.0, h:7.0, office:true,  nx:10, ny:23, dial_e:452.0, dial_u0:0.74 },
-        Row { lum: "Acrux", l:22.0, w:22.0, h:7.0, office:true,  nx:4,  ny:163,dial_e:421.0, dial_u0:0.67 },
+        Row {
+            lum: "Alya",
+            l: 2.0,
+            w: 18.0,
+            h: 2.5,
+            office: false,
+            nx: 2,
+            ny: 12,
+            dial_e: 103.0,
+            dial_u0: 0.72,
+        },
+        Row {
+            lum: "Alya",
+            l: 3.5,
+            w: 22.0,
+            h: 4.0,
+            office: false,
+            nx: 2,
+            ny: 23,
+            dial_e: 96.0,
+            dial_u0: 0.72,
+        },
+        Row {
+            lum: "Alya",
+            l: 2.0,
+            w: 2.0,
+            h: 2.5,
+            office: false,
+            nx: 2,
+            ny: 2,
+            dial_e: 88.0,
+            dial_u0: 0.92,
+        },
+        Row {
+            lum: "Alya",
+            l: 4.0,
+            w: 5.0,
+            h: 2.5,
+            office: true,
+            nx: 5,
+            ny: 8,
+            dial_e: 464.0,
+            dial_u0: 0.84,
+        },
+        Row {
+            lum: "Alya",
+            l: 8.0,
+            w: 14.0,
+            h: 5.0,
+            office: true,
+            nx: 5,
+            ny: 47,
+            dial_e: 444.0,
+            dial_u0: 0.73,
+        },
+        Row {
+            lum: "Acrux",
+            l: 8.0,
+            w: 14.0,
+            h: 3.0,
+            office: false,
+            nx: 5,
+            ny: 6,
+            dial_e: 86.0,
+            dial_u0: 0.77,
+        },
+        Row {
+            lum: "Acrux",
+            l: 8.0,
+            w: 14.0,
+            h: 5.0,
+            office: false,
+            nx: 4,
+            ny: 9,
+            dial_e: 73.0,
+            dial_u0: 0.74,
+        },
+        Row {
+            lum: "Acrux",
+            l: 8.0,
+            w: 14.0,
+            h: 5.0,
+            office: true,
+            nx: 3,
+            ny: 59,
+            dial_e: 441.0,
+            dial_u0: 0.75,
+        },
+        Row {
+            lum: "Acrux",
+            l: 8.0,
+            w: 14.0,
+            h: 7.0,
+            office: true,
+            nx: 10,
+            ny: 23,
+            dial_e: 452.0,
+            dial_u0: 0.74,
+        },
+        Row {
+            lum: "Acrux",
+            l: 22.0,
+            w: 22.0,
+            h: 7.0,
+            office: true,
+            nx: 4,
+            ny: 163,
+            dial_e: 421.0,
+            dial_u0: 0.67,
+        },
     ]
 }
 
@@ -79,7 +179,11 @@ fn main() {
             }
         }
 
-        let refl = SurfaceReflectances { ceiling: 0.7, wall: 0.5, floor: 0.2 };
+        let refl = SurfaceReflectances {
+            ceiling: 0.7,
+            wall: 0.5,
+            floor: 0.2,
+        };
         // Keep patch count sane for the very long rooms: ~10 divisions on the
         // longest axis is enough for the diffuse field.
         let mesh = RoomMesh::new(r.l, r.w, r.h, refl, 10);
@@ -87,8 +191,19 @@ fn main() {
         let direct = direct_illuminance(&mesh, &lums, ldt);
         let res = solve_radiosity(&mesh, &ff, &direct, 200, 1e-5);
 
-        let plane = if r.office { WorkPlane::Office } else { WorkPlane::Corridor };
-        let s = workplane_stats_normative(&mesh, &res, &lums, ldt, plane, EvaluationStandard::En12464_2021);
+        let plane = if r.office {
+            WorkPlane::Office
+        } else {
+            WorkPlane::Corridor
+        };
+        let s = workplane_stats_normative(
+            &mesh,
+            &res,
+            &lums,
+            ldt,
+            plane,
+            EvaluationStandard::En12464_2021,
+        );
 
         let e_pct = 100.0 * s.e_avg / r.dial_e;
         let n = r.nx * r.ny;
