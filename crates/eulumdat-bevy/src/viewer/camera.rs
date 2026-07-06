@@ -148,12 +148,25 @@ fn camera_look(
 }
 
 /// Keyboard movement system (WASD/Arrows, Q/E for up/down).
+///
+/// **Rotation** (arrow keys) is gated on the right mouse button being
+/// held, matching the `camera_look` mouse-rotation rule. That way the
+/// camera stops spinning when you click off the canvas to type into the
+/// Lisp REPL or another input — arrow keys typed elsewhere only count
+/// as camera input while you're also right-dragging.
+///
+/// **Movement** (WASD, Q/E) is NOT gated — you can fly the camera with
+/// keyboard alone without holding the mouse, which is the common case
+/// for keyboard-only positioning. WASD doesn't fire while typing into
+/// text fields because Bevy never receives those events (the browser
+/// keeps them in the focused element).
 fn camera_move(
-    mut query: Query<(&mut Transform, &FirstPersonCamera)>,
+    mut query: Query<(&mut Transform, &mut FirstPersonCamera)>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    mouse_button: Res<ButtonInput<MouseButton>>,
     time: Res<Time>,
 ) {
-    for (mut transform, camera) in query.iter_mut() {
+    for (mut transform, mut camera) in query.iter_mut() {
         let mut direction = Vec3::ZERO;
 
         // Get forward/right vectors (ignore Y for movement)
@@ -162,17 +175,20 @@ fn camera_move(
         let right = transform.right();
         let right_flat = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
 
-        // WASD movement
-        if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
+        // WASD = translate (move + strafe). Cursor keys rotate instead
+        // (see below) — having arrows mirror WASD makes "look up at the
+        // ceiling-mounted lamp" impossible without a mouse, which is
+        // the most common case for this viewer.
+        if keyboard.pressed(KeyCode::KeyW) {
             direction += forward_flat;
         }
-        if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
+        if keyboard.pressed(KeyCode::KeyS) {
             direction -= forward_flat;
         }
-        if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
+        if keyboard.pressed(KeyCode::KeyA) {
             direction -= right_flat;
         }
-        if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
+        if keyboard.pressed(KeyCode::KeyD) {
             direction += right_flat;
         }
 
@@ -189,24 +205,72 @@ fn camera_move(
             direction = direction.normalize();
             transform.translation += direction * camera.speed * time.delta_secs();
         }
+
+        // Cursor keys → rotate yaw / pitch (~90°/s at this rate).
+        // Gated on the right mouse button to mirror `camera_look`:
+        // typing arrows into an editor input shouldn't spin the camera
+        // in the background just because the canvas still owns focus.
+        // Hold right-mouse and tap the arrow keys to rotate without
+        // dragging — useful for fine-tuning a framing pose.
+        if mouse_button.pressed(MouseButton::Right) {
+            let rot_speed = 1.5_f32; // rad/s
+            let dt = time.delta_secs();
+            let mut rotated = false;
+            if keyboard.pressed(KeyCode::ArrowLeft) {
+                camera.yaw += rot_speed * dt;
+                rotated = true;
+            }
+            if keyboard.pressed(KeyCode::ArrowRight) {
+                camera.yaw -= rot_speed * dt;
+                rotated = true;
+            }
+            if keyboard.pressed(KeyCode::ArrowUp) {
+                camera.pitch += rot_speed * dt;
+                rotated = true;
+            }
+            if keyboard.pressed(KeyCode::ArrowDown) {
+                camera.pitch -= rot_speed * dt;
+                rotated = true;
+            }
+            if rotated {
+                camera.pitch = camera.pitch.clamp(-1.5, 1.5);
+                transform.rotation = Quat::from_euler(EulerRot::YXZ, camera.yaw, camera.pitch, 0.0);
+            }
+        }
     }
 }
 
 /// Mouse scroll wheel zoom (move forward/backward along view direction).
+///
+/// Browsers report wheel events using `MouseScrollUnit::Line` (≈ ±1 per
+/// notch) on classic mice, but `MouseScrollUnit::Pixel` (≈ ±100 per
+/// notch) on trackpads and many modern wheels — a 100× difference. The
+/// previous unfiltered code treated both the same, so a single mouse
+/// notch moved the camera roughly `1.5 * 100 = 150` metres per tick.
+/// Now we normalise each event to a unit notch (sign only), then apply
+/// a small per-notch step so one wheel click moves a fraction of a
+/// metre — close enough to count luminaires on a ceiling.
 fn camera_zoom(
     mut query: Query<(&mut Transform, &FirstPersonCamera)>,
     mut scroll_events: MessageReader<MouseWheel>,
 ) {
-    let mut scroll_delta: f32 = 0.0;
+    let mut notches: f32 = 0.0;
     for event in scroll_events.read() {
-        scroll_delta += event.y;
+        // `event.unit` distinguishes line vs pixel reporting. Either
+        // way the SIGN tells us scroll direction; magnitude varies
+        // wildly. Collapse to ±1 per event so the zoom step is
+        // determined by our multiplier, not by the browser.
+        notches += event.y.signum();
     }
 
-    if scroll_delta.abs() > 0.0 {
-        for (mut transform, camera) in query.iter_mut() {
+    if notches.abs() > 0.0 {
+        for (mut transform, _camera) in query.iter_mut() {
+            // Step per notch in metres. 0.15 m ≈ a hand's width per
+            // click — quick enough to feel responsive, slow enough to
+            // count individual fixtures.
+            const ZOOM_STEP_M: f32 = 0.15;
             let forward = transform.forward();
-            let zoom_speed = camera.speed * 0.5; // Slightly slower than movement
-            transform.translation += forward * scroll_delta * zoom_speed;
+            transform.translation += forward * notches * ZOOM_STEP_M;
         }
     }
 }

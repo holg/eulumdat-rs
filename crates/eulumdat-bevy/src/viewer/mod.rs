@@ -38,7 +38,9 @@ pub use controls::{
     calculate_all_luminaire_transforms, calculate_light_position, LuminaireTransform,
 };
 pub use plugin::EulumdatViewerPlugin;
-pub use scenes::{SceneGeometry, ScenePlugin, SceneType};
+pub use scenes::{
+    CeilingSurface, FloorSurface, SceneGeometry, ScenePlugin, SceneType, WallSurface,
+};
 pub use wasm_sync::{
     load_default_ldc, load_from_local_storage, poll_viewer_settings_changes, DesignerTimestamp,
     LdtTimestamp, ViewerSettingsTimestamp,

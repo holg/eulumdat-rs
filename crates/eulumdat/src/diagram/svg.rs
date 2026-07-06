@@ -230,6 +230,30 @@ impl SvgLabels {
         }
     }
 
+    /// Sensor labels: the same diagram geometry, but the radial/grid axis is a
+    /// **relative detection-sensitivity response**, not a photometric intensity.
+    ///
+    /// A sensor's LDT stores a detection lobe in the cd/klm slots, so the *shape*
+    /// diagrams (polar, cartesian, butterfly, isocandela, floodlight, …) are
+    /// geometrically valid — only the unit/axis wording must change. Use this
+    /// when the file is known to be a sensor (e.g. GLDF `contentType=sensor/sensldt`):
+    ///
+    /// ```ignore
+    /// let theme = SvgTheme::light().with_labels(SvgLabels::for_sensor());
+    /// ```
+    ///
+    /// Note: absolute-photometric views (heatmap candela layer, cone lux table,
+    /// isolux, BUG) are NOT meaningful for a sensor and should be suppressed by
+    /// the caller, not merely relabeled.
+    pub fn for_sensor() -> Self {
+        Self {
+            intensity_unit: "%".to_string(),
+            intensity_axis: "Relative sensitivity".to_string(),
+            heatmap_title: "Sensor response (relative)".to_string(),
+            ..Self::english()
+        }
+    }
+
     /// Create labels from eulumdat-i18n Locale
     #[cfg(feature = "i18n")]
     pub fn from_locale(locale: &eulumdat_i18n::Locale) -> Self {

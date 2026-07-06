@@ -457,7 +457,9 @@ async fn fetch_text_capped(url: &str, max_bytes: usize) -> Result<String, JsValu
         }
     }
     let text = JsFuture::from(response.text()?).await?;
-    let s = text.as_string().ok_or_else(|| JsValue::from_str("not a string"))?;
+    let s = text
+        .as_string()
+        .ok_or_else(|| JsValue::from_str("not a string"))?;
     if s.len() > max_bytes {
         return Err(JsValue::from_str(&format!(
             "response too large after read: {} > {} bytes",
@@ -476,9 +478,7 @@ async fn fetch_text_capped(url: &str, max_bytes: usize) -> Result<String, JsValu
 /// (e.g. gldf-search's `/api/ldc/<hash>/<idx>`).
 fn ensure_extension(name: &str, content: &str) -> String {
     let lower = name.to_lowercase();
-    const KNOWN: &[&str] = &[
-        ".ldt", ".ies", ".xml", ".json", ".spdx", ".oxl", ".oxc",
-    ];
+    const KNOWN: &[&str] = &[".ldt", ".ies", ".xml", ".json", ".spdx", ".oxl", ".oxc"];
     if KNOWN.iter().any(|ext| lower.ends_with(ext)) {
         return name.to_string();
     }
@@ -851,194 +851,202 @@ pub fn App() -> impl IntoView {
     // `LibrarySource::Template` / `Bundle` for the template buttons.
     // Every successful parse appends (or refreshes, by content-hash
     // dedup) an entry in the persistent library.
-    let load_file_content = move |name: String, content: String, source: crate::library::LibrarySource| {
-        // Append to library before parsing so even files that fail to
-        // dispatch through any branch still leave a breadcrumb? No —
-        // unknown formats already log to console; we only want valid
-        // photometric files in the library. Push at the end, but
-        // capture the entry skeleton up front for clarity.
-        let entry = crate::library::LibraryEntry {
-            id: crate::library::content_id(&content),
-            name: name.clone(),
-            content: content.clone(),
-            source,
-            added_at: js_sys::Date::now(),
-        };
-        let lower_name = name.to_lowercase();
-        let is_ies = lower_name.ends_with(".ies");
-        let is_atla_xml = lower_name.ends_with(".xml");
-        let is_atla_json = lower_name.ends_with(".json");
-        let is_ldt = lower_name.ends_with(".ldt");
-        let is_spdx = lower_name.ends_with(".spdx");
-        // Raw SPD inputs: Luxeon `.spd`, generic `wavelength_nm,intensity` CSV,
-        // Signify lab CSV with its metric prelude — auto-detected by content.
-        let is_spd = lower_name.ends_with(".spd") || lower_name.ends_with(".csv");
-        // OxyTech LITESTAR exports — `.oxl` carries photometry, `.oxc`
-        // is a commercial-only sibling. Both share the LitePack XML
-        // schema; our parser handles them identically.
-        let is_oxl = lower_name.ends_with(".oxl") || lower_name.ends_with(".oxc");
-
-        // Parse to ATLA format (source of truth)
-        if is_spdx {
-            // SPDX (IES TM-27-14) → ATLA (spectral only, no photometric data)
-            match eulumdat::atla::spdx::parse(&content) {
-                Ok(spdx_data) => {
-                    // Log warnings about missing data
-                    let warnings = eulumdat::atla::spdx::get_warnings(&spdx_data);
-                    for warning in &warnings {
-                        web_sys::console::warn_1(&format!("SPDX: {}", warning).into());
-                    }
-
-                    let doc = eulumdat::atla::spdx::to_atla(&spdx_data);
-                    clear_pristine_ldc();
-                    set_atla_doc.set(doc);
-                    set_current_file.set(Some(name));
-                    set_selected_lamp_set.set(0);
-
-                    // Show first warning to user
-                    if let Some(first_warning) = warnings.first() {
-                        web_sys::console::info_1(
-                            &format!("Loaded SPDX file (spectral data only): {}", first_warning)
-                                .into(),
-                        );
-                    }
-                }
-                Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to parse SPDX: {}", e).into());
-                }
-            }
-        } else if is_spd {
-            // Raw SPD (.spd / .csv): Luxeon datasheet `.spd`, generic
-            // `wavelength_nm,intensity` CSV, or Signify lab CSV with metric
-            // prelude. Auto-detected by content; produces a spectral-only
-            // ATLA doc (no intensity distribution) just like SPDX.
-            match eulumdat::atla::spd_loader::parse(&content) {
-                Ok(loaded) => {
-                    for warning in eulumdat::atla::spd_loader::get_warnings(&loaded) {
-                        web_sys::console::warn_1(&format!("SPD: {}", warning).into());
-                    }
-                    let doc = eulumdat::atla::spd_loader::to_atla(&loaded);
-                    clear_pristine_ldc();
-                    set_atla_doc.set(doc);
-                    set_current_file.set(Some(name));
-                    set_selected_lamp_set.set(0);
-                }
-                Err(e) => {
-                    web_sys::console::error_1(
-                        &format!("Failed to parse SPD/CSV: {}", e).into(),
-                    );
-                }
-            }
-        } else if is_ies {
-            // IES → Eulumdat → ATLA (with optional C-plane rotation)
-            let opts = eulumdat::IesImportOptions {
-                rotate_c_planes: if rotate_c_planes.get_untracked() {
-                    90.0
-                } else {
-                    0.0
-                },
+    let load_file_content =
+        move |name: String, content: String, source: crate::library::LibrarySource| {
+            // Append to library before parsing so even files that fail to
+            // dispatch through any branch still leave a breadcrumb? No —
+            // unknown formats already log to console; we only want valid
+            // photometric files in the library. Push at the end, but
+            // capture the entry skeleton up front for clarity.
+            let entry = crate::library::LibraryEntry {
+                id: crate::library::content_id(&content),
+                name: name.clone(),
+                content: content.clone(),
+                source,
+                added_at: js_sys::Date::now(),
             };
-            match IesParser::parse_with_options(&content, &opts) {
-                Ok(ldc) => {
-                    let doc = LuminaireOpticalData::from_eulumdat(&ldc);
-                    log_color_data_from_ldc(&name, &ldc, &doc);
-                    record_pristine_ldc(&ldc, &doc.to_eulumdat());
-                    set_atla_doc.set(doc);
-                    set_current_file.set(Some(name));
-                    set_selected_lamp_set.set(0);
-                }
-                Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to parse IES: {}", e).into());
-                }
-            }
-        } else if is_atla_xml {
-            // ATLA XML → ATLA (direct, no conversion)
-            match eulumdat::atla::xml::parse(&content) {
-                Ok(doc) => {
-                    log_color_data(&name, &doc);
-                    clear_pristine_ldc();
-                    set_atla_doc.set(doc);
-                    set_current_file.set(Some(name));
-                    set_selected_lamp_set.set(0);
-                }
-                Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to parse ATLA XML: {}", e).into());
-                }
-            }
-        } else if is_atla_json {
-            // ATLA JSON → ATLA (direct, no conversion)
-            match eulumdat::atla::json::parse(&content) {
-                Ok(doc) => {
-                    log_color_data(&name, &doc);
-                    clear_pristine_ldc();
-                    set_atla_doc.set(doc);
-                    set_current_file.set(Some(name));
-                    set_selected_lamp_set.set(0);
-                }
-                Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to parse ATLA JSON: {}", e).into());
-                }
-            }
-        } else if is_ldt {
-            // LDT file → LDC (in-memory distribution) → ATLA. Register
-            // the pristine LDC so the atla save-Effect emits the lossless
-            // LDT text until the user edits the document.
-            match Eulumdat::parse(&content) {
-                Ok(ldc) => {
-                    let doc = LuminaireOpticalData::from_eulumdat(&ldc);
-                    log_color_data_from_ldc(&name, &ldc, &doc);
-                    record_pristine_ldc(&ldc, &doc.to_eulumdat());
-                    set_atla_doc.set(doc);
-                    set_current_file.set(Some(name));
-                    set_selected_lamp_set.set(0);
-                }
-                Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to parse LDT: {}", e).into());
-                }
-            }
-        } else if is_oxl {
-            // OXL/OXC → multi-luminaire LitePack package → ATLA. We
-            // import the first luminaire of the package; if the package
-            // carries more, the others are reachable today only via the
-            // library API (`eulumdat::atla::oxl::parse`). A "pick which
-            // luminaire" picker is a deferred UX task.
-            match eulumdat::atla::oxl::parse(&content) {
-                Ok(pkg) => {
-                    if pkg.luminaires.is_empty() {
-                        web_sys::console::warn_1(
-                            &"OXL/OXC contains no luminaires (commercial-only file?)".into(),
-                        );
-                    } else {
-                        if pkg.luminaires.len() > 1 {
-                            web_sys::console::warn_1(
+            let lower_name = name.to_lowercase();
+            let is_ies = lower_name.ends_with(".ies");
+            let is_atla_xml = lower_name.ends_with(".xml");
+            let is_atla_json = lower_name.ends_with(".json");
+            let is_ldt = lower_name.ends_with(".ldt");
+            let is_spdx = lower_name.ends_with(".spdx");
+            // Raw SPD inputs: Luxeon `.spd`, generic `wavelength_nm,intensity` CSV,
+            // Signify lab CSV with its metric prelude — auto-detected by content.
+            let is_spd = lower_name.ends_with(".spd") || lower_name.ends_with(".csv");
+            // OxyTech LITESTAR exports — `.oxl` carries photometry, `.oxc`
+            // is a commercial-only sibling. Both share the LitePack XML
+            // schema; our parser handles them identically.
+            let is_oxl = lower_name.ends_with(".oxl") || lower_name.ends_with(".oxc");
+
+            // Parse to ATLA format (source of truth)
+            if is_spdx {
+                // SPDX (IES TM-27-14) → ATLA (spectral only, no photometric data)
+                match eulumdat::atla::spdx::parse(&content) {
+                    Ok(spdx_data) => {
+                        // Log warnings about missing data
+                        let warnings = eulumdat::atla::spdx::get_warnings(&spdx_data);
+                        for warning in &warnings {
+                            web_sys::console::warn_1(&format!("SPDX: {}", warning).into());
+                        }
+
+                        let doc = eulumdat::atla::spdx::to_atla(&spdx_data);
+                        clear_pristine_ldc();
+                        set_atla_doc.set(doc);
+                        set_current_file.set(Some(name));
+                        set_selected_lamp_set.set(0);
+
+                        // Show first warning to user
+                        if let Some(first_warning) = warnings.first() {
+                            web_sys::console::info_1(
                                 &format!(
-                                    "OXL package contains {} luminaires; loading the first only.",
-                                    pkg.luminaires.len()
+                                    "Loaded SPDX file (spectral data only): {}",
+                                    first_warning
                                 )
                                 .into(),
                             );
                         }
-                        let doc = pkg.luminaires.into_iter().next().unwrap();
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(&format!("Failed to parse SPDX: {}", e).into());
+                    }
+                }
+            } else if is_spd {
+                // Raw SPD (.spd / .csv): Luxeon datasheet `.spd`, generic
+                // `wavelength_nm,intensity` CSV, or Signify lab CSV with metric
+                // prelude. Auto-detected by content; produces a spectral-only
+                // ATLA doc (no intensity distribution) just like SPDX.
+                match eulumdat::atla::spd_loader::parse(&content) {
+                    Ok(loaded) => {
+                        for warning in eulumdat::atla::spd_loader::get_warnings(&loaded) {
+                            web_sys::console::warn_1(&format!("SPD: {}", warning).into());
+                        }
+                        let doc = eulumdat::atla::spd_loader::to_atla(&loaded);
+                        clear_pristine_ldc();
+                        set_atla_doc.set(doc);
+                        set_current_file.set(Some(name));
+                        set_selected_lamp_set.set(0);
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(
+                            &format!("Failed to parse SPD/CSV: {}", e).into(),
+                        );
+                    }
+                }
+            } else if is_ies {
+                // IES → Eulumdat → ATLA (with optional C-plane rotation)
+                let opts = eulumdat::IesImportOptions {
+                    rotate_c_planes: if rotate_c_planes.get_untracked() {
+                        90.0
+                    } else {
+                        0.0
+                    },
+                };
+                match IesParser::parse_with_options(&content, &opts) {
+                    Ok(ldc) => {
+                        let doc = LuminaireOpticalData::from_eulumdat(&ldc);
+                        log_color_data_from_ldc(&name, &ldc, &doc);
+                        record_pristine_ldc(&ldc, &doc.to_eulumdat());
+                        set_atla_doc.set(doc);
+                        set_current_file.set(Some(name));
+                        set_selected_lamp_set.set(0);
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(&format!("Failed to parse IES: {}", e).into());
+                    }
+                }
+            } else if is_atla_xml {
+                // ATLA XML → ATLA (direct, no conversion)
+                match eulumdat::atla::xml::parse(&content) {
+                    Ok(doc) => {
                         log_color_data(&name, &doc);
                         clear_pristine_ldc();
                         set_atla_doc.set(doc);
                         set_current_file.set(Some(name));
                         set_selected_lamp_set.set(0);
                     }
+                    Err(e) => {
+                        web_sys::console::error_1(
+                            &format!("Failed to parse ATLA XML: {}", e).into(),
+                        );
+                    }
                 }
-                Err(e) => {
-                    web_sys::console::error_1(&format!("Failed to parse OXL: {}", e).into());
+            } else if is_atla_json {
+                // ATLA JSON → ATLA (direct, no conversion)
+                match eulumdat::atla::json::parse(&content) {
+                    Ok(doc) => {
+                        log_color_data(&name, &doc);
+                        clear_pristine_ldc();
+                        set_atla_doc.set(doc);
+                        set_current_file.set(Some(name));
+                        set_selected_lamp_set.set(0);
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(
+                            &format!("Failed to parse ATLA JSON: {}", e).into(),
+                        );
+                    }
                 }
+            } else if is_ldt {
+                // LDT file → LDC (in-memory distribution) → ATLA. Register
+                // the pristine LDC so the atla save-Effect emits the lossless
+                // LDT text until the user edits the document.
+                match Eulumdat::parse(&content) {
+                    Ok(ldc) => {
+                        let doc = LuminaireOpticalData::from_eulumdat(&ldc);
+                        log_color_data_from_ldc(&name, &ldc, &doc);
+                        record_pristine_ldc(&ldc, &doc.to_eulumdat());
+                        set_atla_doc.set(doc);
+                        set_current_file.set(Some(name));
+                        set_selected_lamp_set.set(0);
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(&format!("Failed to parse LDT: {}", e).into());
+                    }
+                }
+            } else if is_oxl {
+                // OXL/OXC → multi-luminaire LitePack package → ATLA. We
+                // import the first luminaire of the package; if the package
+                // carries more, the others are reachable today only via the
+                // library API (`eulumdat::atla::oxl::parse`). A "pick which
+                // luminaire" picker is a deferred UX task.
+                match eulumdat::atla::oxl::parse(&content) {
+                    Ok(pkg) => {
+                        if pkg.luminaires.is_empty() {
+                            web_sys::console::warn_1(
+                                &"OXL/OXC contains no luminaires (commercial-only file?)".into(),
+                            );
+                        } else {
+                            if pkg.luminaires.len() > 1 {
+                                web_sys::console::warn_1(
+                                    &format!(
+                                    "OXL package contains {} luminaires; loading the first only.",
+                                    pkg.luminaires.len()
+                                )
+                                    .into(),
+                                );
+                            }
+                            let doc = pkg.luminaires.into_iter().next().unwrap();
+                            log_color_data(&name, &doc);
+                            clear_pristine_ldc();
+                            set_atla_doc.set(doc);
+                            set_current_file.set(Some(name));
+                            set_selected_lamp_set.set(0);
+                        }
+                    }
+                    Err(e) => {
+                        web_sys::console::error_1(&format!("Failed to parse OXL: {}", e).into());
+                    }
+                }
+            } else {
+                web_sys::console::error_1(&"Unknown file format".into());
+                return;
             }
-        } else {
-            web_sys::console::error_1(&"Unknown file format".into());
-            return;
-        }
-        // Reached only when one of the format branches above produced a
-        // valid ATLA document. Persist the file in the library so the
-        // dashboard's collection survives reloads.
-        set_library.update(|lib| lib.push(entry));
-    };
+            // Reached only when one of the format branches above produced a
+            // valid ATLA document. Persist the file in the library so the
+            // dashboard's collection survives reloads.
+            set_library.update(|lib| lib.push(entry));
+        };
 
     // ── `?url=…` query param — fetch and load a remote LDT/IES/ATLA ──────
     //
@@ -1055,13 +1063,20 @@ pub fn App() -> impl IntoView {
     // Response is capped at 5 MiB to keep a malicious URL from hanging
     // the tab.
     Effect::new(move |_| {
-        let Some(window) = web_sys::window() else { return };
-        let Ok(href) = window.location().href() else { return };
-        let Ok(url) = web_sys::Url::new(&href) else { return };
-        let Some(src) = url.search_params().get("url") else { return };
+        let Some(window) = web_sys::window() else {
+            return;
+        };
+        let Ok(href) = window.location().href() else {
+            return;
+        };
+        let Ok(url) = web_sys::Url::new(&href) else {
+            return;
+        };
+        let Some(src) = url.search_params().get("url") else {
+            return;
+        };
         let page_is_http = url.protocol() == "http:";
-        let src_ok = src.starts_with("https://")
-            || (page_is_http && src.starts_with("http://"));
+        let src_ok = src.starts_with("https://") || (page_is_http && src.starts_with("http://"));
         if !src_ok {
             web_sys::console::warn_1(
                 &format!("ignoring url param (scheme not allowed): {}", src).into(),
@@ -1095,9 +1110,7 @@ pub fn App() -> impl IntoView {
                     );
                 }
                 Err(e) => {
-                    web_sys::console::error_1(
-                        &format!("failed to load {}: {:?}", src, e).into(),
-                    );
+                    web_sys::console::error_1(&format!("failed to load {}: {:?}", src, e).into());
                 }
             }
         });

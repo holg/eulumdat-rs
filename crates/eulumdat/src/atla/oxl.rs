@@ -367,10 +367,10 @@ fn parse_luminaire(reader: &mut Reader<&[u8]>) -> Result<LuminaireOpticalData> {
                                 emitter.description = Some(text);
                             }
                         }
-                        "ProductName" if parent == "ProductIdentity" => {
-                            if emitter.description.is_none() {
-                                emitter.description = Some(text);
-                            }
+                        "ProductName"
+                            if parent == "ProductIdentity" && emitter.description.is_none() =>
+                        {
+                            emitter.description = Some(text);
                         }
                         _ => {}
                     }

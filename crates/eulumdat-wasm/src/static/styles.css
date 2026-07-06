@@ -530,6 +530,62 @@ textarea::placeholder {
     font-size: 0.75rem;
     border-top: 1px solid var(--border);
     background: var(--surface);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ── Library rows ──────────────────────────────────────────────
+ * Rows added from drag-drop / file-picker / `?url=…` land at the
+ * top of the dashboard list, marked with a subtle left accent and
+ * a × remove button on hover.
+ */
+.dashboard-row-wrap {
+    position: relative;
+}
+.dashboard-row-wrap.library-row > :first-child {
+    border-left: 3px solid var(--accent, #4a9eff);
+}
+.library-remove-btn {
+    position: absolute;
+    top: 50%;
+    right: 0.4rem;
+    transform: translateY(-50%);
+    width: 1.4rem;
+    height: 1.4rem;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.dashboard-row-wrap.library-row:hover .library-remove-btn {
+    opacity: 0.8;
+}
+.library-remove-btn:hover {
+    background: var(--danger, #c0392b);
+    color: #fff;
+    opacity: 1;
+}
+.library-clear-btn {
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+}
+.library-clear-btn:hover {
+    background: var(--danger, #c0392b);
+    color: #fff;
+    border-color: transparent;
 }
 
 .dashboard-hint {

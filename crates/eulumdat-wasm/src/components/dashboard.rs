@@ -515,6 +515,14 @@ pub fn Dashboard(
     on_compare_view: Callback<()>,
     on_export_pdf: Callback<Eulumdat>,
     on_designer: Callback<()>,
+    /// Persistent library of opened files (drag-drop, file picker,
+    /// `?url=…`). Rendered as rows alongside the templates so the user
+    /// can flip back to any previously-loaded fixture without re-uploading.
+    library: ReadSignal<crate::library::Library>,
+    /// Remove a single library entry by content-id.
+    on_library_remove: Callback<String>,
+    /// Wipe the whole library.
+    on_library_clear: Callback<()>,
 ) -> impl IntoView {
     let locale = use_locale();
 
@@ -554,10 +562,47 @@ pub fn Dashboard(
     let (entries, set_entries) = signal(Vec::<LuminaireEntry>::new());
     let (loading, set_loading) = signal(true);
 
-    // Load templates (embedded directly in WASM via include_str!)
+    // How many of the first `entries` are library rows (loaded files)
+    // vs. bundled templates. Lets the row renderer attach a `×`
+    // (remove) button to library rows only. Library rows always sit
+    // at the top so newest-loaded files appear first.
+    let (library_count, set_library_count) = signal(0_usize);
+    // Library row index → content-id, used by the remove × button.
+    let (library_ids, set_library_ids) = signal(Vec::<String>::new());
+    // Content-id of the most recently auto-expanded library entry.
+    // Lets us tell "a brand-new file just landed" from "the library
+    // signal fired but the top entry hasn't changed" so we don't keep
+    // re-expanding the same row the user already collapsed manually.
+    let (last_auto_expanded, set_last_auto_expanded) = signal(String::new());
+
+    // Combine library entries (newest-first) with bundled templates.
+    // Re-runs whenever the library signal changes — including the
+    // initial load — so we don't need a separate template-only path.
     Effect::new(move |_| {
         set_loading.set(true);
-        let mut loaded = Vec::new();
+        let lib = library.get();
+
+        // 1. Library files first.
+        let mut combined = Vec::<LuminaireEntry>::with_capacity(lib.entries.len() + 32);
+        let mut ids = Vec::<String>::with_capacity(lib.entries.len());
+        for entry in &lib.entries {
+            let lower = entry.name.to_lowercase();
+            let parsed = if lower.ends_with(".ies") {
+                IesParser::parse(&entry.content).ok()
+            } else {
+                Eulumdat::parse(&entry.content).ok()
+            };
+            if let Some(parsed_ldc) = parsed {
+                combined.push(LuminaireEntry {
+                    name: entry.name.clone(),
+                    ldc: parsed_ldc,
+                });
+                ids.push(entry.id.clone());
+            }
+        }
+        let lib_n = combined.len();
+
+        // 2. Then the bundled templates.
         for tpl in ALL_TEMPLATES.iter() {
             match tpl.format {
                 TemplateFormat::Ldt | TemplateFormat::IesLm63 => {}
@@ -569,15 +614,37 @@ pub fn Dashboard(
                     TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
                     _ => None,
                 };
-                if let Some(ldc) = parsed {
-                    loaded.push(LuminaireEntry {
+                if let Some(parsed_ldc) = parsed {
+                    combined.push(LuminaireEntry {
                         name: tpl.name.to_string(),
-                        ldc,
+                        ldc: parsed_ldc,
                     });
                 }
             }
         }
-        set_entries.set(loaded);
+
+        // Auto-expand the freshly-loaded file. Fires only when the
+        // top library id has changed since the last auto-expand —
+        // re-saving a file (which bumps timestamps without reordering)
+        // or pushing the same content twice won't re-expand a row the
+        // user just collapsed. Also drives `on_select` so the rest of
+        // the app (compare panel, storage sync) gets the new fixture
+        // as the active one.
+        let top_id = ids.first().cloned();
+        if let Some(id) = top_id {
+            if id != last_auto_expanded.get_untracked() {
+                if let Some(entry) = combined.first().cloned() {
+                    set_selected_idx.set(Some(0));
+                    set_expanded_idx.set(Some(0));
+                    on_select.run((entry.ldc.clone(), entry.name.clone()));
+                    set_last_auto_expanded.set(id);
+                }
+            }
+        }
+
+        set_library_count.set(lib_n);
+        set_library_ids.set(ids);
+        set_entries.set(combined);
         set_loading.set(false);
     });
 
@@ -782,7 +849,10 @@ pub fn Dashboard(
                     </div>
                 })}
 
-                // Template rows
+                // Library + template rows. The first `library_count`
+                // entries are loaded files (drag-drop / `?url=…`); they
+                // get a × remove button overlaid on the row. The rest
+                // are bundled templates and render unchanged.
                 {move || {
                     let items = entries.get();
                     let current_expanded = expanded_idx.get();
@@ -791,10 +861,13 @@ pub fn Dashboard(
                     let cfg = config.get();
                     let gs = grid_style.get();
                     let diagrams_template = active_diagrams();
+                    let lib_n = library_count.get();
+                    let ids = library_ids.get();
                     items.into_iter().enumerate().map(|(idx, entry)| {
                         let is_expanded = current_expanded == Some(idx);
                         let is_selected = current_selected == Some(idx);
                         let is_compare = current_compare == Some(idx);
+                        let is_library = idx < lib_n;
                         let mut cells: Vec<String> = cfg.columns.iter()
                             .map(|c| (c.extract)(&entry.ldc))
                             .collect();
@@ -804,16 +877,32 @@ pub fn Dashboard(
                         let diagrams = diagrams_template.clone();
                         let entry_ldc = entry.ldc.clone();
                         let detail_ldc = entry.ldc.clone();
+                        let row_id_for_remove = ids.get(idx).cloned();
                         view! {
-                            <LuminaireRowStatic
-                                cells=cells
-                                label=entry.name.clone()
-                                grid_style=gs.clone()
-                                expanded=is_expanded
-                                selected=is_selected
-                                compare=is_compare
-                                on_toggle=make_row_handler(idx, entry_ldc, entry.name.clone())
-                            />
+                            <div class="dashboard-row-wrap" class:library-row=is_library>
+                                <LuminaireRowStatic
+                                    cells=cells
+                                    label=entry.name.clone()
+                                    grid_style=gs.clone()
+                                    expanded=is_expanded
+                                    selected=is_selected
+                                    compare=is_compare
+                                    on_toggle=make_row_handler(idx, entry_ldc, entry.name.clone())
+                                />
+                                {is_library.then(|| {
+                                    let id = row_id_for_remove.unwrap_or_default();
+                                    view! {
+                                        <button
+                                            class="library-remove-btn"
+                                            title="Remove from library"
+                                            on:click=move |ev| {
+                                                ev.stop_propagation();
+                                                on_library_remove.run(id.clone());
+                                            }
+                                        >"×"</button>
+                                    }
+                                })}
+                            </div>
                             {is_expanded.then(|| {
                                 let ldc = detail_ldc.clone();
                                 view! { <LuminaireDetailStatic ldc=ldc diagrams=diagrams /> }
@@ -826,6 +915,7 @@ pub fn Dashboard(
                 {move || {
                     if !loading.get() {
                         let count = entries.get().len();
+                        let lib_n = library_count.get();
                         let luminaires_text = locale.get().dashboard.luminaires_count
                             .replace("{}", &count.to_string());
                         let click_text = locale.get().dashboard.click_to_select.clone();
@@ -836,6 +926,13 @@ pub fn Dashboard(
                                     " \u{2022} "{click_text}" \u{2022} "
                                     <kbd>"Ctrl"</kbd>" / "<kbd>"\u{2318}"</kbd>" + click to compare"
                                 </span>
+                                {(lib_n > 0).then(|| view! {
+                                    <button
+                                        class="library-clear-btn"
+                                        title="Remove all loaded files from the library"
+                                        on:click=move |_| on_library_clear.run(())
+                                    >{format!("Clear library ({lib_n})")}</button>
+                                })}
                             </div>
                         })
                     } else {

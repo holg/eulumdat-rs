@@ -98,6 +98,24 @@ impl SceneType {
 #[derive(Component)]
 pub struct SceneGeometry;
 
+/// Marker for the floor plane. Lets the Lisp `SET-FLOOR-COLOR` and
+/// `SET-FLOOR-REFLECTANCE` primitives address just the floor's
+/// `StandardMaterial` without touching the walls or ceiling.
+#[derive(Component)]
+pub struct FloorSurface;
+
+/// Marker for the ceiling plane. Companion to `FloorSurface` /
+/// `WallSurface` — see those docs.
+#[derive(Component)]
+pub struct CeilingSurface;
+
+/// Marker for any of the four wall planes. All walls share one
+/// `StandardMaterial` handle in the current builder, so a single
+/// material mutation recolours them in unison. The marker lets us
+/// find any wall entity to look up that shared handle.
+#[derive(Component)]
+pub struct WallSurface;
+
 fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -165,11 +183,22 @@ fn build_scene(
         }
     }
 
-    // Add ambient light - keep low so luminaire effect is visible
-    // In Bevy 0.18, AmbientLight is now a component, use GlobalAmbientLight as resource
+    // Ambient/fill light. Tuned so the luminaire's HOUSING colour
+    // (RAL paint) reads at any view angle — not just when a spot is
+    // pointed at it. 50 was too dark (housing went near-black when
+    // LEDs tilted away, breaking variant colour swaps in the REPL
+    // demo); 300 was too bright (walls glowed unrealistically); 150
+    // was tolerable but still left dark variants like RAL 9005 jet
+    // black almost unreadable in shadow.
+    //
+    // 200 is the new compromise: jet-black housings still read as
+    // "very dark" but you can see the silhouette, and lighter RAL
+    // colours (yellow-green, traffic yellow) keep their hue without
+    // washing out the floor's spot beam. Lisp scripts can override
+    // with (SET-AMBIENT n) when they want a hero shot.
     commands.insert_resource(bevy::light::GlobalAmbientLight {
         color: Color::srgb(0.9, 0.9, 1.0),
-        brightness: 50.0, // Low ambient to see lighting differences
+        brightness: 200.0,
         affects_lightmapped_meshes: true,
     });
 }
@@ -184,10 +213,11 @@ fn build_room(
     let l = settings.room_length;
     let h = settings.room_height;
 
-    // Floor
+    // Floor — light grey laminate. Roughness 0.6 picks up a soft
+    // highlight under the spotlight without going mirror-shiny.
     let floor_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.85, 0.85, 0.85),
-        perceptual_roughness: 0.8,
+        perceptual_roughness: 0.6,
         ..default()
     });
 
@@ -196,12 +226,14 @@ fn build_room(
         MeshMaterial3d(floor_material.clone()),
         Transform::from_xyz(w / 2.0, 0.0, l / 2.0),
         SceneGeometry,
+        FloorSurface,
     ));
 
-    // Ceiling
+    // Ceiling — painted white plaster. Roughness 0.7 — matte but
+    // not bone-dry.
     let ceiling_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.95, 0.95, 0.95),
-        perceptual_roughness: 0.9,
+        perceptual_roughness: 0.7,
         ..default()
     });
 
@@ -211,12 +243,14 @@ fn build_room(
         Transform::from_xyz(w / 2.0, h, l / 2.0)
             .with_rotation(Quat::from_rotation_x(std::f32::consts::PI)),
         SceneGeometry,
+        CeilingSurface,
     ));
 
-    // Walls
+    // Walls — white plaster, slightly less reflective than the
+    // ceiling because walls catch more cross-lighting and shadows.
     let wall_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.95, 0.95, 0.95),
-        perceptual_roughness: 0.9,
+        base_color: Color::srgb(0.92, 0.92, 0.92),
+        perceptual_roughness: 0.75,
         ..default()
     });
 
@@ -227,6 +261,7 @@ fn build_room(
         Transform::from_xyz(w / 2.0, h / 2.0, 0.0)
             .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
         SceneGeometry,
+        WallSurface,
     ));
 
     // Front wall (z=l)
@@ -236,6 +271,7 @@ fn build_room(
         Transform::from_xyz(w / 2.0, h / 2.0, l)
             .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
         SceneGeometry,
+        WallSurface,
     ));
 
     // Left wall (x=0)
@@ -245,6 +281,7 @@ fn build_room(
         Transform::from_xyz(0.0, h / 2.0, l / 2.0)
             .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2)),
         SceneGeometry,
+        WallSurface,
     ));
 
     // Right wall (x=w)
@@ -254,6 +291,7 @@ fn build_room(
         Transform::from_xyz(w, h / 2.0, l / 2.0)
             .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
         SceneGeometry,
+        WallSurface,
     ));
 
     // Pendulum/suspension cable (if pendulum_length > 0)
