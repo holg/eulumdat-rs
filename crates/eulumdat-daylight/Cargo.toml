@@ -1,0 +1,23 @@
+[package]
+name = "eulumdat-daylight"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Solar position, analytic sky-luminance (Perez / CIE) and daylight availability for photometric daytime calculations"
+keywords = ["lighting", "daylight", "solar", "sky", "photometry"]
+categories = ["science", "simulation"]
+
+# Pure f64 physics — deliberately dependency-free so it is a true leaf crate
+# that the Monte Carlo (goniosim/rt), Bevy, and core eulumdat crates can all
+# depend on without any risk of a dependency cycle.
+[features]
+default = []
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+approx.workspace = true

@@ -57,6 +57,26 @@ pub enum Source {
         /// Pre-computed CDF for efficient sampling (built automatically).
         cdf: LvkCdf,
     },
+
+    /// The sun as a near-parallel beam: a very narrow cone around `direction`
+    /// (the *arrival* direction, i.e. down-going), subtending the solar disc.
+    /// Photons are emitted from random points on a horizontal square of
+    /// half-extent `half_extent` centred at `position`, so the beam is parallel
+    /// and covers a finite collector area (not a diverging point source).
+    /// Used by the daylight module; `direction` already points where photons
+    /// travel, so no negation is applied here.
+    SunDisc {
+        position: Point3<f64>,
+        direction: Unit<Vector3<f64>>,
+        angular_radius_rad: f64,
+        half_extent: f64,
+        flux_lm: f64,
+    },
+
+    /// Luminance-weighted sky hemisphere. Photons arrive from sampled sky
+    /// directions (down-going). Built via
+    /// [`crate::daylight::SkyDomeSource`].
+    SkyDome(crate::daylight::SkyDomeSource),
 }
 
 impl Source {
@@ -86,6 +106,8 @@ impl Source {
             Source::LineSource { flux_lm, .. } => *flux_lm,
             Source::AreaSource { flux_lm, .. } => *flux_lm,
             Source::FromLvk { flux_lm, .. } => *flux_lm,
+            Source::SunDisc { flux_lm, .. } => *flux_lm,
+            Source::SkyDome(d) => d.flux_lm,
         }
     }
 
@@ -167,6 +189,24 @@ impl Source {
                 let dir_world = orientation * dir_local;
                 Ray::new(*position, Unit::new_normalize(dir_world))
             }
+
+            Source::SunDisc {
+                position,
+                direction,
+                angular_radius_rad,
+                half_extent,
+                ..
+            } => {
+                // Emit from a random point on a horizontal square at the source
+                // height, so the parallel beam covers the collector footprint.
+                let ox = (rng.random::<f64>() * 2.0 - 1.0) * half_extent;
+                let oy = (rng.random::<f64>() * 2.0 - 1.0) * half_extent;
+                let origin = Point3::new(position.x + ox, position.y + oy, position.z);
+                let dir = random_cone(direction, angular_radius_rad.to_degrees(), rng);
+                Ray::new(origin, dir)
+            }
+
+            Source::SkyDome(dome) => dome.sample(rng),
         }
     }
 }

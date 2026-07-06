@@ -44,12 +44,20 @@ impl Detector {
 
     /// Record an escaping photon by its world-space direction and energy.
     pub fn record(&mut self, direction: &Vector3<f64>, energy: f64) {
-        let (c, g) = direction_to_cg(direction);
-        let ci = ((c / self.c_resolution_deg).floor() as usize).min(self.num_c - 1);
-        let gi = ((g / self.g_resolution_deg).round() as usize).min(self.num_g - 1);
+        let (ci, gi) = self.bin_index(direction);
         self.bins[ci][gi] += energy;
         self.counts[ci][gi] += 1;
         self.total_energy += energy;
+    }
+
+    /// Map a world-space direction to its `(c_index, g_index)` bin — the same
+    /// mapping [`record`](Self::record) uses. Exposed so a parallel spectral
+    /// accumulator can address the identical bins.
+    pub fn bin_index(&self, direction: &Vector3<f64>) -> (usize, usize) {
+        let (c, g) = direction_to_cg(direction);
+        let ci = ((c / self.c_resolution_deg).floor() as usize).min(self.num_c - 1);
+        let gi = ((g / self.g_resolution_deg).round() as usize).min(self.num_g - 1);
+        (ci, gi)
     }
 
     /// Convert accumulated bins to candela values.

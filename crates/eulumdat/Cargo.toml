@@ -30,9 +30,17 @@ xml = ["dep:quick-xml"]
 json = ["dep:serde_json", "dep:serde"]
 i18n = ["dep:eulumdat-i18n"]
 serde = ["dep:serde"]
+# Daytime road calc: turn a sun position + sky availability into road-luminance
+# sources. Optional so the core crate stays free of the daylight physics.
+daylight = ["dep:eulumdat-daylight"]
+# Spectral / mesopic (CIE 191) road-luminance correction. Optional so the core
+# crate stays free of the spectral physics.
+spectrum = ["dep:eulumdat-spectrum"]
 
 [dependencies]
 anyhow.workspace = true
+eulumdat-daylight = { workspace = true, optional = true }
+eulumdat-spectrum = { workspace = true, optional = true }
 eulumdat-i18n = { workspace = true, optional = true }
 quick-xml = { version = "0.37", features = ["serialize"], optional = true }
 serde = { workspace = true, optional = true }

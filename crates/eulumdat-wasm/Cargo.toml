@@ -58,9 +58,11 @@ benchmark = []
 console_error_panic_hook.workspace = true
 # Core library
 eulumdat = { workspace = true, features = ["xml", "json", "i18n", "serde"] }
+eulumdat-daylight.workspace = true
 eulumdat-goniosim = { workspace = true, default-features = false }
 eulumdat-i18n.workspace = true
 eulumdat-rt = { workspace = true, default-features = false }
+eulumdat-spectrum.workspace = true
 eulumdat-typst.workspace = true
 eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates", version = "0.7.0" }
 getrandom = { version = "0.3", features = ["wasm_js"] }
@@ -78,6 +80,7 @@ wasm-bindgen-futures.workspace = true
 
 # Utilities
 base64.workspace = true
+serde.workspace = true
 serde_json = "1"
 
 # eulumdat-bevy intentionally not declared here — it depends on a
@@ -124,6 +127,11 @@ features = [
     "Location",
     "UrlSearchParams",
     "History",
+    "Request",
+    "RequestInit",
+    "RequestMode",
+    "Response",
+    "Headers",
 ]
 
 [dev-dependencies]

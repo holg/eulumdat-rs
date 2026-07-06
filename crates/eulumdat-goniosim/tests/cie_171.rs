@@ -281,6 +281,7 @@ fn cie_tc_5_8_integrating_cube() {
             detector_g_resolution: 5.0,
             seed: 5800 + (rho * 100.0) as u64,
             max_trails: 0,
+            detector_mode: DetectorMode::Photopic,
         };
 
         let result = Tracer::trace(&scene, &config);
@@ -888,6 +889,7 @@ fn cie_tc_5_7_diffuse_with_obstruction() {
         detector_g_resolution: 5.0,
         seed: 5700,
         max_trails: 0,
+        detector_mode: DetectorMode::Photopic,
     };
     let result_clear = Tracer::trace(&scene_clear, &config);
 

@@ -134,6 +134,8 @@ pub struct Locale {
     #[serde(default)]
     pub goniosim: GoniosimLocale,
     #[serde(default)]
+    pub spectrum_lab: SpectrumLabLocale,
+    #[serde(default)]
     pub street: StreetLocale,
     /// Flat key→string map for ad-hoc translations from sibling crates
     /// (gldf-rs, light-other-rs, etc.). Keys should be namespaced
@@ -1621,6 +1623,331 @@ fn default_mat_satin_glass() -> String {
     "Glass satin 4mm".into()
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Spectrum Lab (spectral Monte Carlo demo) translations
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Translations for the Spectrum Lab demo tab (spectral trace → CCT, S/P,
+/// melanopic, mesopic road luminance, dark-sky report). Every field has an
+/// English `serde` default so missing keys fall back gracefully.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct SpectrumLabLocale {
+    #[serde(default = "default_slab_title")]
+    pub title: String,
+    #[serde(default = "default_slab_intro")]
+    pub intro: String,
+    #[serde(default = "default_slab_source_spectrum")]
+    pub source_spectrum: String,
+    #[serde(default = "default_slab_photons")]
+    pub photons: String,
+    #[serde(default = "default_slab_road_luminance")]
+    pub road_luminance: String,
+    #[serde(default = "default_slab_trace")]
+    pub trace: String,
+    #[serde(default = "default_slab_tracing")]
+    pub tracing: String,
+    #[serde(default = "default_slab_empty_hint")]
+    pub empty_hint: String,
+    #[serde(default = "default_slab_cct")]
+    pub cct: String,
+    #[serde(default = "default_slab_sp")]
+    pub sp_ratio: String,
+    #[serde(default = "default_slab_mel")]
+    pub melanopic_der: String,
+    #[serde(default = "default_slab_mesopic")]
+    pub mesopic_road: String,
+    #[serde(default = "default_slab_dark_sky")]
+    pub dark_sky: String,
+    #[serde(default = "default_slab_passes")]
+    pub passes: String,
+    #[serde(default = "default_slab_fails")]
+    pub fails: String,
+    #[serde(default = "default_slab_ulor")]
+    pub ulor: String,
+    #[serde(default = "default_slab_upward_cct")]
+    pub upward_cct: String,
+    #[serde(default = "default_slab_blue_content")]
+    pub blue_content: String,
+    #[serde(default = "default_slab_sp_cool")]
+    pub sp_cool: String,
+    #[serde(default = "default_slab_sp_neutral")]
+    pub sp_neutral: String,
+    #[serde(default = "default_slab_sp_warm")]
+    pub sp_warm: String,
+    #[serde(default = "default_slab_mel_high")]
+    pub mel_high: String,
+    #[serde(default = "default_slab_mel_moderate")]
+    pub mel_moderate: String,
+    #[serde(default = "default_slab_mel_low")]
+    pub mel_low: String,
+    /// Mesopic-card hint template. `{pct}` (signed % vs photopic) and `{photopic}`
+    /// (the photopic luminance) are substituted.
+    #[serde(default = "default_slab_mesopic_vs")]
+    pub mesopic_vs: String,
+    /// Footer stats template. `{photons}` and `{pct}` are substituted.
+    #[serde(default = "default_slab_stats")]
+    pub stats: String,
+    // ── Location & datetime controls ──
+    #[serde(default = "default_slab_location")]
+    pub location: String,
+    #[serde(default = "default_slab_date")]
+    pub date: String,
+    #[serde(default = "default_slab_time_of_day")]
+    pub time_of_day: String,
+    #[serde(default = "default_slab_mode")]
+    pub mode: String,
+    #[serde(default = "default_slab_mode_luminaire")]
+    pub mode_luminaire: String,
+    #[serde(default = "default_slab_mode_sky")]
+    pub mode_sky: String,
+    #[serde(default = "default_slab_sun_altitude")]
+    pub sun_altitude: String,
+    #[serde(default = "default_slab_sun_azimuth")]
+    pub sun_azimuth: String,
+    #[serde(default = "default_slab_regime_day")]
+    pub regime_day: String,
+    #[serde(default = "default_slab_regime_twilight")]
+    pub regime_twilight: String,
+    #[serde(default = "default_slab_regime_night")]
+    pub regime_night: String,
+    #[serde(default = "default_slab_sky_illuminance")]
+    pub sky_illuminance: String,
+    // ── Sky visualisation titles ──
+    #[serde(default = "default_slab_viz_sky_dome")]
+    pub viz_sky_dome: String,
+    #[serde(default = "default_slab_viz_scene")]
+    pub viz_scene: String,
+    #[serde(default = "default_slab_viz_sun_path")]
+    pub viz_sun_path: String,
+    #[serde(default = "default_slab_viz_timeline")]
+    pub viz_timeline: String,
+    // ── Custom location ──
+    #[serde(default = "default_slab_location_custom")]
+    pub location_custom: String,
+    #[serde(default = "default_slab_latitude")]
+    pub latitude: String,
+    #[serde(default = "default_slab_longitude")]
+    pub longitude: String,
+    // ── Moon phase ──
+    #[serde(default = "default_slab_regime_moonlit")]
+    pub regime_moonlit: String,
+    #[serde(default = "default_slab_moon_below")]
+    pub moon_below: String,
+    #[serde(default = "default_slab_moon_new")]
+    pub moon_new: String,
+    #[serde(default = "default_slab_moon_waxing_crescent")]
+    pub moon_waxing_crescent: String,
+    #[serde(default = "default_slab_moon_first_quarter")]
+    pub moon_first_quarter: String,
+    #[serde(default = "default_slab_moon_waxing_gibbous")]
+    pub moon_waxing_gibbous: String,
+    #[serde(default = "default_slab_moon_full")]
+    pub moon_full: String,
+    #[serde(default = "default_slab_moon_waning_gibbous")]
+    pub moon_waning_gibbous: String,
+    #[serde(default = "default_slab_moon_last_quarter")]
+    pub moon_last_quarter: String,
+    #[serde(default = "default_slab_moon_waning_crescent")]
+    pub moon_waning_crescent: String,
+    // ── Daylight & Sky tab ──
+    #[serde(default = "default_slab_sky_tab_title")]
+    pub sky_tab_title: String,
+    #[serde(default = "default_slab_sky_tab_intro")]
+    pub sky_tab_intro: String,
+    #[serde(default = "default_slab_sky_empty_hint")]
+    pub sky_empty_hint: String,
+    #[serde(default = "default_slab_scene_road")]
+    pub scene_road: String,
+    #[serde(default = "default_slab_scene_room")]
+    pub scene_room: String,
+    #[serde(default = "default_slab_scene_plaza")]
+    pub scene_plaza: String,
+}
+
+fn default_slab_title() -> String {
+    "Spectrum Lab".into()
+}
+fn default_slab_intro() -> String {
+    "One spectral trace → colour-over-angle, night vision (S/P), circadian (melanopic), mesopic road luminance, and a dark-sky report. The photons that build the LDT give you every metric because weighting happens at the detector, not at emission.".into()
+}
+fn default_slab_source_spectrum() -> String {
+    "Source spectrum".into()
+}
+fn default_slab_photons() -> String {
+    "Photons".into()
+}
+fn default_slab_road_luminance() -> String {
+    "Road luminance (cd/m²)".into()
+}
+fn default_slab_trace() -> String {
+    "▶ Trace".into()
+}
+fn default_slab_tracing() -> String {
+    "Tracing…".into()
+}
+fn default_slab_empty_hint() -> String {
+    "Pick a spectrum and press Trace to run the spectral Monte Carlo engine.".into()
+}
+fn default_slab_cct() -> String {
+    "Correlated colour temp".into()
+}
+fn default_slab_sp() -> String {
+    "S/P ratio (night vision)".into()
+}
+fn default_slab_mel() -> String {
+    "Melanopic DER (circadian)".into()
+}
+fn default_slab_mesopic() -> String {
+    "Mesopic road luminance".into()
+}
+fn default_slab_dark_sky() -> String {
+    "Dark-Sky Compliance".into()
+}
+fn default_slab_passes() -> String {
+    "PASSES 3000K limit".into()
+}
+fn default_slab_fails() -> String {
+    "FAILS 3000K limit".into()
+}
+fn default_slab_ulor() -> String {
+    "Upward light (ULOR)".into()
+}
+fn default_slab_upward_cct() -> String {
+    "Upward CCT".into()
+}
+fn default_slab_blue_content() -> String {
+    "Blue content of spill".into()
+}
+fn default_slab_sp_cool() -> String {
+    "cool — bright at night".into()
+}
+fn default_slab_sp_neutral() -> String {
+    "neutral".into()
+}
+fn default_slab_sp_warm() -> String {
+    "warm — dim at night".into()
+}
+fn default_slab_mel_high() -> String {
+    "high circadian stimulus".into()
+}
+fn default_slab_mel_moderate() -> String {
+    "moderate".into()
+}
+fn default_slab_mel_low() -> String {
+    "low — sleep-friendly".into()
+}
+fn default_slab_mesopic_vs() -> String {
+    "{pct}% vs photopic {photopic}".into()
+}
+fn default_slab_stats() -> String {
+    "{photons} photons traced · {pct}% escaped to detector".into()
+}
+fn default_slab_location() -> String {
+    "Location".into()
+}
+fn default_slab_date() -> String {
+    "Date".into()
+}
+fn default_slab_time_of_day() -> String {
+    "Local time".into()
+}
+fn default_slab_mode() -> String {
+    "Trace mode".into()
+}
+fn default_slab_mode_luminaire() -> String {
+    "Luminaire".into()
+}
+fn default_slab_mode_sky() -> String {
+    "Sky".into()
+}
+fn default_slab_sun_altitude() -> String {
+    "Sun altitude".into()
+}
+fn default_slab_sun_azimuth() -> String {
+    "Sun azimuth".into()
+}
+fn default_slab_regime_day() -> String {
+    "Daylight".into()
+}
+fn default_slab_regime_twilight() -> String {
+    "Twilight".into()
+}
+fn default_slab_regime_night() -> String {
+    "Night".into()
+}
+fn default_slab_sky_illuminance() -> String {
+    "Sky illuminance".into()
+}
+fn default_slab_viz_sky_dome() -> String {
+    "Sky colour".into()
+}
+fn default_slab_viz_scene() -> String {
+    "Scene under this sky".into()
+}
+fn default_slab_viz_sun_path() -> String {
+    "Sun path (today)".into()
+}
+fn default_slab_viz_timeline() -> String {
+    "Day → night (24 h)".into()
+}
+fn default_slab_location_custom() -> String {
+    "Custom…".into()
+}
+fn default_slab_latitude() -> String {
+    "Lat".into()
+}
+fn default_slab_longitude() -> String {
+    "Lon".into()
+}
+fn default_slab_regime_moonlit() -> String {
+    "Moonlit".into()
+}
+fn default_slab_moon_below() -> String {
+    "below horizon".into()
+}
+fn default_slab_moon_new() -> String {
+    "New moon".into()
+}
+fn default_slab_moon_waxing_crescent() -> String {
+    "Waxing crescent".into()
+}
+fn default_slab_moon_first_quarter() -> String {
+    "First quarter".into()
+}
+fn default_slab_moon_waxing_gibbous() -> String {
+    "Waxing gibbous".into()
+}
+fn default_slab_moon_full() -> String {
+    "Full moon".into()
+}
+fn default_slab_moon_waning_gibbous() -> String {
+    "Waning gibbous".into()
+}
+fn default_slab_moon_last_quarter() -> String {
+    "Last quarter".into()
+}
+fn default_slab_moon_waning_crescent() -> String {
+    "Waning crescent".into()
+}
+fn default_slab_sky_tab_title() -> String {
+    "Daylight & Sky".into()
+}
+fn default_slab_sky_tab_intro() -> String {
+    "Pick a place and a moment: the sun and moon update live, and the sky's light — daylight, twilight, moonlight — is traced onto a scene. Illuminance, colour and mesopic luminance come from the same Monte Carlo engine.".into()
+}
+fn default_slab_sky_empty_hint() -> String {
+    "Adjust the location and time, then press Trace to compute the sky's illuminance and colour.".into()
+}
+fn default_slab_scene_road() -> String {
+    "Road".into()
+}
+fn default_slab_scene_room() -> String {
+    "Room".into()
+}
+fn default_slab_scene_plaza() -> String {
+    "Plaza".into()
+}
+
 // Embedded locale JSON files
 const EN_JSON: &str = include_str!("../locales/en.json");
 const DE_JSON: &str = include_str!("../locales/de.json");
@@ -2220,6 +2547,101 @@ mod tests {
         assert_eq!(it.meta.code, "it");
         assert_eq!(it.diagram.placeholder.no_data, "Nessun dato");
         assert_eq!(it.ui.actions.save, "Salva");
+    }
+
+    /// Every locale must fully translate the Spectrum Lab tab: no field may be
+    /// empty, and every non-English locale must actually differ from English
+    /// on the translatable labels (guards against a JSON key going missing and
+    /// silently falling back to the English `serde` default).
+    #[test]
+    fn spectrum_lab_fully_translated() {
+        let en = Locale::english().spectrum_lab;
+        assert!(!en.title.is_empty());
+
+        for code in ["de", "fr", "es", "it", "ru", "zh", "pt-BR"] {
+            let sl = Locale::for_code(code).spectrum_lab;
+            // No empty strings anywhere.
+            let fields = [
+                ("title", &sl.title),
+                ("intro", &sl.intro),
+                ("source_spectrum", &sl.source_spectrum),
+                ("photons", &sl.photons),
+                ("road_luminance", &sl.road_luminance),
+                ("trace", &sl.trace),
+                ("tracing", &sl.tracing),
+                ("empty_hint", &sl.empty_hint),
+                ("cct", &sl.cct),
+                ("sp_ratio", &sl.sp_ratio),
+                ("melanopic_der", &sl.melanopic_der),
+                ("mesopic_road", &sl.mesopic_road),
+                ("dark_sky", &sl.dark_sky),
+                ("passes", &sl.passes),
+                ("fails", &sl.fails),
+                ("ulor", &sl.ulor),
+                ("upward_cct", &sl.upward_cct),
+                ("blue_content", &sl.blue_content),
+                ("sp_cool", &sl.sp_cool),
+                ("sp_neutral", &sl.sp_neutral),
+                ("sp_warm", &sl.sp_warm),
+                ("mel_high", &sl.mel_high),
+                ("mel_moderate", &sl.mel_moderate),
+                ("mel_low", &sl.mel_low),
+                ("mesopic_vs", &sl.mesopic_vs),
+                ("stats", &sl.stats),
+                ("location", &sl.location),
+                ("date", &sl.date),
+                ("time_of_day", &sl.time_of_day),
+                ("mode", &sl.mode),
+                ("mode_luminaire", &sl.mode_luminaire),
+                ("mode_sky", &sl.mode_sky),
+                ("sun_altitude", &sl.sun_altitude),
+                ("sun_azimuth", &sl.sun_azimuth),
+                ("regime_day", &sl.regime_day),
+                ("regime_twilight", &sl.regime_twilight),
+                ("regime_night", &sl.regime_night),
+                ("sky_illuminance", &sl.sky_illuminance),
+                ("viz_sky_dome", &sl.viz_sky_dome),
+                ("viz_scene", &sl.viz_scene),
+                ("viz_sun_path", &sl.viz_sun_path),
+                ("viz_timeline", &sl.viz_timeline),
+                ("location_custom", &sl.location_custom),
+                ("latitude", &sl.latitude),
+                ("longitude", &sl.longitude),
+                ("regime_moonlit", &sl.regime_moonlit),
+                ("moon_below", &sl.moon_below),
+                ("moon_new", &sl.moon_new),
+                ("moon_waxing_crescent", &sl.moon_waxing_crescent),
+                ("moon_first_quarter", &sl.moon_first_quarter),
+                ("moon_waxing_gibbous", &sl.moon_waxing_gibbous),
+                ("moon_full", &sl.moon_full),
+                ("moon_waning_gibbous", &sl.moon_waning_gibbous),
+                ("moon_last_quarter", &sl.moon_last_quarter),
+                ("moon_waning_crescent", &sl.moon_waning_crescent),
+                ("sky_tab_title", &sl.sky_tab_title),
+                ("sky_tab_intro", &sl.sky_tab_intro),
+                ("sky_empty_hint", &sl.sky_empty_hint),
+                ("scene_road", &sl.scene_road),
+                ("scene_room", &sl.scene_room),
+                ("scene_plaza", &sl.scene_plaza),
+            ];
+            for (name, val) in fields {
+                assert!(!val.is_empty(), "{code}: spectrum_lab.{name} is empty");
+            }
+            // The title must be genuinely localized, not the English default.
+            assert_ne!(
+                sl.title, en.title,
+                "{code}: spectrum_lab.title not translated (still English)"
+            );
+            // The stats template must keep the substitution placeholders.
+            assert!(
+                sl.stats.contains("{photons}") && sl.stats.contains("{pct}"),
+                "{code}: spectrum_lab.stats lost its placeholders"
+            );
+            assert!(
+                sl.mesopic_vs.contains("{pct}") && sl.mesopic_vs.contains("{photopic}"),
+                "{code}: spectrum_lab.mesopic_vs lost its placeholders"
+            );
+        }
     }
 
     #[test]

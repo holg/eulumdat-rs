@@ -3962,7 +3962,9 @@ version = "0.7.0"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
+ "eulumdat-daylight",
  "eulumdat-i18n",
+ "eulumdat-spectrum",
  "quick-xml 0.37.5",
  "serde",
  "serde_json",
@@ -3995,6 +3997,14 @@ dependencies = [
  "eulumdat-typst",
  "serde_json",
  "walkdir",
+]
+
+[[package]]
+name = "eulumdat-daylight"
+version = "0.7.0"
+dependencies = [
+ "approx 0.5.1",
+ "serde",
 ]
 
 [[package]]
@@ -4057,6 +4067,8 @@ version = "0.7.0"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
+ "eulumdat-daylight",
+ "eulumdat-spectrum",
  "nalgebra",
  "rand 0.9.2",
  "rand_xoshiro",
@@ -4133,6 +4145,7 @@ dependencies = [
  "env_logger",
  "eulumdat",
  "eulumdat-goniosim",
+ "eulumdat-spectrum",
  "flume",
  "getrandom 0.3.4",
  "glam 0.29.3",
@@ -4155,6 +4168,14 @@ dependencies = [
  "serde_json",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "eulumdat-spectrum"
+version = "0.7.0"
+dependencies = [
+ "approx 0.5.1",
+ "serde",
 ]
 
 [[package]]
@@ -4213,9 +4234,11 @@ dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
  "eulumdat",
+ "eulumdat-daylight",
  "eulumdat-goniosim",
  "eulumdat-i18n",
  "eulumdat-rt",
+ "eulumdat-spectrum",
  "eulumdat-typst",
  "eulumdat-wasm-templates",
  "getrandom 0.3.4",
@@ -4224,6 +4247,7 @@ dependencies = [
  "js-sys",
  "leptos",
  "leptos_router",
+ "serde",
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",

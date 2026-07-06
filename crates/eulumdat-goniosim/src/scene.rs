@@ -5,6 +5,7 @@ use crate::geometry::{Primitive, SceneObject};
 use crate::material::{Material, MaterialParams};
 use crate::ray::{HitRecord, Ray};
 use crate::source::Source;
+use crate::spectrum::SourceSpectrum;
 use crate::MaterialId;
 use nalgebra::{Point3, Unit, Vector3};
 
@@ -13,6 +14,9 @@ use nalgebra::{Point3, Unit, Vector3};
 pub struct Scene {
     pub sources: Vec<Source>,
     pub objects: Vec<SceneObject>,
+    /// Optional emission spectrum for each source, parallel to `sources`.
+    /// `None` = monochromatic 555 nm (photopic path unchanged).
+    spectra: Vec<Option<SourceSpectrum>>,
     /// Internal physics materials, indexed by MaterialId.
     materials: Vec<Material>,
     /// User-facing material params, parallel to `materials`.
@@ -25,20 +29,52 @@ impl Scene {
         Self {
             sources: Vec::new(),
             objects: Vec::new(),
+            spectra: Vec::new(),
             materials: Vec::new(),
             material_params: Vec::new(),
         }
     }
 
-    /// Add a light source.
+    /// Add a light source (monochromatic — no spectrum).
     pub fn add_source(&mut self, source: Source) {
         self.sources.push(source);
+        self.spectra.push(None);
+    }
+
+    /// Add a light source with an emission spectrum. Photons from this source
+    /// are wavelength-sampled from the SPD, enabling spectral detection.
+    pub fn add_source_with_spectrum(&mut self, source: Source, spectrum: SourceSpectrum) {
+        self.sources.push(source);
+        self.spectra.push(Some(spectrum));
+    }
+
+    /// The spectrum of source `idx`, if any.
+    pub fn spectrum(&self, idx: usize) -> Option<&SourceSpectrum> {
+        self.spectra.get(idx).and_then(|s| s.as_ref())
+    }
+
+    /// True if any source carries a spectrum (enables spectral detection).
+    pub fn has_spectra(&self) -> bool {
+        self.spectra.iter().any(|s| s.is_some())
     }
 
     /// Add a material from user-facing params. Returns the material ID.
     pub fn add_material(&mut self, params: MaterialParams) -> MaterialId {
         let id = self.materials.len();
         self.materials.push(params.to_material());
+        self.material_params.push(params);
+        id
+    }
+
+    /// Add a material with a wavelength-dependent override (Sellmeier
+    /// dispersion and/or spectral transmittance). Returns the material ID.
+    pub fn add_material_spectral(
+        &mut self,
+        params: MaterialParams,
+        spectral: crate::material::SpectralOverride,
+    ) -> MaterialId {
+        let id = self.materials.len();
+        self.materials.push(params.to_material_with_spectral(spectral));
         self.material_params.push(params);
         id
     }

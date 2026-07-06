@@ -19,6 +19,10 @@ struct TraceConfig {
     cdf_g_steps: u32,       // number of gamma steps in CDF
     cdf_c_steps: u32,       // number of C steps in CDF
     cdf_g_max: f32,         // max gamma angle (degrees)
+    // Spectral mode: 0 = monochromatic (555 nm), 1 = sample from wavelength CDF
+    // and accumulate weighted channel bins.
+    spectral_mode: u32,
+    wl_cdf_len: u32,        // number of entries in the wavelength CDF
     // Area source parameters (source_type=3)
     area_center: vec3<f32>,
     _pad0: f32,
@@ -73,6 +77,62 @@ struct GpuMaterial {
 @group(0) @binding(3) var<storage, read> materials: array<GpuMaterial>;
 // CDF for FromLvk source: marginal_g (g_steps) + conditional_c (g_steps * c_steps)
 @group(0) @binding(4) var<storage, read> cdf_data: array<f32>;
+// Wavelength CDF for the source spectrum: pairs of (wavelength_nm, cumulative)
+// flattened as [w0, c0, w1, c1, ...], length = wl_cdf_len entries (2*len floats).
+@group(0) @binding(5) var<storage, read> wl_cdf: array<f32>;
+// Weighted channel bins (spectral mode): 4 atomics per direction bin —
+// [X, Y, Z, scotopic], fixed-point ×1000.
+@group(0) @binding(6) var<storage, read_write> channel_bins: array<atomic<u32>>;
+// Spectral LUT: 81 nodes × vec4 [X, Y, Z, scotopic] at 5 nm (flattened).
+@group(0) @binding(7) var<storage, read> spectral_lut: array<f32>;
+
+// ============================================================================
+// Spectral weighting LUTs — uploaded at full 5 nm resolution.
+//
+// The `spectral_lut` buffer holds 81 nodes (380..780 nm @ 5 nm), each a vec4
+// [X, Y, Z, scotopic]. Uploaded from eulumdat-spectrum's exact tables, so the
+// GPU colorimetry matches the CPU to within Monte Carlo noise (no coarse-LUT
+// chromaticity error).
+// ============================================================================
+
+const LUT_NODES: u32 = 81u;
+
+fn lut_sample(wl: f32) -> vec4<f32> {
+    if (wl <= 380.0 || wl >= 780.0) { return vec4<f32>(0.0); }
+    let pos = (wl - 380.0) / 5.0;
+    let i0 = u32(floor(pos));
+    let i1 = min(i0 + 1u, LUT_NODES - 1u);
+    let t = pos - f32(i0);
+    let a = vec4<f32>(
+        spectral_lut[i0 * 4u + 0u], spectral_lut[i0 * 4u + 1u],
+        spectral_lut[i0 * 4u + 2u], spectral_lut[i0 * 4u + 3u]
+    );
+    let b = vec4<f32>(
+        spectral_lut[i1 * 4u + 0u], spectral_lut[i1 * 4u + 1u],
+        spectral_lut[i1 * 4u + 2u], spectral_lut[i1 * 4u + 3u]
+    );
+    return a * (1.0 - t) + b * t;
+}
+
+/// Sample a wavelength from the source-spectrum CDF (piecewise-linear invert).
+fn sample_wavelength() -> f32 {
+    let n = config.wl_cdf_len;
+    if (n < 2u) { return 555.0; }
+    let xi = random_f32();
+    // Linear scan (CDFs are short — 81 entries max). wl_cdf layout: [w,c,w,c,...]
+    var i = 1u;
+    for (; i < n; i++) {
+        if (wl_cdf[i * 2u + 1u] >= xi) { break; }
+    }
+    i = min(i, n - 1u);
+    let c0 = wl_cdf[(i - 1u) * 2u + 1u];
+    let c1 = wl_cdf[i * 2u + 1u];
+    let w0 = wl_cdf[(i - 1u) * 2u];
+    let w1 = wl_cdf[i * 2u];
+    if (c1 <= c0) { return w0; }
+    let t = (xi - c0) / (c1 - c0);
+    return w0 + t * (w1 - w0);
+}
 
 // ============================================================================
 // RNG: PCG
@@ -453,13 +513,24 @@ fn direction_to_bin(dir: vec3<f32>) -> vec2<u32> {
     return vec2<u32>(ci, gi);
 }
 
-fn record_detector(dir: vec3<f32>, energy: f32) {
+fn record_detector(dir: vec3<f32>, energy: f32, wavelength: f32) {
     let bin = direction_to_bin(dir);
     let idx = bin.x * config.detector_g_bins + bin.y;
     // Fixed-point: use 1000 (not 1M) to avoid u32 overflow at high photon counts.
     // Max per bin: 4,294,967 photons with energy=1.0 before overflow.
     let energy_fixed = u32(energy * 1000.0);
     atomicAdd(&detector_bins[idx], energy_fixed);
+
+    if (config.spectral_mode == 1u) {
+        // Four weighted channels per bin: X, Y, Z (for colour/CCT) and scotopic
+        // (for S/P). Fixed-point ×1000, matching detector_bins.
+        let w = lut_sample(wavelength);
+        let base = idx * 4u;
+        atomicAdd(&channel_bins[base + 0u], u32(energy * w.x * 1000.0));
+        atomicAdd(&channel_bins[base + 1u], u32(energy * w.y * 1000.0));
+        atomicAdd(&channel_bins[base + 2u], u32(energy * w.z * 1000.0));
+        atomicAdd(&channel_bins[base + 3u], u32(energy * w.w * 1000.0));
+    }
 }
 
 // ============================================================================
@@ -499,13 +570,19 @@ fn trace_photons(@builtin(global_invocation_id) id: vec3<u32>) {
     }
     var energy: f32 = 1.0;
 
+    // Sample the photon wavelength once, at emission (monochromatic → 555 nm).
+    var wavelength: f32 = 555.0;
+    if (config.spectral_mode == 1u) {
+        wavelength = sample_wavelength();
+    }
+
     // Trace loop
     for (var bounce = 0u; bounce < config.max_bounces; bounce++) {
         let hit = intersect_scene(origin, dir);
 
         if (!hit.valid) {
             // Escaped scene — record on detector
-            record_detector(dir, energy);
+            record_detector(dir, energy, wavelength);
             return;
         }
 

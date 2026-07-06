@@ -4,6 +4,20 @@ use bytemuck::{Pod, Zeroable};
 use std::borrow::Cow;
 use wgpu::util::DeviceExt;
 
+/// Flatten the exact eulumdat-spectrum 5 nm weighting tables into the GPU LUT
+/// layout: 81 nodes × [X, Y, Z, scotopic], as `f32`.
+fn spectral_lut_flat() -> Vec<f32> {
+    use eulumdat_spectrum::lut::{CMF_X, CMF_Y, CMF_Z, LUT_LEN, V_SCOTOPIC};
+    let mut out = Vec::with_capacity(LUT_LEN * 4);
+    for i in 0..LUT_LEN {
+        out.push(CMF_X[i] as f32);
+        out.push(CMF_Y[i] as f32);
+        out.push(CMF_Z[i] as f32);
+        out.push(V_SCOTOPIC[i] as f32);
+    }
+    out
+}
+
 /// GPU trace configuration — matches TraceConfig in WGSL.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
@@ -22,9 +36,11 @@ pub struct GpuTracerConfig {
     pub cdf_g_steps: u32,
     pub cdf_c_steps: u32,
     pub cdf_g_max: f32,
-    // Padding to align area_center to 16-byte boundary (WGSL vec3 alignment)
-    pub _align_pad0: u32,
-    pub _align_pad1: u32,
+    // Spectral mode flag + wavelength-CDF length. These occupy the two u32 slots
+    // that previously padded area_center to its 16-byte boundary, so alignment
+    // is unchanged.
+    pub spectral_mode: u32,
+    pub wl_cdf_len: u32,
     // Area source params (source_type=3)
     pub area_center: [f32; 3],
     pub _pad0: f32,
@@ -153,6 +169,7 @@ impl GpuMaterial {
                 ior,
                 transmittance,
                 min_reflectance,
+                ..
             } => Self {
                 mtype: 4,
                 reflectance: 0.0,
@@ -174,6 +191,7 @@ impl GpuMaterial {
                 asymmetry,
                 thickness,
                 min_reflectance,
+                ..
             } => Self {
                 mtype: 5,
                 reflectance: 0.0,
@@ -218,13 +236,50 @@ pub enum SourceType {
     AreaSource = 3,
 }
 
-/// Result from a GPU trace — detector bins as f64.
+/// Angularly-integrated spectral channels from a GPU spectral trace: summed
+/// tristimulus and scotopic weight over all detector bins.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GpuSpectralChannels {
+    /// Summed CIE X.
+    pub x: f64,
+    /// Summed CIE Y (photopic).
+    pub y: f64,
+    /// Summed CIE Z.
+    pub z: f64,
+    /// Summed scotopic weight.
+    pub scotopic: f64,
+}
+
+impl GpuSpectralChannels {
+    /// Integrated correlated colour temperature (K), via the shared spectrum
+    /// crate's chromaticity → CCT path. `None` if no light collected.
+    pub fn cct_k(&self) -> Option<f64> {
+        let sum = self.x + self.y + self.z;
+        if sum <= 0.0 {
+            return None;
+        }
+        Some(eulumdat_spectrum::colorimetry::from_chromaticity(self.x / sum, self.y / sum).cct_k)
+    }
+
+    /// Integrated scotopic/photopic ratio (Km′/Km · S/Y).
+    pub fn sp_ratio(&self) -> f64 {
+        if self.y <= 0.0 {
+            return 0.0;
+        }
+        (eulumdat_spectrum::constants::KM_SCOTOPIC * self.scotopic)
+            / (eulumdat_spectrum::constants::KM_PHOTOPIC * self.y)
+    }
+}
+
+/// Result from a GPU trace — detector bins as f64, plus optional spectral
+/// channels when the trace ran in spectral mode.
 pub struct GpuDetectorResult {
     bins: Vec<Vec<f64>>,
     num_c: usize,
     num_g: usize,
     c_res: f64,
     g_res: f64,
+    channels: Option<GpuSpectralChannels>,
 }
 
 impl GpuDetectorResult {
@@ -246,6 +301,11 @@ impl GpuDetectorResult {
     /// Number of gamma-bins.
     pub fn num_g(&self) -> usize {
         self.num_g
+    }
+
+    /// Integrated spectral channels, if the trace ran in spectral mode.
+    pub fn channels(&self) -> Option<GpuSpectralChannels> {
+        self.channels
     }
 
     /// Convert to candela (same formula as CPU detector).
@@ -375,6 +435,39 @@ impl GpuTracer {
                     },
                     count: None,
                 },
+                // wl_cdf: storage buffer (read) — source-spectrum wavelength CDF
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // channel_bins: storage buffer (read_write) — spectral channels
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // spectral_lut: storage buffer (read) — 81×vec4 weighting LUT
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
             ],
         });
 
@@ -416,6 +509,74 @@ impl GpuTracer {
             1000.0,
         )
         .await
+    }
+
+    /// Trace an isotropic source carrying a spectrum. Each photon's wavelength is
+    /// sampled on the GPU from the SPD's CDF, and the weighted channel bins
+    /// (X,Y,Z,scotopic) are accumulated. The returned result's
+    /// [`GpuDetectorResult::channels`] gives the integrated CCT and S/P — the
+    /// GPU analogue of the CPU `WeightedChannels` path, for parity validation.
+    pub async fn trace_isotropic_spectral(
+        &self,
+        num_photons: u32,
+        c_res_deg: f32,
+        g_res_deg: f32,
+        spd: &eulumdat_spectrum::Spd,
+    ) -> GpuDetectorResult {
+        let num_c = (360.0 / c_res_deg).round() as u32;
+        let num_g = (180.0 / g_res_deg).round() as u32 + 1;
+
+        // Build the flattened wavelength CDF: [w0,c0,w1,c1,…].
+        let wls = spd.wavelengths();
+        let vals = spd.values();
+        let mut wl_cdf: Vec<f32> = Vec::with_capacity(wls.len() * 2);
+        let mut cum = 0.0f64;
+        let mut cdf_vals = vec![0.0f64; wls.len()];
+        for i in 1..wls.len() {
+            cum += 0.5 * (vals[i - 1] + vals[i]) * (wls[i] - wls[i - 1]);
+            cdf_vals[i] = cum;
+        }
+        if cum > 0.0 {
+            for c in &mut cdf_vals {
+                *c /= cum;
+            }
+        }
+        for i in 0..wls.len() {
+            wl_cdf.push(wls[i] as f32);
+            wl_cdf.push(cdf_vals[i] as f32);
+        }
+
+        let config = GpuTracerConfig {
+            detector_c_bins: num_c,
+            detector_g_bins: num_g,
+            detector_c_res: c_res_deg,
+            detector_g_res: g_res_deg,
+            seed_offset: 42,
+            num_photons,
+            source_type: SourceType::Isotropic as u32,
+            source_flux: 1000.0,
+            num_primitives: 0,
+            max_bounces: 4,
+            rr_threshold: 0.01,
+            cdf_g_steps: 0,
+            cdf_c_steps: 0,
+            cdf_g_max: 0.0,
+            spectral_mode: 1,
+            wl_cdf_len: wls.len() as u32,
+            area_center: [0.0; 3],
+            _pad0: 0.0,
+            area_normal: [0.0, 0.0, -1.0],
+            _pad1: 0.0,
+            area_u_axis: [1.0, 0.0, 0.0],
+            area_half_width: 0.0,
+            area_half_height: 0.0,
+            _pad2: 0,
+            _pad3: 0,
+            _pad4: 0,
+        };
+
+        self.dispatch_config(config, num_c, num_g, &[], &[], &[], &wl_cdf)
+            .await
     }
 
     /// Trace photons from a Lambertian source in free space.
@@ -497,8 +658,8 @@ impl GpuTracer {
             cdf_g_steps: 0,
             cdf_c_steps: 0,
             cdf_g_max: 0.0,
-            _align_pad0: 0,
-            _align_pad1: 0,
+            spectral_mode: 0,
+            wl_cdf_len: 0,
             area_center: center,
             _pad0: 0.0,
             area_normal: normal,
@@ -511,7 +672,7 @@ impl GpuTracer {
             _pad4: 0,
         };
 
-        self.dispatch_config(config, num_c, num_g, &[], &[], &[])
+        self.dispatch_config(config, num_c, num_g, &[], &[], &[], &[])
             .await
     }
 
@@ -622,8 +783,8 @@ impl GpuTracer {
             cdf_g_steps,
             cdf_c_steps,
             cdf_g_max,
-            _align_pad0: 0,
-            _align_pad1: 0,
+            spectral_mode: 0,
+            wl_cdf_len: 0,
             area_center: [0.0; 3],
             _pad0: 0.0,
             area_normal: [0.0, 0.0, -1.0],
@@ -643,11 +804,17 @@ impl GpuTracer {
             primitives_data,
             materials_data,
             cdf_data,
+            &[],
         )
         .await
     }
 
     /// Core dispatch: creates GPU buffers, runs compute, reads back results.
+    ///
+    /// `wl_cdf` is the flattened source-spectrum wavelength CDF ([w,c,w,c,…]);
+    /// pass `&[]` for a monochromatic run. When `config.spectral_mode == 1`, the
+    /// weighted channel bins (X,Y,Z,scotopic) are read back into
+    /// [`GpuDetectorResult::channels`].
     async fn dispatch_config(
         &self,
         config: GpuTracerConfig,
@@ -656,6 +823,7 @@ impl GpuTracer {
         primitives_data: &[GpuPrimitive],
         materials_data: &[GpuMaterial],
         cdf_data: &[f32],
+        wl_cdf: &[f32],
     ) -> GpuDetectorResult {
         let total_bins = num_c * num_g;
         let num_photons = config.num_photons;
@@ -750,6 +918,51 @@ impl GpuTracer {
                 usage: wgpu::BufferUsages::STORAGE,
             });
 
+        // Wavelength CDF buffer (dummy single element when non-spectral).
+        let wl_buf_data: Vec<f32> = if wl_cdf.is_empty() {
+            vec![0.0, 0.0]
+        } else {
+            wl_cdf.to_vec()
+        };
+        let wl_cdf_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("wl_cdf_buffer"),
+                contents: bytemuck::cast_slice(&wl_buf_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
+
+        // Channel bins: 4 atomics (X,Y,Z,scotopic) per direction bin.
+        let spectral = config.spectral_mode == 1;
+        let channel_len = if spectral {
+            (total_bins as u64) * 4
+        } else {
+            1
+        };
+        let channel_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("channel_buffer"),
+            size: channel_len * 4,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let channel_readback = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("channel_readback"),
+            size: channel_len * 4,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Spectral LUT: 81 nodes × [X, Y, Z, scotopic] at 5 nm, from the exact
+        // eulumdat-spectrum tables so GPU colorimetry matches the CPU.
+        let lut_data = spectral_lut_flat();
+        let lut_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("spectral_lut_buffer"),
+                contents: bytemuck::cast_slice(&lut_data),
+                usage: wgpu::BufferUsages::STORAGE,
+            });
+
         // Bind group
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("rt_bind_group"),
@@ -774,6 +987,18 @@ impl GpuTracer {
                 wgpu::BindGroupEntry {
                     binding: 4,
                     resource: cdf_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wl_cdf_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: channel_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: lut_buffer.as_entire_binding(),
                 },
             ],
         });
@@ -806,6 +1031,15 @@ impl GpuTracer {
             0,
             (total_bins as u64) * 4,
         );
+        if spectral {
+            encoder.copy_buffer_to_buffer(
+                &channel_buffer,
+                0,
+                &channel_readback,
+                0,
+                channel_len * 4,
+            );
+        }
 
         self.queue.submit(Some(encoder.finish()));
 
@@ -834,12 +1068,41 @@ impl GpuTracer {
         drop(data);
         readback_buffer.unmap();
 
+        // Read back the spectral channels, if any.
+        let channels = if spectral {
+            let slice = channel_readback.slice(..);
+            let (tx, rx) = flume::bounded(1);
+            slice.map_async(wgpu::MapMode::Read, move |r| {
+                tx.send(r).unwrap();
+            });
+            self.device.poll(wgpu::PollType::wait_indefinitely()).ok();
+            rx.recv_async().await.unwrap().unwrap();
+            let cdata = slice.get_mapped_range();
+            let raw: &[u32] = bytemuck::cast_slice(&cdata);
+            let mut agg = [0.0f64; 4];
+            let n = (total_bins as usize) * 4;
+            for i in 0..n {
+                agg[i % 4] += raw[i] as f64 / 1_000.0;
+            }
+            drop(cdata);
+            channel_readback.unmap();
+            Some(GpuSpectralChannels {
+                x: agg[0],
+                y: agg[1],
+                z: agg[2],
+                scotopic: agg[3],
+            })
+        } else {
+            None
+        };
+
         GpuDetectorResult {
             bins,
             num_c: num_c as usize,
             num_g: num_g as usize,
             c_res: c_res_deg as f64,
             g_res: g_res_deg as f64,
+            channels,
         }
     }
 }

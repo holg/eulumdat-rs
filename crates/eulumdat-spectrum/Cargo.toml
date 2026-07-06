@@ -1,0 +1,23 @@
+[package]
+name = "eulumdat-spectrum"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Spectral power distributions, CIE colorimetry, alpha-opic + mesopic (CIE 191) weighting, D-series daylight reconstruction and Sellmeier dispersion — a dependency-free leaf crate for photometric spectral Monte Carlo"
+keywords = ["lighting", "spectrum", "colorimetry", "mesopic", "photometry"]
+categories = ["science", "simulation"]
+
+# Deliberately dependency-free (like eulumdat-daylight) so the Monte Carlo
+# tracers, the Bevy viewer and the core eulumdat crate can all depend on it
+# without any risk of a dependency cycle.
+[features]
+default = []
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+approx.workspace = true

@@ -12,10 +12,12 @@ categories = ["simulation", "science"]
 [features]
 default = ["parallel"]
 parallel = ["dep:rayon"]
-serde = ["dep:serde", "eulumdat/serde"]
+serde = ["dep:serde", "eulumdat/serde", "eulumdat-spectrum/serde", "eulumdat-daylight/serde"]
 
 [dependencies]
 eulumdat = { workspace = true }
+eulumdat-spectrum = { workspace = true }
+eulumdat-daylight = { workspace = true }
 nalgebra = "0.33"
 rand = "0.9"
 rand_xoshiro = "0.7"

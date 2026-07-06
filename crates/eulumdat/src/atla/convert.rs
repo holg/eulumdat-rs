@@ -1193,12 +1193,27 @@ fn current_date_string() -> String {
     "2024-01-01".to_string() // Placeholder - in real code use chrono or similar
 }
 
-/// Generate a simple UUID-like stub
+/// Generate a simple UUID-like stub.
+///
+/// Uses the wall clock on native. On `wasm32-unknown-unknown`, `SystemTime::now()`
+/// panics ("time not implemented on this platform"), so we fall back to a
+/// process-local monotonic counter — good enough for a non-cryptographic stub
+/// identifier and, crucially, panic-free in the browser.
 fn generate_uuid_stub() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0);
-    format!("{:x}", timestamp)
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        format!("{timestamp:x}")
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0x1000);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        format!("{n:x}")
+    }
 }

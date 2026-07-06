@@ -5,9 +5,53 @@
 //! internal `Material` enum with physics coefficients automatically.
 
 use crate::ray::{HitRecord, Photon, Ray};
+use eulumdat_spectrum::{Sellmeier, Spd};
 use nalgebra::{Unit, Vector3};
 use rand::Rng;
 use std::f64::consts::PI;
+
+/// Optional wavelength-dependent overrides for a material's scalar datasheet
+/// values. Absent (`None`) everywhere → the material behaves exactly as its
+/// scalar `MaterialParams` (monochromatic-compatible).
+///
+/// * `dispersion` gives the refractive index as `n(λ)` (Sellmeier), replacing
+///   the scalar `ior` — this produces real chromatic bending (prismatic edges).
+/// * `transmittance_curve` gives a spectral transmittance τ(λ) in \[0,1\],
+///   replacing the scalar transmittance — this produces coloured/tinted covers
+///   (a warm-white LED behind an amber filter shifts CCT correctly).
+#[derive(Debug, Clone, Default)]
+pub struct SpectralOverride {
+    /// Sellmeier dispersion; when set, `n(λ)` is used instead of scalar IOR.
+    pub dispersion: Option<Sellmeier>,
+    /// Spectral transmittance τ(λ), 0..1 at normal incidence; when set, used
+    /// instead of the scalar transmittance for absorption.
+    pub transmittance_curve: Option<Spd>,
+}
+
+impl SpectralOverride {
+    /// Refractive index at `wl_nm`, falling back to `scalar_ior` when no
+    /// dispersion curve is present.
+    pub fn ior_at(&self, wl_nm: f64, scalar_ior: f64) -> f64 {
+        match &self.dispersion {
+            Some(s) => s.n(wl_nm),
+            None => scalar_ior,
+        }
+    }
+
+    /// Transmittance at `wl_nm`, falling back to `scalar_tau` when no curve is
+    /// present. The curve is treated as already normalised to \[0,1\].
+    pub fn tau_at(&self, wl_nm: f64, scalar_tau: f64) -> f64 {
+        match &self.transmittance_curve {
+            Some(c) => c.value_at(wl_nm).clamp(0.0, 1.0),
+            None => scalar_tau,
+        }
+    }
+
+    /// True if no spectral behaviour is configured.
+    pub fn is_scalar(&self) -> bool {
+        self.dispersion.is_none() && self.transmittance_curve.is_none()
+    }
+}
 
 // ---------------------------------------------------------------------------
 // User-facing: MaterialParams
@@ -64,8 +108,16 @@ pub struct MaterialParams {
 }
 
 impl MaterialParams {
-    /// Convert user-facing parameters to internal physics `Material`.
+    /// Convert user-facing parameters to internal physics `Material`
+    /// (purely scalar — no spectral behaviour).
     pub fn to_material(&self) -> Material {
+        self.to_material_with_spectral(SpectralOverride::default())
+    }
+
+    /// Convert to internal `Material`, attaching a wavelength-dependent
+    /// override. For transmitters the override governs `n(λ)` and τ(λ); for
+    /// opaque materials it is ignored (no spectral reflectance in v1).
+    pub fn to_material_with_spectral(&self, spectral: SpectralOverride) -> Material {
         let is_transparent = self.transmittance_pct > 0.0;
         let is_near_absorber = self.reflectance_pct < 2.0 && !is_transparent;
 
@@ -84,6 +136,7 @@ impl MaterialParams {
                     ior,
                     transmittance: self.transmittance_pct / 100.0,
                     min_reflectance: min_refl,
+                    spectral,
                 }
             } else {
                 // Diffuse transmitter: volume scattering
@@ -118,6 +171,7 @@ impl MaterialParams {
                     asymmetry: g,
                     thickness: thickness_m,
                     min_reflectance: min_refl,
+                    spectral,
                 }
             }
         } else {
@@ -178,6 +232,8 @@ pub enum Material {
         /// Minimum reflectance at normal incidence (user-specified, 0..1).
         /// Used as max(fresnel, this) to allow coated surfaces.
         min_reflectance: f64,
+        /// Optional wavelength-dependent IOR / transmittance.
+        spectral: SpectralOverride,
     },
 
     /// Diffuse transmitter (opal/satin PMMA) with volume scattering.
@@ -194,6 +250,8 @@ pub enum Material {
         thickness: f64,
         /// Minimum reflectance at normal incidence (user-specified, 0..1).
         min_reflectance: f64,
+        /// Optional wavelength-dependent IOR / transmittance.
+        spectral: SpectralOverride,
     },
 }
 
@@ -259,8 +317,12 @@ impl Material {
                 ior,
                 transmittance,
                 min_reflectance,
+                spectral,
             } => {
-                interact_clear_transmitter(photon, hit, *ior, *transmittance, *min_reflectance, rng)
+                // Evaluate wavelength-dependent IOR / transmittance if present.
+                let ior_l = spectral.ior_at(photon.wavelength, *ior);
+                let tau_l = spectral.tau_at(photon.wavelength, *transmittance);
+                interact_clear_transmitter(photon, hit, ior_l, tau_l, *min_reflectance, rng)
             }
 
             Material::DiffuseTransmitter {
@@ -270,17 +332,31 @@ impl Material {
                 asymmetry,
                 thickness,
                 min_reflectance,
-            } => interact_diffuse_transmitter(
-                photon,
-                hit,
-                *ior,
-                *scattering_coeff,
-                *absorption_coeff,
-                *asymmetry,
-                *thickness,
-                *min_reflectance,
-                rng,
-            ),
+                spectral,
+            } => {
+                let ior_l = spectral.ior_at(photon.wavelength, *ior);
+                // Re-derive mu_a from a wavelength-dependent τ so a tinted opal
+                // absorbs the right amount per band. Falls back to the scalar
+                // coefficient when no curve is present.
+                let mu_a_l = match &spectral.transmittance_curve {
+                    Some(_) if *thickness > 0.0 => {
+                        let tau = spectral.tau_at(photon.wavelength, 1.0).max(1e-4);
+                        -tau.ln() / *thickness
+                    }
+                    _ => *absorption_coeff,
+                };
+                interact_diffuse_transmitter(
+                    photon,
+                    hit,
+                    ior_l,
+                    *scattering_coeff,
+                    mu_a_l,
+                    *asymmetry,
+                    *thickness,
+                    *min_reflectance,
+                    rng,
+                )
+            }
         }
     }
 }
@@ -567,6 +643,7 @@ mod tests {
                 ior,
                 transmittance,
                 min_reflectance,
+                ..
             } => {
                 assert!((ior - 1.49).abs() < 0.01);
                 assert!((transmittance - 0.92).abs() < 0.01);
@@ -588,6 +665,7 @@ mod tests {
                 asymmetry,
                 thickness,
                 min_reflectance,
+                ..
             } => {
                 assert!((ior - 1.49).abs() < 0.01);
                 assert!(scattering_coeff > 0.0);

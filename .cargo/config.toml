@@ -1,8 +1,19 @@
 # Cargo configuration for cross-compilation
 
-# WASM: allow up to 4 GB memory (Bistro GLB is ~180 MB, decoded textures need more)
+# WASM: allow up to 4 GB memory (Bistro GLB is ~180 MB, decoded textures need more).
+#
+# Use the SINGULAR `link-arg` form (one flag per entry, no embedded spaces).
+# The plural `link-args=--a --b` packs both flags into one value; when cargo /
+# bevy-cli run their target-info probe (`rustc … --print=cfg …`), the embedded
+# space splits `--max-memory` off into a separate top-level rustc argument,
+# which rustc 1.96+ rejects with "Unrecognized option: 'max-memory'" and aborts
+# the whole build. Splitting into two `-C link-arg=` entries keeps each flag a
+# single token, so the probe passes and the flags still reach wasm-ld at link.
 [target.wasm32-unknown-unknown]
-rustflags = ["-C", "link-args=--initial-memory=268435456 --max-memory=4294967296"]
+rustflags = [
+    "-C", "link-arg=--initial-memory=268435456",
+    "-C", "link-arg=--max-memory=4294967296",
+]
 
 [target.aarch64-unknown-linux-ohos]
 linker = "/Users/htr/Library/OpenHarmony/Sdk/20/native/llvm/bin/aarch64-unknown-linux-ohos-clang"

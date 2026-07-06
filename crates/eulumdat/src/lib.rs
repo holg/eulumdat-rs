@@ -180,6 +180,7 @@ pub mod iesna_classification;
 pub mod interpolate;
 mod parser;
 pub mod radiosity;
+pub mod road_luminance;
 pub mod scene3d;
 pub mod standards;
 pub mod street;

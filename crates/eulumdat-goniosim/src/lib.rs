@@ -55,13 +55,17 @@
 //! ```
 
 pub mod catalog;
+pub mod daylight;
 pub mod detector;
 pub mod export;
 pub mod geometry;
+pub mod illuminance;
 pub mod material;
+pub mod nightlight;
 pub mod ray;
 pub mod scene;
 pub mod source;
+pub mod spectrum;
 pub mod tracer;
 
 /// Material index type.
@@ -74,19 +78,25 @@ pub use rand_xoshiro;
 
 // Re-exports for convenience
 pub use catalog::material_catalog;
+pub use daylight::{sun_source, world_to_sim, PlaneDetector, SkyDomeSource};
 pub use detector::Detector;
 pub use export::{
     detector_to_eulumdat, detector_to_eulumdat_at_angles, detector_to_eulumdat_with_lamp_flux,
     ExportConfig,
 };
 pub use geometry::{Primitive, SceneObject};
-pub use material::{Interaction, Material, MaterialParams};
+pub use illuminance::{daylight_factor_grid, trace_illuminance, IlluminanceResult};
+pub use material::{Interaction, Material, MaterialParams, SpectralOverride};
+pub use nightlight::{
+    moon_illuminance, moon_source, moon_spectrum, night_sky_source, DarkSkyReport, MOON_CCT_K,
+};
 pub use ray::{HitRecord, Photon, Ray};
 pub use scene::{
     bare_isotropic, bare_lambertian, led_housing_with_cover, led_with_housing,
     roundtrip_validation, CoverPlacement, ReflectorPlacement, ReflectorSide, Scene, SceneBuilder,
 };
 pub use source::Source;
+pub use spectrum::{ChannelWeights, DetectorMode, SourceSpectrum, WeightedChannels};
 pub use tracer::{
     PhotonTrail, ProgressInfo, Tracer, TracerConfig, TracerResult, TracerStats, TrailEvent,
     TrailPoint,

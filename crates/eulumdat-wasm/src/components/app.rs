@@ -56,6 +56,8 @@ use super::maps_designer::MapsDesigner;
 use super::polar_diagram::PolarDiagram;
 use super::skyglow_demo::SkyglowDemo;
 use super::spectral_diagram::SpectralDiagramView;
+use super::daylight_sky::DaylightSky;
+use super::spectrum_demo::SpectrumDemo;
 use super::street_launcher::StreetLauncher;
 use super::tabs::{DimensionsTab, DirectRatiosTab, GeneralTab, LampSetsTab};
 use super::templates::ALL_TEMPLATES;
@@ -187,6 +189,8 @@ pub enum MainTab {
     ZonalDesigner,
     MapsDesigner,
     GonioSim,
+    SpectrumDemo,
+    DaylightSky,
     StreetDesign,
 }
 
@@ -231,6 +235,10 @@ pub enum Tab {
     MapsDesignerTab,
     // GonioSim group (single tab, no sub-tabs)
     GonioSimTab,
+    // Spectrum Lab group (single tab, no sub-tabs)
+    SpectrumDemoTab,
+    // Daylight & Sky group (single tab, no sub-tabs)
+    DaylightSkyTab,
     // Street Design group (single tab, no sub-tabs) — lazy-loaded companion
     StreetDesignTab,
 }
@@ -258,6 +266,8 @@ impl Tab {
             Tab::ZonalDesignerTab => MainTab::ZonalDesigner,
             Tab::MapsDesignerTab => MainTab::MapsDesigner,
             Tab::GonioSimTab => MainTab::GonioSim,
+            Tab::SpectrumDemoTab => MainTab::SpectrumDemo,
+            Tab::DaylightSkyTab => MainTab::DaylightSky,
             Tab::StreetDesignTab => MainTab::StreetDesign,
         }
     }
@@ -277,6 +287,8 @@ impl Tab {
             MainTab::ZonalDesigner => Tab::ZonalDesignerTab,
             MainTab::MapsDesigner => Tab::MapsDesignerTab,
             MainTab::GonioSim => Tab::GonioSimTab,
+            MainTab::SpectrumDemo => Tab::SpectrumDemoTab,
+            MainTab::DaylightSky => Tab::DaylightSkyTab,
             MainTab::StreetDesign => Tab::StreetDesignTab,
         }
     }
@@ -310,6 +322,8 @@ impl Tab {
             MainTab::ZonalDesigner => &[Tab::ZonalDesignerTab],
             MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
             MainTab::GonioSim => &[Tab::GonioSimTab],
+            MainTab::SpectrumDemo => &[Tab::SpectrumDemoTab],
+            MainTab::DaylightSky => &[Tab::DaylightSkyTab],
             MainTab::StreetDesign => &[Tab::StreetDesignTab],
         }
     }
@@ -1391,6 +1405,8 @@ pub fn App() -> impl IntoView {
             | Tab::ZonalDesignerTab
             | Tab::MapsDesignerTab
             | Tab::GonioSimTab
+            | Tab::SpectrumDemoTab
+            | Tab::DaylightSkyTab
             | Tab::StreetDesignTab => None,
         }
     };
@@ -1882,6 +1898,18 @@ pub fn App() -> impl IntoView {
                                 {move || format!("🔬 {}", locale.get().goniosim.title)}
                             </button>
                             <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::SpectrumDemo { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::SpectrumDemo))
+                            >
+                                {move || format!("🌈 {}", locale.get().spectrum_lab.title)}
+                            </button>
+                            <button
+                                class=move || format!("tab{}", if active_main_tab.get() == MainTab::DaylightSky { " active" } else { "" })
+                                on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::DaylightSky))
+                            >
+                                {move || format!("🌇 {}", locale.get().spectrum_lab.sky_tab_title)}
+                            </button>
+                            <button
                                 class=move || format!("tab{}", if active_main_tab.get() == MainTab::StreetDesign { " active" } else { "" })
                                 on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::StreetDesign))
                             >
@@ -1923,6 +1951,8 @@ pub fn App() -> impl IntoView {
                                                 Tab::ZonalDesignerTab => locale.get().ui.tabs.zonal_designer.clone(),
                                                 Tab::MapsDesignerTab => locale.get().ui.tabs.maps_designer.clone(),
                                                 Tab::GonioSimTab => locale.get().goniosim.title.clone(),
+                                                Tab::SpectrumDemoTab => locale.get().spectrum_lab.title.clone(),
+                                                Tab::DaylightSkyTab => locale.get().spectrum_lab.sky_tab_title.clone(),
                                                 Tab::StreetDesignTab => locale.get().ui.tabs.street_design.clone(),
                                             };
                                             view! {
@@ -2324,6 +2354,12 @@ pub fn App() -> impl IntoView {
                                 }.into_any(),
                                 Tab::GonioSimTab => view! {
                                     <GonioSimDemo ldc=ldc />
+                                }.into_any(),
+                                Tab::SpectrumDemoTab => view! {
+                                    <SpectrumDemo ldc=ldc />
+                                }.into_any(),
+                                Tab::DaylightSkyTab => view! {
+                                    <DaylightSky />
                                 }.into_any(),
                                 Tab::StreetDesignTab => view! {
                                     <div class="street-design-tab">
