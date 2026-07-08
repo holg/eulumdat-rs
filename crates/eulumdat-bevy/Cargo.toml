@@ -79,13 +79,11 @@ post-process = ["bevy/bevy_post_process"]
 egui-ui = []
 
 [dependencies]
-# Pinned to the holg/bevy.git#photometric_proposal fork because stock
-# Bevy 0.18 lacks the `pbr_photometric_lights` shader path (storage-
-# texture-driven IES distribution) and renamed several light fields
-# (e.g. `shadow_maps_enabled` vs `shadows_enabled`). The proposal is
-# being upstreamed into Bevy 0.19; once it merges we switch to the
-# published `bevy = "0.19"` and flip this crate back to `publish = true`.
-bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposal", default-features = false, features = [
+# Published Bevy 0.19 — the shadow-field PRs (`shadow_maps_enabled`
+# et al.) staged on the holg/bevy `photometric_proposal` fork landed
+# upstream in 0.19, so the fork is retired. Crate is publishable again
+# once the release pass flips `publish = true`.
+bevy = { version = "0.19", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
     "bevy_core_pipeline",
@@ -116,14 +114,14 @@ serde_json = "1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # UASTC transcoder for GPU-compressed textures (C++ lib, doesn't compile for wasm32)
-bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposal", default-features = false, features = ["basis-universal"] }
+bevy = { version = "0.19", default-features = false, features = ["basis-universal"] }
 rfd = "0.15"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # WASM Bevy: backend (webgpu / webgl2) is selected by this crate's
 # top-level feature — see [features] above. Don't add `webgpu` or
 # `webgl2` here directly, or features can't swap them at build time.
-bevy = { git = "https://github.com/holg/bevy.git", branch = "photometric_proposal", default-features = false, features = [
+bevy = { version = "0.19", default-features = false, features = [
     "bevy_asset",
     "bevy_winit",
     "bevy_core_pipeline",
