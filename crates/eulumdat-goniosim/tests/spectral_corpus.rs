@@ -11,7 +11,7 @@
 use eulumdat::{analyze_spd, load_spd};
 use eulumdat_goniosim::*;
 use nalgebra::Point3;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn spd_dir() -> PathBuf {
     // CARGO_MANIFEST_DIR is crates/eulumdat-goniosim; the corpus is at the repo
@@ -24,9 +24,9 @@ fn spd_dir() -> PathBuf {
     p
 }
 
-fn collect_spd_files(root: &PathBuf) -> Vec<PathBuf> {
+fn collect_spd_files(root: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    let mut stack = vec![root.clone()];
+    let mut stack = vec![root.to_path_buf()];
     while let Some(dir) = stack.pop() {
         let Ok(rd) = std::fs::read_dir(&dir) else {
             continue;

@@ -1,6 +1,6 @@
 //! Named locations and local ⇄ UTC time handling for daylight calculations.
 //!
-//! [`solar_position`](crate::solar::solar_position) takes UTC decimal hours, but
+//! [`crate::solar::solar_position`] takes UTC decimal hours, but
 //! a product exposes a *place* and a *local wall-clock time*. This module bridges
 //! the two: a [`NamedLocation`] carries latitude, longitude and a standard UTC
 //! offset, and [`LocalDateTime`] converts a local calendar instant to the UTC
@@ -113,9 +113,7 @@ fn dst_active(rule: DstRule, month: u32, day: u32) -> bool {
             (4..=10).contains(&month) || (month == 3 && day >= 8) || (month == 11 && day < 7)
         }
         // Southern hemisphere (e.g. parts of AU/SA): Oct–March.
-        DstRule::SouthernEu => {
-            month >= 10 || month <= 3 && !(month == 3 && day >= 25) && !(month == 4)
-        }
+        DstRule::SouthernEu => month >= 10 || (month <= 3 && !(month == 3 && day >= 25)),
     }
 }
 

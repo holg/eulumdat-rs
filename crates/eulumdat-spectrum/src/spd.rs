@@ -152,7 +152,7 @@ impl Spd {
 #[derive(Debug, Clone)]
 pub struct SpectralSampler {
     wavelengths: Vec<f64>,
-    /// Cumulative distribution at each grid point, cdf[0] = 0, cdf[last] = 1.
+    /// Cumulative distribution at each grid point, `cdf[0]` = 0, `cdf[last]` = 1.
     cdf: Vec<f64>,
 }
 
@@ -237,7 +237,7 @@ mod tests {
         // Triangular SPD peaking at 600 nm: mean wavelength should be pulled
         // toward the peak.
         let wl: Vec<f64> = (400..=700).step_by(10).map(|w| w as f64).collect();
-        let vals: Vec<f64> = wl.iter().map(|&w| (300.0 - (w - 600.0).abs())).collect();
+        let vals: Vec<f64> = wl.iter().map(|&w| 300.0 - (w - 600.0).abs()).collect();
         let spd = Spd::new(&wl, &vals);
         let sampler = SpectralSampler::from_spd(&spd);
 

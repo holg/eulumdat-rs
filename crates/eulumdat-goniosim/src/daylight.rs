@@ -79,7 +79,7 @@ pub struct SkyDomeSource {
     spectrum: Option<SourceSpectrum>,
     /// Mean cosθ of the sampling distribution — the average projection of an
     /// emitted photon onto a horizontal collector. Used to size the emitted
-    /// flux so a horizontal plane reads back the DHI (see [`collector_flux`]).
+    /// flux so a horizontal plane reads back the DHI (see [`SkyDomeSource::collector_flux`]).
     mean_cos: f64,
     /// Half-extent of the horizontal emission square (m).
     half_extent: f64,

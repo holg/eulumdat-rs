@@ -10,10 +10,7 @@
 # the whole build. Splitting into two `-C link-arg=` entries keeps each flag a
 # single token, so the probe passes and the flags still reach wasm-ld at link.
 [target.wasm32-unknown-unknown]
-rustflags = [
-    "-C", "link-arg=--initial-memory=268435456",
-    "-C", "link-arg=--max-memory=4294967296",
-]
+rustflags = ["-C", "link-arg=--initial-memory=268435456", "-C", "link-arg=--max-memory=4294967296"]
 
 [target.aarch64-unknown-linux-ohos]
 linker = "/Users/htr/Library/OpenHarmony/Sdk/20/native/llvm/bin/aarch64-unknown-linux-ohos-clang"

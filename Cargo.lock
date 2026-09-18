@@ -4083,7 +4083,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
@@ -4098,7 +4098,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-bevy"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "bevy",
  "eulumdat",
@@ -4114,7 +4114,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-cli"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -4126,7 +4126,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-daylight"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "approx 0.5.1",
  "serde",
@@ -4134,7 +4134,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-dev-server"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -4144,7 +4144,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-egui"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "eframe",
@@ -4161,7 +4161,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ffi"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "eulumdat",
  "eulumdat-i18n",
@@ -4171,7 +4171,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-gltf-pack"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "basis-universal",
@@ -4188,7 +4188,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-goniosim"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -4203,7 +4203,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-harmonyos-ffi"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "eulumdat",
  "eulumdat-photweb",
@@ -4211,7 +4211,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-i18n"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -4219,7 +4219,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-photweb"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -4227,7 +4227,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-plugin"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4240,7 +4240,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-py"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "eulumdat",
  "pyo3",
@@ -4248,7 +4248,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-quiz"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -4256,7 +4256,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-quiz-py"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "eulumdat-quiz",
  "pyo3",
@@ -4264,7 +4264,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-rt"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "bytemuck",
  "env_logger",
@@ -4281,7 +4281,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-server"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -4297,7 +4297,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-spectrum"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "approx 0.5.1",
  "serde",
@@ -4305,7 +4305,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-tui"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -4316,7 +4316,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-tui-quiz"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "clap",
  "crossterm",
@@ -4328,7 +4328,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-typst"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4343,7 +4343,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ui"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "approx 0.5.1",
  "egui",
@@ -4354,7 +4354,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
@@ -4382,7 +4382,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-quiz"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4397,7 +4397,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-street"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4411,7 +4411,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-templates"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -4426,7 +4426,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-windows-preview"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "embed-resource",

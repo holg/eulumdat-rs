@@ -8,7 +8,7 @@
 //! 3. Warm vs cool spectra land on the correct side of the mesopic S/P divide.
 
 use eulumdat_goniosim::*;
-use nalgebra::{Point3, Vector3};
+use nalgebra::Point3;
 
 fn free_space_scene(cct_k: f64, flux_lm: f64) -> Scene {
     let mut scene = Scene::new();

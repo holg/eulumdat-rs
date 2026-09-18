@@ -16,10 +16,7 @@ documentation = "https://docs.rs/eulumdat"
 # the monorepo but break `cargo package` because the referenced files
 # live outside this crate. The other examples (parse_road, generate_*,
 # create_wiki_templates) are self-contained and ship as usual.
-exclude = [
-    "examples/wasm_benchmark.rs",
-    "benches/native_benchmark.rs",
-]
+exclude = ["examples/wasm_benchmark.rs", "benches/native_benchmark.rs"]
 
 [features]
 # atla XML and JSON parsers ship by default — atla itself (the data model)
@@ -40,8 +37,8 @@ spectrum = ["dep:eulumdat-spectrum"]
 [dependencies]
 anyhow.workspace = true
 eulumdat-daylight = { workspace = true, optional = true }
-eulumdat-spectrum = { workspace = true, optional = true }
 eulumdat-i18n = { workspace = true, optional = true }
+eulumdat-spectrum = { workspace = true, optional = true }
 quick-xml = { version = "0.37", features = ["serialize"], optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { version = "1.0", optional = true }

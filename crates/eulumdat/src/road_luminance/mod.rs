@@ -23,7 +23,7 @@
 //! The same machinery serves **night** (luminaires as sources) and **day**
 //! (sun + sky patches as sources) — that is the whole point of putting it here.
 //!
-//! Geometry conventions mirror [`crate::area::compute`] exactly (road along +X,
+//! Geometry conventions mirror `crate::area::compute` exactly (road along +X,
 //! +Z up, luminaire Type-C with C0 via `rotation`, `gamma = acos(-dz/r)`).
 
 mod r_tables;

@@ -12,7 +12,7 @@ use eulumdat_daylight::availability::DaylightAvailability;
 use eulumdat_daylight::sky::{PerezSky, SkyParams, SkyRadiance};
 use eulumdat_daylight::solar::solar_position;
 use eulumdat_goniosim::*;
-use nalgebra::{Point3, Unit, Vector3};
+use nalgebra::{Point3, Vector3};
 
 fn cfg(n: u64, seed: u64) -> TracerConfig {
     TracerConfig {

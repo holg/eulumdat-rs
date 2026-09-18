@@ -815,6 +815,7 @@ impl GpuTracer {
     /// pass `&[]` for a monochromatic run. When `config.spectral_mode == 1`, the
     /// weighted channel bins (X,Y,Z,scotopic) are read back into
     /// [`GpuDetectorResult::channels`].
+    #[allow(clippy::too_many_arguments)]
     async fn dispatch_config(
         &self,
         config: GpuTracerConfig,

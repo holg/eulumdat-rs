@@ -279,7 +279,7 @@ fn overcast_zenith_is_three_times_horizon() {
     );
     // Azimuth independence.
     let a = CieSky::Overcast.relative_luminance(0.8, 0.0, &sun);
-    let b = CieSky::Overcast.relative_luminance(0.8, 3.14, &sun);
+    let b = CieSky::Overcast.relative_luminance(0.8, std::f64::consts::PI, &sun);
     assert!((a - b).abs() < 1e-9, "overcast must be azimuth-independent");
 }
 

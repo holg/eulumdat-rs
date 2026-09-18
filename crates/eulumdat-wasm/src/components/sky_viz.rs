@@ -45,7 +45,7 @@ pub fn kelvin_to_hex(kelvin: f64) -> String {
     )
 }
 
-/// Blend two `#rrggbb` hex colours by `t` ∈ [0,1] (0 = a, 1 = b).
+/// Blend two `#rrggbb` hex colours by `t` ∈ \[0,1\] (0 = a, 1 = b).
 fn blend_hex(a: &str, b: &str, t: f64) -> String {
     let parse = |s: &str| {
         let s = s.trim_start_matches('#');

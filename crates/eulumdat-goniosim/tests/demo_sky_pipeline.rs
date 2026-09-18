@@ -210,8 +210,6 @@ fn night_lux_with_moon(star_floor: f64, moon: &eulumdat_daylight::MoonPosition) 
 /// demo now produces.
 #[test]
 fn full_moon_night_far_brighter_than_new_moon() {
-    use eulumdat_daylight::lunar::moon_position;
-
     // Berlin, deep night (02:00). Full moon 2026-01-03 vs new moon 2026-01-18.
     let loc = location_by_name("Berlin").unwrap();
     let full = LocalDateTime::new(2026, 1, 3, 2.0).moon_position(&loc);
