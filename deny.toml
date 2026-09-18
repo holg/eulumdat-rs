@@ -8,6 +8,8 @@ allow = [
   "BSD-3-Clause",
   "BSL-1.0",
   "CC0-1.0",
+  # bzip2 crate (via zip ← ktx2-rw build dep of eulumdat-gltf-pack); BSD-style
+  "bzip2-1.0.6",
   "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
@@ -54,6 +56,10 @@ wrappers = ["rustls"]
 [advisories]
 ignore = [
   "RUSTSEC-2024-0436",
+  { id = "RUSTSEC-2026-0173", reason = "proc-macro-error2 is unmaintained; pulled in only by leptos_macro / leptos_router_macro (compile-time), fix lands with the next leptos release" },
+  { id = "RUSTSEC-2026-0192", reason = "ttf-parser unmaintained; transitive via fontdb/usvg/resvg (eulumdat-egui SVG rendering), typst 0.12 and ab_glyph. Waiting for resvg/typst to move" },
+  { id = "RUSTSEC-2026-0206", reason = "rustybuzz unmaintained; transitive via usvg (resvg) and typst 0.12, same as ttf-parser" },
+  { id = "RUSTSEC-2026-0258", reason = "h2 0.4 is updated to a fixed release; the remaining h2 0.3.x is actix-http's (eulumdat-server / eulumdat-dev-server, local static file servers) and has no fixed 0.3 release" },
   { id = "RUSTSEC-2025-0141", reason = "bincode 1.3.3 is a transitive dep via bevy, no action needed" },
   { id = "RUSTSEC-2025-0125", reason = "CVSS:4.0 not yet supported by cargo-deny, tracked separately" },
 ]
