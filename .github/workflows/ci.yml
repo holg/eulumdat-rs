@@ -30,6 +30,17 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      # windows-latest ships Visual Studio 2026 only. The `cmake` crate's
+      # Visual Studio auto-detection (via `cc`) does not know it yet and asks
+      # CMake for the "Visual Studio 17 2022" generator, which fails with
+      # "could not find any instance of Visual Studio". ktx2-rw
+      # (eulumdat-gltf-pack) builds KTX-Software with cmake, so name the
+      # generator explicitly; cmake-rs reads CMAKE_GENERATOR before detecting.
+      - name: Select CMake generator (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "CMAKE_GENERATOR=Visual Studio 18 2026" >> $env:GITHUB_ENV
+
       # Note: PyO3 crates are excluded because they must be built with maturin
       - name: Run tests
         run: cargo test --workspace --exclude eulumdat-py --exclude eulumdat-quiz-py --verbose
