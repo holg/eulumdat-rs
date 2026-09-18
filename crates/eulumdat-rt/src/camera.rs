@@ -149,6 +149,7 @@ pub struct GpuCamera {
     queue: wgpu::Queue,
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
+    adapter_info: wgpu::AdapterInfo,
 }
 
 impl GpuCamera {
@@ -162,6 +163,7 @@ impl GpuCamera {
             })
             .await
             .map_err(|e| format!("No GPU: {e}"))?;
+        let adapter_info = adapter.get_info();
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -259,7 +261,18 @@ impl GpuCamera {
             queue,
             pipeline,
             bind_group_layout,
+            adapter_info,
         })
+    }
+
+    /// The adapter this camera renders on.
+    pub fn adapter_info(&self) -> &wgpu::AdapterInfo {
+        &self.adapter_info
+    }
+
+    /// True for CPU / software rasterisers (WARP, llvmpipe, SwiftShader).
+    pub fn is_software_adapter(&self) -> bool {
+        crate::is_software_adapter(&self.adapter_info)
     }
 
     /// Render an image of the scene.

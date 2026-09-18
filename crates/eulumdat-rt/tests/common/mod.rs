@@ -13,13 +13,45 @@ use std::future::Future;
 pub fn gpu_or_skip<F, T, E>(fut: F) -> Option<T>
 where
     F: Future<Output = Result<T, E>>,
+    T: GpuHandle,
     E: Display,
 {
     match pollster::block_on(fut) {
+        Ok(v) if v.is_software() => {
+            eprintln!(
+                "SKIP: software adapter ({}) — GPU tests need real hardware",
+                v.adapter_name()
+            );
+            None
+        }
         Ok(v) => Some(v),
         Err(e) => {
             eprintln!("SKIP: no GPU adapter available ({e})");
             None
         }
+    }
+}
+
+/// Anything constructed on a wgpu adapter that can tell us what it is.
+pub trait GpuHandle {
+    fn is_software(&self) -> bool;
+    fn adapter_name(&self) -> String;
+}
+
+impl GpuHandle for eulumdat_rt::GpuTracer {
+    fn is_software(&self) -> bool {
+        self.is_software_adapter()
+    }
+    fn adapter_name(&self) -> String {
+        self.adapter_info().name.clone()
+    }
+}
+
+impl GpuHandle for eulumdat_rt::GpuCamera {
+    fn is_software(&self) -> bool {
+        self.is_software_adapter()
+    }
+    fn adapter_name(&self) -> String {
+        self.adapter_info().name.clone()
     }
 }

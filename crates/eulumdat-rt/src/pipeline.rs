@@ -341,6 +341,7 @@ pub struct GpuTracer {
     queue: wgpu::Queue,
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
+    adapter_info: wgpu::AdapterInfo,
 }
 
 impl GpuTracer {
@@ -357,7 +358,8 @@ impl GpuTracer {
             .await
             .map_err(|e| format!("No GPU adapter found: {e}"))?;
 
-        log::info!("GPU adapter: {:?}", adapter.get_info().name);
+        let adapter_info = adapter.get_info();
+        log::info!("GPU adapter: {:?}", adapter_info.name);
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -491,7 +493,18 @@ impl GpuTracer {
             queue,
             pipeline,
             bind_group_layout,
+            adapter_info,
         })
+    }
+
+    /// The adapter this tracer runs on.
+    pub fn adapter_info(&self) -> &wgpu::AdapterInfo {
+        &self.adapter_info
+    }
+
+    /// True for CPU / software rasterisers (WARP, llvmpipe, SwiftShader).
+    pub fn is_software_adapter(&self) -> bool {
+        crate::is_software_adapter(&self.adapter_info)
     }
 
     /// Trace photons from an isotropic source in free space.

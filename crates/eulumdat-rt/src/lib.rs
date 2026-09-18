@@ -20,3 +20,18 @@ pub use camera::{CameraConfig, CameraImage, GpuCamera};
 pub use pipeline::{
     GpuDetectorResult, GpuMaterial, GpuPrimitive, GpuTracer, GpuTracerConfig, SourceType,
 };
+
+/// True when `info` describes a CPU / software adapter (DX12 WARP
+/// "Microsoft Basic Render Driver", Mesa llvmpipe, SwiftShader, …).
+/// Such adapters exist on headless CI runners but cannot be trusted to run
+/// the compute pipelines (WARP fails the readback with `BufferAsyncError`),
+/// so GPU tests skip on them.
+pub fn is_software_adapter(info: &wgpu::AdapterInfo) -> bool {
+    let name = info.name.to_ascii_lowercase();
+    matches!(info.device_type, wgpu::DeviceType::Cpu)
+        || name.contains("basic render")
+        || name.contains("warp")
+        || name.contains("llvmpipe")
+        || name.contains("swiftshader")
+        || name.contains("software")
+}
