@@ -9,152 +9,147 @@ use crate::eulumdat::{Eulumdat, Symmetry};
 pub struct SymmetryHandler;
 
 impl SymmetryHandler {
-    /// Expand symmetric data to full 360° distribution.
+    /// Fold any C angle into the domain of the stored planes for `symmetry`
+    /// (0–180 for C0–C180, 90–270 for C90–C270, 0–90 for both planes).
+    pub fn fold_c(symmetry: Symmetry, c_angle: f64) -> f64 {
+        let c = c_angle.rem_euclid(360.0);
+        match symmetry {
+            Symmetry::None => c,
+            Symmetry::VerticalAxis => 0.0,
+            Symmetry::PlaneC0C180 => {
+                if c <= 180.0 {
+                    c
+                } else {
+                    360.0 - c
+                }
+            }
+            Symmetry::PlaneC90C270 => {
+                if (90.0..=270.0).contains(&c) {
+                    c
+                } else {
+                    (180.0 - c).rem_euclid(360.0)
+                }
+            }
+            Symmetry::BothPlanes => {
+                let half = if c <= 180.0 { c } else { 360.0 - c };
+                if half <= 90.0 {
+                    half
+                } else {
+                    180.0 - half
+                }
+            }
+        }
+    }
+
+    /// Angles of the stored intensity planes, one per row of `intensities`.
     ///
-    /// Takes the stored (reduced) intensity data and expands it based on the symmetry type.
-    /// Returns a full intensity matrix with all C-planes from 0° to 360°.
-    pub fn expand_to_full(eulumdat: &Eulumdat) -> Vec<Vec<f64>> {
-        match eulumdat.symmetry {
-            Symmetry::None => eulumdat.intensities.clone(),
-            Symmetry::VerticalAxis => Self::expand_vertical_axis(eulumdat),
-            Symmetry::PlaneC0C180 => Self::expand_c0_c180(eulumdat),
-            Symmetry::PlaneC90C270 => Self::expand_c90_c270(eulumdat),
-            Symmetry::BothPlanes => Self::expand_both_planes(eulumdat),
+    /// EULUMDAT files list all `Nc` C angles but store only the `Mc`
+    /// planes of the symmetric part; this picks those angles out of the
+    /// list (0–180, 90–270 or 0–90), falling back to the first
+    /// `intensities.len()` angles when the list is already reduced.
+    pub fn stored_c_angles(eulumdat: &Eulumdat) -> Vec<f64> {
+        let n = eulumdat.intensities.len();
+        let in_domain = |a: &f64| match eulumdat.symmetry {
+            Symmetry::None => true,
+            Symmetry::VerticalAxis => false,
+            Symmetry::PlaneC0C180 => *a <= 180.0 + 1e-9,
+            Symmetry::PlaneC90C270 => (90.0 - 1e-9..=270.0 + 1e-9).contains(a),
+            Symmetry::BothPlanes => *a <= 90.0 + 1e-9,
+        };
+        if eulumdat.symmetry == Symmetry::VerticalAxis {
+            return vec![eulumdat.c_angles.first().copied().unwrap_or(0.0)];
         }
-    }
-
-    /// Expand vertically symmetric data (single C-plane to all planes).
-    fn expand_vertical_axis(eulumdat: &Eulumdat) -> Vec<Vec<f64>> {
-        if eulumdat.intensities.is_empty() {
-            return Vec::new();
+        let filtered: Vec<f64> = eulumdat
+            .c_angles
+            .iter()
+            .copied()
+            .filter(in_domain)
+            .collect();
+        if n == 0 || filtered.len() == n {
+            filtered
+        } else if eulumdat.c_angles.len() >= n {
+            eulumdat.c_angles[..n].to_vec()
+        } else {
+            eulumdat.c_angles.clone()
         }
-
-        // For vertical axis symmetry, all C-planes have the same intensity distribution
-        let single_plane = &eulumdat.intensities[0];
-        let num_planes = eulumdat.num_c_planes.max(1);
-
-        (0..num_planes).map(|_| single_plane.clone()).collect()
-    }
-
-    /// Expand C0-C180 symmetric data (mirror across C0-C180 plane).
-    fn expand_c0_c180(eulumdat: &Eulumdat) -> Vec<Vec<f64>> {
-        let mc = eulumdat.actual_c_planes();
-        if mc == 0 || eulumdat.intensities.is_empty() {
-            return Vec::new();
-        }
-
-        let mut result = eulumdat.intensities.clone();
-
-        // Mirror the data: C-planes from 180° to 360° mirror 180° to 0°
-        for i in 1..mc {
-            if mc - i < eulumdat.intensities.len() {
-                result.push(eulumdat.intensities[mc - i].clone());
-            }
-        }
-
-        result
-    }
-
-    /// Expand C90-C270 symmetric data (mirror across C90-C270 plane).
-    fn expand_c90_c270(eulumdat: &Eulumdat) -> Vec<Vec<f64>> {
-        let mc = eulumdat.actual_c_planes();
-        if mc == 0 || eulumdat.intensities.is_empty() {
-            return Vec::new();
-        }
-
-        let mut result = eulumdat.intensities.clone();
-
-        // Mirror the data: C-planes from 270° to 360° and 0° to 90° mirror 90° to 270°
-        for i in 1..mc {
-            if mc - i < eulumdat.intensities.len() {
-                result.push(eulumdat.intensities[mc - i].clone());
-            }
-        }
-
-        result
-    }
-
-    /// Expand data symmetric in both planes (quarter to full).
-    fn expand_both_planes(eulumdat: &Eulumdat) -> Vec<Vec<f64>> {
-        let mc = eulumdat.actual_c_planes();
-        if mc == 0 || eulumdat.intensities.is_empty() {
-            return Vec::new();
-        }
-
-        let mut result = Vec::new();
-
-        // First quadrant (0° to 90°)
-        for i in 0..mc {
-            if i < eulumdat.intensities.len() {
-                result.push(eulumdat.intensities[i].clone());
-            }
-        }
-
-        // Second quadrant (90° to 180°) - mirror of first
-        for i in (1..mc - 1).rev() {
-            if i < eulumdat.intensities.len() {
-                result.push(eulumdat.intensities[i].clone());
-            }
-        }
-
-        // Third quadrant (180° to 270°) - same as first
-        for i in 0..mc {
-            if i < eulumdat.intensities.len() {
-                result.push(eulumdat.intensities[i].clone());
-            }
-        }
-
-        // Fourth quadrant (270° to 360°) - mirror of first
-        for i in (1..mc - 1).rev() {
-            if i < eulumdat.intensities.len() {
-                result.push(eulumdat.intensities[i].clone());
-            }
-        }
-
-        result
     }
 
     /// Get the C-plane angles for the full 360° distribution.
+    ///
+    /// When the file lists every plane (the normal case: `Nc` angles even
+    /// for symmetric files) that list is returned as is. A reduced list
+    /// (only the stored planes) is mirrored without duplicates.
     pub fn expand_c_angles(eulumdat: &Eulumdat) -> Vec<f64> {
+        let ca = &eulumdat.c_angles;
+        let complete = |list: &[f64]| {
+            list.len() >= eulumdat.num_c_planes.max(2) || list.last().is_some_and(|l| *l > 270.0)
+        };
         match eulumdat.symmetry {
-            Symmetry::None => eulumdat.c_angles.clone(),
+            Symmetry::None => ca.clone(),
             Symmetry::VerticalAxis => {
-                // Generate angles based on Nc and Dc
-                (0..eulumdat.num_c_planes)
-                    .map(|i| i as f64 * eulumdat.c_plane_distance)
-                    .collect()
+                if complete(ca) {
+                    ca.clone()
+                } else {
+                    (0..eulumdat.num_c_planes)
+                        .map(|i| i as f64 * eulumdat.c_plane_distance)
+                        .collect()
+                }
             }
-            Symmetry::PlaneC0C180 => {
-                // For C0-C180 symmetry, all C-angles are already stored in the file
-                // No expansion needed, just return them
-                eulumdat.c_angles.clone()
-            }
-            Symmetry::PlaneC90C270 => {
-                // For C90-C270 symmetry, all C-angles are already stored in the file
-                // No expansion needed, just return them
-                eulumdat.c_angles.clone()
-            }
-            Symmetry::BothPlanes => {
-                let mut angles = Vec::new();
-                // First quadrant
-                for &angle in &eulumdat.c_angles {
-                    angles.push(angle);
+            sym => {
+                if complete(ca) {
+                    return ca.clone();
                 }
-                // Second quadrant (mirror of first)
-                for &angle in eulumdat.c_angles.iter().rev().skip(1) {
-                    angles.push(180.0 - angle);
+                let stored = Self::stored_c_angles(eulumdat);
+                let mut all: Vec<f64> = Vec::new();
+                for &q in &stored {
+                    let images: &[f64] = match sym {
+                        Symmetry::PlaneC0C180 => &[q, 360.0 - q],
+                        Symmetry::PlaneC90C270 => &[q, 180.0 - q],
+                        _ => &[q, 180.0 - q, 180.0 + q, 360.0 - q],
+                    };
+                    for &a in images {
+                        let a = a.rem_euclid(360.0);
+                        if !all.iter().any(|x| (x - a).abs() < 1e-6) {
+                            all.push(a);
+                        }
+                    }
                 }
-                // Third quadrant
-                for &angle in eulumdat.c_angles.iter().skip(1) {
-                    angles.push(180.0 + angle);
-                }
-                // Fourth quadrant (mirror)
-                for &angle in eulumdat.c_angles.iter().rev().skip(1) {
-                    angles.push(360.0 - angle);
-                }
-                angles
+                all.sort_by(|x, y| x.partial_cmp(y).unwrap());
+                all
             }
         }
+    }
+
+    /// Expand symmetric data to the full 360° distribution.
+    ///
+    /// Returns one intensity row per angle of [`Self::expand_c_angles`], so
+    /// the two always line up. Each full angle is folded into the stored
+    /// domain and takes the nearest stored plane.
+    pub fn expand_to_full(eulumdat: &Eulumdat) -> Vec<Vec<f64>> {
+        if eulumdat.symmetry == Symmetry::None || eulumdat.intensities.is_empty() {
+            return eulumdat.intensities.clone();
+        }
+        let stored = Self::stored_c_angles(eulumdat);
+        if stored.is_empty() {
+            return Vec::new();
+        }
+        Self::expand_c_angles(eulumdat)
+            .iter()
+            .map(|&c| {
+                let eff = Self::fold_c(eulumdat.symmetry, c);
+                let (idx, _) = stored
+                    .iter()
+                    .enumerate()
+                    .map(|(i, a)| (i, (a - eff).abs()))
+                    .min_by(|x, y| x.1.partial_cmp(&y.1).unwrap())
+                    .unwrap();
+                eulumdat
+                    .intensities
+                    .get(idx.min(eulumdat.intensities.len() - 1))
+                    .cloned()
+                    .unwrap_or_default()
+            })
+            .collect()
     }
 
     /// Get intensity at any C and G angle by interpolation.
@@ -167,39 +162,8 @@ impl SymmetryHandler {
         // Clamp G angle to 0-180 range
         let g_clamped = g_angle.clamp(0.0, 180.0);
 
-        // Find the effective C index based on symmetry
-        let effective_c = match eulumdat.symmetry {
-            Symmetry::None => c_normalized,
-            Symmetry::VerticalAxis => 0.0, // All C-planes are the same
-            Symmetry::PlaneC0C180 => {
-                if c_normalized <= 180.0 {
-                    c_normalized
-                } else {
-                    360.0 - c_normalized
-                }
-            }
-            Symmetry::PlaneC90C270 => {
-                let shifted = (c_normalized + 90.0).rem_euclid(360.0);
-                if shifted <= 180.0 {
-                    shifted - 90.0
-                } else {
-                    270.0 - shifted
-                }
-            }
-            Symmetry::BothPlanes => {
-                let in_first_half = c_normalized <= 180.0;
-                let c_in_half = if in_first_half {
-                    c_normalized
-                } else {
-                    360.0 - c_normalized
-                };
-                if c_in_half <= 90.0 {
-                    c_in_half
-                } else {
-                    180.0 - c_in_half
-                }
-            }
-        };
+        // Fold into the stored domain of this symmetry.
+        let effective_c = Self::fold_c(eulumdat.symmetry, c_normalized);
 
         let g_idx = Self::find_interpolation_indices(&eulumdat.g_angles, g_clamped);
 
@@ -224,8 +188,13 @@ impl SymmetryHandler {
             }
         }
 
-        // Find surrounding C indices (non-wrapping)
-        let c_idx = Self::find_interpolation_indices(&eulumdat.c_angles, effective_c);
+        // Find surrounding C indices (non-wrapping) among the *stored* planes,
+        // whose angles are a subset of the file's C list for symmetric files.
+        let c_idx = if eulumdat.symmetry == Symmetry::None {
+            Self::find_interpolation_indices(&eulumdat.c_angles, effective_c)
+        } else {
+            Self::find_interpolation_indices(&Self::stored_c_angles(eulumdat), effective_c)
+        };
 
         // Bilinear interpolation
         Self::bilinear_interpolate(eulumdat, c_idx, g_idx, effective_c, g_clamped)
@@ -527,5 +496,120 @@ mod tests {
             (i_c45 - 100.0).abs() < 0.01,
             "C45 at gamma=0 should be 100, got {i_c45}"
         );
+    }
+}
+
+#[cfg(test)]
+mod expansion_tests {
+    use super::*;
+    use crate::Eulumdat;
+
+    const ISYM2: &str = include_str!("../../eulumdat-wasm-templates/templates/0-2-0.ldt");
+    const ISYM3: &str = include_str!("../../eulumdat-wasm-templates/templates/0-3-0.ldt");
+    const ISYM4: &str =
+        include_str!("../../eulumdat-wasm-templates/templates/fluorescent_luminaire.ldt");
+
+    fn row_at(ldt: &Eulumdat, full: &[Vec<f64>], angles: &[f64], c: f64) -> Vec<f64> {
+        let i = angles
+            .iter()
+            .position(|a| (a - c).abs() < 1e-6)
+            .unwrap_or_else(|| panic!("no angle {c} in {angles:?}"));
+        let _ = ldt;
+        full[i].clone()
+    }
+
+    fn check_file(text: &str, sym: Symmetry, pairs: &[(f64, f64)]) {
+        let ldt = Eulumdat::parse(text).unwrap();
+        assert_eq!(ldt.symmetry, sym);
+        let angles = SymmetryHandler::expand_c_angles(&ldt);
+        let full = SymmetryHandler::expand_to_full(&ldt);
+        assert_eq!(angles.len(), ldt.num_c_planes, "angles vs Nc");
+        assert_eq!(full.len(), angles.len(), "planes vs angles");
+        assert_eq!(
+            ldt.intensities.len(),
+            ldt.actual_c_planes(),
+            "stored planes vs Mc"
+        );
+        let stored = SymmetryHandler::stored_c_angles(&ldt);
+        assert_eq!(stored.len(), ldt.intensities.len());
+        // Mirrored planes equal their stored counterparts.
+        for &(full_c, stored_c) in pairs {
+            let si = stored
+                .iter()
+                .position(|a| (a - stored_c).abs() < 1e-6)
+                .unwrap();
+            assert_eq!(
+                row_at(&ldt, &full, &angles, full_c),
+                ldt.intensities[si],
+                "C{full_c} should equal stored C{stored_c}"
+            );
+        }
+        // Sampling at every full angle reproduces the expanded row.
+        for (i, &c) in angles.iter().enumerate() {
+            for (gi, &g) in ldt.g_angles.iter().enumerate() {
+                let s = SymmetryHandler::get_intensity_at(&ldt, c, g);
+                assert!(
+                    (s - full[i][gi]).abs() < 1e-6,
+                    "sample({c},{g}) = {s} vs {}",
+                    full[i][gi]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn quadrant_symmetry_planes_match_angles() {
+        check_file(
+            ISYM4,
+            Symmetry::BothPlanes,
+            &[
+                (105.0, 75.0),
+                (180.0, 0.0),
+                (195.0, 15.0),
+                (270.0, 90.0),
+                (345.0, 15.0),
+            ],
+        );
+    }
+
+    #[test]
+    fn c0_c180_symmetry_planes_match_angles() {
+        check_file(
+            ISYM2,
+            Symmetry::PlaneC0C180,
+            &[(195.0, 165.0), (270.0, 90.0), (345.0, 15.0)],
+        );
+    }
+
+    #[test]
+    fn c90_c270_symmetry_planes_match_angles() {
+        check_file(
+            ISYM3,
+            Symmetry::PlaneC90C270,
+            &[(0.0, 180.0), (45.0, 135.0), (90.0, 90.0), (315.0, 225.0)],
+        );
+    }
+
+    #[test]
+    fn reduced_angle_list_is_mirrored_without_duplicates() {
+        let mut ldt = Eulumdat::parse(ISYM4).unwrap();
+        ldt.c_angles.truncate(ldt.actual_c_planes()); // only the quadrant, as a builder might do
+        let angles = SymmetryHandler::expand_c_angles(&ldt);
+        assert_eq!(angles.len(), 24, "{angles:?}");
+        assert_eq!(angles[0], 0.0);
+        assert_eq!(angles[6], 90.0);
+        assert_eq!(angles[23], 345.0);
+        assert_eq!(SymmetryHandler::expand_to_full(&ldt).len(), 24);
+    }
+
+    #[test]
+    fn rotation_of_quadrant_symmetric_file_keeps_plane_count() {
+        let mut ldt = Eulumdat::parse(ISYM4).unwrap();
+        let before = SymmetryHandler::get_intensity_at(&ldt, 30.0, 45.0);
+        ldt.rotate_c_planes(90.0);
+        assert_eq!(ldt.symmetry, Symmetry::None);
+        assert_eq!(ldt.intensities.len(), ldt.c_angles.len());
+        let after = SymmetryHandler::get_intensity_at(&ldt, 120.0, 45.0);
+        assert!((before - after).abs() < 1e-6, "{before} vs {after}");
     }
 }

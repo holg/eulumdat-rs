@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Symmetry expansion mismatch** in `SymmetryHandler`. EULUMDAT files list
+  all `Nc` C angles even when only `Mc` planes are stored, and
+  `expand_c_angles` mirrored that already-complete list again: quadrant
+  symmetry (Isym 4) returned 93 angles for 24 planes, and `expand_c0_c180`
+  started its mirror one plane early (25 planes for 24 angles). Expansion is
+  now angle-based — every full angle is folded into the stored domain and
+  takes the nearest stored plane — so `expand_to_full` and
+  `expand_c_angles` always have the same length. `rotate_c_planes`, the
+  polar C-plane selector and the compare panel inherit the fix.
+- **C90–C270 sampling** (`get_intensity_at` / `Eulumdat::sample`) folded
+  angles into 0–180 and indexed the full angle list, so it read the wrong
+  stored plane for Isym 3 files; it now folds into 90–270 and interpolates
+  over the stored planes' own angles. New `fold_c` and `stored_c_angles`
+  helpers; regression tests against real Isym 2 / 3 / 4 files.
+
 ## [0.7.0] - 2026-04-30
 
 This release consolidates the work landed across 0.5.x / 0.6.x development
