@@ -20,7 +20,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # windows-2022 (not windows-latest): the workspace tests build
+        # eulumdat-gltf-pack, whose ktx2-rw dependency compiles KTX-Software
+        # through the `cmake` crate. cmake-rs auto-detects Visual Studio via
+        # `cc`, which does not know the VS 2026 that windows-latest
+        # (windows-2025-vs2026) ships, so the generator lookup fails there.
+        os: [ubuntu-latest, macos-latest, windows-2022]
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +35,7 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      # windows-latest ships Visual Studio 2026 only. The `cmake` crate's
+      # Belt and braces for images that only have Visual Studio 2026. The `cmake` crate's
       # Visual Studio auto-detection (via `cc`) does not know it yet and asks
       # CMake for the "Visual Studio 17 2022" generator, which fails with
       # "could not find any instance of Visual Studio". ktx2-rw
