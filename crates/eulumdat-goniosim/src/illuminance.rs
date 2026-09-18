@@ -146,7 +146,13 @@ pub fn daylight_factor_grid(
     grid.into_iter()
         .map(|row| {
             row.into_iter()
-                .map(|e| if exterior_lux > 0.0 { 100.0 * e / exterior_lux } else { 0.0 })
+                .map(|e| {
+                    if exterior_lux > 0.0 {
+                        100.0 * e / exterior_lux
+                    } else {
+                        0.0
+                    }
+                })
                 .collect()
         })
         .collect()

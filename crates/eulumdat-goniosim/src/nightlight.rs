@@ -86,14 +86,7 @@ pub fn night_sky_source(
         zenith_rad: std::f64::consts::FRAC_PI_2 - 0.1,
     };
     let radiance = SkyRadiance::cie_from_dhi(CieSky::Uniform, sun, horizontal_lux);
-    let dome = SkyDomeSource::with_extent(
-        &radiance,
-        origin,
-        1.0,
-        half_extent,
-        n_theta,
-        n_phi,
-    );
+    let dome = SkyDomeSource::with_extent(&radiance, origin, 1.0, half_extent, n_theta, n_phi);
     let flux = dome.collector_flux(horizontal_lux);
     crate::Source::SkyDome(dome.with_flux(flux))
 }
@@ -188,9 +181,7 @@ impl DarkSkyReport {
             .unwrap_or(1.0);
         let spectral_ulor = ulor * rayleigh_factor;
 
-        let blue_fraction_up = upward_cct_k
-            .map(cct_to_blue_fraction)
-            .unwrap_or(0.0);
+        let blue_fraction_up = upward_cct_k.map(cct_to_blue_fraction).unwrap_or(0.0);
 
         let melanopic_spill_ratio = if up_y > 0.0 { up_mel / up_y } else { 0.0 };
 
@@ -242,7 +233,10 @@ mod tests {
         let full = moon_illuminance(1.0);
         let quarter = moon_illuminance(0.5);
         assert!((full - FULL_MOON_LUX).abs() < 1e-9);
-        assert!(quarter < 0.5 * full, "quarter moon must be << half brightness");
+        assert!(
+            quarter < 0.5 * full,
+            "quarter moon must be << half brightness"
+        );
         assert!(moon_illuminance(0.0) < 1e-6, "new moon ≈ dark");
     }
 

@@ -5,7 +5,7 @@
 //! (S/P, melanopic DER) are unit-free, and PPFD-per-watt is absolute.
 
 use crate::constants::{
-    joules_per_micromole, KM_PHOTOPIC, KM_SCOTOPIC, MEL_PER_LUM_D65, BLUE_END_NM, BLUE_START_NM,
+    joules_per_micromole, BLUE_END_NM, BLUE_START_NM, KM_PHOTOPIC, KM_SCOTOPIC, MEL_PER_LUM_D65,
 };
 use crate::lut::{melanopic, par_weight, photopic, scotopic};
 use crate::spd::Spd;

@@ -68,7 +68,16 @@ pub struct PerezCoeffs {
 }
 
 /// Perez ε bin upper bounds (Perez et al. 1990 discrete sky-clearness bins).
-const EPS_BINS: [f64; 8] = [1.065, 1.230, 1.500, 1.950, 2.800, 4.500, 6.200, f64::INFINITY];
+const EPS_BINS: [f64; 8] = [
+    1.065,
+    1.230,
+    1.500,
+    1.950,
+    2.800,
+    4.500,
+    6.200,
+    f64::INFINITY,
+];
 
 // Perez luminance-distribution coefficients (Perez, Seals & Michalsky 1993),
 // rows = the 8 clearness bins. Each row: [a coefficients ×4] for a1..a4, etc.

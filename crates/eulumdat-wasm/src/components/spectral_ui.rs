@@ -202,11 +202,21 @@ pub(crate) fn run_sky_trace(
         let perez = PerezSky::new(*sun, SkyParams::from_turbidity(2.5));
         let target = avail.ghi_lux.max(1.0);
         let radiance = SkyRadiance::perez_from_dhi(perez, target);
-        let dome =
-            SkyDomeSource::with_extent(&radiance, Point3::new(0.0, 0.0, 0.02), 1.0, emit_half, 20, 40);
+        let dome = SkyDomeSource::with_extent(
+            &radiance,
+            Point3::new(0.0, 0.0, 0.02),
+            1.0,
+            emit_half,
+            20,
+            40,
+        );
         let flux = dome.collector_flux(target);
         let dome = dome.with_flux(flux);
-        let regime = if sun.altitude_deg() > 6.0 { "day" } else { "twilight" };
+        let regime = if sun.altitude_deg() > 6.0 {
+            "day"
+        } else {
+            "twilight"
+        };
         (dome, target, spd, regime)
     } else {
         // Night: starlight + airglow PLUS the moon (which dominates when up).
@@ -229,8 +239,13 @@ pub(crate) fn run_sky_trace(
         };
         let spd = eulumdat_spectrum::synth::synthesize(cct);
 
-        let src =
-            night_sky_source(Point3::new(0.0, 0.0, 0.02), emit_half, night_lux.max(1e-4), 12, 24);
+        let src = night_sky_source(
+            Point3::new(0.0, 0.0, 0.02),
+            emit_half,
+            night_lux.max(1e-4),
+            12,
+            24,
+        );
         let dome = match src {
             Source::SkyDome(d) => d,
             _ => unreachable!("night_sky_source returns a SkyDome"),

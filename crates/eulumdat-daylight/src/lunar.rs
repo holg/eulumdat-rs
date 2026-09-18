@@ -108,10 +108,7 @@ fn julian_day(year: i32, month: u32, day: u32, utc_hours: f64) -> f64 {
     };
     let a = (y as f64 / 100.0).floor();
     let b = 2.0 - a + (a / 4.0).floor();
-    (365.25 * (y as f64 + 4716.0)).floor()
-        + (30.6001 * (m as f64 + 1.0)).floor()
-        + day as f64
-        + b
+    (365.25 * (y as f64 + 4716.0)).floor() + (30.6001 * (m as f64 + 1.0)).floor() + day as f64 + b
         - 1524.5
         + utc_hours / 24.0
 }
@@ -199,11 +196,11 @@ pub fn moon_position(
     // Compute the true elongation from apparent longitudes for good accuracy.
     let sun = solar_position(year, month, day, utc_hours, latitude_deg, longitude_deg);
     let _ = &sun; // used below only for consistency; elongation via longitudes
-    // Sun apparent ecliptic longitude (low precision).
+                  // Sun apparent ecliptic longitude (low precision).
     let sun_lon =
         norm360(280.46646 + 36000.76983 * t) + 1.914602 * (mr).sin() + 0.019993 * (2.0 * mr).sin();
     let elongation = norm360(lon - sun_lon) * DEG; // moon − sun ecliptic longitude
-    // Phase angle i ≈ 180° − elongation (as seen from Earth, small-parallax approx).
+                                                   // Phase angle i ≈ 180° − elongation (as seen from Earth, small-parallax approx).
     let phase_angle = PI - elongation;
     let phase_angle = phase_angle.rem_euclid(2.0 * PI);
     // Illuminated fraction k = (1 + cos i) / 2.
@@ -258,7 +255,10 @@ mod tests {
     fn phase_cycles_over_a_synodic_month() {
         let full = moon_position(2026, 1, 3, 10.0, 0.0, 0.0).illuminated_fraction;
         let half_cycle = moon_position(2026, 1, 18, 0.0, 0.0, 0.0).illuminated_fraction;
-        assert!(full > 0.9 && half_cycle < 0.1, "full {full:.2} → new {half_cycle:.2}");
+        assert!(
+            full > 0.9 && half_cycle < 0.1,
+            "full {full:.2} → new {half_cycle:.2}"
+        );
     }
 
     /// The moon's altitude is a real number in range, and over a day it both

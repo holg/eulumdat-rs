@@ -71,7 +71,13 @@ impl NamedLocation {
         longitude_deg: f64,
         utc_offset_hours: f64,
     ) -> Self {
-        Self::with_dst(name, latitude_deg, longitude_deg, utc_offset_hours, DstRule::None)
+        Self::with_dst(
+            name,
+            latitude_deg,
+            longitude_deg,
+            utc_offset_hours,
+            DstRule::None,
+        )
     }
 
     /// The effective UTC offset on a given date, including any DST shift.
@@ -99,16 +105,12 @@ fn dst_active(rule: DstRule, month: u32, day: u32) -> bool {
         // EU: last Sun of March → last Sun of October. Approx: Apr–Oct fully in,
         // late March in, late October transitions out (use day<25 for Oct).
         DstRule::Eu => {
-            (4..=9).contains(&month)
-                || (month == 3 && day >= 25)
-                || (month == 10 && day < 25)
+            (4..=9).contains(&month) || (month == 3 && day >= 25) || (month == 10 && day < 25)
         }
         // US: 2nd Sun of March → 1st Sun of November. Approx: Apr–Oct in,
         // mid-March in, early November transitions out.
         DstRule::Us => {
-            (4..=10).contains(&month)
-                || (month == 3 && day >= 8)
-                || (month == 11 && day < 7)
+            (4..=10).contains(&month) || (month == 3 && day >= 8) || (month == 11 && day < 7)
         }
         // Southern hemisphere (e.g. parts of AU/SA): Oct–March.
         DstRule::SouthernEu => {
@@ -128,7 +130,7 @@ pub const LOCATIONS: &[NamedLocation] = &[
     NamedLocation::with_dst("Chicago", 41.88, -87.63, -6.0, DstRule::Us),
     NamedLocation::with_dst("New York", 40.71, -74.01, -5.0, DstRule::Us),
     NamedLocation::with_dst("São Paulo", -23.55, -46.63, -3.0, DstRule::None), // ended 2019
-    NamedLocation::new("Reykjavík", 64.15, -21.94, 0.0), // Iceland: no DST
+    NamedLocation::new("Reykjavík", 64.15, -21.94, 0.0),                       // Iceland: no DST
     NamedLocation::with_dst("London", 51.51, -0.13, 0.0, DstRule::Eu),
     NamedLocation::with_dst("Madrid", 40.42, -3.70, 1.0, DstRule::Eu),
     NamedLocation::with_dst("Lüdinghausen", 51.77, 7.44, 1.0, DstRule::Eu),
@@ -268,7 +270,10 @@ mod tests {
         let dt = LocalDateTime::new(2026, 6, 21, 13.0);
         let berlin = location_by_name("Berlin").unwrap();
         let (_, _, _, utc) = dt.to_utc(&berlin);
-        assert!((utc - 11.0).abs() < 1e-9, "summer Berlin 13:00 → 11:00 UTC, got {utc}");
+        assert!(
+            (utc - 11.0).abs() < 1e-9,
+            "summer Berlin 13:00 → 11:00 UTC, got {utc}"
+        );
         assert_eq!(berlin.effective_offset(6, 21), 2.0);
         assert_eq!(berlin.effective_offset(12, 21), 1.0);
     }
@@ -440,6 +445,9 @@ mod tests {
             best_h
         };
         let (s, w) = (peak(6), peak(12));
-        assert!((s - w).abs() < 0.5, "no-DST place: peak stable, {s:.2} vs {w:.2}");
+        assert!(
+            (s - w).abs() < 0.5,
+            "no-DST place: peak stable, {s:.2} vs {w:.2}"
+        );
     }
 }

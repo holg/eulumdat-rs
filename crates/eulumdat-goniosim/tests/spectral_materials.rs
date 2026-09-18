@@ -11,11 +11,7 @@ use nalgebra::{Point3, Unit, Vector3};
 
 /// A downward LED behind a flat cover at `distance_mm`, with the given
 /// spectral override on the cover material.
-fn led_through_cover(
-    cct_k: f64,
-    cover: MaterialParams,
-    spectral: SpectralOverride,
-) -> Scene {
+fn led_through_cover(cct_k: f64, cover: MaterialParams, spectral: SpectralOverride) -> Scene {
     let mut scene = Scene::new();
     scene.add_source_with_spectrum(
         Source::Led {

@@ -26,7 +26,11 @@ fn lerp_lut(table: &[f64; LUT_LEN], wl_nm: f64) -> f64 {
         return if wl_nm < LUT_START_NM { 0.0 } else { table[0] };
     }
     if wl_nm >= last {
-        return if wl_nm > last { 0.0 } else { table[LUT_LEN - 1] };
+        return if wl_nm > last {
+            0.0
+        } else {
+            table[LUT_LEN - 1]
+        };
     }
     let pos = (wl_nm - LUT_START_NM) / LUT_STEP_NM;
     let i0 = pos.floor() as usize;

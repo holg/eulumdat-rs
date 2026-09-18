@@ -74,7 +74,8 @@ impl Scene {
         spectral: crate::material::SpectralOverride,
     ) -> MaterialId {
         let id = self.materials.len();
-        self.materials.push(params.to_material_with_spectral(spectral));
+        self.materials
+            .push(params.to_material_with_spectral(spectral));
         self.material_params.push(params);
         id
     }

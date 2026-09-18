@@ -53,7 +53,10 @@ fn sensor_and_luminaire_share_identical_identity_and_lamp_block() {
     // Identity / header
     assert_eq!(sensor.identification, lum.identification, "manufacturer");
     assert_eq!(sensor.luminaire_name, lum.luminaire_name, "product name");
-    assert_eq!(sensor.luminaire_number, lum.luminaire_number, "product number");
+    assert_eq!(
+        sensor.luminaire_number, lum.luminaire_number,
+        "product number"
+    );
     assert_eq!(sensor.type_indicator, lum.type_indicator, "Ityp");
     assert_eq!(sensor.symmetry, lum.symmetry, "Isym");
 

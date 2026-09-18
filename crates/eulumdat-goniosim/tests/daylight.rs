@@ -174,8 +174,7 @@ fn room_with_roof_opening_has_plausible_daylight_factor() {
         result.total_emitted_energy,
         overcast.dhi_lux,
     );
-    let df_avg: f64 =
-        df.iter().flatten().sum::<f64>() / (df.len() * df[0].len()) as f64;
+    let df_avg: f64 = df.iter().flatten().sum::<f64>() / (df.len() * df[0].len()) as f64;
 
     // The interior gets some light but far less than the exterior DHI.
     assert!(e_in > 0.0, "room floor should receive some daylight");

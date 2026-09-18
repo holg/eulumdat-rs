@@ -135,7 +135,10 @@ fn skylit_room_daylight_factor_is_plausible() {
     );
     let df_avg: f64 = df.iter().flatten().sum::<f64>() / (df.len() * df[0].len()) as f64;
 
-    assert!(e_in > 0.0 && e_in < avail.dhi_lux, "interior below exterior");
+    assert!(
+        e_in > 0.0 && e_in < avail.dhi_lux,
+        "interior below exterior"
+    );
     assert!(
         (0.05..60.0).contains(&df_avg),
         "daylight factor {df_avg:.2}% out of band"
@@ -237,7 +240,10 @@ fn full_night_mesopic_road_sweep() {
     for h in [21.0, 23.0, 1.0, 3.0] {
         let dt = LocalDateTime::new(2026, 1, 15, h); // mid-winter: long nights
         let sun = dt.solar_position(&loc);
-        assert!(!sun.is_daytime(), "hour {h} should be night in Chicago January");
+        assert!(
+            !sun.is_daytime(),
+            "hour {h} should be night in Chicago January"
+        );
         any_night = true;
         let l_mes = mesopic_luminance(l_photopic, sp);
         assert!(
@@ -337,10 +343,22 @@ fn dark_sky_report_grades_spectra_correctly() {
     let warm = trace_report(2200.0);
     let cool = trace_report(6500.0);
 
-    assert!(warm.meets_cct_limit(3000.0), "2200 K passes the 3000 K limit");
-    assert!(!cool.meets_cct_limit(3000.0), "6500 K fails the 3000 K limit");
-    assert!(cool.blue_fraction_up > warm.blue_fraction_up, "cool has more blue spill");
-    assert!(cool.spectral_ulor > warm.spectral_ulor, "cool scatters more (Rayleigh)");
+    assert!(
+        warm.meets_cct_limit(3000.0),
+        "2200 K passes the 3000 K limit"
+    );
+    assert!(
+        !cool.meets_cct_limit(3000.0),
+        "6500 K fails the 3000 K limit"
+    );
+    assert!(
+        cool.blue_fraction_up > warm.blue_fraction_up,
+        "cool has more blue spill"
+    );
+    assert!(
+        cool.spectral_ulor > warm.spectral_ulor,
+        "cool scatters more (Rayleigh)"
+    );
     // Isotropic emitter → about half the flux escapes upward.
     assert!((0.35..0.65).contains(&warm.ulor), "isotropic ULOR ≈ 0.5");
 }

@@ -934,11 +934,7 @@ impl GpuTracer {
 
         // Channel bins: 4 atomics (X,Y,Z,scotopic) per direction bin.
         let spectral = config.spectral_mode == 1;
-        let channel_len = if spectral {
-            (total_bins as u64) * 4
-        } else {
-            1
-        };
+        let channel_len = if spectral { (total_bins as u64) * 4 } else { 1 };
         let channel_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("channel_buffer"),
             size: channel_len * 4,

@@ -148,8 +148,8 @@ pub fn point_luminance(
         }
 
         let r_coeff = rtable.r(beta, tan_eps); // already r·10⁴
-        // L = I · (r·10⁴) / (H² · 10⁴) = I · r / H²; the 10⁴ cancels because the
-        // table stores r·10⁴ and the CIE formula divides by 10⁴.
+                                               // L = I · (r·10⁴) / (H² · 10⁴) = I · r / H²; the 10⁴ cancels because the
+                                               // table stores r·10⁴ and the CIE formula divides by 10⁴.
         l += intensity * r_coeff / (h * h * 1.0e4);
     }
     l.max(0.0)
@@ -302,7 +302,11 @@ pub mod daytime {
     /// Discretize the sky dome into `n_theta × n_phi` patches, each an
     /// equivalent far-field [`LuminanceSource`], so the diffuse sky contributes
     /// to road luminance through the same r-table path.
-    pub fn sky_sources(sky: &SkyRadiance, n_theta: usize, n_phi: usize) -> Vec<LuminanceSource<'static>> {
+    pub fn sky_sources(
+        sky: &SkyRadiance,
+        n_theta: usize,
+        n_phi: usize,
+    ) -> Vec<LuminanceSource<'static>> {
         use std::f64::consts::{FRAC_PI_2, PI};
         let mut out = Vec::with_capacity(n_theta * n_phi);
         let dtheta = FRAC_PI_2 / n_theta as f64;
@@ -396,15 +400,18 @@ mod tests {
         };
         let obs = Observer::en13201(0.0, -60.0);
         let rtable = RTable::standard(RTableClass::R3);
-        assert_eq!(point_luminance(&obs, [0.0, 30.0, 0.0], &[src], &rtable), 0.0);
+        assert_eq!(
+            point_luminance(&obs, [0.0, 30.0, 0.0], &[src], &rtable),
+            0.0
+        );
     }
 
     #[cfg(feature = "daylight")]
     #[test]
     fn daytime_sun_sky_illuminate_road() {
         use eulumdat_daylight::{
-            availability::DaylightAvailability, sky::PerezSky, sky::SkyParams, solar::solar_position,
-            SkyRadiance,
+            availability::DaylightAvailability, sky::PerezSky, sky::SkyParams,
+            solar::solar_position, SkyRadiance,
         };
 
         // Clear summer noon at 40°N.
@@ -520,8 +527,14 @@ pub mod mesopic {
             };
             let cool = correct(&photopic, 2.2);
             let warm = correct(&photopic, 0.6);
-            assert!(cool.l_avg > photopic.l_avg, "high S/P raises mesopic luminance");
-            assert!(warm.l_avg < photopic.l_avg, "low S/P lowers mesopic luminance");
+            assert!(
+                cool.l_avg > photopic.l_avg,
+                "high S/P raises mesopic luminance"
+            );
+            assert!(
+                warm.l_avg < photopic.l_avg,
+                "low S/P lowers mesopic luminance"
+            );
             assert!(cool.l_avg > warm.l_avg);
         }
     }

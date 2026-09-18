@@ -73,8 +73,14 @@ fn dark_sky_report_distinguishes_warm_from_cool() {
     );
 
     // Dark-sky CCT ordinance (3000 K): warm passes, cool fails.
-    assert!(r_warm.meets_cct_limit(3000.0), "2200 K should pass the 3000 K limit");
-    assert!(!r_cool.meets_cct_limit(3000.0), "6500 K should fail the 3000 K limit");
+    assert!(
+        r_warm.meets_cct_limit(3000.0),
+        "2200 K should pass the 3000 K limit"
+    );
+    assert!(
+        !r_cool.meets_cct_limit(3000.0),
+        "6500 K should fail the 3000 K limit"
+    );
 
     // S/P from the trace: cool higher than warm.
     assert!(r_cool.sp_ratio > r_warm.sp_ratio);
@@ -102,7 +108,10 @@ fn mesopic_road_luminance_favors_cool_at_night() {
     );
     // The cool (high-S/P) source exceeds its photopic luminance; the warm one
     // does not gain as much.
-    assert!(l_cool > l_photopic, "cool mesopic luminance should exceed photopic");
+    assert!(
+        l_cool > l_photopic,
+        "cool mesopic luminance should exceed photopic"
+    );
 }
 
 #[test]
@@ -133,7 +142,10 @@ fn moon_and_night_sky_sources_build_and_emit() {
         vec![plane],
     );
     let e = result.average_lux(0);
-    assert!(e > 0.0, "night sky should deliver some illuminance, got {e}");
+    assert!(
+        e > 0.0,
+        "night sky should deliver some illuminance, got {e}"
+    );
     // Uniform dark dome ~ starlight order of magnitude.
     assert!(e < 1.0, "starlight illuminance should be sub-lux, got {e}");
 }

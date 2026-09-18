@@ -34,16 +34,28 @@ fn demo_sky_lux(sun: &SolarPosition) -> (f64, &'static str) {
         );
         let flux = dome.collector_flux(target);
         let dome = dome.with_flux(flux);
-        let regime = if sun.altitude_deg() > 6.0 { "day" } else { "twilight" };
+        let regime = if sun.altitude_deg() > 6.0 {
+            "day"
+        } else {
+            "twilight"
+        };
         (dome, regime)
     } else {
-        let night_lux = if sun.altitude_deg() > -6.0 { 5.0 } else { 0.001 };
+        let night_lux = if sun.altitude_deg() > -6.0 {
+            5.0
+        } else {
+            0.001
+        };
         let src = night_sky_source(Point3::new(0.0, 0.0, 0.02), emit_half, night_lux, 12, 24);
         let dome = match src {
             Source::SkyDome(d) => d,
             _ => unreachable!(),
         };
-        let regime = if sun.altitude_deg() > -6.0 { "twilight" } else { "night" };
+        let regime = if sun.altitude_deg() > -6.0 {
+            "twilight"
+        } else {
+            "night"
+        };
         (dome, regime)
     };
 
@@ -102,7 +114,10 @@ fn time_slider_walks_through_all_regimes() {
         regimes.insert(regime);
         lux_curve.push((h, lux));
     }
-    assert!(regimes.contains("day"), "should hit daylight during the day");
+    assert!(
+        regimes.contains("day"),
+        "should hit daylight during the day"
+    );
     assert!(regimes.contains("night"), "should hit night");
 
     // Peak illuminance occurs near midday, not at the extremes.
@@ -147,7 +162,10 @@ fn arctic_polar_night_is_dark_all_day() {
             sun.altitude_deg()
         );
         let (lux, _) = demo_sky_lux(&sun);
-        assert!(lux < 10.0, "polar night sky should be dark, got {lux:.3} lx at {h}:00");
+        assert!(
+            lux < 10.0,
+            "polar night sky should be dark, got {lux:.3} lx at {h}:00"
+        );
     }
 }
 
@@ -165,7 +183,10 @@ fn arctic_midnight_sun_is_lit_all_day() {
         );
         let (lux, regime) = demo_sky_lux(&sun);
         assert_eq!(regime, "day", "polar day should read daylight at {h}:00");
-        assert!(lux > 1_000.0, "polar day sky should be bright, got {lux:.0} lx at {h}:00");
+        assert!(
+            lux > 1_000.0,
+            "polar day sky should be bright, got {lux:.0} lx at {h}:00"
+        );
     }
 }
 
@@ -174,10 +195,7 @@ fn arctic_midnight_sun_is_lit_all_day() {
 /// The night illuminance model the demo uses: starlight floor + the moon's
 /// phase-scaled, altitude-projected contribution. Mirrors `run_sky_trace`'s
 /// night branch.
-fn night_lux_with_moon(
-    star_floor: f64,
-    moon: &eulumdat_daylight::MoonPosition,
-) -> f64 {
+fn night_lux_with_moon(star_floor: f64, moon: &eulumdat_daylight::MoonPosition) -> f64 {
     let moon_face = moon_illuminance(moon.illuminated_fraction);
     let moon_lux = if moon.is_up() {
         moon_face * moon.altitude_rad.sin().max(0.0)
@@ -240,7 +258,10 @@ fn moon_below_horizon_adds_no_light() {
     if let Some(m) = below {
         let star_floor = 0.0015;
         let lux = night_lux_with_moon(star_floor, &m);
-        assert!((lux - star_floor).abs() < 1e-9, "moon down → only starlight");
+        assert!(
+            (lux - star_floor).abs() < 1e-9,
+            "moon down → only starlight"
+        );
     }
     let _ = moon_position; // silence unused if the branch is skipped
 }

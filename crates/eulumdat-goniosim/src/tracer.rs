@@ -213,7 +213,11 @@ fn trace_sequential(
                 detector.record(dir, energy);
                 if let Some(ch) = channels.as_mut() {
                     let (ci, gi) = detector.bin_index(dir);
-                    ch.record(ci, gi, &ChannelWeights::for_photon(result.wavelength, energy));
+                    ch.record(
+                        ci,
+                        gi,
+                        &ChannelWeights::for_photon(result.wavelength, energy),
+                    );
                 }
                 stats.photons_detected += 1;
                 stats.total_energy_detected += energy;
@@ -273,7 +277,12 @@ fn trace_parallel(
     let progress_counter = AtomicU64::new(0);
     let spectral = spectral_mode(scene, config);
 
-    type ThreadResult = (Detector, TracerStats, Vec<PhotonTrail>, Option<WeightedChannels>);
+    type ThreadResult = (
+        Detector,
+        TracerStats,
+        Vec<PhotonTrail>,
+        Option<WeightedChannels>,
+    );
     let thread_results: Vec<ThreadResult> = (0..num_threads)
         .into_par_iter()
         .map(|thread_idx| {
@@ -355,8 +364,7 @@ fn trace_parallel(
 
     // Merge results
     let mut detector = Detector::new(config.detector_c_resolution, config.detector_g_resolution);
-    let mut channels =
-        spectral.then(|| WeightedChannels::new(detector.num_c(), detector.num_g()));
+    let mut channels = spectral.then(|| WeightedChannels::new(detector.num_c(), detector.num_g()));
     let mut stats = TracerStats::default();
     let mut trails = Vec::new();
 
@@ -475,7 +483,7 @@ fn trace_one_photon(
                         return SinglePhotonResult {
                             outcome: PhotonOutcome::Absorbed,
                             final_direction: None,
-                        wavelength: photon.wavelength,
+                            wavelength: photon.wavelength,
                             trail: if record_trail {
                                 Some(PhotonTrail {
                                     points: trail_points,
@@ -540,7 +548,7 @@ fn trace_one_photon(
                         return SinglePhotonResult {
                             outcome: PhotonOutcome::RussianRoulette,
                             final_direction: None,
-                        wavelength: photon.wavelength,
+                            wavelength: photon.wavelength,
                             trail: if record_trail {
                                 Some(PhotonTrail {
                                     points: trail_points,

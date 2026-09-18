@@ -52,7 +52,11 @@ fn synthesized_3000k_round_trips_through_tracer() {
     );
     // Warm white sits just below the Planckian locus (slightly negative Duv is
     // fine); |Duv| should be small.
-    assert!(col.duv.abs() < 0.01, "warm white Duv should be small, got {}", col.duv);
+    assert!(
+        col.duv.abs() < 0.01,
+        "warm white Duv should be small, got {}",
+        col.duv
+    );
 }
 
 #[test]
@@ -111,6 +115,14 @@ fn warm_and_cool_straddle_the_mesopic_divide() {
         sp_cool,
         sp_warm
     );
-    assert!(sp_warm > 1.0 && sp_warm < 1.7, "warm S/P envelope, got {:.2}", sp_warm);
-    assert!(sp_cool > 1.8 && sp_cool < 2.7, "cool S/P envelope, got {:.2}", sp_cool);
+    assert!(
+        sp_warm > 1.0 && sp_warm < 1.7,
+        "warm S/P envelope, got {:.2}",
+        sp_warm
+    );
+    assert!(
+        sp_cool > 1.8 && sp_cool < 2.7,
+        "cool S/P envelope, got {:.2}",
+        sp_cool
+    );
 }

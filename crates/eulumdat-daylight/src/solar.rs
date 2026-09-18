@@ -87,11 +87,10 @@ pub fn solar_position(
     let omega = 2.1429 - 0.0010394594 * elapsed_julian_days;
     let mean_longitude = 4.8950630 + 0.017202791698 * elapsed_julian_days; // rad
     let mean_anomaly = 6.2400600 + 0.0172019699 * elapsed_julian_days;
-    let ecliptic_longitude = mean_longitude
-        + 0.03341607 * mean_anomaly.sin()
-        + 0.00034894 * (2.0 * mean_anomaly).sin()
-        - 0.0001134
-        - 0.0000203 * omega.sin();
+    let ecliptic_longitude =
+        mean_longitude + 0.03341607 * mean_anomaly.sin() + 0.00034894 * (2.0 * mean_anomaly).sin()
+            - 0.0001134
+            - 0.0000203 * omega.sin();
     let ecliptic_obliquity = 0.4090928 - 6.2140e-9 * elapsed_julian_days + 0.0000396 * omega.cos();
 
     // --- Celestial (right ascension / declination) ---
@@ -107,8 +106,7 @@ pub fn solar_position(
     // --- Local coordinates (azimuth / zenith) ---
     let greenwich_mean_sidereal_time =
         6.6974243242 + 0.0657098283 * elapsed_julian_days + decimal_hours;
-    let local_mean_sidereal_time =
-        (greenwich_mean_sidereal_time * 15.0 + longitude_deg) * rad;
+    let local_mean_sidereal_time = (greenwich_mean_sidereal_time * 15.0 + longitude_deg) * rad;
     let hour_angle = local_mean_sidereal_time - right_ascension;
     let latitude = latitude_deg * rad;
     let cos_lat = latitude.cos();

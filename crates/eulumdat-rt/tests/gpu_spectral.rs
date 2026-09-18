@@ -18,7 +18,8 @@ fn gpu_spectral_recovers_source_cct() {
         let spd = eulumdat_spectrum::synth::synthesize(cct);
         let direct = eulumdat_spectrum::analyze(&spd).cct_k;
 
-        let result = pollster::block_on(tracer.trace_isotropic_spectral(2_000_000, 15.0, 5.0, &spd));
+        let result =
+            pollster::block_on(tracer.trace_isotropic_spectral(2_000_000, 15.0, 5.0, &spd));
         let channels = result.channels().expect("spectral mode returns channels");
         let gpu_cct = channels.cct_k().expect("light collected");
 

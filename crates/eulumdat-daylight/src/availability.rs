@@ -186,7 +186,10 @@ mod tests {
             (4000.0..=5800.0).contains(&horizon),
             "low sun should be warm (~4000–5800 K), got {horizon:.0}"
         );
-        assert!(mid > horizon, "CCT rises off the horizon: {mid:.0} > {horizon:.0}");
+        assert!(
+            mid > horizon,
+            "CCT rises off the horizon: {mid:.0} > {horizon:.0}"
+        );
         assert!(high >= mid, "CCT keeps rising with altitude");
         assert!(
             (6000.0..=9000.0).contains(&high),
@@ -195,7 +198,10 @@ mod tests {
         // Everything stays in the daylight band.
         for alt in [1.0, 15.0, 45.0, 89.0] {
             let c = daylight_cct(alt, 2.5);
-            assert!((4000.0..=12000.0).contains(&c), "alt {alt}: CCT {c:.0} out of band");
+            assert!(
+                (4000.0..=12000.0).contains(&c),
+                "alt {alt}: CCT {c:.0} out of band"
+            );
         }
     }
 

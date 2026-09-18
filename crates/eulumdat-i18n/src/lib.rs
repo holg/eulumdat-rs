@@ -1936,7 +1936,8 @@ fn default_slab_sky_tab_intro() -> String {
     "Pick a place and a moment: the sun and moon update live, and the sky's light — daylight, twilight, moonlight — is traced onto a scene. Illuminance, colour and mesopic luminance come from the same Monte Carlo engine.".into()
 }
 fn default_slab_sky_empty_hint() -> String {
-    "Adjust the location and time, then press Trace to compute the sky's illuminance and colour.".into()
+    "Adjust the location and time, then press Trace to compute the sky's illuminance and colour."
+        .into()
 }
 fn default_slab_scene_road() -> String {
     "Road".into()

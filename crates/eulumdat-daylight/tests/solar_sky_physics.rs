@@ -163,7 +163,10 @@ fn sun_crosses_horizon_at_dawn() {
         }
         prev_below = below;
     }
-    assert!(crossed, "sun should cross the horizon (rise) during the dawn window");
+    assert!(
+        crossed,
+        "sun should cross the horizon (rise) during the dawn window"
+    );
 }
 
 /// Midnight sun vs polar night are captured by the location presets — sanity

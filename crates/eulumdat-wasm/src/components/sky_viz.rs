@@ -141,8 +141,8 @@ pub fn moon_disc_svg(cx: f64, cy: f64, r: f64, illuminated: f64, waxing: bool) -
     // The shadow covers the un-lit side. For a waxing moon the RIGHT is lit, so
     // the shadow is on the left; for waning, mirror.
     let shadow_on_left = waxing; // waxing → lit right → shadow left
-    // Build the shadow as a path: outer semicircle (shadow side) + inner
-    // terminator ellipse arc. Sweep flags flip with phase (gibbous vs crescent).
+                                 // Build the shadow as a path: outer semicircle (shadow side) + inner
+                                 // terminator ellipse arc. Sweep flags flip with phase (gibbous vs crescent).
     let gibbous = f > 0.5; // >half lit → shadow is a crescent sliver
     let sx = if shadow_on_left { -1.0 } else { 1.0 };
     let top = format!("{:.1},{:.1}", cx, cy - r);
@@ -275,7 +275,11 @@ pub fn sun_path_svg(dt: &LocalDateTime, loc: &NamedLocation, w: f64, h: f64) -> 
     let now_x = hour_to_x(dt.local_hours);
     let now_sun = dt.solar_position(loc);
     let now_y = alt_to_y(now_sun.altitude_deg());
-    let marker_color = if now_sun.is_daytime() { "#f0883e" } else { "#58a6ff" };
+    let marker_color = if now_sun.is_daytime() {
+        "#f0883e"
+    } else {
+        "#58a6ff"
+    };
 
     // Hour ticks at 0/6/12/18/24. Axis lines/text use `currentColor` (inherited
     // from the container's theme colour) so the chart is legible in light AND
@@ -428,7 +432,8 @@ pub fn scene_render_svg(
         let m = dt.moon_position(loc);
         if m.is_up() {
             let mx = w * ((m.azimuth_deg() - 90.0) / 180.0).clamp(0.05, 0.95);
-            let my = horizon_y - (m.altitude_deg().clamp(0.0, 90.0) / 90.0) * (horizon_y - h * 0.06);
+            let my =
+                horizon_y - (m.altitude_deg().clamp(0.0, 90.0) / 90.0) * (horizon_y - h * 0.06);
             moon_disc_svg(mx, my, 11.0, m.illuminated_fraction, m.waxing)
         } else {
             String::new()
@@ -436,9 +441,9 @@ pub fn scene_render_svg(
     };
 
     let ground_base = match kind {
-        SceneKind::Road => "#3a3f36",   // asphalt
-        SceneKind::Room => "#6b5f4e",   // wood/parquet floor
-        SceneKind::Plaza => "#5a5348",  // paving
+        SceneKind::Road => "#3a3f36",  // asphalt
+        SceneKind::Room => "#6b5f4e",  // wood/parquet floor
+        SceneKind::Plaza => "#5a5348", // paving
     };
     let ground = darken(ground_base, lit);
     let ground_far = darken(ground_base, (lit * 0.7).max(0.02));
@@ -475,16 +480,29 @@ fn road_foreground(w: f64, h: f64, horizon_y: f64, lit: f64, night: bool) -> Str
   <line x1="{mid:.1}" y1="{hy:.1}" x2="{mid:.1}" y2="{h:.1}" stroke="#c9c48a" stroke-width="2" stroke-dasharray="8,10" opacity="{lane:.2}"/>
   <line x1="{px:.1}" y1="{pt:.1}" x2="{px:.1}" y2="{hy:.1}" stroke="#555" stroke-width="3"/>
   <circle cx="{px:.1}" cy="{pt:.1}" r="4" fill="#ffe08a" opacity="{lamp:.2}"/>"##,
-        cx1 = w * 0.44, cx2 = w * 0.56, rl = w * 0.2, rr = w * 0.8, mid = w * 0.5,
-        hy = horizon_y, lane = lit.max(0.15),
-        px = w * 0.82, pt = horizon_y - h * 0.28,
+        cx1 = w * 0.44,
+        cx2 = w * 0.56,
+        rl = w * 0.2,
+        rr = w * 0.8,
+        mid = w * 0.5,
+        hy = horizon_y,
+        lane = lit.max(0.15),
+        px = w * 0.82,
+        pt = horizon_y - h * 0.28,
         lamp = if night { 1.0 } else { 0.0 },
     )
 }
 
 /// Room scene: an interior with a window showing the sky, a floor and a back
 /// wall. The window is bright with daylight (daylight-factor use case).
-fn room_foreground(w: f64, h: f64, _horizon_y: f64, zenith: &str, horizon: &str, lit: f64) -> String {
+fn room_foreground(
+    w: f64,
+    h: f64,
+    _horizon_y: f64,
+    zenith: &str,
+    horizon: &str,
+    lit: f64,
+) -> String {
     // Interior overlay: darken everything a little (indoors), then a bright
     // window cut into the back wall showing the sky gradient.
     let wall_op = 0.55;
@@ -496,10 +514,18 @@ fn room_foreground(w: f64, h: f64, _horizon_y: f64, zenith: &str, horizon: &str,
   <line x1="{wcx:.1}" y1="{wy:.1}" x2="{wcx:.1}" y2="{wby:.1}" stroke="#3a332a" stroke-width="2"/>
   <polygon points="0,{h:.1} {fl:.1},{fly:.1} {fr:.1},{fly:.1} {w:.1},{h:.1}" fill="#c9b48a" opacity="{floor:.2}"/>"##,
         wall_op = wall_op,
-        wx = w * 0.30, wy = h * 0.16, ww = w * 0.40, wh = h * 0.20,
-        wmid = h * 0.36, wh2 = h * 0.16, whf = h * 0.36,
-        wcx = w * 0.50, wby = h * 0.52,
-        fl = w * 0.30, fr = w * 0.70, fly = h * 0.60,
+        wx = w * 0.30,
+        wy = h * 0.16,
+        ww = w * 0.40,
+        wh = h * 0.20,
+        wmid = h * 0.36,
+        wh2 = h * 0.16,
+        whf = h * 0.36,
+        wcx = w * 0.50,
+        wby = h * 0.52,
+        fl = w * 0.30,
+        fr = w * 0.70,
+        fly = h * 0.60,
         floor = (lit * 0.9 + 0.1).min(1.0),
     )
 }
@@ -515,10 +541,20 @@ fn plaza_foreground(w: f64, h: f64, horizon_y: f64, lit: f64, night: bool) -> St
   <rect x="{b1wx2:.1}" y="{b1wy:.1}" width="6" height="6" fill="#ffe08a" opacity="{win:.2}"/>
   <line x1="0" y1="{ph:.1}" x2="{w:.1}" y2="{ph:.1}" stroke="#00000022" stroke-width="1"/>
   <line x1="{lx:.1}" y1="{hy:.1}" x2="{lx:.1}" y2="{h:.1}" stroke="#4a4a52" stroke-width="2" opacity="{lit:.2}"/>"##,
-        b1x = w * 0.08, b1y = horizon_y - h * 0.20, b1w = w * 0.16, b1h = h * 0.20,
-        b2x = w * 0.70, b2y = horizon_y - h * 0.14, b2w = w * 0.20, b2h = h * 0.14,
-        b1wx = w * 0.12, b1wx2 = w * 0.18, b1wy = horizon_y - h * 0.15,
-        ph = horizon_y + h * 0.02, lx = w * 0.5, hy = horizon_y,
+        b1x = w * 0.08,
+        b1y = horizon_y - h * 0.20,
+        b1w = w * 0.16,
+        b1h = h * 0.20,
+        b2x = w * 0.70,
+        b2y = horizon_y - h * 0.14,
+        b2w = w * 0.20,
+        b2h = h * 0.14,
+        b1wx = w * 0.12,
+        b1wx2 = w * 0.18,
+        b1wy = horizon_y - h * 0.15,
+        ph = horizon_y + h * 0.02,
+        lx = w * 0.5,
+        hy = horizon_y,
         lit = lit.max(0.15),
     )
 }
@@ -564,7 +600,10 @@ mod tests {
                 scene_render_svg(&d, &loc, SceneKind::Plaza, 2.5, 400.0, 240.0),
             ] {
                 assert!(svg.starts_with("<svg"), "svg must start with <svg at h={h}");
-                assert!(svg.trim_end().ends_with("</svg>"), "svg must close at h={h}");
+                assert!(
+                    svg.trim_end().ends_with("</svg>"),
+                    "svg must close at h={h}"
+                );
                 assert!(!svg.contains("NaN"), "svg has NaN at h={h}");
                 assert!(!svg.contains("inf"), "svg has inf at h={h}");
             }
@@ -590,11 +629,17 @@ mod tests {
         // Full moon: a bright disc, no shadow path.
         let full = moon_disc_svg(50.0, 50.0, 12.0, 0.99, true);
         assert!(full.contains("circle"), "full moon has a disc");
-        assert!(!full.contains("<path"), "full moon has no terminator shadow");
+        assert!(
+            !full.contains("<path"),
+            "full moon has no terminator shadow"
+        );
 
         // New moon: dark, essentially no lit disc fill.
         let new = moon_disc_svg(50.0, 50.0, 12.0, 0.01, true);
-        assert!(new.contains("#20242c") || new.contains("#12151b"), "new moon is dark");
+        assert!(
+            new.contains("#20242c") || new.contains("#12151b"),
+            "new moon is dark"
+        );
 
         // Crescent/gibbous: a lit disc plus a shadow terminator path.
         let cres = moon_disc_svg(50.0, 50.0, 12.0, 0.25, true);
@@ -604,7 +649,10 @@ mod tests {
         // Waxing vs waning crescents differ (lit limb on opposite sides), so
         // their SVG paths must not be identical.
         let waning = moon_disc_svg(50.0, 50.0, 12.0, 0.25, false);
-        assert_ne!(cres, waning, "waxing and waning crescents must render differently");
+        assert_ne!(
+            cres, waning,
+            "waxing and waning crescents must render differently"
+        );
 
         // All well-formed, no NaN.
         for s in [full, new, cres, waning] {
