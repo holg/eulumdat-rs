@@ -240,7 +240,7 @@ impl Butterfly3DRenderer {
             }
 
             for i in 0..points.len() - 1 {
-                painter.line_segment([points[i], points[i + 1]], Stroke::new(1.0, color));
+                painter.line_segment([points[i], points[i + 1]], Stroke::new(1.0_f32, color));
             }
         }
 
@@ -259,7 +259,7 @@ impl Butterfly3DRenderer {
                 .rotate_y(self.rotation_y)
                 .project(cx, cy, scale);
 
-            painter.line_segment([p1, p2], Stroke::new(1.0, color));
+            painter.line_segment([p1, p2], Stroke::new(1.0_f32, color));
         }
     }
 
@@ -314,7 +314,7 @@ impl Butterfly3DRenderer {
         for i in 0..projected.len() - 1 {
             painter.line_segment(
                 [projected[i], projected[i + 1]],
-                Stroke::new(1.5, stroke_color),
+                Stroke::new(1.5_f32, stroke_color),
             );
         }
     }

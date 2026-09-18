@@ -62,8 +62,8 @@ impl PolarWidget {
         polar: &PolarDiagram,
         theme: &Theme,
     ) {
-        let grid_stroke = Stroke::new(1.0, theme.grid);
-        let axis_stroke = Stroke::new(1.5, theme.axis);
+        let grid_stroke = Stroke::new(1.0_f32, theme.grid);
+        let axis_stroke = Stroke::new(1.5_f32, theme.axis);
 
         // Concentric circles for intensity scale
         for &value in polar.scale.grid_values.iter() {
@@ -132,7 +132,7 @@ impl PolarWidget {
             return;
         }
 
-        let stroke = Stroke::new(2.0, color);
+        let stroke = Stroke::new(2.0_f32, color);
         let screen_points: Vec<Pos2> = points
             .iter()
             .map(|p| {

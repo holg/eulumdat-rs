@@ -19,6 +19,8 @@ jobs:
     name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      # Let every OS report; one failing job must not cancel the others.
+      fail-fast: false
       matrix:
         # windows-2022 (not windows-latest): the workspace tests build
         # eulumdat-gltf-pack, whose ktx2-rw dependency compiles KTX-Software

@@ -108,7 +108,7 @@ fn decode_blocks(
                 );
             }
             let mut rgba = Vec::with_capacity(pixel_count * 4);
-            for chunk in raw[..expected].chunks_exact(3) {
+            for chunk in raw[..expected].as_chunks::<3>().0 {
                 rgba.extend_from_slice(chunk);
                 rgba.push(255);
             }

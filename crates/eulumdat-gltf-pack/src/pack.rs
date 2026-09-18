@@ -236,7 +236,12 @@ fn detect_format(data: &[u8], uri: &str) -> &'static str {
 /// Uses a threshold to ignore BC7 compression artifacts (alpha 254-255).
 fn has_alpha(rgba: &[u8]) -> bool {
     // Count pixels with alpha significantly below opaque
-    let transparent_pixels = rgba.chunks_exact(4).filter(|px| px[3] < 250).count();
+    let transparent_pixels = rgba
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .filter(|px| px[3] < 250)
+        .count();
     let total_pixels = rgba.len() / 4;
     // Need at least 0.1% of pixels to be transparent to consider this an alpha image
     transparent_pixels > 0 && transparent_pixels * 1000 > total_pixels
@@ -446,7 +451,7 @@ fn rgba_to_rgb(rgba: &[u8], w: u32, h: u32) -> Result<Vec<u8>> {
         );
     }
     let mut rgb = Vec::with_capacity(pixel_count * 3);
-    for chunk in rgba[..expected].chunks_exact(4) {
+    for chunk in rgba[..expected].as_chunks::<4>().0 {
         rgb.push(chunk[0]);
         rgb.push(chunk[1]);
         rgb.push(chunk[2]);

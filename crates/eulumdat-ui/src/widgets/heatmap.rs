@@ -161,7 +161,7 @@ impl HeatmapWidget {
                 vec2(legend_width, legend_height),
             ),
             0.0,
-            egui::Stroke::new(1.0, theme.axis),
+            egui::Stroke::new(1.0_f32, theme.axis),
         );
 
         // Labels

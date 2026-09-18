@@ -524,7 +524,7 @@ impl EulumdatApp {
 
         egui::Frame::none()
             .fill(Color32::from_rgb(248, 250, 252))
-            .stroke(egui::Stroke::new(1.0, Color32::from_rgb(226, 232, 240)))
+            .stroke(egui::Stroke::new(1.0_f32, Color32::from_rgb(226, 232, 240)))
             .rounding(Rounding::same(8.0))
             .inner_margin(Margin::same(12.0))
             .show(ui, |ui| {

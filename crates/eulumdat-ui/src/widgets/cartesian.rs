@@ -49,7 +49,7 @@ impl CartesianWidget {
         _cartesian: &CartesianDiagram,
         theme: &Theme,
     ) {
-        let grid_stroke = Stroke::new(1.0, theme.grid);
+        let grid_stroke = Stroke::new(1.0_f32, theme.grid);
 
         // Vertical grid lines (gamma angles)
         for gamma in (0..=180).step_by(30) {
@@ -76,7 +76,7 @@ impl CartesianWidget {
             return;
         }
 
-        let stroke = Stroke::new(2.0, color);
+        let stroke = Stroke::new(2.0_f32, color);
         let max_intensity = cartesian.scale.scale_max;
 
         let screen_points: Vec<Pos2> = curve
@@ -95,7 +95,7 @@ impl CartesianWidget {
     }
 
     fn draw_axes(painter: &egui::Painter, rect: Rect, cartesian: &CartesianDiagram, theme: &Theme) {
-        let axis_stroke = Stroke::new(1.5, theme.axis);
+        let axis_stroke = Stroke::new(1.5_f32, theme.axis);
 
         // X axis
         painter.line_segment(
