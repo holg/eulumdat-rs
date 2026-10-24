@@ -5,6 +5,201 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-07
+
+**Computed values change in this release.** Beam and field angles now follow
+the CIE / IES section definition, so most values for asymmetric, off-axis
+and up-light distributions differ from 0.7.x. Absolute values (cd, lm, lm/W)
+of files with more than one lamp set now use the first lamp set instead of
+the sum of all sets. Re-check stored or exported beam/field angles and any
+results for multi-lamp-set files. Checked against 18 real LDT/IES files
+(LumaScope reference values, ±0.1°; `crates/eulumdat/tests/beam_field_sections.rs`).
+
+### Added
+
+- **TM-25 ray files** (IES TM-25-13 `.TM25RAY`): new bridge crate
+  `eulumdat-tm25`. It re-exports `tm25ray` 0.2 (crates.io; standard-conformant
+  spectral block and text-field names) and adds
+  `FarFieldExt::to_eulumdat`, `luminaire_from_far_field`,
+  `atla_from_luminaire`, `spectral_table_to_atla`,
+  `spectral_table_to_spd_text`, `exports` (LDT, IES, ATLA XML with the
+  header spectrum, `.spd`) and `check_file_size`. Text fields map to their
+  meaning: name and manufacturer to the luminaire, the ray-file creator to
+  the ATLA laboratory, model creator / equipment / operating condition to
+  the ATLA comments; the LDT catalogue number stays empty (TM-25 has no
+  part number). The CLI and the native viewer reject files whose size does
+  not match the header (e.g. written by tm25ray 0.1.x) instead of reading
+  misaligned rays.
+- **CLI `eulumdat tm25 file.TM25RAY [-o out.ldt|.xml|.json]`** (`--c-step`,
+  `--g-step`, `--smooth`): prints header, start-point bounds, far field and
+  spectrum (LER, µmol/J, PPF), and writes the far field as LDT or ATLA.
+- **TM-25 viewer** (Bevy feature `tm25`, bin `tm25-viewer`, lazy WASM bundle
+  `?wasm=tm25`): ray segments, emission point cloud, far-field solid,
+  near-field irradiance plane with PPFD, actinic UV exposure; colour by
+  γ / height / flux / spectrum. The host page offers LDT / IES / ATLA / SPD
+  downloads, "Open in editor" and "Virtual goniometer". Dropping a
+  `.tm25ray` on the editor opens the viewer.
+- **Ray-set source**: `Source::RaySet(RaySetSource)` replays stored rays,
+  flux-weighted, from their real start points (near field instead of a point
+  source). The web goniometer takes `.tm25ray` files or the viewer hand-off
+  (`?wasm=goniosim&source=tm25`); CPU tracer only.
+- **`PlaneDetector::one_sided()`** (meter behaviour, ignores light from
+  behind), `extent()` and `channels()` (per-cell spectral XYZ / PAR sums).
+- **Spectrum chart digitizer**: new dependency-free crate `eulumdat-digitize`
+  (`digitize`, `ImageRef`, `Options`, `Digitized::to_spd`) turns a datasheet
+  chart image into a relative, peak-normalised `.spd`. Background, axis and
+  curve colours, fill vs line, and tick marks or label positions are
+  detected; only the x-tick wavelengths are required. CLI
+  `eulumdat digitize chart.png -x 380:780` (`--x-ticks`, `--x-calibration`,
+  `--mode`, `--debug overlay.png`, `--attach`). Web editor: drop a
+  PNG/JPEG/WebP to attach the spectrum to the loaded luminaire, load it as a
+  spectrum, or download it.
+- **Attach a spectrum to a luminaire**: `atla::spd_loader::attach_spd(&mut
+  doc, &spd, emitter)`; CLI `convert lamp.ldt lamp.xml --spd lamp.spd
+  [--emitter N]` (.spd / .csv / .spdx, ATLA output only).
+- **UV action spectra** (`eulumdat_spectrum::uv`):
+  `ActionSpectrum::actinic_uv_hazard()` (ICNIRP / ACGIH S(λ), 200–400 nm),
+  `ActionSpectrum::from_table`, `effective_fraction`, `seconds_to_limit`,
+  `ACTINIC_LIMIT_J_PER_M2` (30 J/m²).
+- **Greenhouse demo** ("Schweinestall → Gewächshaus"): Bevy bin
+  `greenhouse-demo` and WASM bundle `?wasm=greenhouse_demo` (WebGPU only).
+  Solar position with clear / overcast sky, spectral glazing τ(λ), four
+  TM-33 grow-light SPDs, analytic canopy PPFD / DLI heat-map, and a spectral
+  Monte Carlo run (`M`) to compare against it. `--selftest` and
+  `--screenshot` for headless checks.
+- **Bevy `PhotometricLight::color_override` / `with_color`**: light colour
+  from an SPD instead of CCT / CRI.
+- **SVG theme files**: `ThemeOverrides`, `SvgTheme::with_overrides`,
+  `from_base_and_overrides`, `from_toml_str`, `from_json_str`, `from_file`,
+  `toml_base` (`base = "light"|"dark"|"css"` plus any colour/font subset).
+  New `SvgTheme::curve_width`, written inline (polar, cartesian). CLI
+  `diagram --theme theme.toml` (layers on `--dark`).
+- **FFI themes**: `SvgThemeConfig`, `theme_preset`, `theme_config_from_toml`,
+  `theme_config_to_toml`, `generate_{polar,cartesian,heatmap,butterfly}_svg_themed`
+  (`_localized` for polar / cartesian).
+- **`no_std` + `alloc`**: `eulumdat` (new default feature `std`) and
+  `eulumdat-spectrum` build without `std`, using `libm` (`math::F64Ext`).
+  Without `std` you get LDT parse/write, symmetry, validation, photometric
+  calculations and polar / heatmap / isolux geometry. IES, ATLA, SVG, file
+  I/O and the designers need `std`.
+- **macOS / iOS app**: Theme tab (`ThemeEditorView`) with presets, colour
+  pickers, line thickness, font, live polar preview, named presets
+  (`ThemePresetStore`) and TOML import / export. Batch Convert can export
+  "Themed SVG diagrams" (polar / cartesian / heatmap / butterfly) and is now
+  a one-time StoreKit 2 unlock (`StoreManager`, `BatchExportGate`, restore
+  purchases).
+
+### Changed
+
+- **Beam / field angle definition** (CIE S 017:2020 17-27-077, IES): the
+  angle between the two directions in a vertical section C–(C+180) where
+  the intensity equals 50 % / 10 % of the peak *in that section*. The
+  profile is walked outward from the section peak to the first sample below
+  the threshold on each side (linear interpolation). Widths above 180° are
+  valid (lobe past horizontal on both sides); no crossing gives `None`.
+- `PhotometricCalculations::beam_angle` / `field_angle` / `half_beam_angle` /
+  `half_field_angle` return `Option<f64>` and are measured in the section
+  through the global peak direction. A centre-peaked distribution (peak on
+  the vertical axis, or axis intensity ≥ 95 % of the peak) uses C0–C180, so
+  a maximum at γ 2.5° does not pick a section by noise. Up-lights return
+  `None` instead of 360° / 180°.
+- New API: `section_beam_field`, `beam_angle_section`, `field_angle_section`,
+  `beam_field_sections` (C0–C180 and C90–C270), `peak_section`,
+  `peak_section_c`, `peak_direction`; types `SectionBeamField` (with signed
+  edge directions), `BeamFieldSections`, `PeakDirection`; `format_angle`
+  (`"—"` for `None`).
+- `BeamFieldAnalysis`: angle fields are `Option<f64>`; `max_intensity_gamma`
+  is the global peak; new `max_intensity_c`, `peak_section`, `c0_c180`,
+  `c90_c270`. The centre-beam variants (`beam_angle_cie`, `field_angle_cie`,
+  50 % / 10 % of I(γ = 0°)) are kept as a separately documented definition,
+  now measured on both sides of nadir in the C0–C180 section.
+- **Removed** the nadir-referenced per-plane functions
+  `beam_angle_for_plane`, `field_angle_for_plane`, `half_beam_angle_for_plane`,
+  `half_field_angle_for_plane`; use `beam_angle_section` /
+  `field_angle_section`.
+- `PhotometricSummary`: angles are `Option<f64>`; new `sections`,
+  `peak_section`, `peak`. Text, compact and key-value output name the
+  definition and the section.
+- `GldfPhotometricData` half / tenth peak divergence: 50 % / 10 % of the
+  section peak in C0–C180 and C90–C270, `(Option<f64>, Option<f64>)`.
+- `ConeDiagram` / `ConeIlluminanceTable`: angles, diameters and edge
+  illuminances are `Option<f64>`; the cone is drawn in one section with its
+  real (possibly asymmetric) edge directions and labelled with the section.
+- `nema_classification`: spreads are measured through the beam axis (Type B
+  peak) with the same first-crossing rule; `horizontal_spread` /
+  `vertical_spread` are `Option<f64>` (`None` = edge beyond ±90°, type 7);
+  new `peak_h`, `peak_v`.
+- **Lamp sets are alternatives** (EULUMDAT line 26, "Standard-Bestückungen":
+  luminaires with the same relative distribution but different fittings).
+  New `Eulumdat::primary_lamp_set`, `luminous_flux`, `wattage`,
+  `sum_of_lamp_sets_flux`, `sum_of_lamp_sets_wattage`. `total_luminous_flux`
+  and `total_wattage` are deprecated (they still return the sum). Every
+  cd/klm → cd conversion, efficacy and "luminaire lumens" now uses the
+  primary set: summary, comparison, BUG rating, cone/isolux/heatmap
+  diagrams, area / zonal / street designers, ATLA conversion, IES export,
+  goniosim, ray tracer, Bevy, egui, web editor, TUI, CLI.
+- **Upward / downward beam angles** (`upward_beam_angle`,
+  `downward_beam_angle`, `*_field_angle`, `comprehensive_beam_analysis`)
+  are `Option<f64>` and measured around each hemisphere's own peak over all
+  planes, in the section through it; the upward lobe on a zenith-centred
+  profile. `ComprehensiveBeamAnalysis` gains `downward_peak_c` /
+  `upward_peak_c`; `PhotometricSummary::upward_*` are `Option<f64>`.
+- **LDT ↔ ATLA**: the primary lamp set becomes the single ATLA emitter;
+  further sets are kept in the new `LuminaireOpticalData::alternative_lamp_sets`
+  (never counted in totals, not written to ATLA files) so LDT → ATLA → LDT
+  keeps them. Several ATLA emitters, which are installed together, become
+  one lamp set with summed lamps, flux and power.
+- Photometric comparison: undefined values are NaN and print as "—";
+  metric names state the definition ("Beam Angle (50% of peak)", "Lamp Flux
+  (Set 1)").
+- Bindings: FFI `beam_field_analysis` and `section_angles` (new records
+  `BeamFieldResult`, `SectionAngles`); the FFI `Eulumdat.total_luminous_flux`
+  field now holds the primary set's flux. Python: `beam_angle()` /
+  `field_angle()` return `None` for no lobe; new `luminous_flux()`,
+  `wattage()`, `sum_of_lamp_sets_flux()`, `sum_of_lamp_sets_wattage()`,
+  `beam_field_sections()`, `peak_direction()`; `total_luminous_flux()` /
+  `total_wattage()` emit a `DeprecationWarning`; summary gains per-section
+  fields. JS plugin: optional angles (`undefined` / `null`), section methods,
+  `lamp_flux()` / `lamp_wattage()`.
+- UI labels (web editor, TUI, CLI, PDF report, SVG diagrams, all 8 locales
+  incl. the Swift and Android string tables) state the definition and the
+  section of every beam / field value.
+- `eulumdat` default features are `std`, `xml`, `json`, `toml`. `json` now
+  enables `serde`, and `serde` is derives only. Workspace `serde` is
+  `default-features = false`.
+- `SvgTheme` has a new public field `curve_width` (default 2.5), so struct
+  literals must set it. Polar SVGs carry the CSS classes `diagram-polar`,
+  `bg`, `curve-c0` and `curve-c90`.
+- `build-wasm-split.sh` builds the `greenhouse` and `tm25` bundles.
+
+### Fixed
+
+- Beam and field angles used only the first stored C-plane, started the scan
+  at nadir and doubled a one-sided half angle: asymmetric and off-axis
+  luminaires were wrong (LEDVANCE 900W ASYM 56.5° → 27.9°, ITALO
+  140.4° → 69.4° in C0–C180) and up-lights reported 360°.
+- `BeamFieldAnalysis::max_intensity_gamma` reported the peak of the first
+  plane, not the global peak (`sample6.ldt`: 0° instead of 45°).
+- Files with several lamp sets summed them: `sample1.ldt` (1983 lm / 17.6 W
+  and 2643 lm / 24.9 W) reported 4626 lm and a 1639 cd peak instead of
+  1983 lm, 112.7 lm/W and 703 cd.
+- The web zonal designer multiplied each set's total flux by its number of
+  lamps.
+- The cone SVG drew the full beam / field angle as the half angle, and the
+  beam-angle SVG used the large-arc flag for spans above 90°.
+- Upward beam / field angles used only the first stored plane and stopped
+  at γ = 180°, so a lobe centred on the zenith was reported at half its
+  width.
+- LDT → ATLA turned alternative lamp sets into additive emitters, so PPFD
+  and spectral results of multi-lamp-set files used the sum of all sets.
+- IES export summed the lamp counts of all lamp sets while using the
+  primary set's flux.
+- `theme_config_from_toml` (FFI) always reported `base = "light"`.
+- The ATLA S001 XML writer dropped `<SpectralDistribution>` from emitters
+  (only the TM-33 writer wrote it), and the parser ignored `<Units>`. SPDs
+  now survive an XML round trip.
+- macOS app: the View menu appeared twice.
+
 ## [0.7.1] - 2026-09-18
 
 ### Fixed

@@ -4,6 +4,8 @@
 
 use crate::error::{parse_error, Result};
 use crate::eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 /// Parser for Eulumdat (LDT) files.
 pub struct Parser;

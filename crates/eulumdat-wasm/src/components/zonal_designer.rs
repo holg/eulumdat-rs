@@ -359,16 +359,9 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     // ─── Luminaire info ─────────────────────────────────────────────────
     let luminaire_info = Memo::new(move |_| {
         let l = ldc.get();
-        let flux: f64 = l
-            .lamp_sets
-            .iter()
-            .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-            .sum();
-        let watts: f64 = l
-            .lamp_sets
-            .iter()
-            .map(|ls| ls.wattage_with_ballast * ls.num_lamps.unsigned_abs() as f64)
-            .sum();
+        // Primary lamp set; 26c/26f are already totals for all lamps of the set
+        let flux = l.luminous_flux();
+        let watts = l.wattage();
         let name = l.luminaire_name.clone();
         let dff = l.downward_flux_fraction;
         (name, flux, watts, dff)

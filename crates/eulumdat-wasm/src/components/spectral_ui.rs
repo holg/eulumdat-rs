@@ -128,7 +128,7 @@ pub(crate) fn run_luminaire_trace(
     let mut scene = Scene::new();
     match src {
         Some(ldt) if !ldt.intensities.is_empty() => {
-            let flux = ldt.total_luminous_flux().max(1000.0);
+            let flux = ldt.luminous_flux().max(1000.0);
             scene.add_source_with_spectrum(
                 Source::from_lvk(Point3::origin(), Rotation3::identity(), ldt.clone(), flux),
                 p.spectrum(),

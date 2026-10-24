@@ -246,6 +246,10 @@ pub struct PlaneDetector {
     counts: Vec<u64>,
     /// Optional spectral channels per cell (present when spectral).
     channels: Option<Vec<ChannelWeights>>,
+    /// When set, only photons travelling *against* the normal (arriving at
+    /// the sensor's front face) are recorded — a real illuminance meter.
+    /// Default `false` keeps the historical two-sided behaviour.
+    one_sided: bool,
 }
 
 impl PlaneDetector {
@@ -298,6 +302,7 @@ impl PlaneDetector {
             cells: vec![0.0; nu * nv],
             counts: vec![0; nu * nv],
             channels: spectral.then(|| vec![ChannelWeights::default(); nu * nv]),
+            one_sided: false,
         }
     }
 
@@ -310,6 +315,9 @@ impl PlaneDetector {
         let denom = ray.direction.dot(self.normal.as_ref());
         if denom.abs() < 1e-12 {
             return false; // parallel to plane
+        }
+        if self.one_sided && denom > 0.0 {
+            return false; // travelling away from the sensor face
         }
         let t = (self.center - ray.origin).dot(self.normal.as_ref()) / denom;
         if t < 1e-6 || t > max_t {
@@ -339,9 +347,42 @@ impl PlaneDetector {
         true
     }
 
+    /// Make the sensor one-sided: count only photons arriving against the
+    /// normal (e.g. down-going light on an up-facing horizontal plane), and
+    /// ignore photons crossing from behind (light bounced up off the floor).
+    /// This is what a physical illuminance meter measures.
+    pub fn one_sided(mut self) -> Self {
+        self.one_sided = true;
+        self
+    }
+
     /// Cell dimensions `(nu, nv)`.
     pub fn dims(&self) -> (usize, usize) {
         (self.nu, self.nv)
+    }
+
+    /// Plane centre, half-extents `(half_u, half_v)` and the `u`/`v` axes,
+    /// so a caller can map cell indices back to world positions.
+    pub fn extent(&self) -> (Point3<f64>, f64, f64, Vector3<f64>, Vector3<f64>) {
+        (
+            self.center,
+            self.half_u,
+            self.half_v,
+            self.u_axis.into_inner(),
+            self.v_axis.into_inner(),
+        )
+    }
+
+    /// Per-cell spectral channel sums (row-major, `[iu*nv + iv]`), present
+    /// only when the detector was built with `spectral = true`.
+    ///
+    /// Each entry accumulates `energy·|cosθ|` times the CIE X/Y/Z, scotopic,
+    /// melanopic, PAR-quanta and radiant weights of every photon that crossed
+    /// the cell. Divide by the cell area and multiply by the radiant watts one
+    /// unit of photon energy represents (`flux_lm / total_emitted / LER`) to
+    /// get per-cell XYZ, PPFD, etc.
+    pub fn channels(&self) -> Option<&[ChannelWeights]> {
+        self.channels.as_deref()
     }
 
     /// Convert accumulated cos-weighted energy to illuminance (lux) per cell,

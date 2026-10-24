@@ -1,6 +1,6 @@
 //! Core types for Python bindings
 
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyDeprecationWarning, PyValueError};
 use pyo3::prelude::*;
 
 use ::eulumdat as core;
@@ -690,17 +690,54 @@ impl Eulumdat {
         self.inner.actual_c_planes()
     }
 
-    /// Get total luminous flux from all lamp sets.
-    fn total_luminous_flux(&self) -> f64 {
-        self.inner.total_luminous_flux()
+    /// Lamp luminous flux of the primary (first) lamp set in lm.
+    ///
+    /// EULUMDAT lamp sets are alternative fittings; absolute values (cd, lm/W)
+    /// refer to the first set.
+    fn luminous_flux(&self) -> f64 {
+        self.inner.luminous_flux()
     }
 
-    /// Get total wattage from all lamp sets.
-    fn total_wattage(&self) -> f64 {
-        self.inner.total_wattage()
+    /// System wattage of the primary (first) lamp set in W.
+    fn wattage(&self) -> f64 {
+        self.inner.wattage()
     }
 
-    /// Get luminous efficacy in lm/W.
+    /// Sum of the luminous flux of all lamp sets (lm).
+    fn sum_of_lamp_sets_flux(&self) -> f64 {
+        self.inner.sum_of_lamp_sets_flux()
+    }
+
+    /// Sum of the wattage of all lamp sets (W).
+    fn sum_of_lamp_sets_wattage(&self) -> f64 {
+        self.inner.sum_of_lamp_sets_wattage()
+    }
+
+    /// Deprecated: sum of all lamp sets. Lamp sets are alternatives; use
+    /// `luminous_flux()` (primary set) or `sum_of_lamp_sets_flux()`.
+    fn total_luminous_flux(&self, py: Python<'_>) -> PyResult<f64> {
+        PyErr::warn(
+            py,
+            &py.get_type::<PyDeprecationWarning>(),
+            c"total_luminous_flux() sums alternative lamp sets; use luminous_flux() or sum_of_lamp_sets_flux()",
+            1,
+        )?;
+        Ok(self.inner.sum_of_lamp_sets_flux())
+    }
+
+    /// Deprecated: sum of all lamp sets. Use `wattage()` (primary set) or
+    /// `sum_of_lamp_sets_wattage()`.
+    fn total_wattage(&self, py: Python<'_>) -> PyResult<f64> {
+        PyErr::warn(
+            py,
+            &py.get_type::<PyDeprecationWarning>(),
+            c"total_wattage() sums alternative lamp sets; use wattage() or sum_of_lamp_sets_wattage()",
+            1,
+        )?;
+        Ok(self.inner.sum_of_lamp_sets_wattage())
+    }
+
+    /// Lamp luminous efficacy of the primary lamp set in lm/W.
     fn luminous_efficacy(&self) -> f64 {
         self.inner.luminous_efficacy()
     }
@@ -898,20 +935,57 @@ impl Eulumdat {
         PhotometricCalcs::cie_flux_codes(&self.inner)
     }
 
-    /// Calculate beam angle (50% intensity drop).
+    /// Beam angle: full width at 50 % of the peak intensity, measured in the
+    /// vertical section through the peak direction (C0–C180 for a nadir peak).
     ///
     /// Returns:
-    ///     Beam angle in degrees
-    fn beam_angle(&self) -> f64 {
+    ///     Beam angle in degrees, or None if the lobe does not drop below 50 %
+    ///     on both sides (e.g. up-lights)
+    fn beam_angle(&self) -> Option<f64> {
         PhotometricCalcs::beam_angle(&self.inner)
     }
 
-    /// Calculate field angle (10% intensity drop).
+    /// Field angle: full width at 10 % of the peak intensity, same section as
+    /// `beam_angle()`.
     ///
     /// Returns:
-    ///     Field angle in degrees
-    fn field_angle(&self) -> f64 {
+    ///     Field angle in degrees, or None
+    fn field_angle(&self) -> Option<f64> {
         PhotometricCalcs::field_angle(&self.inner)
+    }
+
+    /// Beam and field angles of the principal sections.
+    ///
+    /// Returns:
+    ///     dict with keys "c0_c180" and "c90_c270", each a dict with "beam",
+    ///     "field" (degrees or None), "peak_intensity" (cd/klm) and
+    ///     "peak_gamma" (signed degrees, C+180 side negative)
+    fn beam_field_sections<'py>(
+        &self,
+        py: Python<'py>,
+    ) -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+        let sections = PhotometricCalculations::beam_field_sections(&self.inner);
+        let section = |s: &core::SectionBeamField| -> PyResult<Bound<'py, pyo3::types::PyDict>> {
+            let d = pyo3::types::PyDict::new(py);
+            d.set_item("beam", s.beam)?;
+            d.set_item("field", s.field)?;
+            d.set_item("peak_intensity", s.peak_intensity)?;
+            d.set_item("peak_gamma", s.peak_gamma)?;
+            Ok(d)
+        };
+        let out = pyo3::types::PyDict::new(py);
+        out.set_item("c0_c180", section(&sections.c0_c180)?)?;
+        out.set_item("c90_c270", section(&sections.c90_c270)?)?;
+        Ok(out)
+    }
+
+    /// Direction of the global intensity peak.
+    ///
+    /// Returns:
+    ///     Tuple (c, gamma, intensity) in degrees, degrees, cd/klm
+    fn peak_direction(&self) -> (f64, f64, f64) {
+        let p = PhotometricCalculations::peak_direction(&self.inner);
+        (p.c, p.gamma, p.intensity)
     }
 
     /// Calculate spacing criteria (S/H ratios) for both principal planes.

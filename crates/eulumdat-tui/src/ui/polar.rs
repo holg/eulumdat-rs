@@ -64,10 +64,13 @@ pub fn render_polar(
         .collect();
 
     // Beam/field angle data for arc drawing
-    let half_beam = beam_field.beam_angle_ies / 2.0;
-    let half_field = beam_field.field_angle_ies / 2.0;
-    let beam_threshold = beam_field.beam_threshold_ies;
-    let field_threshold = beam_field.field_threshold_ies;
+    // Angles of the drawn C0–C180 section (50 % / 10 % of its peak), drawn
+    // symmetric at half the width; 0 = no value (nothing drawn)
+    let section = beam_field.c0_c180;
+    let half_beam = section.beam.map_or(0.0, |a| a / 2.0);
+    let half_field = section.field.map_or(0.0, |a| a / 2.0);
+    let beam_threshold = section.peak_intensity * 0.5;
+    let field_threshold = section.peak_intensity * 0.1;
 
     let canvas = Canvas::default()
         .block(
@@ -225,7 +228,7 @@ pub fn render_polar(
                     0.0,
                     ay - scale_max * 0.05,
                     ratatui::text::Line::styled(
-                        format!("Beam {:.0}\u{00b0}", half_beam * 2.0),
+                        format!("Beam C0\u{2013}C180 {:.0}\u{00b0}", half_beam * 2.0),
                         Style::default().fg(beam_color),
                     ),
                 );
@@ -259,7 +262,7 @@ pub fn render_polar(
                     0.0,
                     ay - scale_max * 0.05,
                     ratatui::text::Line::styled(
-                        format!("Field {:.0}\u{00b0}", half_field * 2.0),
+                        format!("Field C0\u{2013}C180 {:.0}\u{00b0}", half_field * 2.0),
                         Style::default().fg(field_color),
                     ),
                 );

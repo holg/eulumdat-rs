@@ -16,6 +16,9 @@
 //! where `M(m)` normalises so that `V_mes(555 nm) = 1`. The coefficient `m`
 //! itself depends on `L_mes`, so the system is solved iteratively.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 /// Lower bound of the mesopic range (cd/m²); below this, pure scotopic.
 pub const MESOPIC_LOW: f64 = 0.005;
 /// Upper bound of the mesopic range (cd/m²); above this, pure photopic.

@@ -298,13 +298,7 @@ fn run_cu_ugr_benchmark() {
     let ldt = IesParser::parse_file(&path).expect("Failed to parse Indoor IES");
 
     println!("File: Indoor_60W_120G_5300LM_5000K_OVNI.ies");
-    println!(
-        "  Flux: {} lm",
-        ldt.lamp_sets
-            .iter()
-            .map(|l| l.total_luminous_flux)
-            .sum::<f64>()
-    );
+    println!("  Flux: {} lm", ldt.luminous_flux());
     println!(
         "  Luminous area: {} mm × {} mm\n",
         ldt.luminous_area_length, ldt.luminous_area_width

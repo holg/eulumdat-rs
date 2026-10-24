@@ -4,6 +4,12 @@
 //! This is the classic "electrician's diagram" that shows how light spreads
 //! at different mounting heights.
 //!
+//! The cone is drawn in one vertical section C–(C+180): the right-hand side is
+//! the C half-plane, the left-hand side the C+180 half-plane. Beam (field)
+//! edges are where the intensity falls to 50 % (10 %) of the section peak
+//! (see [`PhotometricCalculations::section_beam_field`]), so an asymmetric
+//! lobe gives an asymmetric cone.
+//!
 //! # Example
 //!
 //! ```rust,no_run
@@ -11,123 +17,108 @@
 //!
 //! let ldt = Eulumdat::from_file("luminaire.ldt").unwrap();
 //! let cone = ConeDiagram::from_eulumdat(&ldt, 3.0); // 3m mounting height
-//! println!("Beam diameter at floor: {:.2}m", cone.beam_diameter);
-//! println!("Field diameter at floor: {:.2}m", cone.field_diameter);
+//! if let Some(d) = cone.beam_diameter {
+//!     println!("Beam diameter at floor: {:.2}m", d);
+//! }
 //! ```
 
-use crate::calculations::PhotometricCalculations;
+use crate::calculations::{PhotometricCalculations, SectionBeamField};
 use crate::{Eulumdat, Symmetry};
 
 /// A cone diagram showing beam and field angle spread
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ConeDiagram {
-    /// Beam angle (50% intensity) in degrees - full angle per CIE S 017:2020
-    pub beam_angle: f64,
-    /// Field angle (10% intensity) in degrees - full angle per CIE S 017:2020
-    pub field_angle: f64,
-    /// Half beam angle (angle from nadir) in degrees
-    pub half_beam_angle: f64,
-    /// Half field angle (angle from nadir) in degrees
-    pub half_field_angle: f64,
+    /// Beam angle: full width at 50 % of the section peak (degrees);
+    /// `None` when the lobe does not drop below 50 % on both sides
+    pub beam_angle: Option<f64>,
+    /// Field angle: full width at 10 % of the section peak (degrees)
+    pub field_angle: Option<f64>,
+    /// Half of the beam angle (degrees)
+    pub half_beam_angle: Option<f64>,
+    /// Half of the field angle (degrees)
+    pub half_field_angle: Option<f64>,
+    /// Signed γ of the left (C+180) and right (C) 50 % edges (degrees)
+    pub beam_edges: Option<(f64, f64)>,
+    /// Signed γ of the left (C+180) and right (C) 10 % edges (degrees)
+    pub field_edges: Option<(f64, f64)>,
+    /// C angle of the right-hand side of the drawn section
+    pub section_c: f64,
     /// Mounting height in meters
     pub mounting_height: f64,
-    /// Beam diameter at floor level (meters)
-    pub beam_diameter: f64,
-    /// Field diameter at floor level (meters)
-    pub field_diameter: f64,
-    /// Maximum intensity (cd/klm) at nadir
+    /// Beam footprint width on the floor in the drawn section (meters);
+    /// `None` when an edge points at or above the horizon
+    pub beam_diameter: Option<f64>,
+    /// Field footprint width on the floor in the drawn section (meters)
+    pub field_diameter: Option<f64>,
+    /// Maximum intensity (cd/klm)
     pub max_intensity: f64,
     /// Luminaire name for display
     pub luminaire_name: String,
-    /// Whether this is a symmetric beam (same in all directions)
+    /// Whether the C0–C180 and C90–C270 beam angles agree within 5 %
     pub is_symmetric: bool,
-    /// Beam angle in C0-C180 plane (for asymmetric luminaires)
-    pub beam_angle_c0: f64,
-    /// Beam angle in C90-C270 plane (for asymmetric luminaires)
-    pub beam_angle_c90: f64,
-    /// Selected C-plane: None = overall (averaged), Some(angle) = specific plane
+    /// Beam angle of the C0–C180 section
+    pub beam_angle_c0: Option<f64>,
+    /// Beam angle of the C90–C270 section
+    pub beam_angle_c90: Option<f64>,
+    /// Selected C-plane: None = section through the peak, Some(angle) = that section
     pub selected_c_plane: Option<f64>,
 }
 
 impl ConeDiagram {
-    /// Generate cone diagram data from Eulumdat
+    /// Generate cone diagram data from Eulumdat, drawn in the section
+    /// through the peak direction (C0–C180 for a peak on the vertical axis).
     ///
     /// # Arguments
     /// * `ldt` - The Eulumdat data
     /// * `mounting_height` - The mounting height in meters
     pub fn from_eulumdat(ldt: &Eulumdat, mounting_height: f64) -> Self {
-        // Get full beam/field angles (per CIE S 017:2020 definition)
-        let beam_angle = PhotometricCalculations::beam_angle(ldt);
-        let field_angle = PhotometricCalculations::field_angle(ldt);
-
-        // Get half angles (angle from nadir to edge) - needed for cone geometry
-        let half_beam_angle = PhotometricCalculations::half_beam_angle(ldt);
-        let half_field_angle = PhotometricCalculations::half_field_angle(ldt);
-
-        // Get plane-specific beam angles for asymmetric luminaires (full angles)
-        let beam_angle_c0 = PhotometricCalculations::beam_angle_for_plane(ldt, 0.0);
-        let beam_angle_c90 = PhotometricCalculations::beam_angle_for_plane(ldt, 90.0);
-
-        // Check if symmetric (angles within 5% of each other)
-        let is_symmetric = (beam_angle_c0 - beam_angle_c90).abs() < beam_angle * 0.05;
-
-        // Calculate diameters at floor level using half angles
-        // diameter = 2 * height * tan(half_angle)
-        let beam_diameter = 2.0 * mounting_height * (half_beam_angle.to_radians()).tan();
-        let field_diameter = 2.0 * mounting_height * (half_field_angle.to_radians()).tan();
-
-        let max_intensity = ldt.max_intensity();
-
-        Self {
-            beam_angle,
-            field_angle,
-            half_beam_angle,
-            half_field_angle,
-            mounting_height,
-            beam_diameter,
-            field_diameter,
-            max_intensity,
-            luminaire_name: ldt.luminaire_name.clone(),
-            is_symmetric,
-            beam_angle_c0,
-            beam_angle_c90,
-            selected_c_plane: None,
-        }
+        let section = PhotometricCalculations::peak_section(ldt);
+        Self::from_section(ldt, mounting_height, section, None)
     }
 
-    /// Generate cone diagram data for a specific C-plane
-    ///
-    /// Uses plane-specific beam/field angles instead of overall averages.
+    /// Generate cone diagram data for the section C–(C+180).
     pub fn from_eulumdat_for_plane(ldt: &Eulumdat, mounting_height: f64, c_plane: f64) -> Self {
-        let beam_angle = PhotometricCalculations::beam_angle_for_plane(ldt, c_plane);
-        let field_angle = PhotometricCalculations::field_angle_for_plane(ldt, c_plane);
-        let half_beam_angle = PhotometricCalculations::half_beam_angle_for_plane(ldt, c_plane);
-        let half_field_angle = PhotometricCalculations::half_field_angle_for_plane(ldt, c_plane);
+        let section = PhotometricCalculations::section_beam_field(ldt, c_plane);
+        Self::from_section(ldt, mounting_height, section, Some(c_plane))
+    }
 
-        let beam_angle_c0 = PhotometricCalculations::beam_angle_for_plane(ldt, 0.0);
-        let beam_angle_c90 = PhotometricCalculations::beam_angle_for_plane(ldt, 90.0);
-        let is_symmetric = (beam_angle_c0 - beam_angle_c90).abs() < beam_angle.max(1.0) * 0.05;
-
-        let beam_diameter = 2.0 * mounting_height * (half_beam_angle.to_radians()).tan();
-        let field_diameter = 2.0 * mounting_height * (half_field_angle.to_radians()).tan();
-
-        let max_intensity = ldt.max_intensity();
+    fn from_section(
+        ldt: &Eulumdat,
+        mounting_height: f64,
+        section: SectionBeamField,
+        selected_c_plane: Option<f64>,
+    ) -> Self {
+        let sections = PhotometricCalculations::beam_field_sections(ldt);
+        let beam_angle_c0 = sections.c0_c180.beam;
+        let beam_angle_c90 = sections.c90_c270.beam;
+        let is_symmetric = match (beam_angle_c0, beam_angle_c90) {
+            (Some(a), Some(b)) => (a - b).abs() < a.max(b).max(1.0) * 0.05,
+            (None, None) => true,
+            _ => false,
+        };
 
         Self {
-            beam_angle,
-            field_angle,
-            half_beam_angle,
-            half_field_angle,
+            beam_angle: section.beam,
+            field_angle: section.field,
+            half_beam_angle: section.beam.map(|a| a / 2.0),
+            half_field_angle: section.field.map(|a| a / 2.0),
+            beam_edges: section.beam_edges,
+            field_edges: section.field_edges,
+            section_c: section.c_plane,
             mounting_height,
-            beam_diameter,
-            field_diameter,
-            max_intensity,
+            beam_diameter: section
+                .beam_edges
+                .and_then(|e| footprint_width(e, mounting_height)),
+            field_diameter: section
+                .field_edges
+                .and_then(|e| footprint_width(e, mounting_height)),
+            max_intensity: ldt.max_intensity(),
             luminaire_name: ldt.luminaire_name.clone(),
             is_symmetric,
             beam_angle_c0,
             beam_angle_c90,
-            selected_c_plane: Some(c_plane),
+            selected_c_plane,
         }
     }
 
@@ -140,16 +131,14 @@ impl ConeDiagram {
         !matches!(ldt.symmetry, Symmetry::VerticalAxis)
     }
 
-    /// Calculate beam diameter at a specific distance from the luminaire
-    pub fn beam_diameter_at(&self, distance: f64) -> f64 {
-        // Use half angle for cone geometry calculation
-        2.0 * distance * (self.half_beam_angle.to_radians()).tan()
+    /// Beam footprint width at a distance from the luminaire (meters).
+    pub fn beam_diameter_at(&self, distance: f64) -> Option<f64> {
+        self.beam_edges.and_then(|e| footprint_width(e, distance))
     }
 
-    /// Calculate field diameter at a specific distance from the luminaire
-    pub fn field_diameter_at(&self, distance: f64) -> f64 {
-        // Use half angle for cone geometry calculation
-        2.0 * distance * (self.half_field_angle.to_radians()).tan()
+    /// Field footprint width at a distance from the luminaire (meters).
+    pub fn field_diameter_at(&self, distance: f64) -> Option<f64> {
+        self.field_edges.and_then(|e| footprint_width(e, distance))
     }
 
     /// Get beam classification based on beam angle (full angle per CIE S 017:2020)
@@ -161,16 +150,20 @@ impl ConeDiagram {
     /// - Medium Flood: 70° - 90°
     /// - Wide Flood: 90° - 120°
     /// - Very Wide Flood: > 120°
+    /// - No downward beam: no beam angle in the section
     pub fn beam_classification(&self) -> &'static str {
-        if self.beam_angle < 30.0 {
+        let Some(beam_angle) = self.beam_angle else {
+            return "No downward beam";
+        };
+        if beam_angle < 30.0 {
             "Very Narrow Spot"
-        } else if self.beam_angle < 50.0 {
+        } else if beam_angle < 50.0 {
             "Narrow Spot"
-        } else if self.beam_angle < 70.0 {
+        } else if beam_angle < 70.0 {
             "Spot"
-        } else if self.beam_angle < 90.0 {
+        } else if beam_angle < 90.0 {
             "Medium Flood"
-        } else if self.beam_angle < 120.0 {
+        } else if beam_angle < 120.0 {
             "Wide Flood"
         } else {
             "Very Wide Flood"
@@ -179,16 +172,30 @@ impl ConeDiagram {
 
     /// Generate spacing recommendations (beam edge to beam edge)
     ///
-    /// Returns recommended spacing for different overlap percentages
+    /// Returns recommended spacing for different overlap percentages; empty
+    /// when the beam has no floor footprint.
     pub fn spacing_recommendations(&self) -> Vec<(f64, f64)> {
+        let Some(d) = self.beam_diameter else {
+            return Vec::new();
+        };
         // Returns (overlap_percent, spacing_meters)
         vec![
-            (0.0, self.beam_diameter),         // No overlap (beam to beam)
-            (25.0, self.beam_diameter * 0.75), // 25% overlap
-            (50.0, self.beam_diameter * 0.5),  // 50% overlap (recommended)
-            (75.0, self.beam_diameter * 0.25), // 75% overlap (high uniformity)
+            (0.0, d),         // No overlap (beam to beam)
+            (25.0, d * 0.75), // 25% overlap
+            (50.0, d * 0.5),  // 50% overlap (recommended)
+            (75.0, d * 0.25), // 75% overlap (high uniformity)
         ]
     }
+}
+
+/// Width of the floor footprint between two signed edge angles at distance
+/// `h` below the luminaire; `None` if an edge points at or above the horizon.
+fn footprint_width((left, right): (f64, f64), h: f64) -> Option<f64> {
+    const MAX_EDGE: f64 = 89.0;
+    if left.abs() >= MAX_EDGE || right.abs() >= MAX_EDGE {
+        return None;
+    }
+    Some(h * (right.to_radians().tan() - left.to_radians().tan()))
 }
 
 /// A row in the illuminance table showing beam/field diameters and illuminance at a given height.
@@ -197,16 +204,16 @@ impl ConeDiagram {
 pub struct ConeIlluminanceRow {
     /// Distance from luminaire in meters
     pub height: f64,
-    /// Beam diameter at this height (meters)
-    pub beam_diameter: f64,
-    /// Field diameter at this height (meters)
-    pub field_diameter: f64,
+    /// Beam footprint width at this height (meters)
+    pub beam_diameter: Option<f64>,
+    /// Field footprint width at this height (meters)
+    pub field_diameter: Option<f64>,
     /// Illuminance at nadir (directly below, lux)
     pub e_nadir: f64,
-    /// Illuminance at beam edge in C0 plane (lux)
-    pub e_beam_c0: f64,
-    /// Illuminance at beam edge in C90 plane (lux)
-    pub e_beam_c90: f64,
+    /// Illuminance at the C0-side 50 % edge of the C0–C180 section (lux)
+    pub e_beam_c0: Option<f64>,
+    /// Illuminance at the C90-side 50 % edge of the C90–C270 section (lux)
+    pub e_beam_c90: Option<f64>,
 }
 
 /// Multi-height illuminance table computed from photometric data.
@@ -215,104 +222,94 @@ pub struct ConeIlluminanceRow {
 pub struct ConeIlluminanceTable {
     /// Rows at different heights
     pub rows: Vec<ConeIlluminanceRow>,
-    /// Total luminous flux used for the calculation (lumens)
+    /// Lamp flux of the primary lamp set used for the calculation (lumens)
     pub total_flux: f64,
 }
 
 impl ConeIlluminanceTable {
-    /// Generate an illuminance table using overall beam/field angles.
+    /// Generate an illuminance table using the section through the peak.
     ///
     /// # Arguments
     /// * `ldt` - Eulumdat data
     /// * `step` - Height increment in meters
     /// * `max_height` - Maximum height in meters
     pub fn from_eulumdat(ldt: &Eulumdat, step: f64, max_height: f64) -> Self {
-        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
-
-        let half_beam_c0 = PhotometricCalculations::half_beam_angle_for_plane(ldt, 0.0);
-        let half_beam_c90 = PhotometricCalculations::half_beam_angle_for_plane(ldt, 90.0);
-
-        let rows = Self::compute_rows(
+        let sections = PhotometricCalculations::beam_field_sections(ldt);
+        let edge_c0 = sections.c0_c180.beam_edges.map(|(_, r)| r);
+        let edge_c90 = sections.c90_c270.beam_edges.map(|(_, r)| r);
+        let section = PhotometricCalculations::peak_section(ldt);
+        Self::build(
             ldt,
             step,
             max_height,
-            total_flux,
-            half_beam_c0,
-            half_beam_c90,
-        );
-
-        Self { rows, total_flux }
+            section,
+            (0.0, edge_c0),
+            (90.0, edge_c90),
+        )
     }
 
-    /// Generate an illuminance table for a specific C-plane.
+    /// Generate an illuminance table for the section C–(C+180), with the
+    /// edge illuminance in C and in the perpendicular plane C+90.
     pub fn from_eulumdat_for_plane(
         ldt: &Eulumdat,
         step: f64,
         max_height: f64,
         c_plane: f64,
     ) -> Self {
-        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
-
-        let half_beam = PhotometricCalculations::half_beam_angle_for_plane(ldt, c_plane);
-        // For plane-specific, use the same half-beam for both columns
-        // but use the perpendicular plane for c90
+        let section = PhotometricCalculations::section_beam_field(ldt, c_plane);
         let perp_plane = (c_plane + 90.0) % 360.0;
-        let half_beam_perp = PhotometricCalculations::half_beam_angle_for_plane(ldt, perp_plane);
-
-        let rows = Self::compute_rows(ldt, step, max_height, total_flux, half_beam, half_beam_perp);
-
-        Self { rows, total_flux }
+        let perp = PhotometricCalculations::section_beam_field(ldt, perp_plane);
+        let edge = section.beam_edges.map(|(_, r)| r);
+        let edge_perp = perp.beam_edges.map(|(_, r)| r);
+        Self::build(
+            ldt,
+            step,
+            max_height,
+            section,
+            (c_plane, edge),
+            (perp_plane, edge_perp),
+        )
     }
 
-    fn compute_rows(
+    fn build(
         ldt: &Eulumdat,
         step: f64,
         max_height: f64,
-        total_flux: f64,
-        half_beam_c0_deg: f64,
-        half_beam_c90_deg: f64,
-    ) -> Vec<ConeIlluminanceRow> {
+        section: SectionBeamField,
+        edge_a: (f64, Option<f64>),
+        edge_b: (f64, Option<f64>),
+    ) -> Self {
+        let total_flux = ldt.luminous_flux();
         if total_flux <= 0.0 {
-            return Vec::new();
+            return Self {
+                rows: Vec::new(),
+                total_flux,
+            };
         }
 
         // Intensity in cd/klm → to get cd we multiply by (total_flux / 1000)
         let flux_scale = total_flux / 1000.0;
-
-        let half_beam_overall = PhotometricCalculations::half_beam_angle(ldt);
-        let half_field_overall = PhotometricCalculations::half_field_angle(ldt);
+        // E at nadir: I(0°) in cd/klm × flux_scale / h²; cos³ = 1 at nadir
+        let i_nadir = ldt.sample(0.0, 0.0);
 
         let mut rows = Vec::new();
         let mut h = step;
         while h <= max_height + 0.001 {
-            let beam_diameter = 2.0 * h * half_beam_overall.to_radians().tan();
-            let field_diameter = 2.0 * h * half_field_overall.to_radians().tan();
-
-            // E at nadir: I(0°) in cd/klm × flux_scale / h²
-            // The cos³ factor is 1.0 at nadir (gamma=0)
-            let i_nadir = ldt.sample(0.0, 0.0); // cd/klm
-            let e_nadir = i_nadir * flux_scale / (h * h);
-
-            // E at beam edge in C0: I(0, γ_beam_c0)
-            let e_beam_c0 = Self::illuminance_at_angle(ldt, 0.0, half_beam_c0_deg, h, flux_scale);
-
-            // E at beam edge in C90: I(90, γ_beam_c90)
-            let e_beam_c90 =
-                Self::illuminance_at_angle(ldt, 90.0, half_beam_c90_deg, h, flux_scale);
-
+            let edge_e = |(c, gamma): (f64, Option<f64>)| {
+                gamma.map(|g| Self::illuminance_at_angle(ldt, c, g, h, flux_scale))
+            };
             rows.push(ConeIlluminanceRow {
                 height: h,
-                beam_diameter,
-                field_diameter,
-                e_nadir,
-                e_beam_c0,
-                e_beam_c90,
+                beam_diameter: section.beam_edges.and_then(|e| footprint_width(e, h)),
+                field_diameter: section.field_edges.and_then(|e| footprint_width(e, h)),
+                e_nadir: i_nadir * flux_scale / (h * h),
+                e_beam_c0: edge_e(edge_a),
+                e_beam_c90: edge_e(edge_b),
             });
-
             h += step;
         }
 
-        rows
+        Self { rows, total_flux }
     }
 
     /// Calculate illuminance on a horizontal surface at distance h below the luminaire,
@@ -358,12 +355,15 @@ mod tests {
         let ldt = create_test_ldt();
         let cone = ConeDiagram::from_eulumdat(&ldt, 3.0);
 
-        // Beam and field angles should be non-negative
-        assert!(cone.beam_angle >= 0.0, "beam_angle should be >= 0");
-        assert!(cone.field_angle >= 0.0, "field_angle should be >= 0");
-        // Diameters should be non-negative
-        assert!(cone.beam_diameter >= 0.0, "beam_diameter should be >= 0");
-        assert!(cone.field_diameter >= 0.0, "field_diameter should be >= 0");
+        // A nadir-peaked downlight has a beam and field angle and a footprint
+        let beam = cone.beam_angle.expect("beam angle");
+        let field = cone.field_angle.expect("field angle");
+        assert!(beam > 0.0 && field > beam);
+        assert!(cone.beam_diameter.expect("beam footprint") > 0.0);
+        assert!(cone.field_diameter.expect("field footprint") > 0.0);
+        // Symmetric lobe: edges mirror each other
+        let (l, r) = cone.beam_edges.unwrap();
+        assert!((l + r).abs() < 1e-9);
         // Mounting height should match input
         assert_eq!(cone.mounting_height, 3.0);
         // Classification should return something
@@ -376,8 +376,8 @@ mod tests {
         let cone = ConeDiagram::from_eulumdat(&ldt, 3.0);
 
         // At half the height, diameter should be half
-        let half_height_diameter = cone.beam_diameter_at(1.5);
-        assert!((half_height_diameter - cone.beam_diameter / 2.0).abs() < 0.01);
+        let half_height_diameter = cone.beam_diameter_at(1.5).unwrap();
+        assert!((half_height_diameter - cone.beam_diameter.unwrap() / 2.0).abs() < 0.01);
     }
 
     #[test]
@@ -398,8 +398,8 @@ mod tests {
         let cone = ConeDiagram::from_eulumdat_for_plane(&ldt, 3.0, 0.0);
 
         assert_eq!(cone.selected_c_plane, Some(0.0));
-        assert!(cone.beam_angle >= 0.0);
-        assert!(cone.field_angle >= 0.0);
+        assert!(cone.beam_angle.is_some());
+        assert!(cone.field_angle.is_some());
         assert_eq!(cone.mounting_height, 3.0);
     }
 
@@ -461,7 +461,7 @@ mod tests {
 
         for row in &table.rows {
             assert!(
-                row.e_beam_c0 <= row.e_nadir,
+                row.e_beam_c0.unwrap() <= row.e_nadir,
                 "beam edge illuminance should be <= nadir (h={})",
                 row.height
             );
@@ -484,5 +484,17 @@ mod tests {
         });
         let table2 = ConeIlluminanceTable::from_eulumdat(&ldt, 1.0, 3.0);
         assert!(table2.rows.is_empty());
+    }
+
+    #[test]
+    fn test_uplight_has_no_cone() {
+        let mut ldt = create_test_ldt();
+        ldt.g_angles = vec![0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0];
+        ldt.intensities = vec![vec![0.0, 0.0, 0.0, 5.0, 40.0, 90.0, 100.0]];
+        let cone = ConeDiagram::from_eulumdat(&ldt, 3.0);
+        assert_eq!(cone.beam_angle, None);
+        assert_eq!(cone.beam_diameter, None);
+        assert_eq!(cone.beam_classification(), "No downward beam");
+        assert!(cone.spacing_recommendations().is_empty());
     }
 }

@@ -138,6 +138,7 @@ SWIFT_KEY_MAPPINGS = {
     "app.tab.optical": "tab.optical",
     "app.tab.intensity": "tab.intensity",
     "app.tab.diagram": "tab.diagram",
+    "app.tab.theme": "tab.theme",
     # Validation (from app section - Swift native)
     "app.validation.title": "validation.title",
     # Diagram picker names (from app section - Swift native)
@@ -155,6 +156,9 @@ SWIFT_KEY_MAPPINGS = {
     "app.diagram.lcs": "diagram.lcs",
     "app.diagram.isolux": "diagram.isolux",
     "app.diagram.isocandela": "diagram.isocandela",
+    "app.diagram.cPlane": "diagram.cPlane",
+    "app.diagram.cPlaneAll": "diagram.cPlaneAll",
+    "app.diagram.cPlaneSelect": "diagram.cPlaneSelect",
     "app.diagram.floodlight": "diagram.floodlight",
     # Compare tab (from app section - Swift native)
     "app.tab.compare": "tab.compare",

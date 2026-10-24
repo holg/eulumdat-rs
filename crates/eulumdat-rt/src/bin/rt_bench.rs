@@ -218,7 +218,7 @@ fn cmd_trace(args: &[String]) {
     println!(
         "GPU trace: {} ({:.0} lm)",
         ldt.luminaire_name,
-        ldt.total_luminous_flux()
+        ldt.luminous_flux()
     );
 
     let (gpu_prims, gpu_mats) = if let Some(ref c) = cover {
@@ -282,7 +282,7 @@ fn cmd_compare(args: &[String]) {
     println!(
         "Input: {} ({:.0} lm)",
         ldt.luminaire_name,
-        ldt.total_luminous_flux()
+        ldt.luminous_flux()
     );
     if let Some(ref c) = cover {
         println!("Cover: {}", c.name);

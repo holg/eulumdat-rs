@@ -6,8 +6,21 @@
 //! - Utilization factors (direct ratios)
 
 use crate::eulumdat::{Eulumdat, Symmetry};
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::type_b_conversion::TypeBConversion;
-use std::f64::consts::PI;
+use core::f64::consts::PI;
+
+/// Beam angle threshold: 50 % of the peak intensity.
+const BEAM_FRACTION: f64 = 0.5;
+/// Field angle threshold: 10 % of the peak intensity.
+const FIELD_FRACTION: f64 = 0.1;
+/// Tolerance for "on the vertical axis" (γ = 0° / 180°), in degrees.
+const AXIS_EPS_DEG: f64 = 1e-6;
+/// A distribution counts as centre-peaked when the intensity on the
+/// vertical axis is at least this fraction of the peak (same threshold as
+/// [`BeamFieldAnalysis::is_batwing`]).
+const CENTRE_PEAK_RATIO: f64 = 0.95;
 
 /// Photometric calculations on Eulumdat data.
 pub struct PhotometricCalculations;
@@ -273,409 +286,411 @@ impl PhotometricCalculations {
         }
     }
 
-    /// Calculate beam angle (full angle where intensity drops to 50% of maximum).
+    // ------------------------------------------------------------------
+    // Beam and field angles
+    // ------------------------------------------------------------------
+    //
+    // Definition (CIE S 017:2020, 17-27-077; IES "beam spread"): the beam
+    // (field) angle is the angle between the two directions in a plane
+    // through the beam axis at which the intensity equals 50 % (10 %) of the
+    // maximum intensity in that plane.
+    //
+    // The planes used here are vertical sections C–(C+180). The C side is
+    // read as positive γ and the C+180 side as negative γ, so a section runs
+    // from −180° over nadir (0°) to +180°. From the section peak the profile
+    // is walked outward on both sides to the first sample below the
+    // threshold and interpolated linearly. If either side never drops below
+    // the threshold within the section there is no value (`None`).
+
+    /// Global peak of the distribution over all stored C-planes.
     ///
-    /// Uses the IES definition: angle between directions where intensity is 50%
-    /// of the **maximum** intensity (FWHM - Full Width at Half Maximum).
+    /// `c` is the C angle of the stored plane that holds the peak. Ties
+    /// resolve to the first stored plane and the smallest γ.
+    pub fn peak_direction(ldt: &Eulumdat) -> PeakDirection {
+        let c_angles = crate::symmetry::SymmetryHandler::stored_c_angles(ldt);
+        let mut peak = PeakDirection::default();
+        for (ci, row) in ldt.intensities.iter().enumerate() {
+            for (gi, &value) in row.iter().enumerate() {
+                if value > peak.intensity {
+                    peak = PeakDirection {
+                        c: c_angles.get(ci).copied().unwrap_or(0.0),
+                        gamma: ldt.g_angles.get(gi).copied().unwrap_or(0.0),
+                        intensity: value,
+                    };
+                }
+            }
+        }
+        peak
+    }
+
+    /// C angle (0 ≤ C < 180) of the vertical section through the global peak.
     ///
-    /// **Important**: Per CIE S 017:2020 (17-27-077), beam angle is defined as a
-    /// **full angle**, not a half angle. This function returns the full angle
-    /// (2× the half-angle from nadir).
+    /// For a centre-peaked distribution the C0–C180 section is used: when
+    /// the peak lies on the vertical axis (γ = 0° or 180°) every section
+    /// contains it, and when the axis intensity nearest the peak is at least
+    /// 95 % of the peak the peak's C angle is measurement noise (e.g. a
+    /// maximum at γ = 2.5°). Otherwise the section through the peak's C
+    /// plane is used.
+    pub fn peak_section_c(ldt: &Eulumdat) -> f64 {
+        let peak = Self::peak_direction(ldt);
+        let axis_gamma = if peak.gamma <= 90.0 { 0.0 } else { 180.0 };
+        let axis_intensity =
+            crate::symmetry::SymmetryHandler::get_intensity_at(ldt, 0.0, axis_gamma);
+        let on_axis = peak.gamma <= AXIS_EPS_DEG
+            || peak.gamma >= 180.0 - AXIS_EPS_DEG
+            || axis_intensity >= peak.intensity * CENTRE_PEAK_RATIO;
+        if on_axis {
+            0.0
+        } else {
+            peak.c.rem_euclid(180.0)
+        }
+    }
+
+    /// Beam (50 %) and field (10 %) angle of the vertical section C–(C+180),
+    /// each relative to the peak intensity within that section.
+    ///
+    /// `c_plane` names the positive side of the section: `0.0` gives the
+    /// C0–C180 section, `90.0` the C90–C270 section. Symmetric files are
+    /// expanded through [`crate::SymmetryHandler::get_intensity_at`].
+    pub fn section_beam_field(ldt: &Eulumdat, c_plane: f64) -> SectionBeamField {
+        let c_plane = c_plane.rem_euclid(360.0);
+        let empty = SectionBeamField {
+            c_plane,
+            ..Default::default()
+        };
+        let pts = Self::section_profile(ldt, c_plane);
+        let Some((ip, peak)) = pts
+            .iter()
+            .enumerate()
+            .max_by(|a, b| {
+                a.1 .1
+                    .partial_cmp(&b.1 .1)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })
+            .map(|(i, &(_, v))| (i, v))
+        else {
+            return empty;
+        };
+        if peak.is_nan() || peak <= 0.0 {
+            return empty;
+        }
+        let beam_edges = Self::lobe_edges(&pts, ip, peak * BEAM_FRACTION);
+        let field_edges = Self::lobe_edges(&pts, ip, peak * FIELD_FRACTION);
+        SectionBeamField {
+            c_plane,
+            peak_intensity: peak,
+            peak_gamma: pts[ip].0,
+            beam: beam_edges.map(|(l, r)| r - l),
+            field: field_edges.map(|(l, r)| r - l),
+            beam_edges,
+            field_edges,
+        }
+    }
+
+    /// Beam angle (50 % of the section peak) of the section C–(C+180).
+    ///
+    /// See [`Self::section_beam_field`]. `None` when the lobe does not drop
+    /// below 50 % on both sides within the section.
+    pub fn beam_angle_section(ldt: &Eulumdat, c_plane: f64) -> Option<f64> {
+        Self::section_beam_field(ldt, c_plane).beam
+    }
+
+    /// Field angle (10 % of the section peak) of the section C–(C+180).
+    ///
+    /// See [`Self::section_beam_field`]. `None` when the lobe does not drop
+    /// below 10 % on both sides within the section.
+    pub fn field_angle_section(ldt: &Eulumdat, c_plane: f64) -> Option<f64> {
+        Self::section_beam_field(ldt, c_plane).field
+    }
+
+    /// Beam and field angles of the two principal sections, C0–C180 and
+    /// C90–C270.
+    ///
+    /// For rotationally symmetric data both sections are identical.
+    pub fn beam_field_sections(ldt: &Eulumdat) -> BeamFieldSections {
+        BeamFieldSections {
+            c0_c180: Self::section_beam_field(ldt, 0.0),
+            c90_c270: Self::section_beam_field(ldt, 90.0),
+        }
+    }
+
+    /// Beam and field angles of the section through the global peak
+    /// direction (see [`Self::peak_section_c`]).
+    pub fn peak_section(ldt: &Eulumdat) -> SectionBeamField {
+        Self::section_beam_field(ldt, Self::peak_section_c(ldt))
+    }
+
+    /// Beam angle of the luminaire: full width at 50 % of the peak intensity.
+    ///
+    /// Measured in the vertical section through the global peak direction
+    /// ([`Self::peak_section`]); for a centre-peaked distribution (peak on,
+    /// or within 5 % of, the vertical axis) that is the C0–C180 section. Use
+    /// [`Self::beam_field_sections`] for C0–C180 and C90–C270 together.
+    ///
+    /// Returns `None` when the intensity does not fall below 50 % on both
+    /// sides within the section, e.g. for an up-light whose lobe reaches the
+    /// zenith. A width above 180° is valid: the lobe then reaches past
+    /// horizontal on both sides.
     ///
     /// Reference: <https://cie.co.at/eilvterm/17-27-077>
-    pub fn beam_angle(ldt: &Eulumdat) -> f64 {
-        // Return full angle (2× half angle) per CIE definition
-        Self::angle_at_percentage(ldt, 0.5) * 2.0
+    pub fn beam_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::peak_section(ldt).beam
     }
 
-    /// Calculate field angle (full angle where intensity drops to 10% of maximum).
+    /// Field angle of the luminaire: full width at 10 % of the peak intensity.
     ///
-    /// Uses the IES definition: angle between directions where intensity is 10%
-    /// of the **maximum** intensity.
-    ///
-    /// **Important**: Per CIE S 017:2020, field angle is defined as a **full angle**,
-    /// not a half angle. This function returns the full angle (2× the half-angle from nadir).
-    pub fn field_angle(ldt: &Eulumdat) -> f64 {
-        // Return full angle (2× half angle) per CIE definition
-        Self::angle_at_percentage(ldt, 0.1) * 2.0
+    /// Same section and semantics as [`Self::beam_angle`].
+    pub fn field_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::peak_section(ldt).field
     }
 
-    /// Calculate beam angle using CIE definition (center-beam intensity).
+    /// Half of [`Self::beam_angle`].
     ///
-    /// Uses the CIE/NEMA definition: angle between directions where intensity
-    /// is 50% of the **center-beam** intensity (intensity at 0° gamma).
-    ///
-    /// **Important**: Per CIE S 017:2020 (17-27-077), beam angle is defined as a
-    /// **full angle**, not a half angle. This function returns the full angle.
-    ///
-    /// This can differ significantly from the IES (max-based) definition for luminaires
-    /// with "batwing" distributions where center-beam intensity is less than
-    /// maximum intensity.
-    pub fn beam_angle_cie(ldt: &Eulumdat) -> f64 {
-        // Return full angle (2× half angle) per CIE definition
-        Self::angle_at_percentage_of_center(ldt, 0.5) * 2.0
+    /// This is the angle from the beam axis to the 50 % edge only when the
+    /// lobe is symmetric about that axis; use
+    /// [`SectionBeamField::beam_edges`] for the actual edge directions.
+    pub fn half_beam_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::beam_angle(ldt).map(|a| a / 2.0)
     }
 
-    /// Calculate field angle using CIE definition (center-beam intensity).
-    ///
-    /// Uses the CIE/NEMA definition: angle between directions where intensity
-    /// is 10% of the **center-beam** intensity.
-    ///
-    /// **Important**: Per CIE S 017:2020, field angle is defined as a **full angle**,
-    /// not a half angle. This function returns the full angle.
-    pub fn field_angle_cie(ldt: &Eulumdat) -> f64 {
-        // Return full angle (2× half angle) per CIE definition
-        Self::angle_at_percentage_of_center(ldt, 0.1) * 2.0
+    /// Half of [`Self::field_angle`]. See [`Self::half_beam_angle`].
+    pub fn half_field_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::field_angle(ldt).map(|a| a / 2.0)
     }
 
-    /// Calculate half beam angle (angle from nadir to 50% intensity).
+    /// Beam angle relative to the **centre-beam** intensity.
     ///
-    /// This returns the **half angle** from nadir (0°) to where intensity drops
-    /// to 50% of maximum. For the full beam angle per CIE definition, use `beam_angle()`.
+    /// Full width of the C0–C180 section between the directions where the
+    /// intensity falls to 50 % of I(γ = 0°), walking outward from nadir.
     ///
-    /// This is useful for cone diagrams and coverage calculations where the
-    /// half-angle is needed.
-    pub fn half_beam_angle(ldt: &Eulumdat) -> f64 {
-        Self::angle_at_percentage(ldt, 0.5)
+    /// This is a **different definition** from [`Self::beam_angle`] (which is
+    /// relative to the peak): for batwing distributions, where the nadir
+    /// intensity is below the peak, it is wider. Returns `None` when
+    /// I(γ = 0°) is zero or the intensity never drops below the threshold.
+    pub fn beam_angle_cie(ldt: &Eulumdat) -> Option<f64> {
+        Self::centre_beam_width(ldt, BEAM_FRACTION)
     }
 
-    /// Calculate half field angle (angle from nadir to 10% intensity).
-    ///
-    /// This returns the **half angle** from nadir (0°) to where intensity drops
-    /// to 10% of maximum. For the full field angle per CIE definition, use `field_angle()`.
-    pub fn half_field_angle(ldt: &Eulumdat) -> f64 {
-        Self::angle_at_percentage(ldt, 0.1)
+    /// Field angle relative to the **centre-beam** intensity (10 % of
+    /// I(γ = 0°)) in the C0–C180 section. See [`Self::beam_angle_cie`].
+    pub fn field_angle_cie(ldt: &Eulumdat) -> Option<f64> {
+        Self::centre_beam_width(ldt, FIELD_FRACTION)
     }
 
-    /// Get detailed beam/field angle analysis comparing IES and CIE definitions.
-    ///
-    /// Returns a `BeamFieldAnalysis` struct containing:
-    /// - Beam and field angles using both IES (max) and CIE (center-beam) definitions
-    /// - Maximum intensity and center-beam intensity values
-    /// - Whether the distribution has a "batwing" pattern (center < max)
-    ///
-    /// This is useful for understanding luminaires like the examples in the
-    /// Wikipedia "Beam angle" article where the two definitions give different results.
+    /// Beam/field analysis: peak-referenced values in the section through the
+    /// peak, both principal sections, the centre-beam variants and the
+    /// global peak direction.
     pub fn beam_field_analysis(ldt: &Eulumdat) -> BeamFieldAnalysis {
         if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
             return BeamFieldAnalysis::default();
         }
 
-        let intensities = &ldt.intensities[0];
-        let max_intensity = intensities.iter().copied().fold(0.0, f64::max);
-        let center_intensity = intensities.first().copied().unwrap_or(0.0);
-
-        // Find the gamma angle of maximum intensity
-        let max_gamma = ldt
-            .g_angles
-            .iter()
-            .zip(intensities.iter())
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .map(|(g, _)| *g)
-            .unwrap_or(0.0);
-
-        let is_batwing = center_intensity < max_intensity * 0.95;
+        let peak = Self::peak_direction(ldt);
+        let peak_section = Self::peak_section(ldt);
+        let sections = Self::beam_field_sections(ldt);
+        let max_intensity = peak.intensity;
+        let center_intensity = crate::symmetry::SymmetryHandler::get_intensity_at(ldt, 0.0, 0.0);
 
         BeamFieldAnalysis {
-            // IES definition (based on maximum intensity) - full angles per CIE S 017:2020
-            beam_angle_ies: Self::angle_at_percentage(ldt, 0.5) * 2.0,
-            field_angle_ies: Self::angle_at_percentage(ldt, 0.1) * 2.0,
-            // CIE definition (based on center-beam intensity) - full angles per CIE S 017:2020
-            beam_angle_cie: Self::angle_at_percentage_of_center(ldt, 0.5) * 2.0,
-            field_angle_cie: Self::angle_at_percentage_of_center(ldt, 0.1) * 2.0,
-            // Reference intensities
+            beam_angle_ies: peak_section.beam,
+            field_angle_ies: peak_section.field,
+            beam_angle_cie: Self::beam_angle_cie(ldt),
+            field_angle_cie: Self::field_angle_cie(ldt),
             max_intensity,
             center_intensity,
-            max_intensity_gamma: max_gamma,
-            // Distribution type
-            is_batwing,
-            // Threshold values for diagram overlays
-            beam_threshold_ies: max_intensity * 0.5,
-            beam_threshold_cie: center_intensity * 0.5,
-            field_threshold_ies: max_intensity * 0.1,
-            field_threshold_cie: center_intensity * 0.1,
+            max_intensity_gamma: peak.gamma,
+            max_intensity_c: peak.c,
+            peak_section,
+            c0_c180: sections.c0_c180,
+            c90_c270: sections.c90_c270,
+            is_batwing: center_intensity < max_intensity * CENTRE_PEAK_RATIO,
+            beam_threshold_ies: max_intensity * BEAM_FRACTION,
+            beam_threshold_cie: center_intensity * BEAM_FRACTION,
+            field_threshold_ies: max_intensity * FIELD_FRACTION,
+            field_threshold_cie: center_intensity * FIELD_FRACTION,
         }
     }
 
-    /// Find the angle at which intensity drops to a given percentage of maximum.
-    fn angle_at_percentage(ldt: &Eulumdat, percentage: f64) -> f64 {
-        if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
-            return 0.0;
-        }
-
-        // Use first C-plane (or average for non-symmetric)
-        let intensities = &ldt.intensities[0];
-        let max_intensity = intensities.iter().copied().fold(0.0, f64::max);
-
-        if max_intensity <= 0.0 {
-            return 0.0;
-        }
-
-        let threshold = max_intensity * percentage;
-
-        // Find where intensity drops below threshold
-        for (i, &intensity) in intensities.iter().enumerate() {
-            if intensity < threshold && i > 0 {
-                // Interpolate between previous and current
-                let prev_intensity = intensities[i - 1];
-                let prev_angle = ldt.g_angles[i - 1];
-                let curr_angle = ldt.g_angles[i];
-
-                if prev_intensity > threshold {
-                    let ratio = (prev_intensity - threshold) / (prev_intensity - intensity);
-                    return prev_angle + ratio * (curr_angle - prev_angle);
-                }
+    /// Profile of the section C–(C+180) as `(signed γ, I)` pairs, ascending
+    /// in γ: the C+180 side as −γ (from −180° to just above 0°), then the C
+    /// side from 0° to 180°.
+    fn section_profile(ldt: &Eulumdat, c_plane: f64) -> Vec<(f64, f64)> {
+        use crate::symmetry::SymmetryHandler;
+        let c_opposite = (c_plane + 180.0).rem_euclid(360.0);
+        let mut pts = Vec::with_capacity(ldt.g_angles.len() * 2);
+        for &g in ldt.g_angles.iter().rev() {
+            if g > 0.0 {
+                pts.push((-g, SymmetryHandler::get_intensity_at(ldt, c_opposite, g)));
             }
         }
-
-        // If never drops below threshold, return last angle
-        *ldt.g_angles.last().unwrap_or(&0.0)
-    }
-
-    /// Find the angle at which intensity drops to a given percentage of center-beam intensity.
-    ///
-    /// This implements the CIE/NEMA definition which uses center-beam (nadir) intensity
-    /// as the reference rather than maximum intensity.
-    fn angle_at_percentage_of_center(ldt: &Eulumdat, percentage: f64) -> f64 {
-        if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
-            return 0.0;
+        for &g in &ldt.g_angles {
+            pts.push((g, SymmetryHandler::get_intensity_at(ldt, c_plane, g)));
         }
-
-        let intensities = &ldt.intensities[0];
-        let center_intensity = intensities.first().copied().unwrap_or(0.0);
-
-        if center_intensity <= 0.0 {
-            // If center intensity is zero, fall back to max-based calculation
-            return Self::angle_at_percentage(ldt, percentage);
-        }
-
-        let threshold = center_intensity * percentage;
-
-        // Find where intensity drops below threshold
-        for (i, &intensity) in intensities.iter().enumerate() {
-            if intensity < threshold && i > 0 {
-                let prev_intensity = intensities[i - 1];
-                let prev_angle = ldt.g_angles[i - 1];
-                let curr_angle = ldt.g_angles[i];
-
-                if prev_intensity > threshold {
-                    let ratio = (prev_intensity - threshold) / (prev_intensity - intensity);
-                    return prev_angle + ratio * (curr_angle - prev_angle);
-                }
-            }
-        }
-
-        *ldt.g_angles.last().unwrap_or(&0.0)
+        pts
     }
 
-    /// Calculate beam angle for upward light (peak near 180°).
+    /// Walk outward from `centre` to the first sample below `threshold` on
+    /// each side and interpolate linearly towards the centre.
     ///
-    /// For uplights where maximum intensity is in the upper hemisphere (gamma > 90°),
-    /// this calculates the beam angle centered on the upward peak.
-    ///
-    /// Returns the **full angle** where intensity is above 50% of maximum.
-    pub fn upward_beam_angle(ldt: &Eulumdat) -> f64 {
-        Self::angle_spread_from_peak(ldt, 0.5, true)
-    }
-
-    /// Calculate field angle for upward light (peak near 180°).
-    ///
-    /// Returns the **full angle** where intensity is above 10% of maximum.
-    pub fn upward_field_angle(ldt: &Eulumdat) -> f64 {
-        Self::angle_spread_from_peak(ldt, 0.1, true)
-    }
-
-    /// Calculate beam angle for downward light (peak near 0°).
-    ///
-    /// For downlights where maximum intensity is in the lower hemisphere (gamma < 90°),
-    /// this calculates the beam angle centered on the downward peak.
-    ///
-    /// Returns the **full angle** where intensity is above 50% of maximum.
-    pub fn downward_beam_angle(ldt: &Eulumdat) -> f64 {
-        Self::angle_spread_from_peak(ldt, 0.5, false)
-    }
-
-    /// Calculate field angle for downward light (peak near 0°).
-    ///
-    /// Returns the **full angle** where intensity is above 10% of maximum.
-    pub fn downward_field_angle(ldt: &Eulumdat) -> f64 {
-        Self::angle_spread_from_peak(ldt, 0.1, false)
-    }
-
-    /// Find the angular spread from peak intensity to threshold percentage.
-    ///
-    /// Searches outward from the peak intensity angle in both directions to find
-    /// where intensity drops below the threshold. Works for both downlights
-    /// (peak near 0°) and uplights (peak near 180°).
-    ///
-    /// # Arguments
-    /// * `ldt` - The Eulumdat data
-    /// * `percentage` - Threshold as fraction of peak (0.5 for beam, 0.1 for field)
-    /// * `upward` - If true, find peak in upper hemisphere (90-180°); otherwise lower (0-90°)
-    ///
-    /// # Returns
-    /// The full beam/field angle in degrees
-    fn angle_spread_from_peak(ldt: &Eulumdat, percentage: f64, upward: bool) -> f64 {
-        if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
-            return 0.0;
-        }
-
-        let intensities = &ldt.intensities[0];
-        let g_angles = &ldt.g_angles;
-
-        // Define hemisphere boundary
-        let hemisphere_boundary = 90.0;
-
-        // Find peak intensity in the specified hemisphere
-        let (peak_idx, peak_intensity) = if upward {
-            // Search upper hemisphere (gamma >= 90°)
-            intensities
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| g_angles.get(*i).copied().unwrap_or(0.0) >= hemisphere_boundary)
-                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-                .map(|(i, &v)| (i, v))
-                .unwrap_or((0, 0.0))
-        } else {
-            // Search lower hemisphere (gamma <= 90°)
-            intensities
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| g_angles.get(*i).copied().unwrap_or(180.0) <= hemisphere_boundary)
-                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-                .map(|(i, &v)| (i, v))
-                .unwrap_or((0, 0.0))
+    /// Returns the signed γ of the left and right crossing, or `None` if one
+    /// side never drops below the threshold.
+    fn lobe_edges(pts: &[(f64, f64)], centre: usize, threshold: f64) -> Option<(f64, f64)> {
+        let crossing = |(s0, i0): (f64, f64), (s1, i1): (f64, f64)| {
+            s0 + (i0 - threshold) / (i0 - i1) * (s1 - s0)
         };
-
-        if peak_intensity <= 0.0 {
-            return 0.0;
-        }
-
-        let threshold = peak_intensity * percentage;
-        let peak_angle = g_angles.get(peak_idx).copied().unwrap_or(0.0);
-
-        // Determine search boundaries based on hemisphere
-        let (min_angle, max_angle) = if upward {
-            (hemisphere_boundary, 180.0)
-        } else {
-            (0.0, hemisphere_boundary)
-        };
-
-        // Search downward (decreasing gamma) from peak, but stay within hemisphere
-        let mut angle_low = peak_angle;
-        for i in (0..peak_idx).rev() {
-            let angle = g_angles[i];
-            // Stop at hemisphere boundary
-            if angle < min_angle {
-                angle_low = min_angle;
-                break;
-            }
-            let intensity = intensities[i];
-            if intensity < threshold {
-                // Interpolate
-                let next_intensity = intensities.get(i + 1).copied().unwrap_or(peak_intensity);
-                let next_angle = g_angles.get(i + 1).copied().unwrap_or(peak_angle);
-                if next_intensity > threshold && next_intensity > intensity {
-                    let ratio = (next_intensity - threshold) / (next_intensity - intensity);
-                    angle_low = (next_angle - ratio * (next_angle - angle)).max(min_angle);
-                } else {
-                    angle_low = angle;
-                }
-                break;
-            }
-            angle_low = angle;
-        }
-
-        // Search upward (increasing gamma) from peak, but stay within hemisphere
-        let mut angle_high = peak_angle;
-        for i in (peak_idx + 1)..intensities.len() {
-            let angle = g_angles[i];
-            // Stop at hemisphere boundary
-            if angle > max_angle {
-                angle_high = max_angle;
-                break;
-            }
-            let intensity = intensities[i];
-            if intensity < threshold {
-                // Interpolate
-                let prev_intensity = intensities.get(i - 1).copied().unwrap_or(peak_intensity);
-                let prev_angle = g_angles.get(i - 1).copied().unwrap_or(peak_angle);
-                if prev_intensity > threshold && prev_intensity > intensity {
-                    let ratio = (prev_intensity - threshold) / (prev_intensity - intensity);
-                    angle_high = (prev_angle + ratio * (angle - prev_angle)).min(max_angle);
-                } else {
-                    angle_high = angle;
-                }
-                break;
-            }
-            angle_high = angle;
-        }
-
-        // Return the full angular spread
-        (angle_high - angle_low).abs()
+        let right = (centre + 1..pts.len())
+            .find(|&i| pts[i].1 < threshold)
+            .map(|i| crossing(pts[i - 1], pts[i]))?;
+        let left = (0..centre)
+            .rev()
+            .find(|&i| pts[i].1 < threshold)
+            .map(|i| crossing(pts[i + 1], pts[i]))?;
+        Some((left, right))
     }
 
-    /// Get comprehensive beam angle analysis including both downward and upward components.
+    /// Width of the C0–C180 lobe around nadir at `fraction` of I(γ = 0°).
+    fn centre_beam_width(ldt: &Eulumdat, fraction: f64) -> Option<f64> {
+        let pts = Self::section_profile(ldt, 0.0);
+        let centre = pts.iter().position(|&(g, _)| g.abs() <= AXIS_EPS_DEG)?;
+        let i0 = pts[centre].1;
+        if i0.is_nan() || i0 <= 0.0 {
+            return None;
+        }
+        Self::lobe_edges(&pts, centre, i0 * fraction).map(|(l, r)| r - l)
+    }
+
+    /// Upward beam angle: full width at 50 % of the upper-hemisphere peak.
     ///
-    /// For luminaires with significant flux in both hemispheres (e.g., direct-indirect),
-    /// this provides separate beam angles for each direction.
+    /// Measured in the vertical section through the upward peak on a profile
+    /// centred on the zenith, so a lobe around γ = 180° is not cut in half.
+    /// For a lobe centred on the zenith (zenith intensity ≥ 95 % of the
+    /// upward peak) the C0–C180 section is used. `None` without upward light
+    /// or when the lobe does not drop below 50 % on both sides.
+    pub fn upward_beam_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::hemisphere_lobe_width(ldt, true, BEAM_FRACTION)
+    }
+
+    /// Upward field angle: full width at 10 % of the upper-hemisphere peak.
+    /// See [`Self::upward_beam_angle`].
+    pub fn upward_field_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::hemisphere_lobe_width(ldt, true, FIELD_FRACTION)
+    }
+
+    /// Downward beam angle: full width at 50 % of the lower-hemisphere peak,
+    /// in the section through that peak (C0–C180 when it is centred on
+    /// nadir). Equals [`Self::beam_angle`] for luminaires whose peak points
+    /// downward.
+    pub fn downward_beam_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::hemisphere_lobe_width(ldt, false, BEAM_FRACTION)
+    }
+
+    /// Downward field angle: full width at 10 % of the lower-hemisphere peak.
+    /// See [`Self::downward_beam_angle`].
+    pub fn downward_field_angle(ldt: &Eulumdat) -> Option<f64> {
+        Self::hemisphere_lobe_width(ldt, false, FIELD_FRACTION)
+    }
+
+    /// Peak over all stored planes in the lower (γ < 90°) or upper
+    /// (γ > 90°) hemisphere. The horizontal itself belongs to neither.
+    fn hemisphere_peak(ldt: &Eulumdat, upward: bool) -> PeakDirection {
+        let c_angles = crate::symmetry::SymmetryHandler::stored_c_angles(ldt);
+        let mut peak = PeakDirection::default();
+        for (ci, row) in ldt.intensities.iter().enumerate() {
+            for (gi, &value) in row.iter().enumerate() {
+                let gamma = ldt.g_angles.get(gi).copied().unwrap_or(0.0);
+                let in_hemisphere = if upward { gamma > 90.0 } else { gamma < 90.0 };
+                if in_hemisphere && value > peak.intensity {
+                    peak = PeakDirection {
+                        c: c_angles.get(ci).copied().unwrap_or(0.0),
+                        gamma,
+                        intensity: value,
+                    };
+                }
+            }
+        }
+        peak
+    }
+
+    /// Width of the downward or upward lobe at `fraction` of its peak, in
+    /// the section through the hemisphere peak.
+    fn hemisphere_lobe_width(ldt: &Eulumdat, upward: bool, fraction: f64) -> Option<f64> {
+        let peak = Self::hemisphere_peak(ldt, upward);
+        if peak.intensity.is_nan() || peak.intensity <= 0.0 {
+            return None;
+        }
+        let axis_gamma = if upward { 180.0 } else { 0.0 };
+        let axis_intensity =
+            crate::symmetry::SymmetryHandler::get_intensity_at(ldt, 0.0, axis_gamma);
+        let c_plane = if (peak.gamma - axis_gamma).abs() <= AXIS_EPS_DEG
+            || axis_intensity >= peak.intensity * CENTRE_PEAK_RATIO
+        {
+            0.0
+        } else {
+            peak.c.rem_euclid(180.0)
+        };
+        let pts = if upward {
+            Self::zenith_profile(ldt, c_plane)
+        } else {
+            Self::section_profile(ldt, c_plane)
+        };
+        // Lobe centre: the hemisphere maximum within this section
+        let (centre, reference) = pts
+            .iter()
+            .enumerate()
+            .filter(|(_, (s, _))| s.abs() < 90.0)
+            .max_by(|a, b| {
+                a.1 .1
+                    .partial_cmp(&b.1 .1)
+                    .unwrap_or(core::cmp::Ordering::Equal)
+            })
+            .map(|(i, &(_, v))| (i, v))?;
+        if reference <= 0.0 {
+            return None;
+        }
+        Self::lobe_edges(&pts, centre, reference * fraction).map(|(l, r)| r - l)
+    }
+
+    /// Section C–(C+180) as `(ψ, I)` pairs centred on the zenith: ψ is the
+    /// signed angle from the zenith, negative on the C+180 side (ψ = γ − 180°)
+    /// and positive on the C side (ψ = 180° − γ).
+    fn zenith_profile(ldt: &Eulumdat, c_plane: f64) -> Vec<(f64, f64)> {
+        use crate::symmetry::SymmetryHandler;
+        let c_opposite = (c_plane + 180.0).rem_euclid(360.0);
+        let mut pts = Vec::with_capacity(ldt.g_angles.len() * 2);
+        for &g in &ldt.g_angles {
+            pts.push((
+                g - 180.0,
+                SymmetryHandler::get_intensity_at(ldt, c_opposite, g),
+            ));
+        }
+        for &g in ldt.g_angles.iter().rev() {
+            if g < 180.0 {
+                pts.push((
+                    180.0 - g,
+                    SymmetryHandler::get_intensity_at(ldt, c_plane, g),
+                ));
+            }
+        }
+        pts
+    }
+
+    /// Beam and field angles of the downward and upward components.
+    ///
+    /// Each component is measured around its own hemisphere peak (over all
+    /// stored planes) with the section rule of [`Self::section_beam_field`];
+    /// see [`Self::downward_beam_angle`] and [`Self::upward_beam_angle`].
     pub fn comprehensive_beam_analysis(ldt: &Eulumdat) -> ComprehensiveBeamAnalysis {
         if ldt.intensities.is_empty() || ldt.g_angles.is_empty() {
             return ComprehensiveBeamAnalysis::default();
         }
 
-        let intensities = &ldt.intensities[0];
-        let g_angles = &ldt.g_angles;
-
-        // Find peaks in each hemisphere
-        let (downward_peak_idx, downward_peak) = intensities
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| g_angles.get(*i).copied().unwrap_or(180.0) <= 90.0)
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .map(|(i, &v)| (i, v))
-            .unwrap_or((0, 0.0));
-
-        let (upward_peak_idx, upward_peak) = intensities
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| g_angles.get(*i).copied().unwrap_or(0.0) >= 90.0)
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-            .map(|(i, &v)| (i, v))
-            .unwrap_or((intensities.len().saturating_sub(1), 0.0));
-
-        let downward_peak_gamma = g_angles.get(downward_peak_idx).copied().unwrap_or(0.0);
-        let upward_peak_gamma = g_angles.get(upward_peak_idx).copied().unwrap_or(180.0);
-
-        // Determine if there's significant light in each hemisphere
-        let has_downward = downward_peak > 0.0;
-        let has_upward = upward_peak > 0.0;
-
-        // Calculate angles only for hemispheres with significant light
-        let downward_beam = if has_downward {
-            Self::angle_spread_from_peak(ldt, 0.5, false)
-        } else {
-            0.0
-        };
-        let downward_field = if has_downward {
-            Self::angle_spread_from_peak(ldt, 0.1, false)
-        } else {
-            0.0
-        };
-
-        let upward_beam = if has_upward {
-            Self::angle_spread_from_peak(ldt, 0.5, true)
-        } else {
-            0.0
-        };
-        let upward_field = if has_upward {
-            Self::angle_spread_from_peak(ldt, 0.1, true)
-        } else {
-            0.0
-        };
+        let down = Self::hemisphere_peak(ldt, false);
+        let up = Self::hemisphere_peak(ldt, true);
+        let has_downward = down.intensity > 0.0;
+        let has_upward = up.intensity > 0.0;
 
         // Determine primary direction
-        let primary_direction = if downward_peak >= upward_peak {
+        let primary_direction = if down.intensity >= up.intensity {
             LightDirection::Downward
         } else {
             LightDirection::Upward
@@ -683,17 +698,17 @@ impl PhotometricCalculations {
 
         // Classify distribution type based on relative intensities
         // A component is "significant" if it's >= 10% of the dominant component
-        let upward_significant = has_upward && upward_peak >= downward_peak * 0.1;
-        let downward_significant = has_downward && downward_peak >= upward_peak * 0.1;
+        let upward_significant = has_upward && up.intensity >= down.intensity * 0.1;
+        let downward_significant = has_downward && down.intensity >= up.intensity * 0.1;
 
         let distribution_type = if upward_significant && downward_significant {
             // Both components are significant - it's a mixed distribution
-            if downward_peak > upward_peak {
+            if down.intensity > up.intensity {
                 DistributionType::DirectIndirect
             } else {
                 DistributionType::IndirectDirect
             }
-        } else if has_upward && upward_peak > downward_peak {
+        } else if has_upward && up.intensity > down.intensity {
             // Primarily upward with negligible downward
             DistributionType::Indirect
         } else {
@@ -702,14 +717,16 @@ impl PhotometricCalculations {
         };
 
         ComprehensiveBeamAnalysis {
-            downward_beam_angle: downward_beam,
-            downward_field_angle: downward_field,
-            downward_peak_intensity: downward_peak,
-            downward_peak_gamma,
-            upward_beam_angle: upward_beam,
-            upward_field_angle: upward_field,
-            upward_peak_intensity: upward_peak,
-            upward_peak_gamma,
+            downward_beam_angle: Self::downward_beam_angle(ldt),
+            downward_field_angle: Self::downward_field_angle(ldt),
+            downward_peak_intensity: down.intensity,
+            downward_peak_gamma: down.gamma,
+            downward_peak_c: down.c,
+            upward_beam_angle: Self::upward_beam_angle(ldt),
+            upward_field_angle: Self::upward_field_angle(ldt),
+            upward_peak_intensity: up.intensity,
+            upward_peak_gamma: if has_upward { up.gamma } else { 180.0 },
+            upward_peak_c: up.c,
             primary_direction,
             distribution_type,
         }
@@ -804,12 +821,12 @@ impl PhotometricCalculations {
     /// # Returns
     /// Luminaire efficacy in lumens per watt (lm/W)
     pub fn luminaire_efficacy(ldt: &Eulumdat) -> f64 {
-        let total_watts = ldt.total_wattage();
+        let total_watts = ldt.wattage();
         if total_watts <= 0.0 {
             return 0.0;
         }
 
-        let lamp_flux = ldt.total_luminous_flux();
+        let lamp_flux = ldt.luminous_flux();
         let lor = ldt.light_output_ratio / 100.0;
 
         (lamp_flux * lor) / total_watts
@@ -822,7 +839,7 @@ impl PhotometricCalculations {
     /// # Returns
     /// Efficiency as a percentage (0-100)
     pub fn luminaire_efficiency(ldt: &Eulumdat) -> f64 {
-        let lamp_flux = ldt.total_luminous_flux();
+        let lamp_flux = ldt.luminous_flux();
         if lamp_flux <= 0.0 {
             return 0.0;
         }
@@ -1255,7 +1272,7 @@ impl PhotometricCalculations {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PhotometricSummary {
     // Flux and efficiency
-    /// Total lamp flux (lm)
+    /// Lamp flux of the primary (first) lamp set (lm)
     pub total_lamp_flux: f64,
     /// Calculated flux from intensity integration (lm)
     pub calculated_flux: f64,
@@ -1271,32 +1288,38 @@ pub struct PhotometricSummary {
     pub lamp_efficacy: f64,
     /// Luminaire efficacy (lm/W)
     pub luminaire_efficacy: f64,
-    /// Total system wattage (W)
+    /// System wattage of the primary (first) lamp set (W)
     pub total_wattage: f64,
 
     // CIE Flux Codes
     /// CIE flux codes (N1-N5)
     pub cie_flux_codes: CieFluxCodes,
 
-    // Beam characteristics (IES definition - based on maximum intensity)
-    /// Beam angle - 50% of max intensity (degrees) - IES definition
-    pub beam_angle: f64,
-    /// Field angle - 10% of max intensity (degrees) - IES definition
-    pub field_angle: f64,
+    // Beam characteristics (peak-referenced, section through the peak)
+    /// Beam angle - 50% of peak intensity, section through the peak (degrees)
+    pub beam_angle: Option<f64>,
+    /// Field angle - 10% of peak intensity, section through the peak (degrees)
+    pub field_angle: Option<f64>,
+    /// Peak-referenced beam/field angles of C0–C180 and C90–C270
+    pub sections: BeamFieldSections,
+    /// Section the `beam_angle` / `field_angle` were measured in
+    pub peak_section: SectionBeamField,
+    /// Global peak direction
+    pub peak: PeakDirection,
 
-    // Beam characteristics (CIE definition - based on center-beam intensity)
-    /// Beam angle - 50% of center intensity (degrees) - CIE definition
-    pub beam_angle_cie: f64,
-    /// Field angle - 10% of center intensity (degrees) - CIE definition
-    pub field_angle_cie: f64,
-    /// True if distribution is batwing (center < max, IES ≠ CIE)
+    // Beam characteristics (centre-beam referenced, C0–C180)
+    /// Beam angle - 50% of nadir intensity, C0–C180 (degrees)
+    pub beam_angle_cie: Option<f64>,
+    /// Field angle - 10% of nadir intensity, C0–C180 (degrees)
+    pub field_angle_cie: Option<f64>,
+    /// True if the nadir intensity is below 95 % of the peak
     pub is_batwing: bool,
 
     // Upward beam characteristics (for uplights and direct-indirect luminaires)
-    /// Upward beam angle - 50% of upward peak (degrees)
-    pub upward_beam_angle: f64,
-    /// Upward field angle - 10% of upward peak (degrees)
-    pub upward_field_angle: f64,
+    /// Upward beam angle - 50% of the upward peak, section through it (degrees)
+    pub upward_beam_angle: Option<f64>,
+    /// Upward field angle - 10% of the upward peak, section through it (degrees)
+    pub upward_field_angle: Option<f64>,
     /// Primary light direction (Downward or Upward)
     pub primary_direction: LightDirection,
     /// Distribution type (Direct, Indirect, DirectIndirect, IndirectDirect)
@@ -1326,10 +1349,11 @@ impl PhotometricSummary {
     pub fn from_eulumdat(ldt: &Eulumdat) -> Self {
         let cie_codes = PhotometricCalculations::cie_flux_codes(ldt);
         let (s_c0, s_c90) = PhotometricCalculations::spacing_criteria(ldt);
+        let beam = PhotometricCalculations::beam_field_analysis(ldt);
 
         Self {
-            // Flux
-            total_lamp_flux: ldt.total_luminous_flux(),
+            // Flux (primary lamp set)
+            total_lamp_flux: ldt.luminous_flux(),
             calculated_flux: PhotometricCalculations::calculated_luminous_flux(ldt),
             lor: ldt.light_output_ratio,
             dlor: ldt.downward_flux_fraction,
@@ -1338,22 +1362,25 @@ impl PhotometricSummary {
             // Efficacy
             lamp_efficacy: ldt.luminous_efficacy(),
             luminaire_efficacy: PhotometricCalculations::luminaire_efficacy(ldt),
-            total_wattage: ldt.total_wattage(),
+            total_wattage: ldt.wattage(),
 
             // CIE
             cie_flux_codes: cie_codes,
 
-            // Beam (IES definition)
-            beam_angle: PhotometricCalculations::beam_angle(ldt),
-            field_angle: PhotometricCalculations::field_angle(ldt),
-
-            // Beam (CIE definition)
-            beam_angle_cie: PhotometricCalculations::beam_angle_cie(ldt),
-            field_angle_cie: PhotometricCalculations::field_angle_cie(ldt),
-            is_batwing: {
-                let analysis = PhotometricCalculations::beam_field_analysis(ldt);
-                analysis.is_batwing
+            // Beam (peak-referenced)
+            beam_angle: beam.beam_angle_ies,
+            field_angle: beam.field_angle_ies,
+            sections: BeamFieldSections {
+                c0_c180: beam.c0_c180,
+                c90_c270: beam.c90_c270,
             },
+            peak_section: beam.peak_section,
+            peak: PhotometricCalculations::peak_direction(ldt),
+
+            // Beam (centre-beam referenced)
+            beam_angle_cie: beam.beam_angle_cie,
+            field_angle_cie: beam.field_angle_cie,
+            is_batwing: beam.is_batwing,
 
             // Upward beam characteristics
             upward_beam_angle: PhotometricCalculations::upward_beam_angle(ldt),
@@ -1388,7 +1415,7 @@ impl PhotometricSummary {
 ==================
 
 Luminous Flux
-  Total Lamp Flux:     {:.0} lm
+  Lamp Flux (set 1):   {:.0} lm
   Calculated Flux:     {:.0} lm
   LOR:                 {:.1}%
   DLOR / ULOR:         {:.1}% / {:.1}%
@@ -1396,13 +1423,16 @@ Luminous Flux
 Efficacy
   Lamp Efficacy:       {:.1} lm/W
   Luminaire Efficacy:  {:.1} lm/W
-  Total Wattage:       {:.1} W
+  Wattage (set 1):     {:.1} W
 
 CIE Flux Code:         {}
 
-Beam Characteristics
-  Beam Angle (50%):    {:.1}°
-  Field Angle (10%):   {:.1}°
+Beam Characteristics (50 % / 10 % of peak)
+  Peak:                {:.0} cd/klm at C{:.0} γ{:.0}°
+  Beam Angle ({}): {}
+  Field Angle ({}): {}
+  C0–C180:             {} / {}
+  C90–C270:            {} / {}
 
 Intensity (cd/klm)
   Maximum:             {:.1}
@@ -1430,8 +1460,17 @@ Zonal Lumens (%)
             self.luminaire_efficacy,
             self.total_wattage,
             self.cie_flux_codes,
-            self.beam_angle,
-            self.field_angle,
+            self.peak.intensity,
+            self.peak.c,
+            self.peak.gamma,
+            self.peak_section.label(),
+            format_angle(self.beam_angle),
+            self.peak_section.label(),
+            format_angle(self.field_angle),
+            format_angle(self.sections.c0_c180.beam),
+            format_angle(self.sections.c0_c180.field),
+            format_angle(self.sections.c90_c270.beam),
+            format_angle(self.sections.c90_c270.field),
             self.max_intensity,
             self.min_intensity,
             self.avg_intensity,
@@ -1449,10 +1488,12 @@ Zonal Lumens (%)
     /// Format as single-line compact summary.
     pub fn to_compact(&self) -> String {
         format!(
-            "CIE:{} Beam:{:.0}° Field:{:.0}° Eff:{:.0}lm/W S/H:{:.1}×{:.1}",
+            "CIE:{} Beam:{} Field:{} Eff:{:.0}lm/W S/H:{:.1}×{:.1}",
             self.cie_flux_codes,
-            self.beam_angle,
-            self.field_angle,
+            self.beam_angle
+                .map_or_else(|| "—".to_string(), |a| format!("{a:.0}°")),
+            self.field_angle
+                .map_or_else(|| "—".to_string(), |a| format!("{a:.0}°")),
             self.luminaire_efficacy,
             self.spacing_c0,
             self.spacing_c90,
@@ -1479,8 +1520,15 @@ Zonal Lumens (%)
             ("cie_n3", format!("{:.1}", self.cie_flux_codes.n3)),
             ("cie_n4", format!("{:.1}", self.cie_flux_codes.n4)),
             ("cie_n5", format!("{:.1}", self.cie_flux_codes.n5)),
-            ("beam_angle_deg", format!("{:.1}", self.beam_angle)),
-            ("field_angle_deg", format!("{:.1}", self.field_angle)),
+            ("beam_angle_deg", opt_num(self.beam_angle)),
+            ("field_angle_deg", opt_num(self.field_angle)),
+            ("beam_section", self.peak_section.label()),
+            ("beam_c0_c180_deg", opt_num(self.sections.c0_c180.beam)),
+            ("field_c0_c180_deg", opt_num(self.sections.c0_c180.field)),
+            ("beam_c90_c270_deg", opt_num(self.sections.c90_c270.beam)),
+            ("field_c90_c270_deg", opt_num(self.sections.c90_c270.field)),
+            ("peak_c_deg", format!("{:.1}", self.peak.c)),
+            ("peak_gamma_deg", format!("{:.1}", self.peak.gamma)),
             ("max_intensity_cd_klm", format!("{:.1}", self.max_intensity)),
             ("min_intensity_cd_klm", format!("{:.1}", self.min_intensity)),
             ("avg_intensity_cd_klm", format!("{:.1}", self.avg_intensity)),
@@ -1514,8 +1562,8 @@ Zonal Lumens (%)
     }
 }
 
-impl std::fmt::Display for PhotometricSummary {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for PhotometricSummary {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.to_text())
     }
 }
@@ -1550,10 +1598,12 @@ pub struct GldfPhotometricData {
     pub ugr_4h_8h_705020: Option<UgrTableValues>,
     /// Photometric classification code
     pub photometric_code: String,
-    /// Tenth peak (field) divergence angles (C0-C180, C90-C270) in degrees
-    pub tenth_peak_divergence: (f64, f64),
-    /// Half peak (beam) divergence angles (C0-C180, C90-C270) in degrees
-    pub half_peak_divergence: (f64, f64),
+    /// Tenth peak (field) divergence: 10 % of the section peak in C0–C180
+    /// and C90–C270 (degrees; `None` = no crossing in that section)
+    pub tenth_peak_divergence: (Option<f64>, Option<f64>),
+    /// Half peak (beam) divergence: 50 % of the section peak in C0–C180
+    /// and C90–C270 (degrees; `None` = no crossing in that section)
+    pub half_peak_divergence: (Option<f64>, Option<f64>),
     /// BUG rating (Backlight, Uplight, Glare)
     pub light_distribution_bug_rating: String,
 }
@@ -1643,6 +1693,7 @@ pub struct IesMetadata {
 
 impl IesMetadata {
     /// Create IesMetadata from parsed IesData.
+    #[cfg(feature = "std")]
     pub fn from_ies_data(ies: &crate::ies::IesData) -> Self {
         use crate::ies::{FileGenerationType, LuminousShape, PhotometricType, UnitType};
 
@@ -1787,17 +1838,18 @@ impl IesMetadata {
     }
 }
 
+#[cfg(feature = "std")]
 impl GldfPhotometricData {
     /// Calculate GLDF-compatible photometric data from Eulumdat.
     pub fn from_eulumdat(ldt: &Eulumdat) -> Self {
         let cie_codes = PhotometricCalculations::cie_flux_codes(ldt);
         let bug = crate::bug_rating::BugRating::from_eulumdat(ldt);
 
-        // Calculate beam/field angles for both planes
-        let beam_c0 = PhotometricCalculations::beam_angle_for_plane(ldt, 0.0);
-        let beam_c90 = PhotometricCalculations::beam_angle_for_plane(ldt, 90.0);
-        let field_c0 = PhotometricCalculations::field_angle_for_plane(ldt, 0.0);
-        let field_c90 = PhotometricCalculations::field_angle_for_plane(ldt, 90.0);
+        // Beam/field angles of the two principal sections (50 % / 10 % of
+        // each section's peak)
+        let sections = PhotometricCalculations::beam_field_sections(ldt);
+        let (beam_c0, field_c0) = (sections.c0_c180.beam, sections.c0_c180.field);
+        let (beam_c90, field_c90) = (sections.c90_c270.beam, sections.c90_c270.field);
 
         // Calculate luminaire luminance at 65° (standard viewing angle)
         let luminance = PhotometricCalculations::luminaire_luminance(ldt, 65.0);
@@ -1873,15 +1925,17 @@ impl GldfPhotometricData {
             (
                 "tenth_peak_divergence",
                 format!(
-                    "{:.1} / {:.1}",
-                    self.tenth_peak_divergence.0, self.tenth_peak_divergence.1
+                    "{} / {}",
+                    opt_num(self.tenth_peak_divergence.0),
+                    opt_num(self.tenth_peak_divergence.1)
                 ),
             ),
             (
                 "half_peak_divergence",
                 format!(
-                    "{:.1} / {:.1}",
-                    self.half_peak_divergence.0, self.half_peak_divergence.1
+                    "{} / {}",
+                    opt_num(self.half_peak_divergence.0),
+                    opt_num(self.half_peak_divergence.1)
                 ),
             ),
             (
@@ -1951,12 +2005,14 @@ impl GldfPhotometricData {
             self.photometric_code
         ));
         s.push_str(&format!(
-            "Half Peak Divergence:    {:.1}° / {:.1}° (C0/C90)\n",
-            self.half_peak_divergence.0, self.half_peak_divergence.1
+            "Half Peak Divergence:    {} / {} (C0–C180 / C90–C270)\n",
+            format_angle(self.half_peak_divergence.0),
+            format_angle(self.half_peak_divergence.1)
         ));
         s.push_str(&format!(
-            "Tenth Peak Divergence:   {:.1}° / {:.1}° (C0/C90)\n",
-            self.tenth_peak_divergence.0, self.tenth_peak_divergence.1
+            "Tenth Peak Divergence:   {} / {} (C0–C180 / C90–C270)\n",
+            format_angle(self.tenth_peak_divergence.0),
+            format_angle(self.tenth_peak_divergence.1)
         ));
         s.push_str(&format!(
             "BUG Rating:              {}\n",
@@ -1967,8 +2023,9 @@ impl GldfPhotometricData {
     }
 }
 
-impl std::fmt::Display for GldfPhotometricData {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+#[cfg(feature = "std")]
+impl core::fmt::Display for GldfPhotometricData {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.to_text())
     }
 }
@@ -1978,70 +2035,6 @@ impl std::fmt::Display for GldfPhotometricData {
 // ============================================================================
 
 impl PhotometricCalculations {
-    /// Calculate beam angle (50% intensity) for a specific C-plane.
-    ///
-    /// Returns the **full angle** per CIE S 017:2020 definition.
-    pub fn beam_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
-        // Return full angle (2× half angle) per CIE definition
-        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.5) * 2.0
-    }
-
-    /// Calculate field angle (10% intensity) for a specific C-plane.
-    ///
-    /// Returns the **full angle** per CIE S 017:2020 definition.
-    pub fn field_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
-        // Return full angle (2× half angle) per CIE definition
-        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.1) * 2.0
-    }
-
-    /// Calculate half beam angle for a specific C-plane.
-    ///
-    /// Returns the half angle from nadir to 50% intensity point.
-    pub fn half_beam_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
-        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.5)
-    }
-
-    /// Calculate half field angle for a specific C-plane.
-    ///
-    /// Returns the half angle from nadir to 10% intensity point.
-    pub fn half_field_angle_for_plane(ldt: &Eulumdat, c_plane: f64) -> f64 {
-        Self::angle_at_percentage_for_plane(ldt, c_plane, 0.1)
-    }
-
-    /// Find the angle at which intensity drops to a percentage for a specific plane.
-    fn angle_at_percentage_for_plane(ldt: &Eulumdat, c_plane: f64, percentage: f64) -> f64 {
-        if ldt.g_angles.is_empty() {
-            return 0.0;
-        }
-
-        let i_nadir = crate::symmetry::SymmetryHandler::get_intensity_at(ldt, c_plane, 0.0);
-        if i_nadir <= 0.0 {
-            return 0.0;
-        }
-
-        let threshold = i_nadir * percentage;
-
-        for g in 1..90 {
-            let intensity =
-                crate::symmetry::SymmetryHandler::get_intensity_at(ldt, c_plane, g as f64);
-            if intensity < threshold {
-                // Interpolate
-                let prev = crate::symmetry::SymmetryHandler::get_intensity_at(
-                    ldt,
-                    c_plane,
-                    (g - 1) as f64,
-                );
-                if prev > threshold && prev > intensity {
-                    let ratio = (prev - threshold) / (prev - intensity);
-                    return (g - 1) as f64 + ratio;
-                }
-                return g as f64;
-            }
-        }
-
-        90.0
-    }
-
     /// Calculate luminaire luminance at a given viewing angle (cd/m²).
     ///
     /// L = I / A_projected
@@ -2071,7 +2064,7 @@ impl PhotometricCalculations {
         let avg_intensity = (i_c0 + i_c90) / 2.0;
 
         // Convert from cd/klm to actual cd using total flux
-        let total_flux = ldt.total_luminous_flux();
+        let total_flux = ldt.luminous_flux();
         let actual_intensity = avg_intensity * total_flux / 1000.0;
 
         // Luminance = I / A
@@ -2193,8 +2186,11 @@ impl PhotometricCalculations {
             "I" // Indirect
         };
 
-        // Beam classification (using full angle per CIE S 017:2020)
-        let beam_angle = Self::beam_angle(ldt);
+        // Beam classification (full angle at 50 % of the peak, section
+        // through the peak). Without a downward lobe there is no class.
+        let Some(beam_angle) = Self::beam_angle(ldt) else {
+            return dist_type.to_string();
+        };
         let beam_class = if beam_angle < 40.0 {
             "VN" // Very narrow (< 20° half angle)
         } else if beam_angle < 60.0 {
@@ -2215,62 +2211,150 @@ impl PhotometricCalculations {
 // Supporting Types
 // ============================================================================
 
-/// Comprehensive beam and field angle analysis.
+/// Format an optional angle in degrees with one decimal, `"—"` when absent.
 ///
-/// Compares IES (maximum intensity based) and CIE (center-beam intensity based)
-/// definitions of beam angle and field angle. This is important for luminaires
-/// with non-standard distributions like "batwing" patterns.
+/// Beam and field angles are `None` when the lobe does not drop below the
+/// threshold within its section (e.g. up-lights); show that as "—", never
+/// as a number.
+pub fn format_angle(value: Option<f64>) -> String {
+    match value {
+        Some(v) => format!("{v:.1}°"),
+        None => "—".to_string(),
+    }
+}
+
+/// Machine-readable optional number: one decimal, empty when absent.
+fn opt_num(value: Option<f64>) -> String {
+    value.map(|v| format!("{v:.1}")).unwrap_or_default()
+}
+
+/// Direction and value of the global intensity peak.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct PeakDirection {
+    /// C angle of the stored plane holding the peak (degrees).
+    pub c: f64,
+    /// γ angle of the peak (degrees, 0° = nadir).
+    pub gamma: f64,
+    /// Peak intensity (cd/klm).
+    pub intensity: f64,
+}
+
+/// Beam and field angle of one vertical section C–(C+180).
 ///
-/// See Wikipedia "Beam angle" article for the distinction between these definitions.
+/// Signed γ: the C side is positive, the C+180 side negative, so the section
+/// runs from −180° over nadir (0°) to +180°. Thresholds are 50 % / 10 % of
+/// the peak within this section.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct SectionBeamField {
+    /// C angle of the positive side (0 = C0–C180, 90 = C90–C270).
+    pub c_plane: f64,
+    /// Peak intensity within the section (cd/klm).
+    pub peak_intensity: f64,
+    /// Signed γ of the section peak (degrees).
+    pub peak_gamma: f64,
+    /// Beam angle: full width at 50 % of the section peak (degrees).
+    pub beam: Option<f64>,
+    /// Field angle: full width at 10 % of the section peak (degrees).
+    pub field: Option<f64>,
+    /// Signed γ of the left and right 50 % crossings.
+    pub beam_edges: Option<(f64, f64)>,
+    /// Signed γ of the left and right 10 % crossings.
+    pub field_edges: Option<(f64, f64)>,
+}
+
+impl SectionBeamField {
+    /// Section label, e.g. `"C0–C180"`.
+    pub fn label(&self) -> String {
+        let c = self.c_plane;
+        format!("C{:.0}–C{:.0}", c, (c + 180.0).rem_euclid(360.0))
+    }
+}
+
+/// Beam and field angles of the two principal sections.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct BeamFieldSections {
+    /// Section C0–C180.
+    pub c0_c180: SectionBeamField,
+    /// Section C90–C270.
+    pub c90_c270: SectionBeamField,
+}
+
+/// Beam and field angle analysis.
+///
+/// Two definitions are reported side by side:
+///
+/// - **Peak-referenced** (`*_ies`, CIE S 017 17-27-077 / IES beam spread):
+///   full width at 50 % / 10 % of the maximum intensity, measured in the
+///   vertical section through the global peak direction.
+/// - **Centre-beam referenced** (`*_cie`): full width at 50 % / 10 % of the
+///   nadir intensity I(γ = 0°) in the C0–C180 section. Differs from the
+///   peak-referenced value for batwing and off-axis distributions.
+///
+/// Angles are `None` when the lobe does not drop below the threshold on both
+/// sides of its section (e.g. up-lights).
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct BeamFieldAnalysis {
-    // IES definition (based on maximum intensity)
-    /// Beam angle using IES definition (50% of max intensity) in degrees
-    pub beam_angle_ies: f64,
-    /// Field angle using IES definition (10% of max intensity) in degrees
-    pub field_angle_ies: f64,
+    // Peak-referenced definition (section through the peak)
+    /// Beam angle, 50 % of the peak, in the section through the peak (degrees)
+    pub beam_angle_ies: Option<f64>,
+    /// Field angle, 10 % of the peak, in the section through the peak (degrees)
+    pub field_angle_ies: Option<f64>,
 
-    // CIE/NEMA definition (based on center-beam intensity)
-    /// Beam angle using CIE definition (50% of center-beam intensity) in degrees
-    pub beam_angle_cie: f64,
-    /// Field angle using CIE definition (10% of center-beam intensity) in degrees
-    pub field_angle_cie: f64,
+    // Centre-beam definition (C0–C180 section)
+    /// Beam angle, 50 % of the nadir intensity, C0–C180 section (degrees)
+    pub beam_angle_cie: Option<f64>,
+    /// Field angle, 10 % of the nadir intensity, C0–C180 section (degrees)
+    pub field_angle_cie: Option<f64>,
 
     // Reference intensity values
-    /// Maximum intensity anywhere in the distribution (cd/klm)
+    /// Maximum intensity over all planes (cd/klm)
     pub max_intensity: f64,
     /// Center-beam intensity at nadir/0° gamma (cd/klm)
     pub center_intensity: f64,
-    /// Gamma angle at which maximum intensity occurs (degrees)
+    /// Gamma angle of the global maximum (degrees)
     pub max_intensity_gamma: f64,
+    /// C angle of the global maximum (degrees)
+    pub max_intensity_c: f64,
+
+    // Sections
+    /// Section through the peak direction (source of `*_ies`)
+    pub peak_section: SectionBeamField,
+    /// Section C0–C180
+    pub c0_c180: SectionBeamField,
+    /// Section C90–C270
+    pub c90_c270: SectionBeamField,
 
     // Distribution type
-    /// True if this is a "batwing" distribution (center < max)
+    /// True if the nadir intensity is below 95 % of the peak (batwing or
+    /// off-axis peak)
     pub is_batwing: bool,
 
     // Threshold values for diagram overlays
-    /// 50% of max intensity (IES beam threshold)
+    /// 50% of max intensity (peak-referenced beam threshold)
     pub beam_threshold_ies: f64,
-    /// 50% of center intensity (CIE beam threshold)
+    /// 50% of center intensity (centre-beam threshold)
     pub beam_threshold_cie: f64,
-    /// 10% of max intensity (IES field threshold)
+    /// 10% of max intensity (peak-referenced field threshold)
     pub field_threshold_ies: f64,
-    /// 10% of center intensity (CIE field threshold)
+    /// 10% of center intensity (centre-beam field threshold)
     pub field_threshold_cie: f64,
 }
 
 impl BeamFieldAnalysis {
-    /// Returns the difference between CIE and IES beam angles.
+    /// Centre-beam minus peak-referenced beam angle, if both exist.
     ///
     /// A large positive value indicates a batwing distribution where
-    /// the CIE definition gives a wider beam angle.
-    pub fn beam_angle_difference(&self) -> f64 {
-        self.beam_angle_cie - self.beam_angle_ies
+    /// the centre-beam definition gives a wider beam angle.
+    pub fn beam_angle_difference(&self) -> Option<f64> {
+        Some(self.beam_angle_cie? - self.beam_angle_ies?)
     }
 
-    /// Returns the difference between CIE and IES field angles.
-    pub fn field_angle_difference(&self) -> f64 {
-        self.field_angle_cie - self.field_angle_ies
+    /// Centre-beam minus peak-referenced field angle, if both exist.
+    pub fn field_angle_difference(&self) -> Option<f64> {
+        Some(self.field_angle_cie? - self.field_angle_ies?)
     }
 
     /// Returns the ratio of center intensity to max intensity.
@@ -2298,30 +2382,45 @@ impl BeamFieldAnalysis {
         }
     }
 
-    /// Format for display with both IES and CIE values.
+    /// Format for display with both definitions and both principal sections.
     pub fn to_string_detailed(&self) -> String {
+        let delta = |d: Option<f64>| d.map(|d| format!(" (Δ{d:+.1}°)")).unwrap_or_default();
         format!(
-            "Beam: IES {:.1}° / CIE {:.1}° (Δ{:+.1}°)\n\
-             Field: IES {:.1}° / CIE {:.1}° (Δ{:+.1}°)\n\
-             Center/Max: {:.1}% ({})",
-            self.beam_angle_ies,
-            self.beam_angle_cie,
-            self.beam_angle_difference(),
-            self.field_angle_ies,
-            self.field_angle_cie,
-            self.field_angle_difference(),
+            "Beam (50 % of peak, {}): {} / (50 % of center, C0–C180): {}{}\n\
+             Field (10 % of peak, {}): {} / (10 % of center, C0–C180): {}{}\n\
+             C0–C180: beam {} / field {}; C90–C270: beam {} / field {}\n\
+             Peak: {:.0} cd/klm at C{:.0} γ{:.0}°; Center/Max: {:.1}% ({})",
+            self.peak_section.label(),
+            format_angle(self.beam_angle_ies),
+            format_angle(self.beam_angle_cie),
+            delta(self.beam_angle_difference()),
+            self.peak_section.label(),
+            format_angle(self.field_angle_ies),
+            format_angle(self.field_angle_cie),
+            delta(self.field_angle_difference()),
+            format_angle(self.c0_c180.beam),
+            format_angle(self.c0_c180.field),
+            format_angle(self.c90_c270.beam),
+            format_angle(self.c90_c270.field),
+            self.max_intensity,
+            self.max_intensity_c,
+            self.max_intensity_gamma,
             self.center_to_max_ratio() * 100.0,
             self.distribution_type()
         )
     }
 }
 
-impl std::fmt::Display for BeamFieldAnalysis {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for BeamFieldAnalysis {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             f,
-            "Beam: {:.1}° (IES) / {:.1}° (CIE), Field: {:.1}° (IES) / {:.1}° (CIE)",
-            self.beam_angle_ies, self.beam_angle_cie, self.field_angle_ies, self.field_angle_cie
+            "Beam: {} (50 % of peak, {}) / {} (50 % of center), Field: {} (10 % of peak) / {} (10 % of center)",
+            format_angle(self.beam_angle_ies),
+            self.peak_section.label(),
+            format_angle(self.beam_angle_cie),
+            format_angle(self.field_angle_ies),
+            format_angle(self.field_angle_cie)
         )
     }
 }
@@ -2337,8 +2436,8 @@ pub enum LightDirection {
     Upward,
 }
 
-impl std::fmt::Display for LightDirection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for LightDirection {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             LightDirection::Downward => write!(f, "Downward"),
             LightDirection::Upward => write!(f, "Upward"),
@@ -2361,8 +2460,8 @@ pub enum DistributionType {
     IndirectDirect,
 }
 
-impl std::fmt::Display for DistributionType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for DistributionType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             DistributionType::Direct => write!(f, "Direct"),
             DistributionType::Indirect => write!(f, "Indirect"),
@@ -2374,29 +2473,34 @@ impl std::fmt::Display for DistributionType {
 
 /// Comprehensive beam angle analysis for both downward and upward light components.
 ///
-/// This provides separate beam and field angles for each hemisphere, useful for
-/// luminaires with light output in both directions (direct-indirect, uplights, etc.).
+/// Each component is measured around its own hemisphere peak (over all
+/// stored planes) in the section through that peak; angles are `None` when
+/// there is no such component or its lobe does not drop below the threshold.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct ComprehensiveBeamAnalysis {
     // Downward (lower hemisphere) measurements
     /// Beam angle for downward light (50% of downward peak) in degrees
-    pub downward_beam_angle: f64,
+    pub downward_beam_angle: Option<f64>,
     /// Field angle for downward light (10% of downward peak) in degrees
-    pub downward_field_angle: f64,
+    pub downward_field_angle: Option<f64>,
     /// Peak intensity in lower hemisphere (cd/klm)
     pub downward_peak_intensity: f64,
     /// Gamma angle of peak intensity in lower hemisphere (degrees)
     pub downward_peak_gamma: f64,
+    /// C angle of peak intensity in lower hemisphere (degrees)
+    pub downward_peak_c: f64,
 
     // Upward (upper hemisphere) measurements
     /// Beam angle for upward light (50% of upward peak) in degrees
-    pub upward_beam_angle: f64,
+    pub upward_beam_angle: Option<f64>,
     /// Field angle for upward light (10% of upward peak) in degrees
-    pub upward_field_angle: f64,
+    pub upward_field_angle: Option<f64>,
     /// Peak intensity in upper hemisphere (cd/klm)
     pub upward_peak_intensity: f64,
     /// Gamma angle of peak intensity in upper hemisphere (degrees)
     pub upward_peak_gamma: f64,
+    /// C angle of peak intensity in upper hemisphere (degrees)
+    pub upward_peak_c: f64,
 
     /// Primary light direction (based on higher peak intensity)
     pub primary_direction: LightDirection,
@@ -2405,14 +2509,14 @@ pub struct ComprehensiveBeamAnalysis {
 }
 
 impl ComprehensiveBeamAnalysis {
-    /// Returns true if there is significant upward light component
+    /// Returns true if there is an upward lobe with a beam angle
     pub fn has_upward_component(&self) -> bool {
-        self.upward_peak_intensity > 0.0 && self.upward_beam_angle > 0.0
+        self.upward_peak_intensity > 0.0 && self.upward_beam_angle.is_some()
     }
 
-    /// Returns true if there is significant downward light component
+    /// Returns true if there is a downward lobe with a beam angle
     pub fn has_downward_component(&self) -> bool {
-        self.downward_peak_intensity > 0.0 && self.downward_beam_angle > 0.0
+        self.downward_peak_intensity > 0.0 && self.downward_beam_angle.is_some()
     }
 
     /// Returns the ratio of upward to downward peak intensity
@@ -2427,7 +2531,7 @@ impl ComprehensiveBeamAnalysis {
     }
 
     /// Get the primary beam angle (from the dominant direction)
-    pub fn primary_beam_angle(&self) -> f64 {
+    pub fn primary_beam_angle(&self) -> Option<f64> {
         match self.primary_direction {
             LightDirection::Downward => self.downward_beam_angle,
             LightDirection::Upward => self.upward_beam_angle,
@@ -2435,7 +2539,7 @@ impl ComprehensiveBeamAnalysis {
     }
 
     /// Get the primary field angle (from the dominant direction)
-    pub fn primary_field_angle(&self) -> f64 {
+    pub fn primary_field_angle(&self) -> Option<f64> {
         match self.primary_direction {
             LightDirection::Downward => self.downward_field_angle,
             LightDirection::Upward => self.upward_field_angle,
@@ -2443,20 +2547,21 @@ impl ComprehensiveBeamAnalysis {
     }
 }
 
-impl std::fmt::Display for ComprehensiveBeamAnalysis {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for ComprehensiveBeamAnalysis {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             f,
-            "{} ({:.1}°/{:.1}°)",
+            "{} ({}/{})",
             self.distribution_type,
-            self.primary_beam_angle(),
-            self.primary_field_angle()
+            format_angle(self.primary_beam_angle()),
+            format_angle(self.primary_field_angle())
         )?;
         if self.has_downward_component() && self.has_upward_component() {
             write!(
                 f,
-                " [Down: {:.1}°, Up: {:.1}°]",
-                self.downward_beam_angle, self.upward_beam_angle
+                " [Down: {}, Up: {}]",
+                format_angle(self.downward_beam_angle),
+                format_angle(self.upward_beam_angle)
             )?;
         }
         Ok(())
@@ -2483,8 +2588,8 @@ pub struct CieFluxCodes {
     pub n5: f64,
 }
 
-impl std::fmt::Display for CieFluxCodes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for CieFluxCodes {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         // CIE 52 specifies banker's rounding (round-half-to-even). Rust's
         // `f64::round` rounds half-away-from-zero, so use `round_ties_even`
         // to match the spec on .5 boundaries.
@@ -3075,7 +3180,7 @@ impl UgrTable {
 
         // Calculate luminaire luminance at key angles
         let luminous_area = (ldt.luminous_area_length * ldt.luminous_area_width).max(1.0) / 1e6; // m²
-        let total_flux = ldt.total_luminous_flux().max(1.0);
+        let total_flux = ldt.luminous_flux().max(1.0);
 
         // For each room size
         for &(x, y) in &UGR_ROOM_SIZES {
@@ -3306,7 +3411,7 @@ impl UgrTable {
 
         // Get total flux
         let total_flux = if !ldt.lamp_sets.is_empty() {
-            ldt.lamp_sets.iter().map(|l| l.total_luminous_flux).sum()
+            ldt.luminous_flux()
         } else {
             1000.0
         };
@@ -3436,7 +3541,7 @@ pub struct CandelaTabulation {
 impl CandelaTabulation {
     /// Create candela tabulation from Eulumdat data.
     pub fn from_eulumdat(ldt: &Eulumdat) -> Self {
-        let total_flux = ldt.total_luminous_flux().max(1.0);
+        let total_flux = ldt.luminous_flux().max(1.0);
         let cd_factor = total_flux / 1000.0; // cd/klm to cd
 
         let mut entries = Vec::new();
@@ -3553,10 +3658,16 @@ impl CandelaTabulation {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NemaClassification {
-    /// Full horizontal spread angle in degrees (10% threshold)
-    pub horizontal_spread: f64,
-    /// Full vertical spread angle in degrees (10% threshold)
-    pub vertical_spread: f64,
+    /// Full horizontal spread at 10 % of I_max, along the line through the
+    /// beam axis (degrees); `None` when an edge lies beyond ±90°
+    pub horizontal_spread: Option<f64>,
+    /// Full vertical spread at 10 % of I_max, along the line through the
+    /// beam axis (degrees); `None` when an edge lies beyond ±90°
+    pub vertical_spread: Option<f64>,
+    /// Type B horizontal angle of the beam axis (peak), degrees
+    pub peak_h: f64,
+    /// Type B vertical angle of the beam axis (peak), degrees
+    pub peak_v: f64,
     /// NEMA type for horizontal spread (1–7)
     pub horizontal_type: u8,
     /// NEMA type for vertical spread (1–7)
@@ -3567,8 +3678,8 @@ pub struct NemaClassification {
     pub designation: String,
 }
 
-impl std::fmt::Display for NemaClassification {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for NemaClassification {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.designation)
     }
 }
@@ -3576,25 +3687,34 @@ impl std::fmt::Display for NemaClassification {
 impl PhotometricCalculations {
     /// Classify a luminaire according to NEMA floodlight beam types.
     ///
-    /// Scans the horizontal plane (V=0) and vertical plane (H=0) in Type B
-    /// coordinates at 0.5° steps, finding where intensity drops below 10%
-    /// of the peak intensity.
+    /// Works in Type B coordinates (H horizontal, V vertical; H = V = 0 on
+    /// the luminaire axis). The beam axis is the peak direction on a 1° grid
+    /// over ±90°. The horizontal spread is measured along V = V_peak, the
+    /// vertical spread along H = H_peak: from the peak outward on both sides
+    /// to the first direction below 10 % of I_max (0.5° steps, linear
+    /// interpolation) — the same rule as [`Self::section_beam_field`]. A
+    /// spread whose 10 % edge lies beyond ±90° is `None` and classified as
+    /// type 7 (> 130°).
     pub fn nema_classification(ldt: &Eulumdat) -> NemaClassification {
-        // Find I_max by scanning the Type B grid around center
-        let mut i_max: f64 = 0.0;
-        for h in (-90..=90).map(|i| i as f64) {
-            for v in (-90..=90).map(|i| i as f64) {
-                let intensity = TypeBConversion::intensity_at_type_b(ldt, h, v);
+        let at = |h: f64, v: f64| TypeBConversion::intensity_at_type_b(ldt, h, v);
+
+        // Beam axis: peak of the Type B grid
+        let (mut i_max, mut peak_h, mut peak_v) = (0.0_f64, 0.0_f64, 0.0_f64);
+        for h in (-90..=90).map(f64::from) {
+            for v in (-90..=90).map(f64::from) {
+                let intensity = at(h, v);
                 if intensity > i_max {
-                    i_max = intensity;
+                    (i_max, peak_h, peak_v) = (intensity, h, v);
                 }
             }
         }
 
         if i_max <= 0.0 {
             return NemaClassification {
-                horizontal_spread: 0.0,
-                vertical_spread: 0.0,
+                horizontal_spread: None,
+                vertical_spread: None,
+                peak_h: 0.0,
+                peak_v: 0.0,
                 horizontal_type: 1,
                 vertical_type: 1,
                 i_max: 0.0,
@@ -3602,14 +3722,28 @@ impl PhotometricCalculations {
             };
         }
 
-        let threshold = i_max * 0.1;
-        let step = 0.5_f64;
-
-        // Scan horizontal plane (V=0, H varying) for horizontal spread
-        let horizontal_spread = Self::scan_spread(ldt, threshold, step, true);
-
-        // Scan vertical plane (H=0, V varying) for vertical spread
-        let vertical_spread = Self::scan_spread(ldt, threshold, step, false);
+        let threshold = i_max * FIELD_FRACTION;
+        // Profile along one line through the beam axis, −90°…+90° in 0.5° steps
+        let spread = |horizontal: bool| {
+            let pts: Vec<(f64, f64)> = (0..=360)
+                .map(|k| {
+                    let a = -90.0 + f64::from(k) * 0.5;
+                    let i = if horizontal {
+                        at(a, peak_v)
+                    } else {
+                        at(peak_h, a)
+                    };
+                    (a, i)
+                })
+                .collect();
+            let centre_pos = if horizontal { peak_h } else { peak_v };
+            let centre = pts
+                .iter()
+                .position(|&(a, _)| (a - centre_pos).abs() < 1e-9)?;
+            Self::lobe_edges(&pts, centre, threshold).map(|(l, r)| r - l)
+        };
+        let horizontal_spread = spread(true);
+        let vertical_spread = spread(false);
 
         let horizontal_type = Self::nema_type_from_spread(horizontal_spread);
         let vertical_type = Self::nema_type_from_spread(vertical_spread);
@@ -3619,6 +3753,8 @@ impl PhotometricCalculations {
         NemaClassification {
             horizontal_spread,
             vertical_spread,
+            peak_h,
+            peak_v,
             horizontal_type,
             vertical_type,
             i_max,
@@ -3626,47 +3762,11 @@ impl PhotometricCalculations {
         }
     }
 
-    /// Scan along one axis (H or V) to find the full spread angle
-    /// where intensity drops below threshold.
-    fn scan_spread(ldt: &Eulumdat, threshold: f64, step: f64, horizontal: bool) -> f64 {
-        let mut min_angle = 0.0_f64;
-        let mut max_angle = 0.0_f64;
-
-        // Scan positive direction
-        let mut angle = 0.0;
-        while angle <= 90.0 {
-            let intensity = if horizontal {
-                TypeBConversion::intensity_at_type_b(ldt, angle, 0.0)
-            } else {
-                TypeBConversion::intensity_at_type_b(ldt, 0.0, angle)
-            };
-
-            if intensity >= threshold {
-                max_angle = angle;
-            }
-            angle += step;
-        }
-
-        // Scan negative direction
-        angle = 0.0;
-        while angle >= -90.0 {
-            let intensity = if horizontal {
-                TypeBConversion::intensity_at_type_b(ldt, angle, 0.0)
-            } else {
-                TypeBConversion::intensity_at_type_b(ldt, 0.0, angle)
-            };
-
-            if intensity >= threshold {
-                min_angle = angle;
-            }
-            angle -= step;
-        }
-
-        (max_angle - min_angle).abs()
-    }
-
-    /// Map a spread angle to NEMA type (1–7)
-    fn nema_type_from_spread(spread: f64) -> u8 {
+    /// Map a spread angle to NEMA type (1–7); no edge within ±90° is type 7
+    fn nema_type_from_spread(spread: Option<f64>) -> u8 {
+        let Some(spread) = spread else {
+            return 7;
+        };
         if spread < 18.0 {
             1 // Below 18° or NEMA Type 1
         } else if spread < 29.0 {
@@ -3734,12 +3834,12 @@ mod tests {
     #[test]
     fn test_beam_angle() {
         let ldt = create_test_ldt();
-        let beam = PhotometricCalculations::beam_angle(&ldt);
+        let beam = PhotometricCalculations::beam_angle(&ldt).expect("downlight has a beam");
         // Beam angle is full angle per CIE S 017:2020, should be positive and <= 180°
         assert!(beam > 0.0 && beam <= 180.0, "Beam angle was {}", beam);
 
         // Half beam angle should be half of full angle
-        let half_beam = PhotometricCalculations::half_beam_angle(&ldt);
+        let half_beam = PhotometricCalculations::half_beam_angle(&ldt).unwrap();
         assert!(
             (beam - half_beam * 2.0).abs() < 0.01,
             "Half beam should be half of full beam"
@@ -3943,8 +4043,8 @@ mod tests {
         assert!(summary.luminaire_efficacy <= summary.lamp_efficacy);
 
         // Check beam angles (both should be positive)
-        assert!(summary.beam_angle > 0.0);
-        assert!(summary.field_angle > 0.0);
+        assert!(summary.beam_angle.unwrap() > 0.0);
+        assert!(summary.field_angle.unwrap() > 0.0);
 
         // Check text output
         let text = summary.to_text();
@@ -4072,7 +4172,7 @@ mod tests {
         let ldt = create_test_uplight_ldt();
 
         // Upward beam angle should be positive for uplight
-        let upward_beam = PhotometricCalculations::upward_beam_angle(&ldt);
+        let upward_beam = PhotometricCalculations::upward_beam_angle(&ldt).expect("upward lobe");
         assert!(
             upward_beam > 0.0,
             "Upward beam angle should be positive, got {}",
@@ -4080,7 +4180,7 @@ mod tests {
         );
 
         // Upward field angle should be >= beam angle
-        let upward_field = PhotometricCalculations::upward_field_angle(&ldt);
+        let upward_field = PhotometricCalculations::upward_field_angle(&ldt).expect("upward lobe");
         assert!(
             upward_field >= upward_beam,
             "Field angle {} should be >= beam angle {}",
@@ -4127,8 +4227,8 @@ mod tests {
 
         // Upward beam angle should be positive
         assert!(
-            analysis.upward_beam_angle > 0.0,
-            "Upward beam angle should be positive, got {}",
+            analysis.upward_beam_angle.is_some_and(|a| a > 0.0),
+            "Upward beam angle should be positive, got {:?}",
             analysis.upward_beam_angle
         );
     }
@@ -4164,11 +4264,11 @@ mod tests {
 
         // Both beam angles should be positive
         assert!(
-            analysis.downward_beam_angle > 0.0,
+            analysis.downward_beam_angle.is_some_and(|a| a > 0.0),
             "Downward beam angle should be positive"
         );
         assert!(
-            analysis.upward_beam_angle > 0.0,
+            analysis.upward_beam_angle.is_some_and(|a| a > 0.0),
             "Upward beam angle should be positive"
         );
     }
@@ -4194,7 +4294,7 @@ mod tests {
 
         // Downward beam should be positive
         assert!(
-            analysis.downward_beam_angle > 0.0,
+            analysis.downward_beam_angle.is_some_and(|a| a > 0.0),
             "Downward beam angle should be positive"
         );
     }

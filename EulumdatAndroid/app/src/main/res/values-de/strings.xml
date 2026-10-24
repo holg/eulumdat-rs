@@ -214,7 +214,7 @@
     <string name="luminaire_optical_tilt_angle">Neigungswinkel (°)</string>
     <string name="luminaire_optical_title">Optische Eigenschaften</string>
     <string name="luminaire_photometric_beam_angle">Strahlwinkel</string>
-    <string name="luminaire_photometric_beam_angle_50">Strahlwinkel (50%)</string>
+    <string name="luminaire_photometric_beam_angle_50">Strahlwinkel (50 % des Maximums)</string>
     <string name="luminaire_photometric_cct">Farbtemperatur</string>
     <string name="luminaire_photometric_cie_class">CIE-Klassifikation</string>
     <string name="luminaire_photometric_cri">Farbwiedergabeindex</string>
@@ -222,7 +222,7 @@
     <string name="luminaire_photometric_dlor">Unterer LOR</string>
     <string name="luminaire_photometric_efficacy">Lichtausbeute</string>
     <string name="luminaire_photometric_field_angle">Feldwinkel</string>
-    <string name="luminaire_photometric_field_angle_10">Feldwinkel (10%)</string>
+    <string name="luminaire_photometric_field_angle_10">Feldwinkel (10 % des Maximums)</string>
     <string name="luminaire_photometric_lamp_efficacy">Lampeneffizienz</string>
     <string name="luminaire_photometric_lor">Leuchtenbetriebswirkungsgrad</string>
     <string name="luminaire_photometric_luminaire_efficacy">Leuchteneffizienz</string>
@@ -231,8 +231,8 @@
     <string name="luminaire_photometric_spacing_criterion">Abstandskriterium</string>
     <string name="luminaire_photometric_symmetry">Symmetrie</string>
     <string name="luminaire_photometric_total_flux">Gesamtlichtstrom</string>
-    <string name="luminaire_photometric_total_lamp_flux">Gesamter Lampenstrom</string>
-    <string name="luminaire_photometric_total_wattage">Gesamtleistung</string>
+    <string name="luminaire_photometric_total_lamp_flux">Lampenlichtstrom (Bestückung 1)</string>
+    <string name="luminaire_photometric_total_wattage">Leistung (Bestückung 1)</string>
     <string name="luminaire_photometric_ulor">Oberer LOR</string>
     <string name="luminaire_physical_dimensions">Abmessungen</string>
     <string name="luminaire_physical_dimensions_mm">Leuchtenabmessungen (mm)</string>

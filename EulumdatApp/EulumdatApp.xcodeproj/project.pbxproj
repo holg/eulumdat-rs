@@ -63,7 +63,12 @@
 		A1000003 /* SVGView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003 /* SVGView.swift */; };
 		A1000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000004 /* Assets.xcassets */; };
 		A1000005 /* EulumdatKit in Frameworks */ = {isa = PBXBuildFile; productRef = A3000001 /* EulumdatKit */; };
+		ADCB645A98BD309340055F14 /* ThemeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC9D84BD6DDD0C34ED53A1B /* ThemeEditorView.swift */; };
 		B1000001 /* EulumdatAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000001 /* EulumdatAppUITests.swift */; };
+		B35C6A2B3B04DE5A26937C5F /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 94A808F58BD9067AC8C81075 /* Products.storekit */; };
+		D4C661E73794C276F055225A /* ThemePresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40BEFE5CB4371386FB89D9B4 /* ThemePresetStore.swift */; };
+		DB62DBD3BCBD2CBCE641497D /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E22C8BA4C39822202A044810 /* StoreManager.swift */; };
+		E577F21DAAD528C12643F63C /* BatchExportGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13821C37E11E86BD6F06EE2 /* BatchExportGate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -148,6 +153,10 @@
 		21D00002D0DEFACE00000001 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		21D00002D0DEFACE00000002 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		21D00002D0DEFACE00000003 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		40BEFE5CB4371386FB89D9B4 /* ThemePresetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThemePresetStore.swift; sourceTree = "<group>"; };
+		94A808F58BD9067AC8C81075 /* Products.storekit */ = {isa = PBXFileReference; includeInIndex = 1; path = Products.storekit; sourceTree = "<group>"; };
+		9DC9D84BD6DDD0C34ED53A1B /* ThemeEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThemeEditorView.swift; sourceTree = "<group>"; };
+		A13821C37E11E86BD6F06EE2 /* BatchExportGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BatchExportGate.swift; sourceTree = "<group>"; };
 		A2000001 /* EulumdatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EulumdatApp.swift; sourceTree = "<group>"; };
 		A2000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2000003 /* SVGView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGView.swift; sourceTree = "<group>"; };
@@ -157,10 +166,11 @@
 		A2000010 /* Eulumdat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Eulumdat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2000001 /* EulumdatAppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EulumdatAppUITests.swift; sourceTree = "<group>"; };
 		B2000010 /* EulumdatAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EulumdatAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E22C8BA4C39822202A044810 /* StoreManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		213C0A982EE44458008B665C /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		213C0A982EE44458008B665C /* Exceptions for "LdtPreview" folder in "LdtPreview" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -170,7 +180,18 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		213C0A892EE44458008B665C /* LdtPreview */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (213C0A982EE44458008B665C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = LdtPreview; sourceTree = "<group>"; };
+		213C0A892EE44458008B665C /* LdtPreview */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				213C0A982EE44458008B665C /* Exceptions for "LdtPreview" folder in "LdtPreview" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = LdtPreview;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -293,6 +314,11 @@
 				A2000005 /* Info.plist */,
 				A2000006 /* EulumdatApp.entitlements */,
 				21B842E42EE2235B00502C5E /* Resources */,
+				9DC9D84BD6DDD0C34ED53A1B /* ThemeEditorView.swift */,
+				40BEFE5CB4371386FB89D9B4 /* ThemePresetStore.swift */,
+				E22C8BA4C39822202A044810 /* StoreManager.swift */,
+				A13821C37E11E86BD6F06EE2 /* BatchExportGate.swift */,
+				94A808F58BD9067AC8C81075 /* Products.storekit */,
 			);
 			path = EulumdatApp;
 			sourceTree = "<group>";
@@ -414,7 +440,7 @@
 			);
 			mainGroup = A5000001;
 			packageReferences = (
-				A3000002 /* XCLocalSwiftPackageReference "../swift" */,
+				A3000002 /* XCLocalSwiftPackageReference "swift" */,
 			);
 			productRefGroup = A5000003 /* Products */;
 			projectDirPath = "";
@@ -478,6 +504,7 @@
 				21C00001C0DEFACE0000001E /* S01.01.02.354_MAXWELL-8-T4 LUXEON 5050 Square with glass-MEASURED_IESNA.ies in Resources */,
 				21D00001D0DEFACE00000002 /* Localizable.xcstrings in Resources */,
 				21D00001D0DEFACE00000003 /* InfoPlist.xcstrings in Resources */,
+				B35C6A2B3B04DE5A26937C5F /* Products.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -515,6 +542,10 @@
 				218980FF2EE8CE1E00BC4390 /* Packages.swift in Sources */,
 				213409AE2F58B842001BA5AA /* BimPanelView.swift in Sources */,
 				21D00001D0DEFACE00000001 /* Localization.swift in Sources */,
+				ADCB645A98BD309340055F14 /* ThemeEditorView.swift in Sources */,
+				D4C661E73794C276F055225A /* ThemePresetStore.swift in Sources */,
+				DB62DBD3BCBD2CBCE641497D /* StoreManager.swift in Sources */,
+				E577F21DAAD528C12643F63C /* BatchExportGate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -561,7 +592,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -598,7 +629,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat.LdtPreview;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -769,7 +800,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
@@ -810,7 +841,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = eu.trahe.eulumdat;
 				PRODUCT_NAME = Eulumdat;
 				SDKROOT = auto;
@@ -905,7 +936,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		A3000002 /* XCLocalSwiftPackageReference "../swift" */ = {
+		A3000002 /* XCLocalSwiftPackageReference "swift" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../swift;
 		};

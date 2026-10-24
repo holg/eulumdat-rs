@@ -22,7 +22,7 @@ ldt = eulumdat.Eulumdat.from_file("luminaire.ldt")
 print(f"Luminaire: {ldt.luminaire_name}")
 print(f"Symmetry: {ldt.symmetry}")
 print(f"Max intensity: {ldt.max_intensity()} cd/klm")
-print(f"Total flux: {ldt.total_luminous_flux()} lm")
+print(f"Lamp flux (lamp set 1): {ldt.luminous_flux()} lm")
 
 # Validate the data
 for warning in ldt.validate():
@@ -57,9 +57,12 @@ print(f"CIE Flux Code: {cie}")  # e.g., "100 77 43 0 0"
 print(f"N1 (DLOR): {cie.n1}%")
 print(f"N4 (ULOR): {cie.n4}%")
 
-# Beam characteristics
-print(f"Beam angle (50%): {ldt.beam_angle():.1f}°")
-print(f"Field angle (10%): {ldt.field_angle():.1f}°")
+# Beam characteristics: full width at 50 % / 10 % of the peak, in the
+# section through the peak; None when there is no downward lobe (up-lights)
+beam, field = ldt.beam_angle(), ldt.field_angle()
+print(f"Beam angle (50% of peak): {beam:.1f}°" if beam is not None else "Beam angle: —")
+print(f"Field angle (10% of peak): {field:.1f}°" if field is not None else "Field angle: —")
+print(ldt.beam_field_sections())  # C0–C180 and C90–C270
 print(f"Cut-off angle: {ldt.cut_off_angle():.1f}°")
 
 # Spacing criteria (S/H ratios)

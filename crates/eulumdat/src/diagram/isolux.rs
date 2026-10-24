@@ -15,6 +15,8 @@
 
 use super::color::{heatmap_color, Color};
 use super::contour::{marching_squares, ContourLine};
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::units::UnitSystem;
 use crate::Eulumdat;
 
@@ -132,7 +134,7 @@ impl IsoluxDiagram {
         // EULUMDAT field 26c (total_luminous_flux) is already the set total,
         // so we sum across sets — do NOT multiply by num_lamps (that
         // double-counts multi-lamp luminaires).
-        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
+        let total_flux: f64 = ldt.luminous_flux();
         let flux_scale = total_flux / 1000.0;
 
         // Build grid

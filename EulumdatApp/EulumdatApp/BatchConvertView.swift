@@ -14,9 +14,18 @@ struct BatchConvertView: View {
     @State private var preserveSubfolders = true
     @State private var overwriteExisting = false
 
+    // Themed SVG export.
+    @ObservedObject private var presetStore = ThemePresetStore.shared
+    /// Selected theme preset name for SVG export; empty = built-in Light.
+    @State private var selectedPreset = ""
+    /// Which diagram types to render (polar by default).
+    @State private var selectedDiagrams: Set<DiagramKind> = [.polar]
+    @AppStorage("svgExportSize") private var svgExportSize = 600.0
+
     enum OutputFormat: String, CaseIterable, Identifiable {
         case ies = "IES (IESNA LM-63)"
         case ldt = "LDT (Normalized)"
+        case svg = "Themed SVG diagrams"
 
         var id: String { rawValue }
 
@@ -24,8 +33,64 @@ struct BatchConvertView: View {
             switch self {
             case .ies: return "ies"
             case .ldt: return "ldt"
+            case .svg: return "svg"
             }
         }
+
+        /// SVG export renders diagrams and needs a theme; text formats don't.
+        var isThemed: Bool { self == .svg }
+    }
+
+    /// A diagram type the batch export can render, with its themed FFI call.
+    enum DiagramKind: String, CaseIterable, Identifiable {
+        case polar = "Polar"
+        case cartesian = "Cartesian"
+        case heatmap = "Heatmap"
+        case butterfly = "Butterfly"
+
+        var id: String { rawValue }
+
+        /// Filename suffix appended before ".svg" (e.g. "_polar").
+        var fileSuffix: String { "_" + rawValue.lowercased() }
+
+        /// Render this diagram for `ldt` with the given theme.
+        func render(ldt: Eulumdat, size: Double, theme: SvgThemeConfig) -> String {
+            switch self {
+            case .polar:
+                return generatePolarSvgThemed(ldt: ldt, width: size, height: size, config: theme)
+            case .cartesian:
+                return generateCartesianSvgThemed(
+                    ldt: ldt, width: size, height: size * 0.75, maxCurves: 8, config: theme)
+            case .heatmap:
+                return generateHeatmapSvgThemed(
+                    ldt: ldt, width: size, height: size * 0.7, config: theme)
+            case .butterfly:
+                return generateButterflySvgThemed(
+                    ldt: ldt, width: size, height: size * 0.8, tiltDegrees: 60, config: theme)
+            }
+        }
+    }
+
+    /// Sentinel tag for "use the theme currently being edited in the Theme tab".
+    private static let currentThemeTag = "__current__"
+
+    /// Resolve the theme to use for SVG export:
+    ///   • the live Theme-tab theme (sentinel), or
+    ///   • a saved preset by name, or
+    ///   • the built-in Light preset (empty selection / fallback).
+    private var exportTheme: SvgThemeConfig {
+        if selectedPreset == Self.currentThemeTag, let cfg = presetStore.current {
+            return cfg
+        }
+        if !selectedPreset.isEmpty, let cfg = presetStore.config(named: selectedPreset) {
+            return cfg
+        }
+        return themePreset(name: "light")
+    }
+
+    /// Diagram kinds to render, in canonical order, honouring the selection.
+    private var activeDiagrams: [DiagramKind] {
+        DiagramKind.allCases.filter { selectedDiagrams.contains($0) }
     }
 
     var body: some View {
@@ -38,7 +103,7 @@ struct BatchConvertView: View {
                 VStack(alignment: .leading) {
                     Text("Batch Convert LDT Files")
                         .font(.headline)
-                    Text("Convert multiple EULUMDAT files to IES format")
+                    Text("Convert to IES/LDT, or export themed SVG diagrams")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -79,6 +144,41 @@ struct BatchConvertView: View {
                     Picker("Format", selection: $outputFormat) {
                         ForEach(OutputFormat.allCases) { format in
                             Text(format.rawValue).tag(format)
+                        }
+                    }
+
+                    if outputFormat.isThemed {
+                        Picker("Theme", selection: $selectedPreset) {
+                            Text("Light (built-in)").tag("")
+                            if presetStore.current != nil {
+                                Text("Current theme (from Theme tab)").tag(Self.currentThemeTag)
+                            }
+                            if !presetStore.names.isEmpty {
+                                Divider()
+                                ForEach(presetStore.names, id: \.self) { name in
+                                    Text(name).tag(name)
+                                }
+                            }
+                        }
+                        .help("Edit in the Theme tab and pick “Current theme”, or save named presets there.")
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Diagrams")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            ForEach(DiagramKind.allCases) { kind in
+                                Toggle(kind.rawValue, isOn: Binding(
+                                    get: { selectedDiagrams.contains(kind) },
+                                    set: { on in
+                                        if on {
+                                            selectedDiagrams.insert(kind)
+                                        } else if selectedDiagrams.count > 1 {
+                                            // Keep at least one selected.
+                                            selectedDiagrams.remove(kind)
+                                        }
+                                    }
+                                ))
+                            }
                         }
                     }
 
@@ -268,68 +368,115 @@ struct BatchConvertView: View {
             }
         }
 
-        // Step 2: Batch convert all files at once using Rust core function
+        // Step 2/3: Themed SVG fans out one file per selected diagram type, so
+        // it uses its own writer. Text formats keep the 1:1 batch path.
+        if outputFormat.isThemed {
+            return writeThemedSvgs(batchInputs, sourceFolder: sourceFolder, destination: destination, into: &results)
+        }
+
         let format: ConversionFormat = outputFormat == .ies ? .ies : .ldt
         let batchFiles = batchInputs.map { $0.file }
         let convertedFiles = batchConvertContents(files: batchFiles, format: format)
 
-        // Step 3: Write converted files to disk
+        // Write converted files to disk (1:1 with inputs).
         for (index, converted) in convertedFiles.enumerated() {
             guard index < batchInputs.count else { continue }
             let originalURL = batchInputs[index].url
+            let outputURL = outputPath(for: originalURL, sourceFolder: sourceFolder,
+                                       destination: destination, suffix: "")
 
-            // Calculate output path
-            var outputURL: URL
-            if preserveSubfolders {
-                let relativePath = originalURL.path.replacingOccurrences(of: sourceFolder.path, with: "")
-                outputURL = destination.appendingPathComponent(relativePath)
-            } else {
-                outputURL = destination.appendingPathComponent(originalURL.lastPathComponent)
-            }
-            outputURL = outputURL.deletingPathExtension().appendingPathExtension(outputFormat.fileExtension)
-
-            // Check if file exists
             if fm.fileExists(atPath: outputURL.path) && !overwriteExisting {
                 results.append(FileConversionResult(
-                    inputPath: originalURL.path,
-                    outputPath: outputURL.path,
-                    success: false,
-                    error: "File already exists"
-                ))
+                    inputPath: originalURL.path, outputPath: outputURL.path,
+                    success: false, error: "File already exists"))
                 continue
             }
 
-            // Handle conversion result
             if let error = converted.error {
                 results.append(FileConversionResult(
-                    inputPath: originalURL.path,
-                    outputPath: outputURL.path,
-                    success: false,
-                    error: error
-                ))
+                    inputPath: originalURL.path, outputPath: outputURL.path,
+                    success: false, error: error))
             } else if let content = converted.content {
-                do {
-                    // Create output directory if needed
-                    let outputDir = outputURL.deletingLastPathComponent()
-                    try fm.createDirectory(at: outputDir, withIntermediateDirectories: true)
+                results.append(write(content, to: outputURL, from: originalURL, fm: fm))
+            }
+        }
 
-                    // Write output
-                    try content.write(to: outputURL, atomically: true, encoding: .utf8)
+        return results
+    }
 
-                    results.append(FileConversionResult(
-                        inputPath: originalURL.path,
-                        outputPath: outputURL.path,
-                        success: true,
-                        error: nil
-                    ))
-                } catch {
-                    results.append(FileConversionResult(
-                        inputPath: originalURL.path,
-                        outputPath: outputURL.path,
-                        success: false,
-                        error: "Failed to write file: \(error.localizedDescription)"
-                    ))
+    /// Compute the destination URL for an input, applying subfolder preservation,
+    /// an optional filename `suffix` (e.g. "_polar"), and the output extension.
+    private func outputPath(for originalURL: URL, sourceFolder: URL, destination: URL, suffix: String) -> URL {
+        var outputURL: URL
+        if preserveSubfolders {
+            let relativePath = originalURL.path.replacingOccurrences(of: sourceFolder.path, with: "")
+            outputURL = destination.appendingPathComponent(relativePath)
+        } else {
+            outputURL = destination.appendingPathComponent(originalURL.lastPathComponent)
+        }
+        let base = outputURL.deletingPathExtension().lastPathComponent + suffix
+        return outputURL.deletingLastPathComponent()
+            .appendingPathComponent(base)
+            .appendingPathExtension(outputFormat.fileExtension)
+    }
+
+    /// Write `content` to `outputURL`, creating directories, into a result.
+    private func write(_ content: String, to outputURL: URL, from originalURL: URL, fm: FileManager) -> FileConversionResult {
+        do {
+            let outputDir = outputURL.deletingLastPathComponent()
+            try fm.createDirectory(at: outputDir, withIntermediateDirectories: true)
+            try content.write(to: outputURL, atomically: true, encoding: .utf8)
+            return FileConversionResult(inputPath: originalURL.path, outputPath: outputURL.path,
+                                        success: true, error: nil)
+        } catch {
+            return FileConversionResult(inputPath: originalURL.path, outputPath: outputURL.path,
+                                        success: false, error: "Failed to write file: \(error.localizedDescription)")
+        }
+    }
+
+    /// Parse each input once, then render + write every selected diagram type
+    /// (one SVG per type, filename suffixed with the type name).
+    private func writeThemedSvgs(
+        _ batchInputs: [(url: URL, file: BatchInputFile)],
+        sourceFolder: URL, destination: URL,
+        into results: inout [FileConversionResult]
+    ) -> [FileConversionResult] {
+        let fm = FileManager.default
+        let theme = exportTheme
+        let size = svgExportSize
+        let diagrams = activeDiagrams
+
+        for input in batchInputs {
+            // Parse the source once for all diagram types.
+            let ldt: Eulumdat
+            do {
+                if input.file.format == .ies {
+                    ldt = try parseIes(content: input.file.content)
+                } else if let parsed = try? parseLdt(content: input.file.content) {
+                    ldt = parsed
+                } else {
+                    ldt = try parseIes(content: input.file.content)
                 }
+            } catch {
+                let outURL = outputPath(for: input.url, sourceFolder: sourceFolder,
+                                        destination: destination, suffix: diagrams.first?.fileSuffix ?? "")
+                results.append(FileConversionResult(
+                    inputPath: input.url.path, outputPath: outURL.path,
+                    success: false, error: "Failed to parse: \(error.localizedDescription)"))
+                continue
+            }
+
+            for kind in diagrams {
+                let outURL = outputPath(for: input.url, sourceFolder: sourceFolder,
+                                        destination: destination, suffix: kind.fileSuffix)
+                if fm.fileExists(atPath: outURL.path) && !overwriteExisting {
+                    results.append(FileConversionResult(
+                        inputPath: input.url.path, outputPath: outURL.path,
+                        success: false, error: "File already exists"))
+                    continue
+                }
+                let svg = kind.render(ldt: ldt, size: size, theme: theme)
+                results.append(write(svg, to: outURL, from: input.url, fm: fm))
             }
         }
 

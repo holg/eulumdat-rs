@@ -3,6 +3,8 @@
 //! This module provides all translatable strings used in SVG diagrams.
 //! Pass a custom `DiagramLabels` instance for localization.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
 /// Labels for photometric diagrams (polar, cartesian, heatmap)
 #[derive(Debug, Clone)]
 pub struct DiagramLabels {

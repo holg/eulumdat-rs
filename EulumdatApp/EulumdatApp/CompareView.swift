@@ -230,7 +230,7 @@ struct CompareView: View {
                     Text("\(Int(cPlaneA))°")
                 }
                 .frame(maxWidth: 200)
-                .onChange(of: cPlaneA) { _, newVal in
+                .onChange(of: cPlaneA) { newVal in
                     if linkSliders { cPlaneB = newVal }
                 }
             }
@@ -429,6 +429,10 @@ struct CompareView: View {
     }
 
     private func formatValue(_ value: Double, unit: String) -> String {
+        // NaN = undefined (e.g. no beam angle for an up-light)
+        if value.isNaN {
+            return "—"
+        }
         if abs(value) >= 1000 {
             return String(format: "%.0f", value)
         } else if abs(value) >= 10 {
@@ -814,7 +818,7 @@ struct CompareFullscreenView: View {
                                 .font(.caption)
                             Slider(value: $cPlaneA, in: 0...360, step: 5)
                                 .frame(width: 100)
-                                .onChange(of: cPlaneA) { _, newVal in
+                                .onChange(of: cPlaneA) { newVal in
                                     if linkSliders { cPlaneB = newVal }
                                 }
                             Text(String(format: "%.0f°", cPlaneA))

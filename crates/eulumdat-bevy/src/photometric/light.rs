@@ -35,6 +35,11 @@ pub struct PhotometricLight<T: PhotometricData> {
     pub show_model: bool,
     /// Whether to enable shadows
     pub shadow_maps_enabled: bool,
+    /// Explicit light colour. When set, this replaces the colour derived
+    /// from the data's CCT/CRI — e.g. a colour computed from a measured
+    /// SPD (red/blue horticultural spectra are nowhere near the Planckian
+    /// locus, so a CCT-derived colour would be wrong).
+    pub color_override: Option<Color>,
 }
 
 impl<T: PhotometricData> PhotometricLight<T> {
@@ -46,7 +51,14 @@ impl<T: PhotometricData> PhotometricLight<T> {
             show_solid: false,
             show_model: true,
             shadow_maps_enabled: false,
+            color_override: None,
         }
+    }
+
+    /// Override the emitted light colour (see [`Self::color_override`]).
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color_override = Some(color);
+        self
     }
 
     /// Set the intensity scale factor.
@@ -132,6 +144,12 @@ impl<T: PhotometricData> PhotometricLightBundle<T> {
     /// Enable or disable shadows.
     pub fn with_shadows(mut self, enabled: bool) -> Self {
         self.light = self.light.with_shadows(enabled);
+        self
+    }
+
+    /// Override the emitted light colour (see [`PhotometricLight::color_override`]).
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.light = self.light.with_color(color);
         self
     }
 }

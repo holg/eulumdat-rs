@@ -16,17 +16,33 @@ documentation = "https://docs.rs/eulumdat"
 # the monorepo but break `cargo package` because the referenced files
 # live outside this crate. The other examples (parse_road, generate_*,
 # create_wiki_templates) are self-contained and ship as usual.
-exclude = ["examples/wasm_benchmark.rs", "benches/native_benchmark.rs"]
+#
+# The beam/field regression fixtures are third-party photometric files that
+# are kept in the repo for testing only and are not redistributed.
+exclude = [
+    "examples/wasm_benchmark.rs",
+    "benches/native_benchmark.rs",
+    "tests/beam_field_sections.rs",
+    "tests/fixtures/beam_field/",
+]
 
 [features]
 # atla XML and JSON parsers ship by default — atla itself (the data model)
 # is always part of the crate, no feature gate, since the published surface
 # (Eulumdat, IES export, photometric calc) builds on top of it.
-default = ["xml", "json"]
+default = ["std", "xml", "json", "toml"]
+# Without `std` the crate is `no_std` + `alloc`: the LDT/IES parsers, symmetry expansion,
+# photometric calculations and the diagram geometry (polar, heatmap, isolux) build for
+# bare-metal targets (PlantWorks STM32 gateway). File I/O, ATLA/XML/JSON, IES import, batch,
+# radiosity etc. need `std`.
+std = ["anyhow/std", "dep:thiserror", "serde?/std"]
 xml = ["dep:quick-xml"]
-json = ["dep:serde_json", "dep:serde"]
+json = ["dep:serde_json", "serde"]
 i18n = ["dep:eulumdat-i18n"]
-serde = ["dep:serde"]
+# serde derives only — no file-format deps, so a no_std gateway can accept a
+# parsed luminaire over the wire (see `toml` for the theme-file loader)
+serde = ["dep:serde", "serde?/alloc", "serde?/derive"]
+toml = ["dep:toml", "serde"]
 # Daytime road calc: turn a sun position + sky availability into road-luminance
 # sources. Optional so the core crate stays free of the daylight physics.
 daylight = ["dep:eulumdat-daylight"]
@@ -35,14 +51,17 @@ daylight = ["dep:eulumdat-daylight"]
 spectrum = ["dep:eulumdat-spectrum"]
 
 [dependencies]
-anyhow.workspace = true
+anyhow = { version = "1.0", default-features = false }
 eulumdat-daylight = { workspace = true, optional = true }
 eulumdat-i18n = { workspace = true, optional = true }
 eulumdat-spectrum = { workspace = true, optional = true }
+# float math on targets whose core has no sin/cos/sqrt/… (see `math` in lib.rs)
+libm = "0.2"
 quick-xml = { version = "0.37", features = ["serialize"], optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { version = "1.0", optional = true }
-thiserror.workspace = true
+thiserror = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
 
 [dev-dependencies]
 approx.workspace = true

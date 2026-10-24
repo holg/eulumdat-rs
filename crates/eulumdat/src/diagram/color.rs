@@ -2,6 +2,8 @@
 //!
 //! Provides color conversion and palette generation functions.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
 /// RGB color representation
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

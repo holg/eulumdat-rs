@@ -107,5 +107,8 @@ fn cone_geometry_svg_carries_no_illuminance() {
 
     // It SHOULD still show the cone — i.e. the beam/field angle geometry exists.
     let cone = ConeDiagram::from_eulumdat(&ldt, 8.0);
-    assert!(cone.field_angle > 0.0, "cone must have a real field angle");
+    assert!(
+        cone.field_angle.is_some_and(|a| a > 0.0),
+        "cone must have a real field angle"
+    );
 }

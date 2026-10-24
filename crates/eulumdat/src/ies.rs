@@ -1228,8 +1228,9 @@ impl IesExporter {
 
         // Line 1: Number of lamps, lumens per lamp, multiplier, number of vertical angles,
         //         number of horizontal angles, photometric type, units type, width, length, height
-        let num_lamps = ldt.lamp_sets.iter().map(|ls| ls.num_lamps).sum::<i32>();
-        let total_flux = ldt.total_luminous_flux();
+        // Primary lamp set: further sets are alternative fittings
+        let num_lamps = ldt.primary_lamp_set().map_or(0, |ls| ls.num_lamps);
+        let total_flux = ldt.luminous_flux();
 
         // CRITICAL: Absolute photometry handling for LED fixtures
         // LDT Convention: negative num_lamps signals absolute photometry
@@ -1276,7 +1277,7 @@ impl IesExporter {
         ));
 
         // Line 2: Ballast factor, file generation type (LM-63-2019) or ballast-lamp factor, input watts
-        let total_watts = ldt.total_wattage();
+        let total_watts = ldt.wattage();
         let file_gen_value = if options.version == IesVersion::Lm63_2019 {
             options.file_generation_type.value()
         } else {

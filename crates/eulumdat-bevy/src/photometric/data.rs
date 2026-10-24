@@ -79,9 +79,8 @@ pub trait PhotometricData: Send + Sync + Clone + Debug + 'static {
     /// - <70: Poor
     fn cri(&self) -> Option<f32>;
 
-    /// Beam angle in radians (half-angle from nadir to 50% intensity).
-    ///
-    /// This is the IES definition: angle where intensity drops to 50% of maximum.
+    /// Half beam angle in radians: half the full width at 50 % of the peak
+    /// (CIE S 017 / IES), used to size spot-light cones.
     fn beam_angle(&self) -> f64;
 
     /// Whether the luminaire is cylindrical (width ≈ 0, length = diameter).

@@ -576,7 +576,7 @@ pub fn render_optical_tab(ui: &mut Ui, ldc: &mut Eulumdat) {
                 ui.end_row();
 
                 ui.label("Total Flux:");
-                ui.label(format!("{:.0} lm", ldc.total_luminous_flux()));
+                ui.label(format!("{:.0} lm", ldc.luminous_flux()));
                 ui.end_row();
             });
 

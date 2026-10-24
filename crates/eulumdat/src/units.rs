@@ -4,6 +4,8 @@
 //! This module provides conversion and formatting helpers so that
 //! CLI output, SVG labels, and UI displays can show either system.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
 /// Conversion factor: 1 foot-candle = 10.764 lux
 const LUX_PER_FC: f64 = 10.764;
 

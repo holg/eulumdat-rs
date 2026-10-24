@@ -20,6 +20,7 @@
 
 pub mod atla_types;
 pub mod batch;
+pub mod beam;
 pub mod bim;
 pub mod bug_rating;
 pub mod compare;
@@ -43,6 +44,7 @@ pub use batch::{
     BatchConversionStats, BatchInputFile, BatchOutputFile, ConversionFormat, ConversionResult,
     InputFormat,
 };
+pub use beam::{beam_field_analysis, section_angles, BeamFieldResult, SectionAngles};
 pub use bim::{get_bim_parameters, has_bim_data, BimData, BimParameterRow};
 pub use bug_rating::{
     calculate_bug_rating, generate_bug_diagram, generate_bug_svg, generate_bug_svg_localized,

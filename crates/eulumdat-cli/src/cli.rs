@@ -54,6 +54,89 @@ pub enum Commands {
         /// Use -90 when converting LDT→IES.
         #[arg(short, long, default_value = "0.0")]
         rotate: f64,
+
+        /// Attach a spectral power distribution (.spd / .csv / .spdx) to the
+        /// luminaire; requires an ATLA (.xml / .json) output
+        #[arg(long, value_name = "FILE")]
+        spd: Option<PathBuf>,
+
+        /// Emitter (lamp set) index that receives --spd; default: all
+        #[arg(long, value_name = "N")]
+        emitter: Option<usize>,
+    },
+
+    /// Digitize a spectrum chart image (PNG/JPEG/WebP) into a relative .spd file
+    Digitize {
+        /// Chart image
+        image: PathBuf,
+
+        /// Output .spd file (default: the image name with .spd)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Wavelength of the first and last x-axis tick, e.g. 380:780
+        #[arg(short = 'x', long, value_name = "FIRST:LAST")]
+        x_range: Option<String>,
+
+        /// Wavelength of every x-axis tick, left to right (overrides --x-range)
+        #[arg(long, value_name = "NM,NM,...")]
+        x_ticks: Option<String>,
+
+        /// Manual x calibration as pixel:nm pairs (skips tick detection)
+        #[arg(long, value_name = "PX:NM,PX:NM")]
+        x_calibration: Option<String>,
+
+        /// How the curve is drawn
+        #[arg(long, value_enum, default_value_t = CurveStyle::Auto)]
+        mode: CurveStyle,
+
+        /// Output grid step in nm
+        #[arg(long, default_value = "1.0")]
+        step: f64,
+
+        /// Header label (default: image file stem)
+        #[arg(long)]
+        label: Option<String>,
+
+        /// Provenance note written into the header (URL, datasheet ...)
+        #[arg(long)]
+        source: Option<String>,
+
+        /// Write a PNG overlay showing detected axes, ticks and the traced curve
+        #[arg(long, value_name = "PNG")]
+        debug: Option<PathBuf>,
+
+        /// Attach the digitized spectrum to this luminaire (.ldt / .ies /
+        /// .xml / .json) and write the result as ATLA to --output
+        /// (default: the luminaire name with .xml)
+        #[arg(long, value_name = "FILE")]
+        attach: Option<PathBuf>,
+
+        /// Emitter (lamp set) index that receives the spectrum; default: all
+        #[arg(long, value_name = "N")]
+        emitter: Option<usize>,
+    },
+
+    /// Inspect an IES TM-25 ray file or convert it to a luminaire (ATLA) with far-field photometry + spectrum
+    Tm25 {
+        /// Ray file (.TM25RAY)
+        file: PathBuf,
+
+        /// Write an ATLA (.xml / .json) or EULUMDAT (.ldt) file built from the far field
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// C-plane bin width in degrees
+        #[arg(long, default_value = "10.0")]
+        c_step: f64,
+
+        /// Gamma bin width in degrees
+        #[arg(long, default_value = "5.0")]
+        g_step: f64,
+
+        /// Smooth the binned grid (box radius in bins) before writing
+        #[arg(long, default_value = "1")]
+        smooth: usize,
     },
 
     /// Generate SVG diagram
@@ -72,6 +155,12 @@ pub enum Commands {
         /// Use dark theme
         #[arg(short, long)]
         dark: bool,
+
+        /// Theme file (TOML/JSON) with colour/font overrides. Layers on top of
+        /// the light/dark base; a `base = "light"|"dark"` key in the file is
+        /// overridden by --dark.
+        #[arg(long, value_name = "FILE")]
+        theme: Option<PathBuf>,
 
         /// Width in pixels
         #[arg(short = 'W', long, default_value = "500")]
@@ -351,6 +440,16 @@ pub enum Commands {
         #[arg(long)]
         overwrite: bool,
     },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum CurveStyle {
+    /// Fill if the curve rests on the x-axis, otherwise line
+    Auto,
+    /// Solid area under the curve
+    Fill,
+    /// Stroked line
+    Line,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]

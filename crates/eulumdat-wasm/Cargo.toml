@@ -59,12 +59,14 @@ console_error_panic_hook.workspace = true
 # Core library
 eulumdat = { workspace = true, features = ["xml", "json", "i18n", "serde"] }
 eulumdat-daylight.workspace = true
+eulumdat-digitize.workspace = true
 eulumdat-goniosim = { workspace = true, default-features = false }
 eulumdat-i18n.workspace = true
 eulumdat-rt = { workspace = true, default-features = false }
 eulumdat-spectrum.workspace = true
+eulumdat-tm25.workspace = true
 eulumdat-typst.workspace = true
-eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates", version = "0.7.1" }
+eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates", version = "0.8.0" }
 getrandom = { version = "0.3", features = ["wasm_js"] }
 gloo.workspace = true
 gloo-file.workspace = true
@@ -93,6 +95,7 @@ version = "0.3"
 features = [
     "File",
     "FileList",
+    "FilePropertyBag",
     "FileReader",
     "Blob",
     "BlobPropertyBag",
@@ -115,6 +118,8 @@ features = [
     "Clipboard",
     "HtmlCanvasElement",
     "HtmlImageElement",
+    "ImageBitmap",
+    "ImageData",
     "CanvasRenderingContext2d",
     "WebGlRenderingContext",
     "WebGl2RenderingContext",

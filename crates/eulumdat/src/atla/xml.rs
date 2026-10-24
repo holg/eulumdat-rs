@@ -1007,6 +1007,12 @@ fn parse_spectral_distribution(reader: &mut Reader<&[u8]>) -> Result<SpectralDis
                     "Values" => {
                         dist.values = parse_value_list(&text);
                     }
+                    "Units" => {
+                        dist.units = match text.trim() {
+                            "Relative" => SpectralUnits::Relative,
+                            _ => SpectralUnits::WattsPerNanometer,
+                        };
+                    }
                     "StartWavelength" => {
                         dist.start_wavelength = text.parse().ok();
                     }
@@ -1595,6 +1601,11 @@ fn write_emitter<W: std::io::Write>(writer: &mut Writer<W>, emitter: &Emitter) -
         write_intensity_distribution(writer, dist)?;
     }
 
+    // Spectral distribution (the S001 parser reads it back symmetrically)
+    if let Some(ref spectral) = emitter.spectral_distribution {
+        write_spectral_distribution(writer, spectral)?;
+    }
+
     writer
         .write_event(Event::End(BytesEnd::new("Emitter")))
         .map_err(|e| AtlaError::XmlParse(e.to_string()))?;
@@ -1816,5 +1827,37 @@ mod tests {
         let accred = equipment.accreditation.as_ref().unwrap();
         assert_eq!(accred.body, Some("NVLAP".to_string()));
         assert_eq!(accred.number, Some("200123-0".to_string()));
+    }
+}
+
+#[cfg(test)]
+mod spectral_round_trip {
+    use super::*;
+    use crate::atla::{SpectralDistribution, SpectralUnits};
+
+    #[test]
+    fn s001_emitter_keeps_spectral_distribution() {
+        let mut doc = LuminaireOpticalData::default();
+        doc.emitters.push(Emitter {
+            spectral_distribution: Some(SpectralDistribution {
+                wavelengths: vec![400.0, 500.0, 600.0],
+                values: vec![0.2, 1.0, 0.5],
+                units: SpectralUnits::Relative,
+                start_wavelength: Some(400.0),
+                wavelength_interval: Some(100.0),
+            }),
+            quantity: 1,
+            ..Default::default()
+        });
+        let xml = write(&doc).unwrap();
+        assert!(xml.contains("<SpectralDistribution"), "{xml}");
+        let back = parse(&xml).unwrap();
+        let spd = back.emitters[0]
+            .spectral_distribution
+            .as_ref()
+            .expect("SPD survives XML round trip");
+        assert_eq!(spd.wavelengths, vec![400.0, 500.0, 600.0]);
+        assert_eq!(spd.values, vec![0.2, 1.0, 0.5]);
+        assert_eq!(spd.units, SpectralUnits::Relative);
     }
 }

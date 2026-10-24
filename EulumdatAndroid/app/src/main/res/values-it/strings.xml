@@ -214,7 +214,7 @@
     <string name="luminaire_optical_tilt_angle">Angolo di inclinazione (°)</string>
     <string name="luminaire_optical_title">Proprietà ottiche</string>
     <string name="luminaire_photometric_beam_angle">Angolo del fascio</string>
-    <string name="luminaire_photometric_beam_angle_50">Angolo del fascio (50%)</string>
+    <string name="luminaire_photometric_beam_angle_50">Angolo del fascio (50% del max)</string>
     <string name="luminaire_photometric_cct">Temperatura di colore</string>
     <string name="luminaire_photometric_cie_class">Classificazione CIE</string>
     <string name="luminaire_photometric_cri">Indice resa cromatica</string>
@@ -222,7 +222,7 @@
     <string name="luminaire_photometric_dlor">Rapporto uscita inferiore</string>
     <string name="luminaire_photometric_efficacy">Efficacia luminosa</string>
     <string name="luminaire_photometric_field_angle">Angolo di campo</string>
-    <string name="luminaire_photometric_field_angle_10">Angolo di campo (10%)</string>
+    <string name="luminaire_photometric_field_angle_10">Angolo di campo (10% del max)</string>
     <string name="luminaire_photometric_lamp_efficacy">Efficacia lampade</string>
     <string name="luminaire_photometric_lor">Rapporto uscita luminosa</string>
     <string name="luminaire_photometric_luminaire_efficacy">Efficacia apparecchio</string>
@@ -231,8 +231,8 @@
     <string name="luminaire_photometric_spacing_criterion">Criterio di spaziatura</string>
     <string name="luminaire_photometric_symmetry">Simmetria</string>
     <string name="luminaire_photometric_total_flux">Flusso luminoso totale</string>
-    <string name="luminaire_photometric_total_lamp_flux">Flusso totale lampade</string>
-    <string name="luminaire_photometric_total_wattage">Potenza totale</string>
+    <string name="luminaire_photometric_total_lamp_flux">Flusso lampade (set 1)</string>
+    <string name="luminaire_photometric_total_wattage">Potenza (set 1)</string>
     <string name="luminaire_photometric_ulor">Rapporto uscita superiore</string>
     <string name="luminaire_physical_dimensions">Dimensioni</string>
     <string name="luminaire_physical_dimensions_mm">Dimensioni apparecchio (mm)</string>

@@ -540,7 +540,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -551,7 +551,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1856,7 +1856,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-time",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4117,7 +4117,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4137,25 +4137,31 @@ dependencies = [
 
 [[package]]
 name = "eulumdat"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
  "eulumdat-daylight",
  "eulumdat-i18n",
  "eulumdat-spectrum",
+ "libm",
  "quick-xml 0.37.5",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "toml 0.9.12+spec-1.1.0",
 ]
 
 [[package]]
 name = "eulumdat-bevy"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "bevy",
  "eulumdat",
+ "eulumdat-daylight",
+ "eulumdat-goniosim",
+ "eulumdat-spectrum",
+ "eulumdat-tm25",
  "getrandom 0.3.4",
  "js-sys",
  "rfd",
@@ -4168,19 +4174,23 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-cli"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
  "eulumdat",
+ "eulumdat-digitize",
+ "eulumdat-spectrum",
+ "eulumdat-tm25",
  "eulumdat-typst",
+ "image",
  "serde_json",
  "walkdir",
 ]
 
 [[package]]
 name = "eulumdat-daylight"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "approx 0.5.1",
  "serde",
@@ -4188,7 +4198,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-dev-server"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -4197,8 +4207,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "eulumdat-digitize"
+version = "0.8.0"
+dependencies = [
+ "image",
+]
+
+[[package]]
 name = "eulumdat-egui"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "eframe",
@@ -4215,7 +4232,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ffi"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "eulumdat",
  "eulumdat-i18n",
@@ -4225,7 +4242,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-gltf-pack"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "basis-universal",
@@ -4242,7 +4259,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-goniosim"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -4257,7 +4274,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-harmonyos-ffi"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "eulumdat",
  "eulumdat-photweb",
@@ -4265,7 +4282,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-i18n"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4273,7 +4290,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-photweb"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "approx 0.5.1",
  "eulumdat",
@@ -4281,7 +4298,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-plugin"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4294,7 +4311,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-py"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "eulumdat",
  "pyo3",
@@ -4302,7 +4319,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-quiz"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -4310,7 +4327,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-quiz-py"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "eulumdat-quiz",
  "pyo3",
@@ -4318,7 +4335,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-rt"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "bytemuck",
  "env_logger",
@@ -4335,7 +4352,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-server"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "actix-files",
  "actix-web",
@@ -4351,15 +4368,25 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-spectrum"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "approx 0.5.1",
+ "libm",
  "serde",
 ]
 
 [[package]]
+name = "eulumdat-tm25"
+version = "0.8.0"
+dependencies = [
+ "eulumdat",
+ "eulumdat-spectrum",
+ "tm25ray",
+]
+
+[[package]]
 name = "eulumdat-tui"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -4370,7 +4397,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-tui-quiz"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "clap",
  "crossterm",
@@ -4382,7 +4409,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-typst"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4397,7 +4424,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-ui"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "approx 0.5.1",
  "egui",
@@ -4408,16 +4435,18 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
  "eulumdat",
  "eulumdat-daylight",
+ "eulumdat-digitize",
  "eulumdat-goniosim",
  "eulumdat-i18n",
  "eulumdat-rt",
  "eulumdat-spectrum",
+ "eulumdat-tm25",
  "eulumdat-typst",
  "eulumdat-wasm-templates",
  "getrandom 0.3.4",
@@ -4436,7 +4465,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-quiz"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4451,7 +4480,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-street"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "console_error_panic_hook",
  "eulumdat",
@@ -4465,7 +4494,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-wasm-templates"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -4480,7 +4509,7 @@ dependencies = [
 
 [[package]]
 name = "eulumdat-windows-preview"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "embed-resource",
@@ -6153,6 +6182,7 @@ dependencies = [
  "byteorder-lite",
  "color_quant",
  "gif 0.14.1",
+ "image-webp 0.2.4",
  "moxcms",
  "num-traits",
  "png 0.18.1",
@@ -6165,6 +6195,16 @@ name = "image-webp"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f79afb8cbee2ef20f59ccd477a218c12a93943d075b492015ecb1bb81f8ee904"
+dependencies = [
+ "byteorder-lite",
+ "quick-error",
+]
+
+[[package]]
+name = "image-webp"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "525e9ff3e1a4be2fbea1fdf0e98686a6d98b4d8f937e1bf7402245af1909e8c3"
 dependencies = [
  "byteorder-lite",
  "quick-error",
@@ -7247,7 +7287,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8826,7 +8866,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7314563c59c7ce31c18e23ad3dd092c37b928a0fa4e1c0a1a6504351ab411d1"
 dependencies = [
  "gif 0.13.3",
- "image-webp",
+ "image-webp 0.1.3",
  "log",
  "pico-args",
  "rgb",
@@ -8843,7 +8883,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a325d5e8d1cebddd070b13f44cec8071594ab67d1012797c121f27a669b7958"
 dependencies = [
  "gif 0.13.3",
- "image-webp",
+ "image-webp 0.1.3",
  "log",
  "pico-args",
  "rgb",
@@ -9001,7 +9041,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9641,7 +9681,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a766e1110788c36f4fa1c2b71b387a7815aa65f88ce0229841826633d93723e"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -10005,7 +10045,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -10218,6 +10258,16 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
+name = "tm25ray"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14deafba4159a7193d140878e4710712b7b384e51b9a6be045c384e7fc9f702b"
+dependencies = [
+ "memmap2",
+ "thiserror 1.0.69",
+]
 
 [[package]]
 name = "tokio"
@@ -10782,7 +10832,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -11994,7 +12044,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

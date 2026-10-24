@@ -405,11 +405,11 @@ fn extract_cct(ldc: &Eulumdat) -> String {
 }
 
 fn extract_power(ldc: &Eulumdat) -> String {
-    format!("{:.0}W", ldc.total_wattage())
+    format!("{:.0}W", ldc.wattage())
 }
 
 fn extract_lumens(ldc: &Eulumdat) -> String {
-    format!("{:.0} lm", ldc.total_luminous_flux())
+    format!("{:.0} lm", ldc.luminous_flux())
 }
 
 fn extract_lor(ldc: &Eulumdat) -> String {
@@ -429,17 +429,22 @@ fn extract_cri(ldc: &Eulumdat) -> String {
 }
 
 fn extract_beam(ldc: &Eulumdat) -> String {
+    // 50 % of the peak, section through the peak; "—" for up-lights
     let s = eulumdat::PhotometricSummary::from_eulumdat(ldc);
-    format!("{:.0}\u{00b0}", s.beam_angle)
+    s.beam_angle
+        .map_or_else(|| "—".to_string(), |a| format!("{a:.0}\u{00b0}"))
 }
 
 fn extract_optics(ldc: &Eulumdat) -> String {
     let s = eulumdat::PhotometricSummary::from_eulumdat(ldc);
-    if s.beam_angle < 30.0 {
+    let Some(beam) = s.beam_angle else {
+        return "—".into();
+    };
+    if beam < 30.0 {
         "Narrow".into()
-    } else if s.beam_angle < 60.0 {
+    } else if beam < 60.0 {
         "Medium".into()
-    } else if s.beam_angle < 100.0 {
+    } else if beam < 100.0 {
         "Wide".into()
     } else {
         "V. Wide".into()
@@ -460,7 +465,7 @@ fn extract_modules(ldc: &Eulumdat) -> String {
 }
 
 fn extract_current(ldc: &Eulumdat) -> String {
-    let w = ldc.total_wattage();
+    let w = ldc.wattage();
     if w > 0.0 {
         format!("{:.0}mA", (w / 48.0) * 1000.0)
     } else {

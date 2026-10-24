@@ -97,7 +97,7 @@ enum LoadState {
 
 /// Best-effort browser + platform detection from the user-agent string.
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum BrowserHint {
+pub(crate) enum BrowserHint {
     SafariIos,
     SafariMac,
     ChromiumLinux,
@@ -107,7 +107,7 @@ enum BrowserHint {
     Unknown,
 }
 
-fn detect_browser() -> BrowserHint {
+pub(crate) fn detect_browser() -> BrowserHint {
     let Some(window) = web_sys::window() else {
         return BrowserHint::Unknown;
     };
@@ -355,7 +355,7 @@ pub fn SkyglowDemo() -> impl IntoView {
 /// Browser-aware "WebGPU not available AND WebGL2 fallback also failed"
 /// screen. With the dual-bundle setup this is now a rare last resort —
 /// most users land on the WebGL2 bundle instead.
-fn render_webgpu_missing(hint: BrowserHint) -> impl IntoView {
+pub(crate) fn render_webgpu_missing(hint: BrowserHint) -> impl IntoView {
     let (title, steps, more_url) = match hint {
         BrowserHint::SafariIos => (
             "WebGPU isn't enabled on this device",

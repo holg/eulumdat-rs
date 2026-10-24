@@ -12,6 +12,9 @@
 //! - PAR quantum weight (flat 1 over 400–700 nm, 0 elsewhere) used with the
 //!   photon-energy factor to convert radiant power to µmol photons.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 /// First wavelength of every LUT (nm).
 pub const LUT_START_NM: f64 = 380.0;
 /// Grid step of every LUT (nm).

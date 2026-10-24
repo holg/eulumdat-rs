@@ -189,8 +189,8 @@
     },
     "photometric": {
       "total_flux": "Flusso luminoso totale",
-      "total_lamp_flux": "Flusso totale lampade",
-      "total_wattage": "Potenza totale",
+      "total_lamp_flux": "Flusso lampade (set 1)",
+      "total_wattage": "Potenza (set 1)",
       "lamp_efficacy": "Efficacia lampade",
       "luminaire_efficacy": "Efficacia apparecchio",
       "efficacy": "Efficacia luminosa",
@@ -200,9 +200,9 @@
       "cct": "Temperatura di colore",
       "cri": "Indice resa cromatica",
       "beam_angle": "Angolo del fascio",
-      "beam_angle_50": "Angolo del fascio (50%)",
+      "beam_angle_50": "Angolo del fascio (50% del max)",
       "field_angle": "Angolo di campo",
-      "field_angle_10": "Angolo di campo (10%)",
+      "field_angle_10": "Angolo di campo (10% del max)",
       "cie_class": "Classificazione CIE",
       "symmetry": "Simmetria",
       "max_intensity": "Intensità massima",
@@ -305,18 +305,18 @@
   },
   "comparison": {
     "metrics": {
-      "total_lamp_flux": "Flusso totale lampade",
+      "total_lamp_flux": "Flusso lampade (set 1)",
       "calculated_flux": "Flusso calcolato",
       "lor": "Rapporto di uscita luminosa",
       "dlor": "DLOR",
       "ulor": "ULOR",
       "lamp_efficacy": "Efficacia lampade",
       "luminaire_efficacy": "Efficacia apparecchio",
-      "total_wattage": "Potenza totale",
-      "beam_angle": "Angolo del fascio (IES)",
-      "field_angle": "Angolo di campo (IES)",
-      "beam_angle_cie": "Angolo del fascio (CIE)",
-      "field_angle_cie": "Angolo di campo (CIE)",
+      "total_wattage": "Potenza (set 1)",
+      "beam_angle": "Angolo del fascio (50% del max)",
+      "field_angle": "Angolo di campo (10% del max)",
+      "beam_angle_cie": "Angolo del fascio (50% di I(0°))",
+      "field_angle_cie": "Angolo di campo (10% di I(0°))",
       "upward_beam_angle": "Angolo del fascio superiore",
       "upward_field_angle": "Angolo di campo superiore",
       "max_intensity": "Intensità massima",
@@ -661,7 +661,8 @@
       "intensity": "Intensità",
       "diagram": "Diagramma",
       "compare": "Confronta",
-      "bim": "BIM"
+      "bim": "BIM",
+      "theme": "Tema"
     },
     "validation": {
       "title": "Validazione"
@@ -725,7 +726,10 @@
       "lcs": "LCS",
       "isolux": "Isolux",
       "isocandela": "Isocandela",
-      "floodlight": "Proiettore"
+      "floodlight": "Proiettore",
+      "cPlane": "Piano C",
+      "cPlaneAll": "Tutti i piani C",
+      "cPlaneSelect": "Seleziona piano C"
     },
     "template": {
       "downlight": "Downlight",

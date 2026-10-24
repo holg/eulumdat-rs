@@ -214,7 +214,7 @@
     <string name="luminaire_optical_tilt_angle">Tilt Angle (°)</string>
     <string name="luminaire_optical_title">Optical Properties</string>
     <string name="luminaire_photometric_beam_angle">Beam Angle</string>
-    <string name="luminaire_photometric_beam_angle_50">Beam Angle (50%)</string>
+    <string name="luminaire_photometric_beam_angle_50">Beam Angle (50% of peak)</string>
     <string name="luminaire_photometric_cct">Color Temperature</string>
     <string name="luminaire_photometric_cie_class">CIE Classification</string>
     <string name="luminaire_photometric_cri">Color Rendering Index</string>
@@ -222,7 +222,7 @@
     <string name="luminaire_photometric_dlor">Downward LOR</string>
     <string name="luminaire_photometric_efficacy">Luminous Efficacy</string>
     <string name="luminaire_photometric_field_angle">Field Angle</string>
-    <string name="luminaire_photometric_field_angle_10">Field Angle (10%)</string>
+    <string name="luminaire_photometric_field_angle_10">Field Angle (10% of peak)</string>
     <string name="luminaire_photometric_lamp_efficacy">Lamp Efficacy</string>
     <string name="luminaire_photometric_lor">Light Output Ratio</string>
     <string name="luminaire_photometric_luminaire_efficacy">Luminaire Efficacy</string>
@@ -231,8 +231,8 @@
     <string name="luminaire_photometric_spacing_criterion">Spacing Criterion</string>
     <string name="luminaire_photometric_symmetry">Symmetry</string>
     <string name="luminaire_photometric_total_flux">Total Luminous Flux</string>
-    <string name="luminaire_photometric_total_lamp_flux">Total Lamp Flux</string>
-    <string name="luminaire_photometric_total_wattage">Total Wattage</string>
+    <string name="luminaire_photometric_total_lamp_flux">Lamp Flux (Lamp Set 1)</string>
+    <string name="luminaire_photometric_total_wattage">Wattage (Lamp Set 1)</string>
     <string name="luminaire_photometric_ulor">Upward LOR</string>
     <string name="luminaire_physical_dimensions">Dimensions</string>
     <string name="luminaire_physical_dimensions_mm">Luminaire Dimensions (mm)</string>

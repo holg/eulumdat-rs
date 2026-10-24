@@ -2,11 +2,13 @@
 
 use eulumdat::diagram::{
     ButterflyDiagram, CartesianDiagram, ConeDiagram, FloodlightCartesianDiagram, HeatmapDiagram,
-    IsocandelaDiagram, IsoluxDiagram, IsoluxParams, PolarDiagram, SvgTheme, WatchFaceStyle, YScale,
+    IsocandelaDiagram, IsoluxDiagram, IsoluxParams, PolarDiagram, SvgTheme, ThemeOverrides,
+    WatchFaceStyle, YScale,
 };
 use eulumdat::{PhotometricCalculations, PhotometricSummary, SymmetryHandler};
 use eulumdat_i18n::{Language as CoreLanguage, Locale};
 
+use crate::error::EulumdatError;
 use crate::types::{to_core_eulumdat, Eulumdat, Symmetry};
 
 /// Supported UI languages for localization
@@ -272,6 +274,300 @@ impl SvgThemeType {
             SvgThemeType::CssVariables => SvgTheme::css_variables_with_locale(locale),
         }
     }
+
+    fn base_name(self) -> &'static str {
+        match self {
+            SvgThemeType::Light => "light",
+            SvgThemeType::Dark => "dark",
+            SvgThemeType::CssVariables => "css",
+        }
+    }
+}
+
+// ── Custom theme configuration (for the native theme-editor UI) ──────────
+
+/// A full custom SVG theme the host app builds from its colour/thickness/font
+/// pickers, then hands to the `*_themed` diagram functions.
+///
+/// It starts from a base preset (`base`: "light" | "dark" | "css") and overrides
+/// only the fields that are set (`None` inherits the base). All fields render as
+/// inline SVG attributes, so they display in every renderer (CoreGraphics/
+/// `NSImage` included, which ignores CSS `<style>` blocks).
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct SvgThemeConfig {
+    /// Base preset the overrides layer on: "light", "dark", or "css".
+    #[uniffi(default = "light")]
+    pub base: String,
+    #[uniffi(default = None)]
+    pub background: Option<String>,
+    #[uniffi(default = None)]
+    pub surface: Option<String>,
+    #[uniffi(default = None)]
+    pub grid: Option<String>,
+    #[uniffi(default = None)]
+    pub axis: Option<String>,
+    #[uniffi(default = None)]
+    pub text: Option<String>,
+    #[uniffi(default = None)]
+    pub text_secondary: Option<String>,
+    #[uniffi(default = None)]
+    pub legend_bg: Option<String>,
+    /// C0–C180 curve colour.
+    #[uniffi(default = None)]
+    pub curve_c0: Option<String>,
+    #[uniffi(default = None)]
+    pub curve_c0_fill: Option<String>,
+    /// C90–C270 curve colour.
+    #[uniffi(default = None)]
+    pub curve_c90: Option<String>,
+    #[uniffi(default = None)]
+    pub curve_c90_fill: Option<String>,
+    #[uniffi(default = None)]
+    pub font_family: Option<String>,
+    /// Curve stroke width in px. `None` inherits the base preset (2.5).
+    /// Applied inline so it renders in CoreGraphics/`NSImage` (which ignore CSS).
+    #[uniffi(default = None)]
+    pub curve_width: Option<f64>,
+}
+
+impl Default for SvgThemeConfig {
+    fn default() -> Self {
+        Self {
+            base: "light".into(),
+            background: None,
+            surface: None,
+            grid: None,
+            axis: None,
+            text: None,
+            text_secondary: None,
+            legend_bg: None,
+            curve_c0: None,
+            curve_c0_fill: None,
+            curve_c90: None,
+            curve_c90_fill: None,
+            font_family: None,
+            curve_width: None,
+        }
+    }
+}
+
+impl SvgThemeConfig {
+    /// Convert to a core [`SvgTheme`] (base preset + inline overrides).
+    pub(crate) fn to_core(&self) -> SvgTheme {
+        let overrides = ThemeOverrides {
+            background: self.background.clone(),
+            surface: self.surface.clone(),
+            grid: self.grid.clone(),
+            axis: self.axis.clone(),
+            text: self.text.clone(),
+            text_secondary: self.text_secondary.clone(),
+            legend_bg: self.legend_bg.clone(),
+            curve_c0_c180: self.curve_c0.clone(),
+            curve_c0_c180_fill: self.curve_c0_fill.clone(),
+            curve_c90_c270: self.curve_c90.clone(),
+            curve_c90_c270_fill: self.curve_c90_fill.clone(),
+            font_family: self.font_family.clone(),
+            curve_width: self.curve_width,
+        };
+        SvgTheme::from_base_and_overrides(&self.base, &overrides)
+    }
+
+    /// Same, with localized diagram labels.
+    pub(crate) fn to_core_with_locale(&self, locale: &Locale) -> SvgTheme {
+        use eulumdat::diagram::SvgLabels;
+        let mut theme = self.to_core();
+        theme.labels = SvgLabels::from_locale(locale);
+        theme
+    }
+
+    fn from_core(theme: &SvgTheme, base: &str) -> Self {
+        Self {
+            base: base.to_string(),
+            background: Some(theme.background.clone()),
+            surface: Some(theme.surface.clone()),
+            grid: Some(theme.grid.clone()),
+            axis: Some(theme.axis.clone()),
+            text: Some(theme.text.clone()),
+            text_secondary: Some(theme.text_secondary.clone()),
+            legend_bg: Some(theme.legend_bg.clone()),
+            curve_c0: Some(theme.curve_c0_c180.clone()),
+            curve_c0_fill: Some(theme.curve_c0_c180_fill.clone()),
+            curve_c90: Some(theme.curve_c90_c270.clone()),
+            curve_c90_fill: Some(theme.curve_c90_c270_fill.clone()),
+            font_family: Some(theme.font_family.clone()),
+            curve_width: Some(theme.curve_width),
+        }
+    }
+}
+
+/// A fully-populated theme config from a built-in preset ("light", "dark",
+/// "css"), so the UI can seed its pickers with real starting values.
+#[uniffi::export]
+pub fn theme_preset(name: String) -> SvgThemeConfig {
+    let base = match name.as_str() {
+        "dark" => "dark",
+        "css" | "css_variables" => "css",
+        _ => "light",
+    };
+    let theme = SvgThemeConfig {
+        base: base.to_string(),
+        ..Default::default()
+    }
+    .to_core();
+    SvgThemeConfig::from_core(&theme, base)
+}
+
+/// Seed a config from an `SvgThemeType`, for callers still using the enum.
+#[uniffi::export]
+pub fn theme_config_from_type(theme_type: SvgThemeType) -> SvgThemeConfig {
+    theme_preset(theme_type.base_name().to_string())
+}
+
+/// Parse a theme file (TOML) string into a config. Errors on malformed input.
+#[uniffi::export]
+pub fn theme_config_from_toml(toml: String) -> Result<SvgThemeConfig, EulumdatError> {
+    let theme = SvgTheme::from_toml_str(&toml, None)
+        .map_err(|e| EulumdatError::ParseError(e.to_string()))?;
+    // Keep the file's chosen base preset (default "light") for the round trip.
+    let base = SvgTheme::toml_base(&toml)
+        .map_err(|e| EulumdatError::ParseError(e.to_string()))?
+        .unwrap_or_else(|| "light".to_string());
+    Ok(SvgThemeConfig::from_core(&theme, &base))
+}
+
+/// Serialize a config back to a TOML theme file string (for save/export).
+#[uniffi::export]
+pub fn theme_config_to_toml(config: SvgThemeConfig) -> String {
+    // Emit a compact, human-editable theme file: base + the concrete fields.
+    let mut out = String::new();
+    out.push_str(&format!("base = \"{}\"\n", config.base));
+    let line = |k: &str, v: &Option<String>| v.as_ref().map(|s| format!("{k} = \"{s}\"\n"));
+    for (k, v) in [
+        ("background", &config.background),
+        ("surface", &config.surface),
+        ("grid", &config.grid),
+        ("axis", &config.axis),
+        ("text", &config.text),
+        ("text_secondary", &config.text_secondary),
+        ("legend_bg", &config.legend_bg),
+        ("curve_c0_c180", &config.curve_c0),
+        ("curve_c0_c180_fill", &config.curve_c0_fill),
+        ("curve_c90_c270", &config.curve_c90),
+        ("curve_c90_c270_fill", &config.curve_c90_fill),
+        ("font_family", &config.font_family),
+    ] {
+        if let Some(l) = line(k, v) {
+            out.push_str(&l);
+        }
+    }
+    if let Some(w) = config.curve_width {
+        out.push_str(&format!("curve_width = {w}\n"));
+    }
+    out
+}
+
+// ── Themed diagram generators (take a full custom SvgThemeConfig) ─────────
+//
+// These mirror the `SvgThemeType`-based generators above but accept the
+// UI-built `SvgThemeConfig`, so the native theme editor can drive colours,
+// curve thickness, and font live. The `*_localized` variants also apply
+// translated diagram labels.
+
+/// Polar diagram SVG rendered with a custom theme config.
+#[uniffi::export]
+pub fn generate_polar_svg_themed(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    config: SvgThemeConfig,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let polar = PolarDiagram::from_eulumdat(&core_ldt);
+    polar.to_svg(width, height, &config.to_core())
+}
+
+/// Polar diagram SVG with a custom theme config and localized labels.
+#[uniffi::export]
+pub fn generate_polar_svg_themed_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    config: SvgThemeConfig,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let polar = PolarDiagram::from_eulumdat(&core_ldt);
+    let summary = PhotometricSummary::from_eulumdat(&core_ldt);
+    let locale = language.to_locale();
+    polar.to_svg_with_summary(
+        width,
+        height,
+        &config.to_core_with_locale(&locale),
+        &summary,
+    )
+}
+
+/// Cartesian diagram SVG rendered with a custom theme config.
+#[uniffi::export]
+pub fn generate_cartesian_svg_themed(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    max_curves: u32,
+    config: SvgThemeConfig,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let cartesian = CartesianDiagram::from_eulumdat(&core_ldt, width, height, max_curves as usize);
+    cartesian.to_svg(width, height, &config.to_core())
+}
+
+/// Cartesian diagram SVG with a custom theme config and localized labels.
+#[uniffi::export]
+pub fn generate_cartesian_svg_themed_localized(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    max_curves: u32,
+    config: SvgThemeConfig,
+    language: Language,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let cartesian = CartesianDiagram::from_eulumdat(&core_ldt, width, height, max_curves as usize);
+    let summary = PhotometricSummary::from_eulumdat(&core_ldt);
+    let locale = language.to_locale();
+    cartesian.to_svg_with_summary(
+        width,
+        height,
+        &config.to_core_with_locale(&locale),
+        &summary,
+    )
+}
+
+/// Heatmap diagram SVG rendered with a custom theme config.
+#[uniffi::export]
+pub fn generate_heatmap_svg_themed(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    config: SvgThemeConfig,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let heatmap = HeatmapDiagram::from_eulumdat(&core_ldt, width, height);
+    heatmap.to_svg(width, height, &config.to_core())
+}
+
+/// Butterfly diagram SVG rendered with a custom theme config.
+#[uniffi::export]
+pub fn generate_butterfly_svg_themed(
+    ldt: &Eulumdat,
+    width: f64,
+    height: f64,
+    tilt_degrees: f64,
+    config: SvgThemeConfig,
+) -> String {
+    let core_ldt = to_core_eulumdat(ldt);
+    let butterfly = ButterflyDiagram::from_eulumdat(&core_ldt, width, height, tilt_degrees);
+    butterfly.to_svg(width, height, &config.to_core())
 }
 
 // FFI functions for diagrams
@@ -1022,4 +1318,82 @@ pub fn generate_photos_face_svg(
     let core_ldt = to_core_eulumdat(ldt);
     let polar = PolarDiagram::from_eulumdat(&core_ldt);
     polar.to_photos_face_svg(width, height, &style.to_core())
+}
+
+#[cfg(test)]
+mod theme_config_tests {
+    use super::*;
+
+    #[test]
+    fn preset_fills_every_colour_field() {
+        let light = theme_preset("light".into());
+        assert_eq!(light.base, "light");
+        assert!(light.background.is_some());
+        assert!(light.curve_c0.is_some());
+        assert!(light.font_family.is_some());
+
+        let dark = theme_preset("dark".into());
+        assert_eq!(dark.base, "dark");
+        // Light and dark backgrounds must differ.
+        assert_ne!(light.background, dark.background);
+    }
+
+    #[test]
+    fn unknown_preset_name_falls_back_to_light() {
+        let cfg = theme_preset("chartreuse".into());
+        assert_eq!(cfg.base, "light");
+    }
+
+    #[test]
+    fn config_overrides_reach_the_core_theme() {
+        let cfg = SvgThemeConfig {
+            base: "dark".into(),
+            curve_c0: Some("#e4002b".into()),
+            font_family: Some("Georgia".into()),
+            ..Default::default()
+        };
+        let core = cfg.to_core();
+        // Overridden fields win over the dark base.
+        assert_eq!(core.curve_c0_c180, "#e4002b");
+        assert_eq!(core.font_family, "Georgia");
+        // Un-overridden field still comes from the dark base (non-empty).
+        assert!(!core.background.is_empty());
+    }
+
+    #[test]
+    fn curve_width_reaches_the_core_theme() {
+        let cfg = SvgThemeConfig {
+            curve_width: Some(5.0),
+            ..Default::default()
+        };
+        assert_eq!(cfg.to_core().curve_width, 5.0);
+    }
+
+    #[test]
+    fn config_survives_toml_round_trip() {
+        let cfg = SvgThemeConfig {
+            base: "dark".into(),
+            background: Some("#101018".into()),
+            curve_c0: Some("#e4002b".into()),
+            font_family: Some("Georgia".into()),
+            curve_width: Some(4.0),
+            ..Default::default()
+        };
+
+        let toml = theme_config_to_toml(cfg.clone());
+        let parsed = theme_config_from_toml(toml).expect("valid TOML");
+
+        // The base preset, concrete colours and width all survive.
+        assert_eq!(parsed.base, "dark");
+        assert_eq!(parsed.background.as_deref(), Some("#101018"));
+        assert_eq!(parsed.curve_c0.as_deref(), Some("#e4002b"));
+        assert_eq!(parsed.font_family.as_deref(), Some("Georgia"));
+        assert_eq!(parsed.curve_width, Some(4.0));
+    }
+
+    #[test]
+    fn malformed_toml_is_a_clean_error() {
+        let err = theme_config_from_toml("this is not = = valid toml".into());
+        assert!(err.is_err());
+    }
 }

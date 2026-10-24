@@ -3,6 +3,8 @@
 //! Writes Eulumdat format files according to the official specification.
 
 use crate::eulumdat::{Eulumdat, Symmetry, TypeIndicator};
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 /// Writer for Eulumdat (LDT) files.
 pub struct Writer;

@@ -24,6 +24,10 @@ street = []
 anyhow.workspace = true
 clap.workspace = true
 eulumdat = { workspace = true, features = ["xml", "json"] }
+eulumdat-digitize.workspace = true
+eulumdat-spectrum.workspace = true
+eulumdat-tm25.workspace = true
 eulumdat-typst.workspace = true
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif", "bmp"] }
 serde_json = "1"
 walkdir = "2.5.0"

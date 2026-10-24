@@ -133,7 +133,9 @@ fn spawn_lights_for_entity<T: PhotometricData>(
     // Get color from data or use default
     let color_temp = data.color_temperature().unwrap_or(4000.0);
     let cri = data.cri().unwrap_or(80.0);
-    let light_color = apply_cri_adjustment(kelvin_to_color(color_temp), cri);
+    let light_color = light
+        .color_override
+        .unwrap_or_else(|| apply_cri_adjustment(kelvin_to_color(color_temp), cri));
 
     let downward_fraction = data.downward_fraction() as f32;
     let upward_fraction = data.upward_fraction() as f32;

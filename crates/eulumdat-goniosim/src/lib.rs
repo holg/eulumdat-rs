@@ -95,7 +95,7 @@ pub use scene::{
     bare_isotropic, bare_lambertian, led_housing_with_cover, led_with_housing,
     roundtrip_validation, CoverPlacement, ReflectorPlacement, ReflectorSide, Scene, SceneBuilder,
 };
-pub use source::Source;
+pub use source::{RaySetSource, Source};
 pub use spectrum::{ChannelWeights, DetectorMode, SourceSpectrum, WeightedChannels};
 pub use tracer::{
     PhotonTrail, ProgressInfo, Tracer, TracerConfig, TracerResult, TracerStats, TrailEvent,

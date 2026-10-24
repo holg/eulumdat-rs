@@ -4,6 +4,9 @@
 //! case for an LDT that carries `color_appearance = "3000K"` but no SPD), and
 //! as ground truth for the spectral round-trip test.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 use crate::daylight::d_illuminant;
 use crate::spd::Spd;
 

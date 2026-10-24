@@ -1,0 +1,31 @@
+{
+  "identifier" : "F1E2D3C4-0000-4000-A000-000000000001",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "50.00",
+      "familyShareable" : false,
+      "internalID" : "A1B2C3D4-0000-4000-A000-000000000001",
+      "localizations" : [
+        {
+          "description" : "Unlock folder-based batch conversion to IES, LDT, and themed SVG diagrams.",
+          "displayName" : "Batch Export",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "eu.trahe.eulumdat.batchexport",
+      "referenceName" : "Batch Export Unlock",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "0",
+    "_developerTeamID" : "U4GT5CZ7J7",
+    "_lastSynchronizedDate" : 0
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

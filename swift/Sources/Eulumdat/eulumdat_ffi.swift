@@ -1186,6 +1186,201 @@ public func FfiConverterTypeBatchOutputFile_lower(_ value: BatchOutputFile) -> R
 
 
 /**
+ * Beam/field analysis of a luminaire.
+ */
+public struct BeamFieldResult {
+    /**
+     * Section through the peak direction (C0–C180 for a nadir peak); its
+     * beam/field are the luminaire's beam/field angle
+     */
+    public var peakSection: SectionAngles
+    /**
+     * Section C0–C180
+     */
+    public var c0C180: SectionAngles
+    /**
+     * Section C90–C270
+     */
+    public var c90C270: SectionAngles
+    /**
+     * Centre-beam variant: 50 % of I(γ = 0°), C0–C180 (degrees)
+     */
+    public var beamAngleCentre: Double?
+    /**
+     * Centre-beam variant: 10 % of I(γ = 0°), C0–C180 (degrees)
+     */
+    public var fieldAngleCentre: Double?
+    /**
+     * C angle of the global peak (degrees)
+     */
+    public var peakC: Double
+    /**
+     * γ angle of the global peak (degrees)
+     */
+    public var peakGamma: Double
+    /**
+     * Global peak intensity (cd/klm)
+     */
+    public var peakIntensity: Double
+    /**
+     * Lamp flux of the primary (first) lamp set (lm); converts cd/klm to cd
+     */
+    public var luminousFlux: Double
+    /**
+     * Wattage of the primary (first) lamp set (W)
+     */
+    public var wattage: Double
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Section through the peak direction (C0–C180 for a nadir peak); its
+         * beam/field are the luminaire's beam/field angle
+         */peakSection: SectionAngles, 
+        /**
+         * Section C0–C180
+         */c0C180: SectionAngles, 
+        /**
+         * Section C90–C270
+         */c90C270: SectionAngles, 
+        /**
+         * Centre-beam variant: 50 % of I(γ = 0°), C0–C180 (degrees)
+         */beamAngleCentre: Double?, 
+        /**
+         * Centre-beam variant: 10 % of I(γ = 0°), C0–C180 (degrees)
+         */fieldAngleCentre: Double?, 
+        /**
+         * C angle of the global peak (degrees)
+         */peakC: Double, 
+        /**
+         * γ angle of the global peak (degrees)
+         */peakGamma: Double, 
+        /**
+         * Global peak intensity (cd/klm)
+         */peakIntensity: Double, 
+        /**
+         * Lamp flux of the primary (first) lamp set (lm); converts cd/klm to cd
+         */luminousFlux: Double, 
+        /**
+         * Wattage of the primary (first) lamp set (W)
+         */wattage: Double) {
+        self.peakSection = peakSection
+        self.c0C180 = c0C180
+        self.c90C270 = c90C270
+        self.beamAngleCentre = beamAngleCentre
+        self.fieldAngleCentre = fieldAngleCentre
+        self.peakC = peakC
+        self.peakGamma = peakGamma
+        self.peakIntensity = peakIntensity
+        self.luminousFlux = luminousFlux
+        self.wattage = wattage
+    }
+}
+
+
+
+extension BeamFieldResult: Equatable, Hashable {
+    public static func ==(lhs: BeamFieldResult, rhs: BeamFieldResult) -> Bool {
+        if lhs.peakSection != rhs.peakSection {
+            return false
+        }
+        if lhs.c0C180 != rhs.c0C180 {
+            return false
+        }
+        if lhs.c90C270 != rhs.c90C270 {
+            return false
+        }
+        if lhs.beamAngleCentre != rhs.beamAngleCentre {
+            return false
+        }
+        if lhs.fieldAngleCentre != rhs.fieldAngleCentre {
+            return false
+        }
+        if lhs.peakC != rhs.peakC {
+            return false
+        }
+        if lhs.peakGamma != rhs.peakGamma {
+            return false
+        }
+        if lhs.peakIntensity != rhs.peakIntensity {
+            return false
+        }
+        if lhs.luminousFlux != rhs.luminousFlux {
+            return false
+        }
+        if lhs.wattage != rhs.wattage {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(peakSection)
+        hasher.combine(c0C180)
+        hasher.combine(c90C270)
+        hasher.combine(beamAngleCentre)
+        hasher.combine(fieldAngleCentre)
+        hasher.combine(peakC)
+        hasher.combine(peakGamma)
+        hasher.combine(peakIntensity)
+        hasher.combine(luminousFlux)
+        hasher.combine(wattage)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeBeamFieldResult: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BeamFieldResult {
+        return
+            try BeamFieldResult(
+                peakSection: FfiConverterTypeSectionAngles.read(from: &buf), 
+                c0C180: FfiConverterTypeSectionAngles.read(from: &buf), 
+                c90C270: FfiConverterTypeSectionAngles.read(from: &buf), 
+                beamAngleCentre: FfiConverterOptionDouble.read(from: &buf), 
+                fieldAngleCentre: FfiConverterOptionDouble.read(from: &buf), 
+                peakC: FfiConverterDouble.read(from: &buf), 
+                peakGamma: FfiConverterDouble.read(from: &buf), 
+                peakIntensity: FfiConverterDouble.read(from: &buf), 
+                luminousFlux: FfiConverterDouble.read(from: &buf), 
+                wattage: FfiConverterDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: BeamFieldResult, into buf: inout [UInt8]) {
+        FfiConverterTypeSectionAngles.write(value.peakSection, into: &buf)
+        FfiConverterTypeSectionAngles.write(value.c0C180, into: &buf)
+        FfiConverterTypeSectionAngles.write(value.c90C270, into: &buf)
+        FfiConverterOptionDouble.write(value.beamAngleCentre, into: &buf)
+        FfiConverterOptionDouble.write(value.fieldAngleCentre, into: &buf)
+        FfiConverterDouble.write(value.peakC, into: &buf)
+        FfiConverterDouble.write(value.peakGamma, into: &buf)
+        FfiConverterDouble.write(value.peakIntensity, into: &buf)
+        FfiConverterDouble.write(value.luminousFlux, into: &buf)
+        FfiConverterDouble.write(value.wattage, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBeamFieldResult_lift(_ buf: RustBuffer) throws -> BeamFieldResult {
+    return try FfiConverterTypeBeamFieldResult.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeBeamFieldResult_lower(_ value: BeamFieldResult) -> RustBuffer {
+    return FfiConverterTypeBeamFieldResult.lower(value)
+}
+
+
+/**
  * BIM data extracted from a luminaire
  */
 public struct BimData {
@@ -2263,15 +2458,33 @@ public struct ComparisonMetricFfi {
     public var name: String
     public var key: String
     public var unit: String
+    /**
+     * Value from A; NaN when undefined (e.g. no beam angle for an up-light)
+     */
     public var valueA: Double
+    /**
+     * Value from B; NaN when undefined
+     */
     public var valueB: Double
+    /**
+     * B − A; NaN when only one side is defined
+     */
     public var delta: Double
     public var deltaPercent: Double
     public var significance: SignificanceLevel
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(name: String, key: String, unit: String, valueA: Double, valueB: Double, delta: Double, deltaPercent: Double, significance: SignificanceLevel) {
+    public init(name: String, key: String, unit: String, 
+        /**
+         * Value from A; NaN when undefined (e.g. no beam angle for an up-light)
+         */valueA: Double, 
+        /**
+         * Value from B; NaN when undefined
+         */valueB: Double, 
+        /**
+         * B − A; NaN when only one side is defined
+         */delta: Double, deltaPercent: Double, significance: SignificanceLevel) {
         self.name = name
         self.key = key
         self.unit = unit
@@ -2729,11 +2942,21 @@ public struct Eulumdat {
     public var gAngles: [Double]
     public var intensities: [[Double]]
     public var maxIntensity: Double
+    /**
+     * Lamp flux of the primary (first) lamp set (lm). Lamp sets are
+     * alternatives; this is the flux that converts cd/klm to cd. (Until
+     * 0.8.0 this was the sum over all lamp sets.)
+     */
     public var totalLuminousFlux: Double
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(identification: String, typeIndicator: TypeIndicator, symmetry: Symmetry, numCPlanes: UInt32, cPlaneDistance: Double, numGPlanes: UInt32, gPlaneDistance: Double, measurementReportNumber: String, luminaireName: String, luminaireNumber: String, fileName: String, dateUser: String, length: Double, width: Double, height: Double, luminousAreaLength: Double, luminousAreaWidth: Double, heightC0: Double, heightC90: Double, heightC180: Double, heightC270: Double, downwardFluxFraction: Double, lightOutputRatio: Double, conversionFactor: Double, tiltAngle: Double, lampSets: [LampSet], directRatios: [Double], cAngles: [Double], gAngles: [Double], intensities: [[Double]], maxIntensity: Double, totalLuminousFlux: Double) {
+    public init(identification: String, typeIndicator: TypeIndicator, symmetry: Symmetry, numCPlanes: UInt32, cPlaneDistance: Double, numGPlanes: UInt32, gPlaneDistance: Double, measurementReportNumber: String, luminaireName: String, luminaireNumber: String, fileName: String, dateUser: String, length: Double, width: Double, height: Double, luminousAreaLength: Double, luminousAreaWidth: Double, heightC0: Double, heightC90: Double, heightC180: Double, heightC270: Double, downwardFluxFraction: Double, lightOutputRatio: Double, conversionFactor: Double, tiltAngle: Double, lampSets: [LampSet], directRatios: [Double], cAngles: [Double], gAngles: [Double], intensities: [[Double]], maxIntensity: Double, 
+        /**
+         * Lamp flux of the primary (first) lamp set (lm). Lamp sets are
+         * alternatives; this is the flux that converts cd/klm to cd. (Until
+         * 0.8.0 this was the sum over all lamp sets.)
+         */totalLuminousFlux: Double) {
         self.identification = identification
         self.typeIndicator = typeIndicator
         self.symmetry = symmetry
@@ -4019,6 +4242,129 @@ public func FfiConverterTypeSchemaValidationResult_lower(_ value: SchemaValidati
 
 
 /**
+ * Beam and field angle of one vertical section.
+ */
+public struct SectionAngles {
+    /**
+     * Section label, e.g. "C0–C180"
+     */
+    public var section: String
+    /**
+     * C angle of the positive side of the section (degrees)
+     */
+    public var cPlane: Double
+    /**
+     * Full width at 50 % of the section peak (degrees)
+     */
+    public var beam: Double?
+    /**
+     * Full width at 10 % of the section peak (degrees)
+     */
+    public var field: Double?
+    /**
+     * Peak intensity within the section (cd/klm)
+     */
+    public var peakIntensity: Double
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Section label, e.g. "C0–C180"
+         */section: String, 
+        /**
+         * C angle of the positive side of the section (degrees)
+         */cPlane: Double, 
+        /**
+         * Full width at 50 % of the section peak (degrees)
+         */beam: Double?, 
+        /**
+         * Full width at 10 % of the section peak (degrees)
+         */field: Double?, 
+        /**
+         * Peak intensity within the section (cd/klm)
+         */peakIntensity: Double) {
+        self.section = section
+        self.cPlane = cPlane
+        self.beam = beam
+        self.field = field
+        self.peakIntensity = peakIntensity
+    }
+}
+
+
+
+extension SectionAngles: Equatable, Hashable {
+    public static func ==(lhs: SectionAngles, rhs: SectionAngles) -> Bool {
+        if lhs.section != rhs.section {
+            return false
+        }
+        if lhs.cPlane != rhs.cPlane {
+            return false
+        }
+        if lhs.beam != rhs.beam {
+            return false
+        }
+        if lhs.field != rhs.field {
+            return false
+        }
+        if lhs.peakIntensity != rhs.peakIntensity {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(section)
+        hasher.combine(cPlane)
+        hasher.combine(beam)
+        hasher.combine(field)
+        hasher.combine(peakIntensity)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSectionAngles: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SectionAngles {
+        return
+            try SectionAngles(
+                section: FfiConverterString.read(from: &buf), 
+                cPlane: FfiConverterDouble.read(from: &buf), 
+                beam: FfiConverterOptionDouble.read(from: &buf), 
+                field: FfiConverterOptionDouble.read(from: &buf), 
+                peakIntensity: FfiConverterDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SectionAngles, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.section, into: &buf)
+        FfiConverterDouble.write(value.cPlane, into: &buf)
+        FfiConverterOptionDouble.write(value.beam, into: &buf)
+        FfiConverterOptionDouble.write(value.field, into: &buf)
+        FfiConverterDouble.write(value.peakIntensity, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSectionAngles_lift(_ buf: RustBuffer) throws -> SectionAngles {
+    return try FfiConverterTypeSectionAngles.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSectionAngles_lower(_ value: SectionAngles) -> RustBuffer {
+    return FfiConverterTypeSectionAngles.lower(value)
+}
+
+
+/**
  * Spectral distribution data (SPD)
  */
 public struct SpectralDistribution {
@@ -4110,6 +4456,203 @@ public func FfiConverterTypeSpectralDistribution_lift(_ buf: RustBuffer) throws 
 #endif
 public func FfiConverterTypeSpectralDistribution_lower(_ value: SpectralDistribution) -> RustBuffer {
     return FfiConverterTypeSpectralDistribution.lower(value)
+}
+
+
+/**
+ * A full custom SVG theme the host app builds from its colour/thickness/font
+ * pickers, then hands to the `*_themed` diagram functions.
+ *
+ * It starts from a base preset (`base`: "light" | "dark" | "css") and overrides
+ * only the fields that are set (`None` inherits the base). All fields render as
+ * inline SVG attributes, so they display in every renderer (CoreGraphics/
+ * `NSImage` included, which ignores CSS `<style>` blocks).
+ */
+public struct SvgThemeConfig {
+    /**
+     * Base preset the overrides layer on: "light", "dark", or "css".
+     */
+    public var base: String
+    public var background: String?
+    public var surface: String?
+    public var grid: String?
+    public var axis: String?
+    public var text: String?
+    public var textSecondary: String?
+    public var legendBg: String?
+    /**
+     * C0–C180 curve colour.
+     */
+    public var curveC0: String?
+    public var curveC0Fill: String?
+    /**
+     * C90–C270 curve colour.
+     */
+    public var curveC90: String?
+    public var curveC90Fill: String?
+    public var fontFamily: String?
+    /**
+     * Curve stroke width in px. `None` inherits the base preset (2.5).
+     * Applied inline so it renders in CoreGraphics/`NSImage` (which ignore CSS).
+     */
+    public var curveWidth: Double?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(
+        /**
+         * Base preset the overrides layer on: "light", "dark", or "css".
+         */base: String = "light", background: String? = nil, surface: String? = nil, grid: String? = nil, axis: String? = nil, text: String? = nil, textSecondary: String? = nil, legendBg: String? = nil, 
+        /**
+         * C0–C180 curve colour.
+         */curveC0: String? = nil, curveC0Fill: String? = nil, 
+        /**
+         * C90–C270 curve colour.
+         */curveC90: String? = nil, curveC90Fill: String? = nil, fontFamily: String? = nil, 
+        /**
+         * Curve stroke width in px. `None` inherits the base preset (2.5).
+         * Applied inline so it renders in CoreGraphics/`NSImage` (which ignore CSS).
+         */curveWidth: Double? = nil) {
+        self.base = base
+        self.background = background
+        self.surface = surface
+        self.grid = grid
+        self.axis = axis
+        self.text = text
+        self.textSecondary = textSecondary
+        self.legendBg = legendBg
+        self.curveC0 = curveC0
+        self.curveC0Fill = curveC0Fill
+        self.curveC90 = curveC90
+        self.curveC90Fill = curveC90Fill
+        self.fontFamily = fontFamily
+        self.curveWidth = curveWidth
+    }
+}
+
+
+
+extension SvgThemeConfig: Equatable, Hashable {
+    public static func ==(lhs: SvgThemeConfig, rhs: SvgThemeConfig) -> Bool {
+        if lhs.base != rhs.base {
+            return false
+        }
+        if lhs.background != rhs.background {
+            return false
+        }
+        if lhs.surface != rhs.surface {
+            return false
+        }
+        if lhs.grid != rhs.grid {
+            return false
+        }
+        if lhs.axis != rhs.axis {
+            return false
+        }
+        if lhs.text != rhs.text {
+            return false
+        }
+        if lhs.textSecondary != rhs.textSecondary {
+            return false
+        }
+        if lhs.legendBg != rhs.legendBg {
+            return false
+        }
+        if lhs.curveC0 != rhs.curveC0 {
+            return false
+        }
+        if lhs.curveC0Fill != rhs.curveC0Fill {
+            return false
+        }
+        if lhs.curveC90 != rhs.curveC90 {
+            return false
+        }
+        if lhs.curveC90Fill != rhs.curveC90Fill {
+            return false
+        }
+        if lhs.fontFamily != rhs.fontFamily {
+            return false
+        }
+        if lhs.curveWidth != rhs.curveWidth {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(base)
+        hasher.combine(background)
+        hasher.combine(surface)
+        hasher.combine(grid)
+        hasher.combine(axis)
+        hasher.combine(text)
+        hasher.combine(textSecondary)
+        hasher.combine(legendBg)
+        hasher.combine(curveC0)
+        hasher.combine(curveC0Fill)
+        hasher.combine(curveC90)
+        hasher.combine(curveC90Fill)
+        hasher.combine(fontFamily)
+        hasher.combine(curveWidth)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeSvgThemeConfig: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SvgThemeConfig {
+        return
+            try SvgThemeConfig(
+                base: FfiConverterString.read(from: &buf), 
+                background: FfiConverterOptionString.read(from: &buf), 
+                surface: FfiConverterOptionString.read(from: &buf), 
+                grid: FfiConverterOptionString.read(from: &buf), 
+                axis: FfiConverterOptionString.read(from: &buf), 
+                text: FfiConverterOptionString.read(from: &buf), 
+                textSecondary: FfiConverterOptionString.read(from: &buf), 
+                legendBg: FfiConverterOptionString.read(from: &buf), 
+                curveC0: FfiConverterOptionString.read(from: &buf), 
+                curveC0Fill: FfiConverterOptionString.read(from: &buf), 
+                curveC90: FfiConverterOptionString.read(from: &buf), 
+                curveC90Fill: FfiConverterOptionString.read(from: &buf), 
+                fontFamily: FfiConverterOptionString.read(from: &buf), 
+                curveWidth: FfiConverterOptionDouble.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SvgThemeConfig, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.base, into: &buf)
+        FfiConverterOptionString.write(value.background, into: &buf)
+        FfiConverterOptionString.write(value.surface, into: &buf)
+        FfiConverterOptionString.write(value.grid, into: &buf)
+        FfiConverterOptionString.write(value.axis, into: &buf)
+        FfiConverterOptionString.write(value.text, into: &buf)
+        FfiConverterOptionString.write(value.textSecondary, into: &buf)
+        FfiConverterOptionString.write(value.legendBg, into: &buf)
+        FfiConverterOptionString.write(value.curveC0, into: &buf)
+        FfiConverterOptionString.write(value.curveC0Fill, into: &buf)
+        FfiConverterOptionString.write(value.curveC90, into: &buf)
+        FfiConverterOptionString.write(value.curveC90Fill, into: &buf)
+        FfiConverterOptionString.write(value.fontFamily, into: &buf)
+        FfiConverterOptionDouble.write(value.curveWidth, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSvgThemeConfig_lift(_ buf: RustBuffer) throws -> SvgThemeConfig {
+    return try FfiConverterTypeSvgThemeConfig.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeSvgThemeConfig_lower(_ value: SvgThemeConfig) -> RustBuffer {
+    return FfiConverterTypeSvgThemeConfig.lower(value)
 }
 
 
@@ -6035,6 +6578,16 @@ public func batchConvertToIes(files: [BatchInputFile]) -> BatchConversionStats {
 })
 }
 /**
+ * Beam/field angles of the luminaire, per section, and its peak direction.
+ */
+public func beamFieldAnalysis(ldt: Eulumdat) -> BeamFieldResult {
+    return try!  FfiConverterTypeBeamFieldResult.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_beam_field_analysis(
+        FfiConverterTypeEulumdat.lower(ldt),$0
+    )
+})
+}
+/**
  * Calculate BUG rating from Eulumdat data
  */
 public func calculateBugRating(ldt: Eulumdat) -> BugRatingData {
@@ -6344,6 +6897,20 @@ public func generateButterflySvgLocalized(ldt: Eulumdat, width: Double, height: 
 })
 }
 /**
+ * Butterfly diagram SVG rendered with a custom theme config.
+ */
+public func generateButterflySvgThemed(ldt: Eulumdat, width: Double, height: Double, tiltDegrees: Double, config: SvgThemeConfig) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_butterfly_svg_themed(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterDouble.lower(tiltDegrees),
+        FfiConverterTypeSvgThemeConfig.lower(config),$0
+    )
+})
+}
+/**
  * Generate cartesian diagram data
  */
 public func generateCartesianDiagram(ldt: Eulumdat, width: Double, height: Double, maxCurves: UInt32) -> CartesianDiagramData {
@@ -6414,6 +6981,35 @@ public func generateCartesianSvgLocalized(ldt: Eulumdat, width: Double, height: 
         FfiConverterDouble.lower(height),
         FfiConverterUInt32.lower(maxCurves),
         FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
+ * Cartesian diagram SVG rendered with a custom theme config.
+ */
+public func generateCartesianSvgThemed(ldt: Eulumdat, width: Double, height: Double, maxCurves: UInt32, config: SvgThemeConfig) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_themed(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterUInt32.lower(maxCurves),
+        FfiConverterTypeSvgThemeConfig.lower(config),$0
+    )
+})
+}
+/**
+ * Cartesian diagram SVG with a custom theme config and localized labels.
+ */
+public func generateCartesianSvgThemedLocalized(ldt: Eulumdat, width: Double, height: Double, maxCurves: UInt32, config: SvgThemeConfig, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_themed_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterUInt32.lower(maxCurves),
+        FfiConverterTypeSvgThemeConfig.lower(config),
         FfiConverterTypeLanguage.lower(language),$0
     )
 })
@@ -6590,6 +7186,19 @@ public func generateHeatmapSvgLocalized(ldt: Eulumdat, width: Double, height: Do
 })
 }
 /**
+ * Heatmap diagram SVG rendered with a custom theme config.
+ */
+public func generateHeatmapSvgThemed(ldt: Eulumdat, width: Double, height: Double, config: SvgThemeConfig) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_heatmap_svg_themed(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeConfig.lower(config),$0
+    )
+})
+}
+/**
  * Generate isocandela contour diagram as SVG
  */
 public func generateIsocandelaSvg(ldt: Eulumdat, width: Double, height: Double, theme: SvgThemeType) -> String {
@@ -6760,6 +7369,33 @@ public func generatePolarSvgLocalized(ldt: Eulumdat, width: Double, height: Doub
         FfiConverterDouble.lower(width),
         FfiConverterDouble.lower(height),
         FfiConverterTypeSvgThemeType.lower(theme),
+        FfiConverterTypeLanguage.lower(language),$0
+    )
+})
+}
+/**
+ * Polar diagram SVG rendered with a custom theme config.
+ */
+public func generatePolarSvgThemed(ldt: Eulumdat, width: Double, height: Double, config: SvgThemeConfig) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_polar_svg_themed(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeConfig.lower(config),$0
+    )
+})
+}
+/**
+ * Polar diagram SVG with a custom theme config and localized labels.
+ */
+public func generatePolarSvgThemedLocalized(ldt: Eulumdat, width: Double, height: Double, config: SvgThemeConfig, language: Language) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_generate_polar_svg_themed_localized(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(width),
+        FfiConverterDouble.lower(height),
+        FfiConverterTypeSvgThemeConfig.lower(config),
         FfiConverterTypeLanguage.lower(language),$0
     )
 })
@@ -6947,6 +7583,59 @@ public func sampleIntensityNormalized(ldt: Eulumdat, cAngle: Double, gAngle: Dou
 })
 }
 /**
+ * Beam and field angle of the section C–(C+180), e.g. `c_plane = 90` for
+ * C90–C270.
+ */
+public func sectionAngles(ldt: Eulumdat, cPlane: Double) -> SectionAngles {
+    return try!  FfiConverterTypeSectionAngles.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_section_angles(
+        FfiConverterTypeEulumdat.lower(ldt),
+        FfiConverterDouble.lower(cPlane),$0
+    )
+})
+}
+/**
+ * Parse a theme file (TOML) string into a config. Errors on malformed input.
+ */
+public func themeConfigFromToml(toml: String)throws  -> SvgThemeConfig {
+    return try  FfiConverterTypeSvgThemeConfig.lift(try rustCallWithError(FfiConverterTypeEulumdatError.lift) {
+    uniffi_eulumdat_ffi_fn_func_theme_config_from_toml(
+        FfiConverterString.lower(toml),$0
+    )
+})
+}
+/**
+ * Seed a config from an `SvgThemeType`, for callers still using the enum.
+ */
+public func themeConfigFromType(themeType: SvgThemeType) -> SvgThemeConfig {
+    return try!  FfiConverterTypeSvgThemeConfig.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_theme_config_from_type(
+        FfiConverterTypeSvgThemeType.lower(themeType),$0
+    )
+})
+}
+/**
+ * Serialize a config back to a TOML theme file string (for save/export).
+ */
+public func themeConfigToToml(config: SvgThemeConfig) -> String {
+    return try!  FfiConverterString.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_theme_config_to_toml(
+        FfiConverterTypeSvgThemeConfig.lower(config),$0
+    )
+})
+}
+/**
+ * A fully-populated theme config from a built-in preset ("light", "dark",
+ * "css"), so the UI can seed its pickers with real starting values.
+ */
+public func themePreset(name: String) -> SvgThemeConfig {
+    return try!  FfiConverterTypeSvgThemeConfig.lift(try! rustCall() {
+    uniffi_eulumdat_ffi_fn_func_theme_preset(
+        FfiConverterString.lower(name),$0
+    )
+})
+}
+/**
  * Validate Eulumdat data and return warnings
  */
 public func validateLdt(ldt: Eulumdat) -> [ValidationWarning] {
@@ -7028,6 +7717,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_batch_convert_to_ies() != 246) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_beam_field_analysis() != 11025) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_calculate_bug_rating() != 58767) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7097,6 +7789,9 @@ private var initializationResult: InitializationResult = {
     if (uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg_localized() != 57034) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg_themed() != 7915) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_diagram() != 14573) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -7110,6 +7805,12 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_localized() != 63910) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_themed() != 17810) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_themed_localized() != 9921) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_complication_svg() != 12814) {
@@ -7143,6 +7844,9 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg_localized() != 6199) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg_themed() != 34370) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_isocandela_svg() != 64910) {
@@ -7179,6 +7883,12 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_localized() != 49970) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_themed() != 44648) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_themed_localized() != 20812) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_generate_spectral_svg() != 1629) {
@@ -7221,6 +7931,21 @@ private var initializationResult: InitializationResult = {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_sample_intensity_normalized() != 43091) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_section_angles() != 50162) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_theme_config_from_toml() != 50849) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_theme_config_from_type() != 22798) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_theme_config_to_toml() != 27201) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_eulumdat_ffi_checksum_func_theme_preset() != 50023) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_eulumdat_ffi_checksum_func_validate_ldt() != 34444) {

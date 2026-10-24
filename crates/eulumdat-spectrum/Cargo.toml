@@ -13,10 +13,16 @@ categories = ["science", "simulation"]
 # tracers, the Bevy viewer and the core eulumdat crate can all depend on it
 # without any risk of a dependency cycle.
 [features]
-default = []
+default = ["std"]
+# `std` only picks the inherent f64 math; without it the `math::F64Ext` trait
+# supplies sin/exp/log10/... from libm, so the crate builds for bare metal
+# (Cortex-M gateways running the same photometry as the browser).
+std = ["serde?/std"]
 serde = ["dep:serde"]
 
 [dependencies]
+# float math on targets whose core has no exp/log10/sqrt/... (see `math` in lib.rs)
+libm = "0.2"
 serde = { workspace = true, optional = true }
 
 [dev-dependencies]

@@ -47,6 +47,7 @@ use super::daylight_sky::DaylightSky;
 use super::diagram_zoom::DiagramZoom;
 use super::floodlight_cartesian::FloodlightCartesian;
 use super::goniosim::GonioSimDemo;
+use super::greenhouse_demo::GreenhouseDemo;
 use super::greenhouse_diagram::GreenhouseDiagramView;
 use super::intensity_heatmap::IntensityHeatmap;
 use super::isocandela_diagram::IsocandelaDiagramView;
@@ -68,6 +69,8 @@ use super::zonal_designer::ZonalDesigner;
 // Storage keys - must match eulumdat-bevy/src/viewer/wasm_sync.rs
 const LDT_STORAGE_KEY: &str = "eulumdat_current_ldt";
 const LDT_TIMESTAMP_KEY: &str = "eulumdat_ldt_timestamp";
+/// One-shot hand-over of a file from another page (see `tm25_viewer`).
+pub const PENDING_FILE_KEY: &str = "eulumdat_pending_file";
 
 /// All features (PDF/Typst export, Maps Designer) are enabled by default.
 fn is_export_enabled() -> bool {
@@ -731,7 +734,7 @@ fn save_to_storage(atla_derived: &Eulumdat) {
                 "intensities": atla_derived.intensities,
                 "c_angles": atla_derived.c_angles,
                 "g_angles": atla_derived.g_angles,
-                "lumens": atla_derived.total_luminous_flux(),
+                "lumens": atla_derived.luminous_flux(),
                 "luminaire_name": atla_derived.luminaire_name,
             })) {
                 let _ = storage.set_item("eulumdat_current_json", &json);
@@ -751,6 +754,12 @@ pub fn App() -> impl IntoView {
         }
         if demo == "goniosim" {
             return view! { <GonioSimDemo /> }.into_any();
+        }
+        if demo == "greenhouse_demo" || demo == "greenhouse" {
+            return view! { <GreenhouseDemo /> }.into_any();
+        }
+        if demo == "tm25" {
+            return view! { <super::tm25_viewer::Tm25Viewer /> }.into_any();
         }
     }
 
@@ -1460,11 +1469,48 @@ pub fn App() -> impl IntoView {
         set_theme_mode.update(|m| *m = m.toggle());
     };
 
+    // Chart images (PNG/JPEG/...) are digitized into an SPD via a dialog
+    // instead of being parsed as text.
+    let pending_chart = RwSignal::new(None::<super::spd_digitize::PendingChart>);
+
+    // A file handed over by another page (the TM-25 viewer's "Open in editor"):
+    // `localStorage["eulumdat_pending_file"]` = {"name","content"}, consumed once.
+    Effect::new(move |_| {
+        let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) else {
+            return;
+        };
+        let Ok(Some(raw)) = storage.get_item(PENDING_FILE_KEY) else {
+            return;
+        };
+        let _ = storage.remove_item(PENDING_FILE_KEY);
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+            let name = v
+                .get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or("pending.ldt");
+            if let Some(content) = v.get("content").and_then(|c| c.as_str()) {
+                load_file_content(
+                    name.to_string(),
+                    content.to_string(),
+                    crate::library::LibrarySource::LocalFile,
+                );
+            }
+        }
+    });
+
     let on_file_input = move |ev: ev::Event| {
         let input: HtmlInputElement = ev.target().unwrap().unchecked_into();
         if let Some(files) = input.files() {
             if let Some(file) = files.get(0) {
                 let name = file.name();
+                if super::tm25_viewer::is_tm25_file(&name) {
+                    super::tm25_viewer::open_in_viewer(file);
+                    return;
+                }
+                if super::spd_digitize::is_chart_image(&name) {
+                    super::spd_digitize::start(file, pending_chart);
+                    return;
+                }
                 let load_content = load_file_content;
                 wasm_bindgen_futures::spawn_local(async move {
                     let text = gloo_file::futures::read_as_text(&file.into()).await;
@@ -1493,6 +1539,14 @@ pub fn App() -> impl IntoView {
             if let Some(files) = data_transfer.files() {
                 if let Some(file) = files.get(0) {
                     let name = file.name();
+                    if super::tm25_viewer::is_tm25_file(&name) {
+                        super::tm25_viewer::open_in_viewer(file);
+                        return;
+                    }
+                    if super::spd_digitize::is_chart_image(&name) {
+                        super::spd_digitize::start(file, pending_chart);
+                        return;
+                    }
                     let load_content = load_file_content;
                     wasm_bindgen_futures::spawn_local(async move {
                         let text = gloo_file::futures::read_as_text(&file.into()).await;
@@ -1532,7 +1586,7 @@ pub fn App() -> impl IntoView {
                                     {move || locale.get().ui.header.open.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.spd,.SPD,.csv,.CSV,.oxl,.OXL,.oxc,.OXC"
+                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.spd,.SPD,.csv,.CSV,.oxl,.OXL,.oxc,.OXC,.png,.PNG,.jpg,.JPG,.jpeg,.JPEG,.webp,.WEBP,.tm25ray,.TM25RAY"
                                         style="display: none;"
                                         on:change=on_file_input
                                         aria-label="Open LDT, IES, SPDX, XML, or JSON file"
@@ -2394,6 +2448,38 @@ pub fn App() -> impl IntoView {
                     }.into_any()
                 }}
             </div>
+
+            // Chart image → SPD digitizer dialog
+            <super::spd_digitize::DigitizeDialog
+                pending=pending_chart
+                on_spd=Callback::new(move |(name, spd): (String, String)| {
+                    load_file_content(name, spd, crate::library::LibrarySource::LocalFile);
+                })
+                on_attach=Callback::new(move |spd_text: String| {
+                    match eulumdat::atla::spd_loader::parse(&spd_text) {
+                        Ok(loaded) => {
+                            let target = selected_lamp_set.get_untracked();
+                            let mut n = 0;
+                            set_atla_doc.update(|doc| {
+                                n = eulumdat::atla::spd_loader::attach_spd(doc, &loaded.spd, Some(target));
+                            });
+                            web_sys::console::info_1(
+                                &format!("Attached digitized spectrum ({} samples) to {} emitter(s)", loaded.spd.wavelengths.len(), n).into(),
+                            );
+                        }
+                        Err(e) => web_sys::console::error_1(&format!("Attach failed: {e}").into()),
+                    }
+                })
+                luminaire=Signal::derive(move || {
+                    let doc = atla_doc.get();
+                    let has_photometry = doc.emitters.iter().any(|e| e.intensity_distribution.is_some());
+                    has_photometry.then(|| {
+                        current_file.get()
+                            .or_else(|| doc.header.description.clone())
+                            .unwrap_or_else(|| "loaded luminaire".to_string())
+                    })
+                })
+            />
 
             // About Modal
             {move || {

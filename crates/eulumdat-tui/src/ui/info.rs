@@ -128,25 +128,41 @@ pub fn render_info(
         "Distribution",
         &format!("{:?}", summary.distribution_type),
     );
+    let fmt = eulumdat::format_angle;
+    let section = summary.peak_section.label();
     add_field(
         &mut lines,
-        "Beam (IES)",
-        &format!("{:.1}\u{00b0}", summary.beam_angle),
+        "Beam 50% peak",
+        &format!("{} ({})", fmt(summary.beam_angle), section),
     );
     add_field(
         &mut lines,
-        "Field (IES)",
-        &format!("{:.1}\u{00b0}", summary.field_angle),
+        "Field 10% peak",
+        &format!("{} ({})", fmt(summary.field_angle), section),
     );
     add_field(
         &mut lines,
-        "Beam (CIE)",
-        &format!("{:.1}\u{00b0}", summary.beam_angle_cie),
+        "Beam C0/C90",
+        &format!(
+            "{} / {}",
+            fmt(summary.sections.c0_c180.beam),
+            fmt(summary.sections.c90_c270.beam)
+        ),
     );
     add_field(
         &mut lines,
-        "Field (CIE)",
-        &format!("{:.1}\u{00b0}", summary.field_angle_cie),
+        "Field C0/C90",
+        &format!(
+            "{} / {}",
+            fmt(summary.sections.c0_c180.field),
+            fmt(summary.sections.c90_c270.field)
+        ),
+    );
+    add_field(&mut lines, "Beam 50% centre", &fmt(summary.beam_angle_cie));
+    add_field(
+        &mut lines,
+        "Field 10% centre",
+        &fmt(summary.field_angle_cie),
     );
     add_field(
         &mut lines,

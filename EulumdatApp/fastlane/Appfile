@@ -1,0 +1,6 @@
+# App identity for fastlane. Secrets (issuer id, key id) come from the
+# environment (see .env.example) so nothing sensitive is committed.
+app_identifier("eu.trahe.eulumdat")
+apple_id(ENV["FASTLANE_APPLE_ID"] || "trahe@mac.com")
+team_id("U4GT5CZ7J7")            # Developer Portal team
+itc_team_id(ENV["ASC_TEAM_ID"])  # App Store Connect team (optional; API key usually suffices)

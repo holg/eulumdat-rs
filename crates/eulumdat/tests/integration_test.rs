@@ -160,11 +160,11 @@ fn test_calculations() {
     let ldt = Eulumdat::parse(TEST_LDT).unwrap();
 
     // Total luminous flux
-    let flux = ldt.total_luminous_flux();
+    let flux = ldt.luminous_flux();
     assert!((flux - 19800.0).abs() < 0.001);
 
     // Wattage
-    let wattage = ldt.total_wattage();
+    let wattage = ldt.wattage();
     assert!((wattage - 195.0).abs() < 0.001);
 
     // Luminous efficacy
@@ -176,7 +176,7 @@ fn test_calculations() {
     assert!((max - 386.8106).abs() < 0.001);
 
     // Beam angle (full angle per CIE S 017:2020)
-    let beam = PhotometricCalculations::beam_angle(&ldt);
+    let beam = PhotometricCalculations::beam_angle(&ldt).expect("beam angle");
     assert!(beam > 0.0 && beam < 180.0, "Beam angle: {}", beam);
 }
 
@@ -329,11 +329,7 @@ fn test_italo_ies_isolux() {
     );
     eprintln!("max_intensity: {:.2}", ldt.max_intensity());
 
-    let total_flux: f64 = ldt
-        .lamp_sets
-        .iter()
-        .map(|ls| ls.total_luminous_flux * ls.num_lamps.unsigned_abs() as f64)
-        .sum();
+    let total_flux = ldt.luminous_flux();
     eprintln!(
         "total_flux: {:.1}, flux_scale: {:.4}",
         total_flux,

@@ -4,8 +4,14 @@
 //! candela values across C-planes (x-axis) and gamma angles (y-axis).
 
 use super::color::{heatmap_color, Color};
-use super::{DiagramScale, SvgTheme};
-use crate::{Eulumdat, PhotometricSummary};
+use super::DiagramScale;
+#[cfg(feature = "std")]
+use super::SvgTheme;
+#[allow(unused_imports)]
+use crate::prelude::*;
+use crate::Eulumdat;
+#[cfg(feature = "std")]
+use crate::PhotometricSummary;
 
 /// A single cell in the heatmap
 #[derive(Debug, Clone, PartialEq)]
@@ -91,7 +97,7 @@ impl HeatmapDiagram {
         let max_intensity = ldt.max_intensity();
 
         // Get total flux for candela conversion
-        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
+        let total_flux: f64 = ldt.luminous_flux();
         let scale_factor = total_flux / 1000.0; // cd/klm to cd
         let max_candela = max_intensity * scale_factor;
 
@@ -224,11 +230,13 @@ impl HeatmapDiagram {
     /// Render a heatmap SVG for a given LDT.
     ///
     /// Universal entry point — usable from any frontend.
+    #[cfg(feature = "std")]
     pub fn render_svg(ldt: &Eulumdat, width: f64, height: f64, theme: &SvgTheme) -> String {
         Self::render_svg_opts(ldt, width, height, theme, false)
     }
 
     /// Render with optional numeric cd/klm value labels on cells.
+    #[cfg(feature = "std")]
     pub fn render_svg_opts(
         ldt: &Eulumdat,
         width: f64,

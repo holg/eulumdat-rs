@@ -95,7 +95,8 @@ struct EulumdatApp: App {
                 }
             }
 
-            CommandMenu("View") {
+            // Merge into the system View menu; CommandMenu("View") would add a second one.
+            CommandGroup(before: .toolbar) {
                 Button("Polar Diagram") {
                     NotificationCenter.default.post(name: .selectDiagram, object: "polar")
                 }
@@ -135,6 +136,8 @@ struct EulumdatApp: App {
 
                 Toggle("Dark Theme", isOn: $isDarkTheme)
                     .keyboardShortcut("d", modifiers: [.command, .shift])
+
+                Divider()
             }
 
             // Window menu commands
@@ -170,9 +173,9 @@ struct EulumdatApp: App {
         #endif
 
         #if os(macOS)
-        // Batch conversion window
+        // Batch conversion window (gated behind the one-time batch-export IAP)
         Window("Batch Convert", id: "batch-convert") {
-            BatchConvertView()
+            BatchExportGate()
         }
         .windowStyle(.titleBar)
         .windowResizability(.contentSize)

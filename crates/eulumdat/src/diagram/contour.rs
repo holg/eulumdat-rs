@@ -3,6 +3,8 @@
 //! Generates SVG path strings for contour lines at given threshold values
 //! on a 2D scalar grid. Used by isolux footprint and isocandela diagrams.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
 /// A contour line at a specific threshold value
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

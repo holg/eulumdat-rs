@@ -397,7 +397,7 @@ pub fn led_housing_with_cover(
 
 /// Round-trip validation: trace an existing LDT through empty space.
 pub fn roundtrip_validation(ldt: &eulumdat::Eulumdat) -> Scene {
-    let flux = ldt.total_luminous_flux();
+    let flux = ldt.luminous_flux();
     let mut scene = Scene::new();
     scene.add_source(Source::from_lvk(
         Point3::origin(),

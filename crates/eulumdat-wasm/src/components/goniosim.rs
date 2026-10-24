@@ -18,6 +18,8 @@ use leptos::prelude::*;
 use wasm_bindgen::JsCast;
 
 /// Batch size: photons traced per requestAnimationFrame tick.
+/// Rays kept from a TM-25 file for near-field replay in the goniometer.
+const RAY_SET_KEEP: usize = 200_000;
 const BATCH_SIZE: u64 = 10_000;
 
 /// Photon count presets for the slider.
@@ -218,6 +220,11 @@ pub fn GonioSimDemo(
     let set_source_ldc = move |val: Option<Eulumdat>| {
         set_own_ldc.set(val);
     };
+    // --- TM-25 ray set: when present, photons replay the stored near-field
+    // rays instead of sampling the LDT from a point (`Source::RaySet`). The
+    // LDT stays as the reference far field of the same rays.
+    let (ray_source, set_ray_source) = signal::<Option<std::sync::Arc<RaySetSource>>>(None);
+    let (ray_source_info, set_ray_source_info) = signal(String::new());
 
     // --- Cover material ---
     let (cover_preset, set_cover_preset) = signal(CoverPreset::None);
@@ -273,6 +280,8 @@ pub fn GonioSimDemo(
             Ok(ldc) => {
                 set_source_name.set(name);
                 set_source_ldc(Some(ldc));
+                set_ray_source.set(None);
+                set_ray_source_info.set(String::new());
                 // Reset simulation
                 reset_sim(
                     set_running,
@@ -289,6 +298,8 @@ pub fn GonioSimDemo(
                 if let Ok(ldc) = eulumdat::IesParser::parse(&content) {
                     set_source_name.set(name);
                     set_source_ldc(Some(ldc));
+                    set_ray_source.set(None);
+                    set_ray_source_info.set(String::new());
                     reset_sim(
                         set_running,
                         set_photons_done,
@@ -303,9 +314,121 @@ pub fn GonioSimDemo(
         }
     };
 
-    // Load default template on mount
+    // Load a TM-25 ray file: far field of every ray → reference LDT, and a
+    // flux-rescaled subset → `Source::RaySet`. TM-25 has γ = 0 on +z and C from
+    // +x towards +y; the goniometer has γ = 0 on −Z and the same C, so the map
+    // is (x, y, z) → (x, y, −z) with mm → m.
+    let load_tm25 = move |name: String, bytes: Vec<u8>| {
+        let file = match eulumdat_tm25::Tm25File::parse(&bytes) {
+            Ok(f) => f,
+            Err(e) => {
+                web_sys::console::error_1(&format!("TM-25: {e}").into());
+                return;
+            }
+        };
+        let h = file.header.clone();
+        let kind = h.flux_kind();
+        let mut ffb = eulumdat_tm25::FarFieldBuilder::new(10.0, 5.0, kind);
+        let (mut lo, mut hi) = ([f32::MAX; 3], [f32::MIN; 3]);
+        for r in file.rays.iter() {
+            ffb.add(&r);
+            let p = r.position();
+            for i in 0..3 {
+                lo[i] = lo[i].min(p[i]);
+                hi[i] = hi[i].max(p[i]);
+            }
+        }
+        let ff = ffb.finish().smoothed(1, 1, 12.0);
+        let ldt = eulumdat_tm25::luminaire_from_far_field(&ff, &h, Some((lo, hi)));
+        let flux_lm = ldt
+            .lamp_sets
+            .first()
+            .map(|l| l.total_luminous_flux)
+            .unwrap_or(0.0)
+            .max(1e-9);
+        let total = file.rays.len();
+        let rays: Vec<eulumdat_tm25::Ray> = if total > RAY_SET_KEEP {
+            eulumdat_tm25::subsample(&file.rays, RAY_SET_KEEP, 1)
+        } else {
+            file.rays.iter().collect()
+        };
+        let set = RaySetSource::new(
+            rays.iter().map(|r| {
+                let p = r.position();
+                let d = r.direction();
+                (
+                    Point3::new(
+                        p[0] as f64 * 1e-3,
+                        p[1] as f64 * 1e-3,
+                        -(p[2] as f64) * 1e-3,
+                    ),
+                    Vector3::new(d[0] as f64, d[1] as f64, -(d[2] as f64)),
+                    r.flux(kind) as f64,
+                )
+            }),
+            flux_lm,
+        );
+        let Some(set) = set else {
+            web_sys::console::error_1(&"TM-25: no usable rays".into());
+            return;
+        };
+        set_ray_source_info.set(format!(
+            "{total} rays in the file · replaying {} · {flux_lm:.2} lm · {}",
+            set.len(),
+            if kind == eulumdat_tm25::FluxKind::Radiometric {
+                "radiometric"
+            } else {
+                "photometric"
+            }
+        ));
+        set_ray_source.set(Some(std::sync::Arc::new(set)));
+        set_source_name.set(name);
+        set_source_ldc(Some(ldt));
+        set_use_gpu.set(false);
+        reset_sim(
+            set_running,
+            set_photons_done,
+            set_photons_detected,
+            set_photons_absorbed,
+            set_sim_ldt,
+            set_export_ldt_string,
+            set_generation,
+        );
+    };
+
+    // On mount: a ray set handed over by the TM-25 viewer (`?source=tm25`,
+    // subset stashed in IndexedDB under "gonio"), else the default template.
     Effect::new(move |_| {
-        if source_ldc.get_untracked().is_none() {
+        if source_ldc.get_untracked().is_some() {
+            return;
+        }
+        let from_tm25 = web_sys::window()
+            .and_then(|w| w.location().search().ok())
+            .map(|q| q.contains("source=tm25"))
+            .unwrap_or(false);
+        if from_tm25 {
+            wasm_bindgen_futures::spawn_local(async move {
+                match take_tm25_stash("gonio").await {
+                    Some(bytes) => {
+                        let name = web_sys::window()
+                            .and_then(|w| w.local_storage().ok().flatten())
+                            .and_then(|st| st.get_item("tm25_exports").ok().flatten())
+                            .and_then(|j| serde_json::from_str::<serde_json::Value>(&j).ok())
+                            .and_then(|v| {
+                                v.get("name")
+                                    .and_then(|n| n.as_str())
+                                    .map(|n| format!("{n}.TM25RAY"))
+                            })
+                            .unwrap_or_else(|| "ray set".to_string());
+                        load_tm25(name, bytes);
+                    }
+                    None => {
+                        let (name, content) = TEMPLATES[0];
+                        load_ldt(name.to_string(), content.to_string());
+                    }
+                }
+            });
+        } else {
             let (name, content) = TEMPLATES[0];
             load_ldt(name.to_string(), content.to_string());
         }
@@ -319,6 +442,14 @@ pub fn GonioSimDemo(
             if let Some(file) = files.get(0) {
                 let name = file.name();
                 let load_ldt = load_ldt;
+                if name.to_lowercase().ends_with(".tm25ray") {
+                    wasm_bindgen_futures::spawn_local(async move {
+                        if let Ok(bytes) = gloo_file::futures::read_as_bytes(&file.into()).await {
+                            load_tm25(name, bytes);
+                        }
+                    });
+                    return;
+                }
                 wasm_bindgen_futures::spawn_local(async move {
                     let text = gloo_file::futures::read_as_text(&file.into()).await;
                     if let Ok(content) = text {
@@ -357,7 +488,7 @@ pub fn GonioSimDemo(
         let ldc = source_ldc.get_untracked()?;
         // Use luminaire output flux (lamp flux * LOR), not raw lamp flux.
         // The LDT intensity values are already scaled by LOR.
-        let lamp_flux = ldc.total_luminous_flux().max(1.0);
+        let lamp_flux = ldc.luminous_flux().max(1.0);
         let lor = ldc.light_output_ratio / 100.0;
         let luminaire_flux = if lor > 0.0 {
             lamp_flux * lor
@@ -367,12 +498,16 @@ pub fn GonioSimDemo(
         let cp = cover_preset.get_untracked();
 
         let mut scene = Scene::new();
-        scene.add_source(Source::from_lvk(
-            Point3::origin(),
-            eulumdat_goniosim::nalgebra::Rotation3::identity(),
-            ldc,
-            luminaire_flux,
-        ));
+        if let Some(set) = ray_source.get_untracked() {
+            scene.add_source(Source::RaySet((*set).clone()));
+        } else {
+            scene.add_source(Source::from_lvk(
+                Point3::origin(),
+                eulumdat_goniosim::nalgebra::Rotation3::identity(),
+                ldc,
+                luminaire_flux,
+            ));
+        }
 
         if cp.has_cover() {
             let cover_mat = if cp == CoverPreset::Custom {
@@ -417,7 +552,7 @@ pub fn GonioSimDemo(
         set_running.set(true);
         let gen = generation.get_untracked();
         let src = source_ldc.get_untracked().unwrap();
-        let lamp_flux = src.total_luminous_flux().max(1.0);
+        let lamp_flux = src.luminous_flux().max(1.0);
         let lor = src.light_output_ratio / 100.0;
         let flux = if lor > 0.0 {
             lamp_flux * lor
@@ -437,8 +572,8 @@ pub fn GonioSimDemo(
         let src_clone = src.clone();
         let n_photons = target_photons.get_untracked();
 
-        // GPU path
-        if use_gpu.get_untracked() {
+        // GPU path (LDT sources only: the ray set is replayed on the CPU)
+        if use_gpu.get_untracked() && ray_source.get_untracked().is_none() {
             wasm_bindgen_futures::spawn_local(async move {
                 set_photons_done.set(0);
 
@@ -844,7 +979,7 @@ pub fn GonioSimDemo(
                                     {move || locale.get().goniosim.upload.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.oxl,.OXL,.oxc,.OXC"
+                                        accept=".ldt,.LDT,.ies,.IES,.oxl,.OXL,.oxc,.OXC,.tm25ray,.TM25RAY"
                                         style="display: none;"
                                         on:change=on_file_input
                                     />
@@ -854,6 +989,17 @@ pub fn GonioSimDemo(
                                     if !name.is_empty() {
                                         view! {
                                             <div style="margin-top: 4px; font-size: 0.75rem; color: #58a6ff;">{name}</div>
+                                        }.into_any()
+                                    } else {
+                                        view! { <div /> }.into_any()
+                                    }
+                                }}
+                                {move || {
+                                    let info = ray_source_info.get();
+                                    if !info.is_empty() {
+                                        view! {
+                                            <div style="margin-top: 4px; font-size: 0.7rem; color: #3fb950;">{"TM-25 near field: "}{info}</div>
+                                            <div style="font-size: 0.7rem; color: #8b949e;">"Photons replay the file's rays (flux weighted) from their real start points; covers see the emitting area. CPU tracer only."</div>
                                         }.into_any()
                                     } else {
                                         view! { <div /> }.into_any()
@@ -1478,7 +1624,7 @@ fn check_webgpu_available() -> bool {
         if let Some(window) = web_sys::window() {
             // Check for navigator.gpu
             let gpu = js_sys::Reflect::get(&window.navigator(), &"gpu".into()).ok();
-            return gpu.map_or(false, |v| !v.is_undefined() && !v.is_null());
+            return gpu.is_some_and(|v| !v.is_undefined() && !v.is_null());
         }
         false
     }
@@ -1488,7 +1634,29 @@ fn check_webgpu_available() -> bool {
     }
 }
 
-fn download_string(content: &str, filename: &str) {
+/// Read (and clear) a value stashed by the TM-25 loader (`tm25TakeFile(key)`):
+/// a `Uint8Array` or a `Blob`. `None` when nothing is there.
+async fn take_tm25_stash(key: &str) -> Option<Vec<u8>> {
+    let window = web_sys::window()?;
+    let take = js_sys::Reflect::get(&window, &"tm25TakeFile".into()).ok()?;
+    let take: js_sys::Function = take.dyn_into().ok()?;
+    let promise: js_sys::Promise = take.call1(&window, &key.into()).ok()?.dyn_into().ok()?;
+    let val = wasm_bindgen_futures::JsFuture::from(promise).await.ok()?;
+    if val.is_null() || val.is_undefined() {
+        return None;
+    }
+    if let Some(arr) = val.dyn_ref::<js_sys::Uint8Array>() {
+        return Some(arr.to_vec());
+    }
+    let blob: web_sys::Blob = val.dyn_into().ok()?;
+    let buf = wasm_bindgen_futures::JsFuture::from(blob.array_buffer())
+        .await
+        .ok()?;
+    Some(js_sys::Uint8Array::new(&buf).to_vec())
+}
+
+/// Trigger a browser download of `content` as `filename` (shared by the demos).
+pub(crate) fn download_string(content: &str, filename: &str) {
     if let Some(window) = web_sys::window() {
         if let Some(document) = window.document() {
             let opts = web_sys::BlobPropertyBag::new();

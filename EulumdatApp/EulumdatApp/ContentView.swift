@@ -87,6 +87,20 @@ struct ContentView: View {
     // Unified export state
     @State private var exportDocument: ExportDocument?
 
+    /// Custom SVG diagram theme edited in the Theme tab. `nil` until first
+    /// opened, then seeded from the current light/dark preset. Kept at this
+    /// level so batch export can reuse the applied theme.
+    @State private var themeConfig: SvgThemeConfig?
+
+    /// A non-optional binding into `themeConfig`, seeding it from the current
+    /// light/dark preset on first access so the editor always has a value.
+    private var themeConfigBinding: Binding<SvgThemeConfig> {
+        Binding(
+            get: { themeConfig ?? themePreset(name: isDarkTheme ? "dark" : "light") },
+            set: { themeConfig = $0 }
+        )
+    }
+
     enum ExportType {
         case svg, ies, ldt, atla
     }
@@ -104,6 +118,7 @@ struct ContentView: View {
         case intensity = "Intensity"
         case diagram = "Diagram"
         case compare = "Compare"
+        case theme = "Theme"
         case bim = "BIM"
         case validation = "Validation"
 
@@ -118,6 +133,7 @@ struct ContentView: View {
             case .intensity: return "chart.bar"
             case .diagram: return "circle.grid.cross"
             case .compare: return "arrow.left.arrow.right"
+            case .theme: return "paintpalette"
             case .bim: return "building.2"
             case .validation: return "checkmark.shield"
             }
@@ -132,6 +148,7 @@ struct ContentView: View {
             case .intensity: return "tab.intensity"
             case .diagram: return "tab.diagram"
             case .compare: return "tab.compare"
+            case .theme: return "tab.theme"
             case .bim: return "tab.bim"
             case .validation: return "validation.title"
             }
@@ -390,6 +407,8 @@ struct ContentView: View {
             DiagramTabView(ldt: ldt.wrappedValue, selectedDiagram: $selectedDiagram, isDarkTheme: $isDarkTheme)
         case .compare:
             CompareView(ldt: ldt.wrappedValue, isDarkTheme: $isDarkTheme)
+        case .theme:
+            ThemeEditorView(ldt: ldt.wrappedValue, config: themeConfigBinding)
         case .bim:
             BimPanelView(ldt: ldt.wrappedValue)
         case .validation:

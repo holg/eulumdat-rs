@@ -116,6 +116,9 @@ pub struct Eulumdat {
 
     // Computed values
     pub max_intensity: f64,
+    /// Lamp flux of the primary (first) lamp set (lm). Lamp sets are
+    /// alternatives; this is the flux that converts cd/klm to cd. (Until
+    /// 0.8.0 this was the sum over all lamp sets.)
     pub total_luminous_flux: f64,
 }
 
@@ -153,7 +156,7 @@ impl From<&CoreEulumdat> for Eulumdat {
             g_angles: ldt.g_angles.clone(),
             intensities: ldt.intensities.clone(),
             max_intensity: ldt.max_intensity(),
-            total_luminous_flux: ldt.total_luminous_flux(),
+            total_luminous_flux: ldt.luminous_flux(),
         }
     }
 }

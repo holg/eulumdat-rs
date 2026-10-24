@@ -288,8 +288,8 @@ print(summary.to_compact())  # One-liner
 # Individual calculations
 cie = ldt.cie_flux_codes()
 print(f"CIE Flux Code: {cie}")  # e.g., "100 77 43 0 0"
-print(f"Beam angle: {ldt.beam_angle():.1f}°")
-print(f"Field angle: {ldt.field_angle():.1f}°")
+print(f"Beam angle: {ldt.beam_angle()}")    # degrees, None for up-lights
+print(f"Field angle: {ldt.field_angle()}")
 print(f"Spacing: {ldt.spacing_criteria()}")  # (S/H C0, S/H C90)
 
 # GLDF export

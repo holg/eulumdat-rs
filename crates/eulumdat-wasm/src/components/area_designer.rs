@@ -262,7 +262,7 @@ struct SmartDefaults {
 }
 
 fn compute_smart_defaults(ldc: &Eulumdat) -> SmartDefaults {
-    let flux = ldc.total_luminous_flux();
+    let flux = ldc.luminous_flux();
     let max_gamma = ldc.g_angles.last().copied().unwrap_or(90.0);
     let dff = ldc.downward_flux_fraction; // 0-100, percentage of light going down
 

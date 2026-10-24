@@ -53,7 +53,11 @@ pub fn FloodlightCartesian(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
 
                 <div class="nema-badge" title=move || {
                     let n = nema();
-                    format!("H: {:.1}° (Type {}) | V: {:.1}° (Type {})", n.horizontal_spread, n.horizontal_type, n.vertical_spread, n.vertical_type)
+                    format!(
+                        "10 % of I_max through the beam axis — H: {} (Type {}) | V: {} (Type {})",
+                        eulumdat::format_angle(n.horizontal_spread), n.horizontal_type,
+                        eulumdat::format_angle(n.vertical_spread), n.vertical_type
+                    )
                 }>
                     <span class="nema-label">{move || locale.get().ui.floodlight.nema_classification.clone()}</span>
                     <span class="nema-value">{move || nema().designation}</span>
@@ -66,12 +70,12 @@ pub fn FloodlightCartesian(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                 <table class="nema-table">
                     <tr>
                         <th>{move || locale.get().ui.floodlight.h_plane.clone()}</th>
-                        <td>{move || format!("{:.1}°", nema().horizontal_spread)}</td>
+                        <td>{move || eulumdat::format_angle(nema().horizontal_spread)}</td>
                         <td>{move || format!("Type {}", nema().horizontal_type)}</td>
                     </tr>
                     <tr>
                         <th>{move || locale.get().ui.floodlight.v_plane.clone()}</th>
-                        <td>{move || format!("{:.1}°", nema().vertical_spread)}</td>
+                        <td>{move || eulumdat::format_angle(nema().vertical_spread)}</td>
                         <td>{move || format!("Type {}", nema().vertical_type)}</td>
                     </tr>
                     <tr>

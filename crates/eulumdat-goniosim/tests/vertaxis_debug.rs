@@ -5,7 +5,7 @@ use eulumdat_goniosim::*;
 fn vertaxis_flux_debug() {
     let content = include_str!("../../eulumdat-wasm/templates/wiki-batwing.ldt");
     let ldt = Eulumdat::parse(content).unwrap();
-    let lamp_flux = ldt.total_luminous_flux();
+    let lamp_flux = ldt.luminous_flux();
     let lor = ldt.light_output_ratio / 100.0;
     let flux = lamp_flux * lor;
 

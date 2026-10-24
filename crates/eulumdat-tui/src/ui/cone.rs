@@ -25,10 +25,19 @@ pub fn render_cone(
     };
 
     let h = cone.mounting_height;
-    let field_r = cone.field_diameter / 2.0;
+    // Floor x of the left (C+180) and right (C) edge; (0, 0) when the edge
+    // does not reach the floor
+    let foot = |edges: Option<(f64, f64)>| {
+        edges
+            .filter(|(l, r)| l.abs() < 89.0 && r.abs() < 89.0)
+            .map(|(l, r)| (h * l.to_radians().tan(), h * r.to_radians().tan()))
+            .unwrap_or((0.0, 0.0))
+    };
+    let (beam_l, beam_r) = foot(cone.beam_edges);
+    let (field_l, field_r) = foot(cone.field_edges);
 
     // Canvas bounds: luminaire at top, floor at bottom
-    let x_extent = field_r.max(h * 0.5) * 1.3;
+    let x_extent = field_l.abs().max(field_r).max(h * 0.5) * 1.3;
     let y_extent = h * 1.2;
 
     let x_range = x_extent * 2.0 / zoom;
@@ -41,11 +50,16 @@ pub fn render_cone(
     let y_min = y_center - y_range / 2.0;
     let y_max = y_center + y_range / 2.0;
 
-    let beam_r = cone.beam_diameter / 2.0;
-    let beam_angle = cone.half_beam_angle;
-    let field_angle = cone.half_field_angle;
-    let beam_diam = cone.beam_diameter;
-    let field_diam = cone.field_diameter;
+    let beam_angle = eulumdat::format_angle(cone.beam_angle);
+    let field_angle = eulumdat::format_angle(cone.field_angle);
+    let diam = |d: Option<f64>| d.map_or_else(|| "—".to_string(), |d| format!("{d:.1}m"));
+    let beam_diam = diam(cone.beam_diameter);
+    let field_diam = diam(cone.field_diameter);
+    let section = format!(
+        "C{:.0}\u{2013}C{:.0}",
+        cone.section_c,
+        (cone.section_c + 180.0) % 360.0
+    );
 
     let canvas = Canvas::default()
         .block(
@@ -86,7 +100,7 @@ pub fn render_cone(
             ctx.draw(&CanvasLine {
                 x1: 0.0,
                 y1: h,
-                x2: -beam_r,
+                x2: beam_l,
                 y2: 0.0,
                 color: beam_color,
             });
@@ -102,7 +116,7 @@ pub fn render_cone(
             ctx.draw(&CanvasLine {
                 x1: 0.0,
                 y1: h,
-                x2: -field_r,
+                x2: field_l,
                 y2: 0.0,
                 color: field_color,
             });
@@ -116,7 +130,7 @@ pub fn render_cone(
 
             // Beam diameter line on floor
             ctx.draw(&CanvasLine {
-                x1: -beam_r,
+                x1: beam_l,
                 y1: 0.0,
                 x2: beam_r,
                 y2: 0.0,
@@ -125,7 +139,7 @@ pub fn render_cone(
 
             // Field diameter line on floor
             ctx.draw(&CanvasLine {
-                x1: -field_r,
+                x1: field_l,
                 y1: -h * 0.02,
                 x2: field_r,
                 y2: -h * 0.02,
@@ -145,11 +159,7 @@ pub fn render_cone(
                 beam_r * 0.5,
                 -h * 0.06,
                 ratatui::text::Line::styled(
-                    format!(
-                        "Beam: {:.1}\u{00b0} / \u{00d8}{:.1}m",
-                        beam_angle * 2.0,
-                        beam_diam
-                    ),
+                    format!("Beam {}: {} / \u{00d8}{}", section, beam_angle, beam_diam),
                     Style::default().fg(beam_color),
                 ),
             );
@@ -158,9 +168,8 @@ pub fn render_cone(
                 -h * 0.12,
                 ratatui::text::Line::styled(
                     format!(
-                        "Field: {:.1}\u{00b0} / \u{00d8}{:.1}m",
-                        field_angle * 2.0,
-                        field_diam
+                        "Field {}: {} / \u{00d8}{}",
+                        section, field_angle, field_diam
                     ),
                     Style::default().fg(field_color),
                 ),

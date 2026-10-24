@@ -1632,8 +1632,7 @@ impl eframe::App for EulumdatApp {
                         );
                         ui.separator();
                         ui.label(
-                            RichText::new(format!("{:.0} lm", ldc.total_luminous_flux()))
-                                .size(11.0),
+                            RichText::new(format!("{:.0} lm", ldc.luminous_flux())).size(11.0),
                         );
                     }
 

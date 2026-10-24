@@ -83,11 +83,7 @@ impl InfoPanel {
                         "Max Intensity",
                         &format!("{:.1} cd/klm", ldc.max_intensity()),
                     );
-                    Self::row(
-                        ui,
-                        "Total Flux",
-                        &format!("{:.0} lm", ldc.total_luminous_flux()),
-                    );
+                    Self::row(ui, "Total Flux", &format!("{:.0} lm", ldc.luminous_flux()));
                 });
 
             // Lamp sets

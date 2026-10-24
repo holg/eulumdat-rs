@@ -72,11 +72,11 @@ pub struct ComparisonMetric {
     pub key: String,
     /// Unit string (e.g. "lm", "%", "cd/klm")
     pub unit: String,
-    /// Value from file A
+    /// Value from file A (NaN when undefined, e.g. no beam angle for an up-light)
     pub value_a: f64,
-    /// Value from file B
+    /// Value from file B (NaN when undefined)
     pub value_b: f64,
-    /// Absolute delta (B - A)
+    /// Absolute delta (B - A); NaN when only one value is defined
     pub delta: f64,
     /// Percentage delta relative to A (0 if A is zero)
     pub delta_percent: f64,
@@ -340,6 +340,20 @@ impl PhotometricComparison {
         out.push_str(&"-".repeat(80));
         out.push('\n');
 
+        let num = |v: f64| {
+            if v.is_nan() {
+                "—".to_string()
+            } else {
+                format!("{v:.1}")
+            }
+        };
+        let signed = |v: f64| {
+            if v.is_nan() {
+                "—".to_string()
+            } else {
+                format!("{v:+.1}")
+            }
+        };
         for m in &self.metrics {
             let unit = if m.unit.is_empty() {
                 String::new()
@@ -347,8 +361,15 @@ impl PhotometricComparison {
                 format!(" {}", m.unit)
             };
             out.push_str(&format!(
-                "{:<28} {:>10.1}{:<2} {:>10.1}{:<2} {:>+9.1} {:>+7.1}%  {}\n",
-                m.name, m.value_a, unit, m.value_b, unit, m.delta, m.delta_percent, m.significance,
+                "{:<28} {:>10}{:<2} {:>10}{:<2} {:>9} {:>+7.1}%  {}\n",
+                m.name,
+                num(m.value_a),
+                unit,
+                num(m.value_b),
+                unit,
+                signed(m.delta),
+                m.delta_percent,
+                m.significance,
             ));
         }
 
@@ -361,15 +382,22 @@ impl PhotometricComparison {
     pub fn to_csv(&self) -> String {
         let mut out = String::new();
         out.push_str("metric,key,unit,value_a,value_b,delta,delta_percent,significance\n");
+        let num = |v: f64| {
+            if v.is_nan() {
+                String::new()
+            } else {
+                format!("{v:.4}")
+            }
+        };
         for m in &self.metrics {
             out.push_str(&format!(
-                "\"{}\",{},{},{:.4},{:.4},{:.4},{:.4},{}\n",
+                "\"{}\",{},{},{},{},{},{:.4},{}\n",
                 m.name,
                 m.key,
                 m.unit,
-                m.value_a,
-                m.value_b,
-                m.delta,
+                num(m.value_a),
+                num(m.value_b),
+                num(m.delta),
                 m.delta_percent,
                 m.significance,
             ));
@@ -388,15 +416,42 @@ impl std::fmt::Display for PhotometricComparison {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-fn metric(name: &str, key: &str, unit: &str, a: f64, b: f64, weight: f64) -> ComparisonMetric {
-    let delta = b - a;
-    let delta_percent = if a.abs() > 1e-9 {
-        (delta / a) * 100.0
-    } else if b.abs() > 1e-9 {
-        100.0 // A is zero, B is not → 100% change
-    } else {
-        0.0 // both zero
-    };
+/// Values, delta and percentage delta of a metric that may be undefined on
+/// either side. Undefined values are NaN; defined on one side only counts as
+/// a 100 % change (delta NaN), undefined on both as no change (delta 0).
+fn metric_values(a: Option<f64>, b: Option<f64>) -> (f64, f64, f64, f64) {
+    match (a, b) {
+        (Some(a), Some(b)) => {
+            let delta = b - a;
+            let delta_percent = if a.abs() > 1e-9 {
+                (delta / a) * 100.0
+            } else if b.abs() > 1e-9 {
+                100.0 // A is zero, B is not → 100% change
+            } else {
+                0.0 // both zero
+            };
+            (a, b, delta, delta_percent)
+        }
+        // Undefined on both sides: no change
+        (None, None) => (f64::NAN, f64::NAN, 0.0, 0.0),
+        (a, b) => (
+            a.unwrap_or(f64::NAN),
+            b.unwrap_or(f64::NAN),
+            f64::NAN,
+            100.0,
+        ),
+    }
+}
+
+fn metric(
+    name: &str,
+    key: &str,
+    unit: &str,
+    a: impl Into<Option<f64>>,
+    b: impl Into<Option<f64>>,
+    weight: f64,
+) -> ComparisonMetric {
+    let (a, b, delta, delta_percent) = metric_values(a.into(), b.into());
     ComparisonMetric {
         name: name.to_string(),
         key: key.to_string(),
@@ -414,7 +469,7 @@ fn build_metrics(a: &PhotometricSummary, b: &PhotometricSummary) -> Vec<Comparis
     vec![
         // Flux & efficiency (8 metrics)
         metric(
-            "Total Lamp Flux",
+            "Lamp Flux (set 1)",
             "total_lamp_flux",
             "lm",
             a.total_lamp_flux,
@@ -449,7 +504,7 @@ fn build_metrics(a: &PhotometricSummary, b: &PhotometricSummary) -> Vec<Comparis
             2.0,
         ),
         metric(
-            "Total Wattage",
+            "Wattage (set 1)",
             "total_wattage",
             "W",
             a.total_wattage,
@@ -458,7 +513,7 @@ fn build_metrics(a: &PhotometricSummary, b: &PhotometricSummary) -> Vec<Comparis
         ),
         // IES beam characteristics (2 metrics)
         metric(
-            "Beam Angle (IES)",
+            "Beam Angle (50% of peak)",
             "beam_angle",
             "deg",
             a.beam_angle,
@@ -466,7 +521,7 @@ fn build_metrics(a: &PhotometricSummary, b: &PhotometricSummary) -> Vec<Comparis
             2.0,
         ),
         metric(
-            "Field Angle (IES)",
+            "Field Angle (10% of peak)",
             "field_angle",
             "deg",
             a.field_angle,
@@ -475,7 +530,7 @@ fn build_metrics(a: &PhotometricSummary, b: &PhotometricSummary) -> Vec<Comparis
         ),
         // CIE beam characteristics (2 metrics)
         metric(
-            "Beam Angle (CIE)",
+            "Beam Angle (50% of center)",
             "beam_angle_cie",
             "deg",
             a.beam_angle_cie,
@@ -483,7 +538,7 @@ fn build_metrics(a: &PhotometricSummary, b: &PhotometricSummary) -> Vec<Comparis
             1.5,
         ),
         metric(
-            "Field Angle (CIE)",
+            "Field Angle (10% of center)",
             "field_angle_cie",
             "deg",
             a.field_angle_cie,
@@ -648,8 +703,8 @@ fn metric_localized(
     fallback_name: &str,
     key: &str,
     unit: &str,
-    a: f64,
-    b: f64,
+    a: impl Into<Option<f64>>,
+    b: impl Into<Option<f64>>,
     weight: f64,
     locale: &eulumdat_i18n::Locale,
 ) -> ComparisonMetric {
@@ -657,14 +712,7 @@ fn metric_localized(
         .comparison_metric_name(key)
         .unwrap_or(fallback_name)
         .to_string();
-    let delta = b - a;
-    let delta_percent = if a.abs() > 1e-9 {
-        (delta / a) * 100.0
-    } else if b.abs() > 1e-9 {
-        100.0
-    } else {
-        0.0
-    };
+    let (a, b, delta, delta_percent) = metric_values(a.into(), b.into());
     ComparisonMetric {
         name,
         key: key.to_string(),
@@ -686,7 +734,7 @@ fn build_metrics_with_locale(
 ) -> Vec<ComparisonMetric> {
     vec![
         metric_localized(
-            "Total Lamp Flux",
+            "Lamp Flux (set 1)",
             "total_lamp_flux",
             "lm",
             a.total_lamp_flux,
@@ -725,7 +773,7 @@ fn build_metrics_with_locale(
             locale,
         ),
         metric_localized(
-            "Total Wattage",
+            "Wattage (set 1)",
             "total_wattage",
             "W",
             a.total_wattage,
@@ -734,7 +782,7 @@ fn build_metrics_with_locale(
             locale,
         ),
         metric_localized(
-            "Beam Angle (IES)",
+            "Beam Angle (50% of peak)",
             "beam_angle",
             "deg",
             a.beam_angle,
@@ -743,7 +791,7 @@ fn build_metrics_with_locale(
             locale,
         ),
         metric_localized(
-            "Field Angle (IES)",
+            "Field Angle (10% of peak)",
             "field_angle",
             "deg",
             a.field_angle,
@@ -752,7 +800,7 @@ fn build_metrics_with_locale(
             locale,
         ),
         metric_localized(
-            "Beam Angle (CIE)",
+            "Beam Angle (50% of center)",
             "beam_angle_cie",
             "deg",
             a.beam_angle_cie,
@@ -761,7 +809,7 @@ fn build_metrics_with_locale(
             locale,
         ),
         metric_localized(
-            "Field Angle (CIE)",
+            "Field Angle (10% of center)",
             "field_angle_cie",
             "deg",
             a.field_angle_cie,
@@ -967,8 +1015,8 @@ mod tests {
             lamp_efficacy: 100.0,
             luminaire_efficacy: lor,
             total_wattage: flux / 100.0,
-            beam_angle: beam,
-            field_angle: beam * 2.0,
+            beam_angle: Some(beam),
+            field_angle: Some(beam * 2.0),
             max_intensity: 300.0,
             min_intensity: 10.0,
             avg_intensity: 150.0,
@@ -1034,7 +1082,7 @@ mod tests {
         assert!(text.contains("Lamp A"));
         assert!(text.contains("Lamp B"));
         assert!(text.contains("Similarity:"));
-        assert!(text.contains("Total Lamp Flux"));
+        assert!(text.contains("Lamp Flux (set 1)"));
     }
 
     #[test]

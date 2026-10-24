@@ -8,8 +8,9 @@ use eulumdat::{
     BugDiagram, Eulumdat, GldfPhotometricData, IesExporter, IesParser, PhotometricCalculations,
     PhotometricComparison, PhotometricSummary, Significance,
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use crate::cli::CurveStyle;
 use crate::cli::{
     AtlaSchemaType, CalcType, CompareDiagramType, CompareFormat, ConversionPolicyArg, DiagramType,
     OutputFormat, SummaryFormat,
@@ -110,8 +111,8 @@ pub fn info(file: &PathBuf, verbose: bool, units: eulumdat::UnitSystem) -> Resul
     }
     println!();
     println!("=== Calculated Values ===");
-    println!("Total flux:     {:.0} lm", ldt.total_luminous_flux());
-    println!("Total wattage:  {:.1} W", ldt.total_wattage());
+    println!("Total flux:     {:.0} lm", ldt.luminous_flux());
+    println!("Total wattage:  {:.1} W", ldt.wattage());
     println!("Efficacy:       {:.1} lm/W", ldt.luminous_efficacy());
     println!("Max intensity:  {:.1} cd/klm", ldt.max_intensity());
     println!("DFF:            {}%", ldt.downward_flux_fraction);
@@ -166,7 +167,85 @@ pub fn validate(file: &PathBuf, strict: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool, rotate: f64) -> Result<()> {
+/// Load any luminaire file (.ldt / .ies / ATLA .xml / .json) as an ATLA document.
+fn load_luminaire_doc(path: &Path, rotate: f64) -> Result<LuminaireOpticalData> {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    match ext.as_str() {
+        "xml" | "json" => eulumdat::atla::parse_file(path).context("Failed to parse ATLA file"),
+        "ies" if rotate.abs() > 0.001 => {
+            let opts = eulumdat::IesImportOptions {
+                rotate_c_planes: rotate,
+            };
+            let ldt = IesParser::parse_file_with_options(path, &opts)
+                .context("Failed to parse IES file")?;
+            Ok(LuminaireOpticalData::from_eulumdat(&ldt))
+        }
+        _ => Ok(LuminaireOpticalData::from_eulumdat(&load_file(
+            &path.to_path_buf(),
+        )?)),
+    }
+}
+
+/// Load a spectral file (.spd / .csv / .spdx) and return its SPD.
+fn load_spd_file(path: &Path) -> Result<eulumdat::atla::SpectralDistribution> {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if ext == "spdx" {
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("Failed to read {}", path.display()))?;
+        let spdx = eulumdat::atla::spdx::parse(&content).context("Failed to parse SPDX")?;
+        eulumdat::atla::spdx::to_atla(&spdx)
+            .emitters
+            .into_iter()
+            .find_map(|e| e.spectral_distribution)
+            .ok_or_else(|| anyhow::anyhow!("SPDX file carries no spectral data"))
+    } else {
+        Ok(eulumdat::atla::spd_loader::load(path)
+            .map_err(|e| anyhow::anyhow!("{e}"))
+            .with_context(|| format!("Failed to load SPD {}", path.display()))?
+            .spd)
+    }
+}
+
+/// Serialise an ATLA document to .xml or .json according to the output extension.
+fn write_atla(doc: &LuminaireOpticalData, output: &Path, compact: bool) -> Result<()> {
+    let ext = output
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let content = match (ext.as_str(), compact) {
+        ("xml", true) => {
+            eulumdat::atla::xml::write_compact(doc).context("Failed to write ATLA XML")?
+        }
+        ("xml", false) => eulumdat::atla::xml::write(doc).context("Failed to write ATLA XML")?,
+        ("json", true) => {
+            eulumdat::atla::json::write_compact(doc).context("Failed to write ATLA JSON")?
+        }
+        ("json", false) => eulumdat::atla::json::write(doc).context("Failed to write ATLA JSON")?,
+        _ => anyhow::bail!(
+            "a spectrum can only be stored in ATLA output (.xml or .json), not .{ext}"
+        ),
+    };
+    fs::write(output, content).with_context(|| format!("Failed to write {}", output.display()))?;
+    Ok(())
+}
+
+pub fn convert(
+    input: &PathBuf,
+    output: &PathBuf,
+    compact: bool,
+    rotate: f64,
+    spd: Option<&Path>,
+    emitter: Option<usize>,
+) -> Result<()> {
     let in_ext = input
         .extension()
         .and_then(|e| e.to_str())
@@ -178,6 +257,22 @@ pub fn convert(input: &PathBuf, output: &PathBuf, compact: bool, rotate: f64) ->
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
+
+    // Attach a spectrum: any luminaire input → ATLA output carrying the SPD.
+    if let Some(spd_path) = spd {
+        let mut doc = load_luminaire_doc(input, rotate)?;
+        let spd = load_spd_file(spd_path)?;
+        let n = eulumdat::atla::spd_loader::attach_spd(&mut doc, &spd, emitter);
+        write_atla(&doc, output, compact)?;
+        println!(
+            "Attached {} ({} samples) to {} emitter(s) → {}",
+            spd_path.display(),
+            spd.wavelengths.len(),
+            n,
+            output.display()
+        );
+        return Ok(());
+    }
 
     // Helper: load file with optional C-plane rotation on IES import
     let load_with_rotation = |path: &PathBuf, rotation: f64| -> Result<Eulumdat> {
@@ -293,6 +388,7 @@ pub fn diagram(
     output: Option<&PathBuf>,
     diagram_type: DiagramType,
     dark: bool,
+    theme_file: Option<&PathBuf>,
     width: f64,
     height: f64,
     mounting_height: f64,
@@ -302,10 +398,19 @@ pub fn diagram(
 ) -> Result<()> {
     use eulumdat::diagram::*;
 
-    let theme = if dark {
-        SvgTheme::dark()
-    } else {
-        SvgTheme::light()
+    // Base preset from --dark; if a --theme file is given, its overrides are
+    // layered on top (and --dark still wins as the base it customises).
+    let base = if dark { "dark" } else { "light" };
+    let theme = match theme_file {
+        Some(path) => SvgTheme::from_file(path, Some(base))
+            .map_err(|e| anyhow::anyhow!("failed to load theme {}: {e}", path.display()))?,
+        None => {
+            if dark {
+                SvgTheme::dark()
+            } else {
+                SvgTheme::light()
+            }
+        }
     };
 
     let svg = match diagram_type {
@@ -692,24 +797,40 @@ pub fn calc(file: &PathBuf, calc_type: CalcType) -> Result<()> {
             println!("CIE Flux Code: {}", codes);
         }
         CalcType::BeamAngles => {
-            let beam = PhotometricCalculations::beam_angle(&ldt);
-            let field = PhotometricCalculations::field_angle(&ldt);
-            let beam_c0 = PhotometricCalculations::beam_angle_for_plane(&ldt, 0.0);
-            let beam_c90 = PhotometricCalculations::beam_angle_for_plane(&ldt, 90.0);
-            let field_c0 = PhotometricCalculations::field_angle_for_plane(&ldt, 0.0);
-            let field_c90 = PhotometricCalculations::field_angle_for_plane(&ldt, 90.0);
+            let a = PhotometricCalculations::beam_field_analysis(&ldt);
             let cut_off = PhotometricCalculations::cut_off_angle(&ldt);
+            let fmt = eulumdat::format_angle;
 
-            println!("=== Beam Characteristics ===");
-            println!("Beam Angle (50%):      {:.1}°", beam);
-            println!("Field Angle (10%):     {:.1}°", field);
+            println!("=== Beam Characteristics (CIE S 017 / IES: 50 % / 10 % of peak) ===");
+            println!(
+                "Peak:                  {:.1} cd/klm at C{:.0} γ{:.1}°",
+                a.max_intensity, a.max_intensity_c, a.max_intensity_gamma
+            );
+            println!(
+                "Beam Angle (50%):      {} (section {})",
+                fmt(a.beam_angle_ies),
+                a.peak_section.label()
+            );
+            println!("Field Angle (10%):     {}", fmt(a.field_angle_ies));
             println!("Cut-off Angle (2.5%):  {:.1}°", cut_off);
             println!();
-            println!("=== Per-Plane Angles ===");
-            println!("Beam C0 / C90:         {:.1}° / {:.1}°", beam_c0, beam_c90);
+            println!("=== Per-Section Angles (50 % / 10 % of the section peak) ===");
             println!(
-                "Field C0 / C90:        {:.1}° / {:.1}°",
-                field_c0, field_c90
+                "C0–C180  beam / field: {} / {}",
+                fmt(a.c0_c180.beam),
+                fmt(a.c0_c180.field)
+            );
+            println!(
+                "C90–C270 beam / field: {} / {}",
+                fmt(a.c90_c270.beam),
+                fmt(a.c90_c270.field)
+            );
+            println!();
+            println!("=== Centre-Beam Angles (50 % / 10 % of I(γ=0), C0–C180) ===");
+            println!(
+                "Beam / Field:          {} / {}",
+                fmt(a.beam_angle_cie),
+                fmt(a.field_angle_cie)
             );
         }
         CalcType::Spacing => {
@@ -772,12 +893,18 @@ pub fn calc(file: &PathBuf, calc_type: CalcType) -> Result<()> {
             println!("=== NEMA Floodlight Classification ===");
             println!("Designation:           {}", nema.designation);
             println!(
-                "Horizontal Spread:     {:.1}° (Type {})",
-                nema.horizontal_spread, nema.horizontal_type
+                "Beam Axis (Type B):    H {:.0}° / V {:.0}°",
+                nema.peak_h, nema.peak_v
             );
             println!(
-                "Vertical Spread:       {:.1}° (Type {})",
-                nema.vertical_spread, nema.vertical_type
+                "Horizontal Spread:     {} (Type {}, 10 % of I_max)",
+                eulumdat::format_angle(nema.horizontal_spread),
+                nema.horizontal_type
+            );
+            println!(
+                "Vertical Spread:       {} (Type {}, 10 % of I_max)",
+                eulumdat::format_angle(nema.vertical_spread),
+                nema.vertical_type
             );
             println!("Peak Intensity (I_max):{:.0} cd/klm", nema.i_max);
         }
@@ -1402,8 +1529,8 @@ pub fn interpolate(
         println!(
             "  Loaded {} ({:.0} lm, {:.0} W) @ {}{}",
             path_str,
-            ldt.total_luminous_flux(),
-            ldt.total_wattage(),
+            ldt.luminous_flux(),
+            ldt.wattage(),
             eulumdat::interpolate::format_value(value),
             param_name,
         );
@@ -1477,8 +1604,8 @@ pub fn interpolate(
         println!(
             "  \u{2713} {} ({:.0} lm, {:.0} W)",
             filename,
-            ldt.total_luminous_flux(),
-            ldt.total_wattage(),
+            ldt.luminous_flux(),
+            ldt.wattage(),
         );
         written += 1;
     }
@@ -1630,5 +1757,299 @@ pub fn compliance(
         }
     }
 
+    Ok(())
+}
+
+/// Arguments of `eulumdat digitize`.
+pub struct DigitizeArgs {
+    pub image: PathBuf,
+    pub output: Option<PathBuf>,
+    pub x_range: Option<String>,
+    pub x_ticks: Option<String>,
+    pub x_calibration: Option<String>,
+    pub mode: CurveStyle,
+    pub step: f64,
+    pub label: Option<String>,
+    pub source: Option<String>,
+    pub debug: Option<PathBuf>,
+    pub attach: Option<PathBuf>,
+    pub emitter: Option<usize>,
+}
+
+/// Digitize a spectrum chart image into a relative `.spd` file.
+pub fn digitize(args: &DigitizeArgs) -> Result<()> {
+    use eulumdat_digitize::{CurveMode, ImageRef, Options};
+
+    let img = image::open(&args.image)
+        .with_context(|| format!("Failed to open image {}", args.image.display()))?
+        .to_rgb8();
+    let (w, h) = (img.width() as usize, img.height() as usize);
+
+    let mut opts = Options {
+        step_nm: args.step,
+        mode: match args.mode {
+            CurveStyle::Auto => CurveMode::Auto,
+            CurveStyle::Fill => CurveMode::Fill,
+            CurveStyle::Line => CurveMode::Line,
+        },
+        ..Options::default()
+    };
+    if let Some(r) = &args.x_range {
+        opts.x_range = Some(Options::parse_range(r)?);
+    }
+    if let Some(t) = &args.x_ticks {
+        opts.x_ticks = Some(Options::parse_ticks(t)?);
+    }
+    if let Some(c) = &args.x_calibration {
+        opts.x_calibration = Some(Options::parse_calibration(c)?);
+    }
+    if opts.x_range.is_none() && opts.x_ticks.is_none() && opts.x_calibration.is_none() {
+        anyhow::bail!(
+            "the x-axis scale is required: --x-range FIRST:LAST (e.g. 380:780) or --x-ticks"
+        );
+    }
+
+    let d = eulumdat_digitize::digitize(ImageRef::new(w, h, 3, img.as_raw())?, &opts)?;
+
+    let c = &d.calibration;
+    eprintln!(
+        "image {w}×{h}: background #{}, axis #{}, curve #{}, mode {:?}",
+        hex(c.background),
+        hex(c.axis),
+        hex(c.fill),
+        c.mode
+    );
+    eprintln!(
+        "x-axis rows {}–{}, y-axis cols {}–{}, {} calibration points ({}), max residual {:.3} nm, {:.3} nm/px",
+        c.x_axis_rows.0,
+        c.x_axis_rows.1,
+        c.y_axis_cols.0,
+        c.y_axis_cols.1,
+        c.x_points.len(),
+        if c.x_from_labels { "label positions" } else { "tick marks" },
+        c.x_residual,
+        c.nm_per_px
+    );
+    for wmsg in &d.warnings {
+        eprintln!("warning: {wmsg}");
+    }
+    for p in &d.peaks {
+        eprintln!(
+            "peak {:6.1} nm  rel {:5.3}  FWHM ≈ {:.0} nm",
+            p.wavelength_nm, p.relative, p.fwhm_nm
+        );
+    }
+
+    let stem = args
+        .image
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "spectrum".into());
+    let label = args.label.clone().unwrap_or_else(|| stem.clone());
+    let image_name = args
+        .image
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let spd_text = d.to_spd(&label, &image_name, args.source.as_deref());
+
+    if let Some(lum_path) = &args.attach {
+        // Attach to a luminaire and write ATLA; the .spd itself goes next to the image.
+        let spd_out = args.image.with_extension("spd");
+        fs::write(&spd_out, &spd_text)
+            .with_context(|| format!("Failed to write {}", spd_out.display()))?;
+        eprintln!("wrote {}", spd_out.display());
+        let spd = eulumdat::atla::spd_loader::parse(&spd_text)
+            .map_err(|e| anyhow::anyhow!("{e}"))?
+            .spd;
+        let mut doc = load_luminaire_doc(lum_path, 0.0)?;
+        let n = eulumdat::atla::spd_loader::attach_spd(&mut doc, &spd, args.emitter);
+        let out = args
+            .output
+            .clone()
+            .unwrap_or_else(|| lum_path.with_extension("xml"));
+        write_atla(&doc, &out, false)?;
+        eprintln!(
+            "attached spectrum to {} emitter(s) of {} → {}",
+            n,
+            lum_path.display(),
+            out.display()
+        );
+    } else {
+        let out = args
+            .output
+            .clone()
+            .unwrap_or_else(|| args.image.with_extension("spd"));
+        fs::write(&out, &spd_text).with_context(|| format!("Failed to write {}", out.display()))?;
+        eprintln!(
+            "wrote {} ({} rows, {}–{} nm @ {} nm)",
+            out.display(),
+            d.wavelengths.len(),
+            d.wavelengths.first().copied().unwrap_or(0.0),
+            d.wavelengths.last().copied().unwrap_or(0.0),
+            args.step
+        );
+    }
+
+    if let Some(dbg_path) = &args.debug {
+        let mut dbg = img.clone();
+        let magenta = image::Rgb([255, 0, 255]);
+        let green = image::Rgb([0, 200, 0]);
+        let yellow = image::Rgb([255, 220, 0]);
+        for y in c.x_axis_rows.0..=c.x_axis_rows.1 {
+            for x in 0..w {
+                dbg.put_pixel(x as u32, y as u32, magenta);
+            }
+        }
+        for x in c.y_axis_cols.0..=c.y_axis_cols.1 {
+            for y in 0..h {
+                dbg.put_pixel(x as u32, y as u32, magenta);
+            }
+        }
+        for (px, _) in &c.x_points {
+            let x = px.round() as usize;
+            for dx in 0..2usize {
+                let xx = (x + dx).min(w - 1);
+                for y in c.x_axis_rows.0.saturating_sub(15)..(c.x_axis_rows.1 + 15).min(h) {
+                    dbg.put_pixel(xx as u32, y as u32, green);
+                }
+            }
+        }
+        let zero = c.x_axis_rows.0 as f64;
+        for (col, hpx) in &d.trace {
+            if *hpx > 0.0 {
+                let y = (zero - hpx).round().clamp(0.0, h as f64 - 1.0) as u32;
+                for dy in 0..2u32 {
+                    dbg.put_pixel(*col as u32, y.saturating_sub(dy), yellow);
+                }
+            }
+        }
+        dbg.save(dbg_path)
+            .with_context(|| format!("Failed to write debug overlay {}", dbg_path.display()))?;
+        eprintln!("wrote debug overlay {}", dbg_path.display());
+    }
+    Ok(())
+}
+
+fn hex(c: [u8; 3]) -> String {
+    format!("{:02x}{:02x}{:02x}", c[0], c[1], c[2])
+}
+
+/// Inspect a TM-25 ray file; optionally convert its far field (+ spectrum)
+/// to ATLA or EULUMDAT.
+pub fn tm25(
+    file: &Path,
+    output: Option<&Path>,
+    c_step: f64,
+    g_step: f64,
+    smooth: usize,
+) -> Result<()> {
+    use eulumdat_tm25::{FarFieldBuilder, Tm25Reader};
+    let f = fs::File::open(file).with_context(|| format!("Failed to open {}", file.display()))?;
+    let total_size = f.metadata().map(|m| m.len()).unwrap_or(0);
+    let mut reader = Tm25Reader::new(std::io::BufReader::with_capacity(1 << 20, f))
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
+    let h = reader.header().clone();
+    eulumdat_tm25::check_file_size(&h, total_size).map_err(|e| anyhow::anyhow!("{e}"))?;
+    let kind = h.flux_kind();
+    println!("{}", file.display());
+    println!(
+        "  {} rays, {:?}, radiant {} W, luminous {} lm, created {}",
+        h.n_rays, kind, h.radiant_flux_w, h.luminous_flux_lm, h.date_time
+    );
+    println!(
+        "  {} / {} / {} / {}",
+        h.text.name(),
+        h.text.manufacturer(),
+        h.text.operating_condition(),
+        h.text.data_reference()
+    );
+    println!("  spectral id {:?}, columns {:?}", h.spectral_id, h.columns);
+    let mut ff = FarFieldBuilder::new(c_step, g_step, kind);
+    let mut n = 0u64;
+    let (mut lo, mut hi) = ([f32::MAX; 3], [f32::MIN; 3]);
+    loop {
+        let chunk = reader
+            .read_chunk(1 << 16)
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        if chunk.is_empty() {
+            break;
+        }
+        n += chunk.len() as u64;
+        for r in &chunk {
+            ff.add(r);
+            let p = r.position();
+            for i in 0..3 {
+                lo[i] = lo[i].min(p[i]);
+                hi[i] = hi[i].max(p[i]);
+            }
+        }
+    }
+    println!(
+        "  start points: x {:.2}..{:.2}, y {:.2}..{:.2}, z {:.2}..{:.2} mm",
+        lo[0], hi[0], lo[1], hi[1], lo[2], hi[2]
+    );
+    let ff = ff.finish();
+    let ff = if smooth > 0 {
+        ff.smoothed(smooth, smooth, 2.0 * g_step)
+    } else {
+        ff
+    };
+    let prof = ff.azimuthal_average();
+    let max = prof.iter().cloned().fold(0.0, f64::max);
+    println!(
+        "  far field from {n} rays: peak {:.4} {:?}, half intensity at {:?}°, forward fraction {:.3}",
+        max,
+        ff.unit,
+        ff.half_intensity_gamma().map(|g| g.round()),
+        ff.forward_fraction()
+    );
+    if let Some(t) = h.shared_spectrum() {
+        let spd = eulumdat_spectrum::Spd::new(
+            &t.wavelengths_nm
+                .iter()
+                .map(|w| *w as f64)
+                .collect::<Vec<_>>(),
+            &t.values.iter().map(|v| *v as f64).collect::<Vec<_>>(),
+        );
+        let m = eulumdat_spectrum::SpectralMetrics::from_spd(&spd);
+        println!(
+            "  spectrum: {} points, peak {:?}, LER {:.1} lm/W, PPFD {:.2} µmol/J{}",
+            t.len(),
+            t.peak(),
+            m.ler_lm_per_w,
+            m.ppfd_per_watt,
+            if t.is_ultraviolet() {
+                ", ultraviolet"
+            } else {
+                ""
+            }
+        );
+        if m.ppfd_per_watt > 0.0 && h.radiant_flux_w > 0.0 {
+            println!(
+                "  PPF {:.2} µmol/s",
+                h.radiant_flux_w as f64 * m.ppfd_per_watt
+            );
+        }
+    }
+    let Some(out) = output else { return Ok(()) };
+    let ldt = eulumdat_tm25::luminaire_from_far_field(&ff, &h, Some((lo, hi)));
+    let ext = out
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    match ext.as_str() {
+        "ldt" => {
+            fs::write(out, ldt.to_ldt())
+                .with_context(|| format!("Failed to write {}", out.display()))?;
+        }
+        "xml" | "json" => {
+            let doc = eulumdat_tm25::atla_from_luminaire(&ldt, &h);
+            write_atla(&doc, out, false)?;
+        }
+        _ => anyhow::bail!("output must be .ldt, .xml or .json"),
+    }
+    println!("wrote {}", out.display());
     Ok(())
 }

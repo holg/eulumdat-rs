@@ -288,7 +288,7 @@ pub unsafe extern "C" fn eulumdat_get_info(handle: *const EulumdatHandle) -> Lum
         c_plane_distance: ldt.c_plane_distance,
         g_plane_distance: ldt.g_plane_distance,
         max_intensity: ldt.max_intensity(),
-        total_luminous_flux: ldt.total_luminous_flux(),
+        total_luminous_flux: ldt.luminous_flux(),
         downward_flux_fraction: ldt.downward_flux_fraction,
         light_output_ratio: ldt.light_output_ratio,
     }

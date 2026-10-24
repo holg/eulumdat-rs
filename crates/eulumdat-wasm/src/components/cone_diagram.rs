@@ -109,11 +109,14 @@ pub fn ConeIlluminanceTableView(
                             <tbody>
                                 {table.rows.into_iter().map(|row| {
                                     let h = format_distance(row.height, &units);
-                                    let bd = format_distance(row.beam_diameter, &units);
-                                    let fd = format_distance(row.field_diameter, &units);
+                                    // "—" where there is no beam edge / floor footprint
+                                    let dist = |v: Option<f64>| v.map_or_else(|| "—".to_string(), |d| format_distance(d, &units));
+                                    let illu = |v: Option<f64>| v.map_or_else(|| "—".to_string(), |e| format_illuminance(e, &units));
+                                    let bd = dist(row.beam_diameter);
+                                    let fd = dist(row.field_diameter);
                                     let en = format_illuminance(row.e_nadir, &units);
-                                    let ec0 = format_illuminance(row.e_beam_c0, &units);
-                                    let ec90 = format_illuminance(row.e_beam_c90, &units);
+                                    let ec0 = illu(row.e_beam_c0);
+                                    let ec90 = illu(row.e_beam_c90);
                                     view! {
                                         <tr>
                                             <td>{h}</td>

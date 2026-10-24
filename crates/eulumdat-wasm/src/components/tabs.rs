@@ -177,11 +177,11 @@ pub fn GeneralTab(ldc: ReadSignal<Eulumdat>, set_ldc: WriteSignal<Eulumdat>) -> 
                 // Flux & Efficiency
                 <div class="info-item">
                     <div class="info-label">{move || locale.get().luminaire.photometric.total_lamp_flux.clone()}</div>
-                    <div class="info-value">{move || format!("{:.0} lm", ldc.get().total_luminous_flux())}</div>
+                    <div class="info-value">{move || format!("{:.0} lm", ldc.get().luminous_flux())}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">{move || locale.get().luminaire.photometric.total_wattage.clone()}</div>
-                    <div class="info-value">{move || format!("{:.1} W", ldc.get().total_wattage())}</div>
+                    <div class="info-value">{move || format!("{:.1} W", ldc.get().wattage())}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">{move || locale.get().luminaire.photometric.lamp_efficacy.clone()}</div>
@@ -216,15 +216,29 @@ pub fn GeneralTab(ldc: ReadSignal<Eulumdat>, set_ldc: WriteSignal<Eulumdat>) -> 
                 <div class="info-item">
                     <div class="info-label">{move || locale.get().luminaire.photometric.beam_angle_50.clone()}</div>
                     <div class="info-value">{move || {
+                        // 50 % of the peak, in the section through the peak
                         let summary = PhotometricSummary::from_eulumdat(&ldc.get());
-                        format!("{:.1}°", summary.beam_angle)
+                        format!(
+                            "{} ({}) · C0–C180 {} · C90–C270 {}",
+                            eulumdat::format_angle(summary.beam_angle),
+                            summary.peak_section.label(),
+                            eulumdat::format_angle(summary.sections.c0_c180.beam),
+                            eulumdat::format_angle(summary.sections.c90_c270.beam)
+                        )
                     }}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">{move || locale.get().luminaire.photometric.field_angle_10.clone()}</div>
                     <div class="info-value">{move || {
+                        // 10 % of the peak, in the section through the peak
                         let summary = PhotometricSummary::from_eulumdat(&ldc.get());
-                        format!("{:.1}°", summary.field_angle)
+                        format!(
+                            "{} ({}) · C0–C180 {} · C90–C270 {}",
+                            eulumdat::format_angle(summary.field_angle),
+                            summary.peak_section.label(),
+                            eulumdat::format_angle(summary.sections.c0_c180.field),
+                            eulumdat::format_angle(summary.sections.c90_c270.field)
+                        )
                     }}</div>
                 </div>
                 <div class="info-item">

@@ -89,7 +89,7 @@ fn main() {
 
         // Run our engine on the same fixed layout.
         let ldt = ldt_for(lum);
-        let flux = ldt.total_luminous_flux() * MF;
+        let flux = ldt.luminous_flux() * MF;
         let mut lums = Vec::with_capacity(n);
         for i in 0..nx {
             for j in 0..ny {

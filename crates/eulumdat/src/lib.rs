@@ -166,50 +166,227 @@
 //! - [IESNA LM-63-2002 Standard](https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/iesna_lm-63_format.htm)
 //! - [IES TM-15-11 BUG Ratings](https://www.ies.org/wp-content/uploads/2017/03/TM-15-11BUGRatingsAddendum.pdf)
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
+
+/// Float functions the photometry needs. With `std` the inherent `f64` methods
+/// win (method resolution prefers them); without `std` this trait supplies them
+/// via libm.
+pub mod math {
+    pub trait F64Ext {
+        fn sin(self) -> f64;
+        fn cos(self) -> f64;
+        fn tan(self) -> f64;
+        fn asin(self) -> f64;
+        fn acos(self) -> f64;
+        fn atan(self) -> f64;
+        fn atan2(self, x: f64) -> f64;
+        fn sqrt(self) -> f64;
+        fn cbrt(self) -> f64;
+        fn powf(self, y: f64) -> f64;
+        fn powi(self, n: i32) -> f64;
+        fn ln(self) -> f64;
+        fn log10(self) -> f64;
+        fn log2(self) -> f64;
+        fn exp(self) -> f64;
+        fn exp2(self) -> f64;
+        fn floor(self) -> f64;
+        fn ceil(self) -> f64;
+        fn round(self) -> f64;
+        fn trunc(self) -> f64;
+        fn fract(self) -> f64;
+        fn hypot(self, y: f64) -> f64;
+        fn mul_add(self, a: f64, b: f64) -> f64;
+        fn round_ties_even(self) -> f64;
+        fn rem_euclid(self, m: f64) -> f64;
+    }
+    impl F64Ext for f64 {
+        #[inline]
+        fn sin(self) -> f64 {
+            libm::sin(self)
+        }
+        #[inline]
+        fn cos(self) -> f64 {
+            libm::cos(self)
+        }
+        #[inline]
+        fn tan(self) -> f64 {
+            libm::tan(self)
+        }
+        #[inline]
+        fn asin(self) -> f64 {
+            libm::asin(self)
+        }
+        #[inline]
+        fn acos(self) -> f64 {
+            libm::acos(self)
+        }
+        #[inline]
+        fn atan(self) -> f64 {
+            libm::atan(self)
+        }
+        #[inline]
+        fn atan2(self, x: f64) -> f64 {
+            libm::atan2(self, x)
+        }
+        #[inline]
+        fn sqrt(self) -> f64 {
+            libm::sqrt(self)
+        }
+        #[inline]
+        fn cbrt(self) -> f64 {
+            libm::cbrt(self)
+        }
+        #[inline]
+        fn powf(self, y: f64) -> f64 {
+            libm::pow(self, y)
+        }
+        #[inline]
+        fn powi(self, n: i32) -> f64 {
+            libm::pow(self, n as f64)
+        }
+        #[inline]
+        fn ln(self) -> f64 {
+            libm::log(self)
+        }
+        #[inline]
+        fn log10(self) -> f64 {
+            libm::log10(self)
+        }
+        #[inline]
+        fn log2(self) -> f64 {
+            libm::log2(self)
+        }
+        #[inline]
+        fn exp(self) -> f64 {
+            libm::exp(self)
+        }
+        #[inline]
+        fn exp2(self) -> f64 {
+            libm::exp2(self)
+        }
+        #[inline]
+        fn floor(self) -> f64 {
+            libm::floor(self)
+        }
+        #[inline]
+        fn ceil(self) -> f64 {
+            libm::ceil(self)
+        }
+        #[inline]
+        fn round(self) -> f64 {
+            libm::round(self)
+        }
+        #[inline]
+        fn trunc(self) -> f64 {
+            libm::trunc(self)
+        }
+        #[inline]
+        fn fract(self) -> f64 {
+            self - libm::trunc(self)
+        }
+        #[inline]
+        fn hypot(self, y: f64) -> f64 {
+            libm::hypot(self, y)
+        }
+        #[inline]
+        fn mul_add(self, a: f64, b: f64) -> f64 {
+            libm::fma(self, a, b)
+        }
+        #[inline]
+        fn round_ties_even(self) -> f64 {
+            libm::rint(self)
+        }
+        #[inline]
+        fn rem_euclid(self, m: f64) -> f64 {
+            let r = self % m;
+            if r < 0.0 {
+                r + m.abs()
+            } else {
+                r
+            }
+        }
+    }
+}
+
+/// What every module needs from `alloc` (a no-op under `std`).
+#[allow(unused_imports)]
+pub(crate) mod prelude {
+    pub use crate::math::F64Ext;
+    pub use alloc::borrow::ToOwned;
+    pub use alloc::boxed::Box;
+    pub use alloc::format;
+    pub use alloc::string::{String, ToString};
+    pub use alloc::vec;
+    pub use alloc::vec::Vec;
+}
+
+#[cfg(feature = "std")]
 pub mod area;
+#[cfg(feature = "std")]
 pub mod atla;
+#[cfg(feature = "std")]
 pub mod batch;
+#[cfg(feature = "std")]
 pub mod bug_rating;
 mod calculations;
+#[cfg(feature = "std")]
 pub mod compare;
 pub mod diagram;
 mod error;
 mod eulumdat;
+#[cfg(feature = "std")]
 mod ies;
+#[cfg(feature = "std")]
 pub mod iesna_classification;
+#[cfg(feature = "std")]
 pub mod interpolate;
 mod parser;
+#[cfg(feature = "std")]
 pub mod radiosity;
+#[cfg(feature = "std")]
 pub mod road_luminance;
+#[cfg(feature = "std")]
 pub mod scene3d;
+#[cfg(feature = "std")]
 pub mod standards;
+#[cfg(feature = "std")]
 pub mod street;
 mod symmetry;
 pub mod type_b_conversion;
 pub mod units;
 mod validation;
 mod writer;
+#[cfg(feature = "std")]
 pub mod zonal;
 
+#[cfg(feature = "std")]
 pub use atla::colorimetry::{analyze as analyze_spd, Colorimetry};
+#[cfg(feature = "std")]
 pub use atla::spd_loader::{
     get_warnings as spd_warnings, load as load_spd, parse as parse_spd, to_atla as spd_to_atla,
     LoadedSpd, ReferenceMetrics, SpdLoadError,
 };
+#[cfg(feature = "std")]
 pub use batch::{BatchInput, BatchOutput, BatchStats, ConversionFormat, InputFormat};
+#[cfg(feature = "std")]
 pub use bug_rating::{BugDiagram, BugRating, LcsZonePercentages, LightingZone, ZoneLumens};
 pub use calculations::{
-    BeamFieldAnalysis, CandelaEntry, CandelaTabulation, CieFluxCodes, ComprehensiveBeamAnalysis,
-    CuTable, DistributionType, GldfPhotometricData, IesMetadata, LightDirection,
-    NemaClassification, PhotometricCalculations, PhotometricSummary, UgrParams, UgrTable,
-    UgrTableValues, ZonalLumens30, CU_RCR_VALUES, CU_REFLECTANCES, UGR_REFLECTANCES,
-    UGR_ROOM_SIZES,
+    format_angle, BeamFieldAnalysis, BeamFieldSections, CandelaEntry, CandelaTabulation,
+    CieFluxCodes, ComprehensiveBeamAnalysis, CuTable, DistributionType, GldfPhotometricData,
+    IesMetadata, LightDirection, NemaClassification, PeakDirection, PhotometricCalculations,
+    PhotometricSummary, SectionBeamField, UgrParams, UgrTable, UgrTableValues, ZonalLumens30,
+    CU_RCR_VALUES, CU_REFLECTANCES, UGR_REFLECTANCES, UGR_ROOM_SIZES,
 };
+#[cfg(feature = "std")]
 pub use compare::{ComparisonMetric, PhotometricComparison, Significance};
+#[cfg(feature = "std")]
 pub use iesna_classification::{
     classify as iesna_classify, Applicability as IesnaApplicability, CutoffClass,
     IesnaClassification, LateralType, LongitudinalClass,
 };
+#[cfg(feature = "std")]
 pub use radiosity::{
     compute_form_factors, direct_illuminance, illuminance_at_point, radiosity_cu, solve_radiosity,
     surface_average, workplane_stats, workplane_stats_at_height, workplane_stats_normative,
@@ -219,6 +396,7 @@ pub use radiosity::{
 // i18n re-exports for comparison are available via PhotometricComparison methods
 pub use error::{Error, Result};
 pub use eulumdat::{Eulumdat, LampSet, Symmetry, TypeIndicator};
+#[cfg(feature = "std")]
 pub use ies::{
     validate_ies, validate_ies_strict, FileGenerationType, IesData, IesExportOptions, IesExporter,
     IesImportOptions, IesParser, IesValidationSeverity, IesValidationWarning, IesVersion,

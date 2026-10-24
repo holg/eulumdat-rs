@@ -214,7 +214,7 @@
     <string name="luminaire_optical_tilt_angle">Ángulo de inclinación (°)</string>
     <string name="luminaire_optical_title">Propiedades ópticas</string>
     <string name="luminaire_photometric_beam_angle">Ángulo de haz</string>
-    <string name="luminaire_photometric_beam_angle_50">Ángulo de haz (50%)</string>
+    <string name="luminaire_photometric_beam_angle_50">Ángulo de haz (50 % del máx.)</string>
     <string name="luminaire_photometric_cct">Temperatura de color</string>
     <string name="luminaire_photometric_cie_class">Clasificación CIE</string>
     <string name="luminaire_photometric_cri">Índice de rendimiento cromático</string>
@@ -222,7 +222,7 @@
     <string name="luminaire_photometric_dlor">Rendimiento inferior</string>
     <string name="luminaire_photometric_efficacy">Eficacia luminosa</string>
     <string name="luminaire_photometric_field_angle">Ángulo de campo</string>
-    <string name="luminaire_photometric_field_angle_10">Ángulo de campo (10%)</string>
+    <string name="luminaire_photometric_field_angle_10">Ángulo de campo (10 % del máx.)</string>
     <string name="luminaire_photometric_lamp_efficacy">Eficacia de lámpara</string>
     <string name="luminaire_photometric_lor">Rendimiento de luminaria</string>
     <string name="luminaire_photometric_luminaire_efficacy">Eficacia de luminaria</string>
@@ -231,8 +231,8 @@
     <string name="luminaire_photometric_spacing_criterion">Criterio de espaciado</string>
     <string name="luminaire_photometric_symmetry">Simetría</string>
     <string name="luminaire_photometric_total_flux">Flujo luminoso total</string>
-    <string name="luminaire_photometric_total_lamp_flux">Flujo total de lámparas</string>
-    <string name="luminaire_photometric_total_wattage">Potencia total</string>
+    <string name="luminaire_photometric_total_lamp_flux">Flujo de lámparas (conjunto 1)</string>
+    <string name="luminaire_photometric_total_wattage">Potencia (conjunto 1)</string>
     <string name="luminaire_photometric_ulor">Rendimiento superior</string>
     <string name="luminaire_physical_dimensions">Dimensiones</string>
     <string name="luminaire_physical_dimensions_mm">Dimensiones de luminaria (mm)</string>

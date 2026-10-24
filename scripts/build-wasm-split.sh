@@ -153,6 +153,8 @@ BUILD_GMAPS=$(toml_get "bundles.gmaps" "false")
 BUILD_TEMPLATES=$(toml_get "bundles.templates" "false")
 BUILD_SKYGLOW=$(toml_get "bundles.skyglow" "false")
 BUILD_STREET=$(toml_get "bundles.street" "false")
+BUILD_GREENHOUSE=$(toml_get "bundles.greenhouse" "false")
+BUILD_TM25=$(toml_get "bundles.tm25" "false")
 
 # Deploy settings
 DEPLOY_TARGET=$(toml_get "deploy.target" "")
@@ -268,7 +270,7 @@ needs_rebuild() {
 
 # Names of bundles that support selective `force <module>` rebuilds.
 # Keep in sync with the `needs_rebuild` call sites below.
-FORCE_MODULE_NAMES=("leptos" "bevy" "street" "skyglow" "templates" "eulumdat-core")
+FORCE_MODULE_NAMES=("leptos" "bevy" "street" "skyglow" "greenhouse" "tm25" "templates" "eulumdat-core")
 
 # Map bundle name → cargo crate that should be `cargo clean -p`ed when
 # forcing just that module. Without this, `force street` on an unchanged
@@ -282,6 +284,8 @@ force_module_crate() {
         bevy)      echo "eulumdat-bevy" ;;
         street)    echo "eulumdat-wasm-street" ;;
         skyglow)   echo "eulumdat-bevy" ;;
+        greenhouse) echo "eulumdat-bevy" ;;
+        tm25)      echo "eulumdat-bevy" ;;
         templates) echo "eulumdat-wasm-templates" ;;
         *)         echo "" ;;
     esac
@@ -427,6 +431,12 @@ if [[ "$BUILD_SKYGLOW" == "true" ]]; then
 fi
 if [[ "$BUILD_STREET" == "true" ]]; then
     echo "  Bundle 6: Street Designer (loads on demand)"
+fi
+if [[ "$BUILD_GREENHOUSE" == "true" ]]; then
+    echo "  Bundle 7: Greenhouse Demo (loads on demand, ?wasm=greenhouse_demo)"
+fi
+if [[ "$BUILD_TM25" == "true" ]]; then
+    echo "  Bundle 8: TM-25 Ray File Viewer (loads on demand, ?wasm=tm25)"
 fi
 if [[ "$HAVE_BROTLI" == "true" ]]; then
     echo ""
@@ -664,6 +674,103 @@ if [[ "$BUILD_STREET" == "true" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
+# Step 1.8: Build Greenhouse Demo ("Schweinestall → Gewächshaus")
+# -----------------------------------------------------------------------------
+# Same crate + pattern as the Skyglow demo, but WebGPU-only: Bevy's
+# physically based atmosphere and bloom need compute shaders + storage
+# textures, so there is no WebGL2 sibling. The Leptos shell shows the
+# missing-WebGPU screen when `navigator.gpu` is absent.
+# -----------------------------------------------------------------------------
+GREENHOUSE_BINARY="greenhouse-demo"
+GREENHOUSE_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
+GREENHOUSE_BINDGEN_OUTPUT="$ROOT_DIR/target/greenhouse-wasm-bindgen"
+GREENHOUSE_BUILT=false
+if [[ "$BUILD_GREENHOUSE" == "true" ]]; then
+    GREENHOUSE_NEEDS_BUILD=false
+    if needs_rebuild "greenhouse" "$BEVY_DIR"; then
+        GREENHOUSE_NEEDS_BUILD=true
+    elif [[ ! -f "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}.js" ]]; then
+        GREENHOUSE_NEEDS_BUILD=true
+    fi
+
+    if [[ "$GREENHOUSE_NEEDS_BUILD" == "true" ]]; then
+        echo "[1.8/$TOTAL_STEPS] Building Greenhouse Demo for WASM (WebGPU)..."
+        cd "$ROOT_DIR"
+
+        cargo build --release --target wasm32-unknown-unknown \
+            --bin "$GREENHOUSE_BINARY" \
+            --features bevy-ui,post-process,wasm-bindgen,js-sys \
+            -p eulumdat-bevy
+
+        mkdir -p "$GREENHOUSE_BINDGEN_OUTPUT"
+        wasm-bindgen --out-dir "$GREENHOUSE_BINDGEN_OUTPUT" --target web \
+            "$GREENHOUSE_OUTPUT/${GREENHOUSE_BINARY}.wasm"
+
+        if command -v wasm-opt &> /dev/null && [[ -f "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg.wasm" ]]; then
+            echo "    Running wasm-opt..."
+            ORIG_SIZE=$(ls -lh "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg_opt.wasm" \
+                "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg.wasm"
+            mv "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg_opt.wasm" \
+                "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg.wasm"
+            OPT_SIZE=$(ls -lh "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg.wasm" | awk '{print $5}')
+            echo "    Size: $ORIG_SIZE -> $OPT_SIZE"
+        fi
+
+        save_hash "greenhouse" "$(calculate_source_hash "$BEVY_DIR")"
+        GREENHOUSE_BUILT=true
+        echo ""
+    else
+        echo "[1.8/$TOTAL_STEPS] Greenhouse Demo: unchanged, skipping build"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# Step 1.9: Build TM-25 Ray File Viewer (lazy bundle, WebGPU only)
+# -----------------------------------------------------------------------------
+TM25_BINARY="tm25-viewer"
+TM25_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
+TM25_BINDGEN_OUTPUT="$ROOT_DIR/target/tm25-wasm-bindgen"
+if [[ "$BUILD_TM25" == "true" ]]; then
+    TM25_NEEDS_BUILD=false
+    if needs_rebuild "tm25" "$BEVY_DIR"; then
+        TM25_NEEDS_BUILD=true
+    elif [[ ! -f "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}.js" ]]; then
+        TM25_NEEDS_BUILD=true
+    fi
+
+    if [[ "$TM25_NEEDS_BUILD" == "true" ]]; then
+        echo "[1.9/$TOTAL_STEPS] Building TM-25 Viewer for WASM (WebGPU)..."
+        cd "$ROOT_DIR"
+
+        cargo build --release --target wasm32-unknown-unknown \
+            --bin "$TM25_BINARY" \
+            --features tm25 \
+            -p eulumdat-bevy
+
+        mkdir -p "$TM25_BINDGEN_OUTPUT"
+        wasm-bindgen --out-dir "$TM25_BINDGEN_OUTPUT" --target web \
+            "$TM25_OUTPUT/${TM25_BINARY}.wasm"
+
+        if command -v wasm-opt &> /dev/null && [[ -f "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg.wasm" ]]; then
+            echo "    Running wasm-opt..."
+            ORIG_SIZE=$(ls -lh "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg_opt.wasm" \
+                "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg.wasm"
+            mv "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg_opt.wasm" \
+                "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg.wasm"
+            OPT_SIZE=$(ls -lh "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg.wasm" | awk '{print $5}')
+            echo "    Size: $ORIG_SIZE -> $OPT_SIZE"
+        fi
+
+        save_hash "tm25" "$(calculate_source_hash "$BEVY_DIR")"
+        echo ""
+    else
+        echo "[1.9/$TOTAL_STEPS] TM-25 Viewer: unchanged, skipping build"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # Step 2: Build Leptos editor
 # -----------------------------------------------------------------------------
 if [[ "$BUILD_LEPTOS" == "true" ]]; then
@@ -844,6 +951,58 @@ if [[ "$BUILD_STREET" == "true" ]] && [[ -f "$STREET_BINDGEN_OUTPUT/${STREET_CRA
         fi
         echo "  ${STREET_CRATE_NAME}-${STREET_JS_HASH}.js"
         echo "  ${STREET_CRATE_NAME}-${STREET_WASM_HASH}_bg.wasm"
+    fi
+fi
+echo ""
+
+# -----------------------------------------------------------------------------
+# Step 3.8: Add content hashes to Greenhouse Demo files
+# -----------------------------------------------------------------------------
+GREENHOUSE_JS_HASH=""
+GREENHOUSE_WASM_HASH=""
+if [[ "$BUILD_GREENHOUSE" == "true" ]] && [[ -f "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}.js" ]]; then
+    GREENHOUSE_JS_HASH=$(hash_md5 "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}.js")
+    GREENHOUSE_WASM_HASH=$(hash_md5 "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg.wasm")
+    GREENHOUSE_JS_TARGET="$DIST_DIR/greenhouse/${GREENHOUSE_BINARY}-${GREENHOUSE_JS_HASH}.js"
+    GREENHOUSE_WASM_TARGET="$DIST_DIR/greenhouse/${GREENHOUSE_BINARY}-${GREENHOUSE_WASM_HASH}_bg.wasm"
+
+    if [[ -f "$GREENHOUSE_JS_TARGET" ]] && [[ -f "$GREENHOUSE_WASM_TARGET" ]]; then
+        echo "[3.8/$TOTAL_STEPS] Greenhouse files: unchanged (hash match), skipping"
+    else
+        echo "[3.8/$TOTAL_STEPS] Adding content hashes to Greenhouse Demo files..."
+        mkdir -p "$DIST_DIR/greenhouse"
+        rm -f "$DIST_DIR/greenhouse/"*.js "$DIST_DIR/greenhouse/"*.wasm "$DIST_DIR/greenhouse/"*.br
+        cp "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}.js" "$GREENHOUSE_JS_TARGET"
+        cp "$GREENHOUSE_BINDGEN_OUTPUT/${GREENHOUSE_BINARY}_bg.wasm" "$GREENHOUSE_WASM_TARGET"
+        sed_inplace "s/${GREENHOUSE_BINARY}_bg.wasm/${GREENHOUSE_BINARY}-${GREENHOUSE_WASM_HASH}_bg.wasm/g" "$GREENHOUSE_JS_TARGET"
+        echo "  ${GREENHOUSE_BINARY}-${GREENHOUSE_JS_HASH}.js"
+        echo "  ${GREENHOUSE_BINARY}-${GREENHOUSE_WASM_HASH}_bg.wasm"
+    fi
+fi
+echo ""
+
+# -----------------------------------------------------------------------------
+# Step 3.9: Add content hashes to TM-25 Viewer files
+# -----------------------------------------------------------------------------
+TM25_JS_HASH=""
+TM25_WASM_HASH=""
+if [[ "$BUILD_TM25" == "true" ]] && [[ -f "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}.js" ]]; then
+    TM25_JS_HASH=$(hash_md5 "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}.js")
+    TM25_WASM_HASH=$(hash_md5 "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg.wasm")
+    TM25_JS_TARGET="$DIST_DIR/tm25/${TM25_BINARY}-${TM25_JS_HASH}.js"
+    TM25_WASM_TARGET="$DIST_DIR/tm25/${TM25_BINARY}-${TM25_WASM_HASH}_bg.wasm"
+
+    if [[ -f "$TM25_JS_TARGET" ]] && [[ -f "$TM25_WASM_TARGET" ]]; then
+        echo "[3.9/$TOTAL_STEPS] TM-25 files: unchanged (hash match), skipping"
+    else
+        echo "[3.9/$TOTAL_STEPS] Adding content hashes to TM-25 Viewer files..."
+        mkdir -p "$DIST_DIR/tm25"
+        rm -f "$DIST_DIR/tm25/"*.js "$DIST_DIR/tm25/"*.wasm "$DIST_DIR/tm25/"*.br
+        cp "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}.js" "$TM25_JS_TARGET"
+        cp "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}_bg.wasm" "$TM25_WASM_TARGET"
+        sed_inplace "s/${TM25_BINARY}_bg.wasm/${TM25_BINARY}-${TM25_WASM_HASH}_bg.wasm/g" "$TM25_JS_TARGET"
+        echo "  ${TM25_BINARY}-${TM25_JS_HASH}.js"
+        echo "  ${TM25_BINARY}-${TM25_WASM_HASH}_bg.wasm"
     fi
 fi
 echo ""
@@ -1511,6 +1670,254 @@ EOF
 fi
 
 # -----------------------------------------------------------------------------
+# Step 6.87: Generate greenhouse-loader.js (if configured)
+# -----------------------------------------------------------------------------
+GREENHOUSE_LOADER_HASH=""
+if [[ "$BUILD_GREENHOUSE" == "true" ]] && [[ -n "$GREENHOUSE_JS_HASH" ]]; then
+    EXISTING_GREENHOUSE_LOADER=$(ls "$DIST_DIR/greenhouse-loader-"*.js 2>/dev/null | head -1)
+    if [[ -n "$EXISTING_GREENHOUSE_LOADER" ]] && grep -q "${GREENHOUSE_BINARY}-${GREENHOUSE_JS_HASH}.js" "$EXISTING_GREENHOUSE_LOADER" 2>/dev/null; then
+        echo "[6.87/$TOTAL_STEPS] greenhouse-loader.js: unchanged, skipping"
+        GREENHOUSE_LOADER_HASH=$(echo "$EXISTING_GREENHOUSE_LOADER" | sed 's/.*greenhouse-loader-\([^.]*\)\.js/\1/')
+    else
+        echo "[6.87/$TOTAL_STEPS] Generating greenhouse-loader.js..."
+        rm -f "$DIST_DIR/greenhouse-loader-"*.js "$DIST_DIR/greenhouse-loader-"*.js.br
+
+        cat > "$DIST_DIR/greenhouse-loader-temp.js" << EOF
+// Greenhouse Demo loader — "Vom Schweinestall zum Gewächshaus"
+// Auto-generated by scripts/build-wasm-split.sh with content hashes for
+// cache busting. WebGPU only (atmosphere + bloom need compute shaders).
+
+let greenhouseLoaded = false;
+let greenhouseLoading = false;
+let greenhouseLoadPromise = null;
+window.greenhouseBackend = null;
+
+async function probeWebGpuForGreenhouse() {
+    if (!navigator.gpu) return false;
+    try {
+        const adapter = await navigator.gpu.requestAdapter();
+        return !!adapter;
+    } catch (_) {
+        return false;
+    }
+}
+
+async function loadGreenhouseDemo() {
+    if (greenhouseLoaded) {
+        console.log("[Greenhouse] Already loaded");
+        return;
+    }
+    if (greenhouseLoading && greenhouseLoadPromise) {
+        console.log("[Greenhouse] Loading in progress, waiting...");
+        return greenhouseLoadPromise;
+    }
+
+    greenhouseLoading = true;
+    console.log("[Greenhouse] Probing WebGPU…");
+
+    greenhouseLoadPromise = (async () => {
+        const webgpuOk = await probeWebGpuForGreenhouse();
+        if (!webgpuOk) {
+            window.greenhouseBackend = 'unsupported';
+            greenhouseLoading = false;
+            greenhouseLoadPromise = null;
+            const msg = "WebGPU unavailable — the greenhouse demo needs WebGPU.";
+            console.error("[Greenhouse]", msg);
+            throw new Error(msg);
+        }
+        window.greenhouseBackend = 'webgpu';
+        try {
+            const mod = await import('./greenhouse/${GREENHOUSE_BINARY}-${GREENHOUSE_JS_HASH}.js');
+            await mod.default();
+            greenhouseLoaded = true;
+            greenhouseLoading = false;
+            console.log("[Greenhouse] Demo loaded successfully");
+        } catch (error) {
+            const errorStr = error.toString();
+            if (errorStr.includes("Using exceptions for control flow") ||
+                errorStr.includes("don't mind me")) {
+                console.log("[Greenhouse] Ignoring control flow exception (not a real error)");
+                greenhouseLoaded = true;
+                greenhouseLoading = false;
+                return;
+            }
+            console.error("[Greenhouse] Failed to load:", error);
+            greenhouseLoading = false;
+            greenhouseLoadPromise = null;
+            throw error;
+        }
+    })();
+
+    return greenhouseLoadPromise;
+}
+
+window.loadGreenhouseDemo = loadGreenhouseDemo;
+window.isGreenhouseLoaded = () => greenhouseLoaded;
+window.isGreenhouseLoading = () => greenhouseLoading;
+
+console.log("[Greenhouse] Loader ready (JS: ${GREENHOUSE_JS_HASH}, WASM: ${GREENHOUSE_WASM_HASH})");
+EOF
+
+        if command -v md5sum &> /dev/null; then
+            GREENHOUSE_LOADER_HASH=$(md5sum "$DIST_DIR/greenhouse-loader-temp.js" | cut -c1-16)
+        else
+            GREENHOUSE_LOADER_HASH=$(md5 -q "$DIST_DIR/greenhouse-loader-temp.js" | cut -c1-16)
+        fi
+        mv "$DIST_DIR/greenhouse-loader-temp.js" "$DIST_DIR/greenhouse-loader-${GREENHOUSE_LOADER_HASH}.js"
+        echo "  greenhouse-loader-${GREENHOUSE_LOADER_HASH}.js"
+    fi
+    echo ""
+fi
+
+# -----------------------------------------------------------------------------
+# Step 6.88: Generate tm25-loader.js (if configured)
+# -----------------------------------------------------------------------------
+TM25_LOADER_HASH=""
+if [[ "$BUILD_TM25" == "true" ]] && [[ -n "$TM25_JS_HASH" ]]; then
+    EXISTING_TM25_LOADER=$(ls "$DIST_DIR/tm25-loader-"*.js 2>/dev/null | head -1)
+    if [[ -n "$EXISTING_TM25_LOADER" ]] && grep -q "${TM25_BINARY}-${TM25_JS_HASH}.js" "$EXISTING_TM25_LOADER" 2>/dev/null; then
+        echo "[6.88/$TOTAL_STEPS] tm25-loader.js: unchanged, skipping"
+        TM25_LOADER_HASH=$(echo "$EXISTING_TM25_LOADER" | sed 's/.*tm25-loader-\([^.]*\)\.js/\1/')
+    else
+        echo "[6.88/$TOTAL_STEPS] Generating tm25-loader.js..."
+        rm -f "$DIST_DIR/tm25-loader-"*.js "$DIST_DIR/tm25-loader-"*.js.br
+
+        cat > "$DIST_DIR/tm25-loader-temp.js" << TM25_LOADER_END
+// TM-25 Ray File Viewer loader
+//
+// Lazy-loads the Bevy TM-25 viewer bundle (WebGPU only, like the greenhouse
+// demo) and provides the file hand-off between the Leptos shell and the
+// bundle: \`tm25StashFile(file)\` stores a File/Blob in IndexedDB, the Bevy
+// side polls \`tm25TakeFile()\` and streams it with Blob.slice. IndexedDB (not
+// a JS global) so the file survives the navigation to \`?wasm=tm25\`.
+//
+// Auto-generated by scripts/build-wasm-split.sh with content hashes.
+
+let tm25Loaded = false;
+let tm25Loading = false;
+let tm25LoadPromise = null;
+window.tm25Backend = null;
+
+const TM25_DB = "eulumdat-tm25";
+const TM25_STORE = "pending";
+
+function tm25OpenDb() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(TM25_DB, 1);
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(TM25_STORE)) {
+                db.createObjectStore(TM25_STORE);
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+// Store a File for the viewer. Resolves when written.
+window.tm25StashFile = async function (file, key = "file") {
+    const db = await tm25OpenDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(TM25_STORE, "readwrite");
+        tx.objectStore(TM25_STORE).put(file, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+};
+
+// Take (and remove) the stashed File. Resolves to the File or null.
+window.tm25TakeFile = async function (key = "file") {
+    let db;
+    try {
+        db = await tm25OpenDb();
+    } catch (_) {
+        return null;
+    }
+    return new Promise((resolve) => {
+        const tx = db.transaction(TM25_STORE, "readwrite");
+        const store = tx.objectStore(TM25_STORE);
+        const get = store.get(key);
+        get.onsuccess = () => {
+            const file = get.result || null;
+            if (file) store.delete(key);
+            resolve(file);
+        };
+        get.onerror = () => resolve(null);
+    });
+};
+
+async function probeWebGpuForTm25() {
+    if (!navigator.gpu) return false;
+    try {
+        const adapter = await navigator.gpu.requestAdapter();
+        return !!adapter;
+    } catch (_) {
+        return false;
+    }
+}
+
+async function loadTm25Viewer() {
+    if (tm25Loaded) {
+        return;
+    }
+    if (tm25Loading && tm25LoadPromise) {
+        return tm25LoadPromise;
+    }
+    tm25Loading = true;
+    tm25LoadPromise = (async () => {
+        const webgpuOk = await probeWebGpuForTm25();
+        if (!webgpuOk) {
+            window.tm25Backend = 'unsupported';
+            tm25Loading = false;
+            tm25LoadPromise = null;
+            const msg = "WebGPU unavailable — the TM-25 viewer needs WebGPU.";
+            console.error("[TM25]", msg);
+            throw new Error(msg);
+        }
+        window.tm25Backend = 'webgpu';
+        try {
+            const mod = await import('./tm25/${TM25_BINARY}-${TM25_JS_HASH}.js');
+            await mod.default();
+            tm25Loaded = true;
+            tm25Loading = false;
+            console.log("[TM25] Viewer loaded");
+        } catch (error) {
+            const errorStr = error.toString();
+            if (errorStr.includes("Using exceptions for control flow") ||
+                errorStr.includes("don't mind me")) {
+                tm25Loaded = true;
+                tm25Loading = false;
+                return;
+            }
+            console.error("[TM25] Failed to load:", error);
+            tm25Loading = false;
+            tm25LoadPromise = null;
+            throw error;
+        }
+    })();
+    return tm25LoadPromise;
+}
+
+window.loadTm25Viewer = loadTm25Viewer;
+window.isTm25Loaded = () => tm25Loaded;
+window.isTm25Loading = () => tm25Loading;
+
+console.log("[TM25] Loader ready (JS: ${TM25_JS_HASH}, WASM: ${TM25_WASM_HASH})");
+TM25_LOADER_END
+
+        if command -v md5sum &> /dev/null; then
+            TM25_LOADER_HASH=$(md5sum "$DIST_DIR/tm25-loader-temp.js" | cut -c1-16)
+        else
+            TM25_LOADER_HASH=$(md5 -q "$DIST_DIR/tm25-loader-temp.js" | cut -c1-16)
+        fi
+        mv "$DIST_DIR/tm25-loader-temp.js" "$DIST_DIR/tm25-loader-${TM25_LOADER_HASH}.js"
+        echo "  tm25-loader-${TM25_LOADER_HASH}.js"
+    fi
+    echo ""
+fi
+
+# -----------------------------------------------------------------------------
 # Step 6.6: Update index.html with hashed loader filenames
 # -----------------------------------------------------------------------------
 # Only update if needed (check if already has correct hashes)
@@ -1543,6 +1950,16 @@ if [[ "$BUILD_SKYGLOW" == "true" ]] && [[ -n "$SKYGLOW_LOADER_HASH" ]]; then
 fi
 if [[ "$BUILD_STREET" == "true" ]] && [[ -n "$STREET_LOADER_HASH" ]]; then
     if ! grep -q "street-loader-${STREET_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
+        INDEX_NEEDS_UPDATE=true
+    fi
+fi
+if [[ "$BUILD_GREENHOUSE" == "true" ]] && [[ -n "$GREENHOUSE_LOADER_HASH" ]]; then
+    if ! grep -q "greenhouse-loader-${GREENHOUSE_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
+        INDEX_NEEDS_UPDATE=true
+    fi
+fi
+if [[ "$BUILD_TM25" == "true" ]] && [[ -n "$TM25_LOADER_HASH" ]]; then
+    if ! grep -q "tm25-loader-${TM25_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
         INDEX_NEEDS_UPDATE=true
     fi
 fi
@@ -1589,6 +2006,18 @@ if [[ "$INDEX_NEEDS_UPDATE" == "true" ]]; then
         sed "${SED_INPLACE[@]}" "s|street-loader-[a-f0-9]*.js\"|street-loader-${STREET_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
     fi
 
+    if [[ "$BUILD_GREENHOUSE" == "true" ]] && [[ -n "$GREENHOUSE_LOADER_HASH" ]]; then
+        sed "${SED_INPLACE[@]}" "s|greenhouse-loader.js\"|greenhouse-loader-${GREENHOUSE_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|greenhouse-loader.js?v=[0-9]*\"|greenhouse-loader-${GREENHOUSE_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|greenhouse-loader-[a-f0-9]*.js\"|greenhouse-loader-${GREENHOUSE_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+    fi
+
+    if [[ "$BUILD_TM25" == "true" ]] && [[ -n "$TM25_LOADER_HASH" ]]; then
+        sed "${SED_INPLACE[@]}" "s|tm25-loader.js\"|tm25-loader-${TM25_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|tm25-loader.js?v=[0-9]*\"|tm25-loader-${TM25_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|tm25-loader-[a-f0-9]*.js\"|tm25-loader-${TM25_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+    fi
+
     echo "  Updated loader references"
 else
     echo "[6.6/$TOTAL_STEPS] index.html: unchanged, skipping"
@@ -1619,8 +2048,8 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
     FILES_TO_COMPRESS=()
 
     # Only add files that don't have an up-to-date .br version
-    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/skyglow/"*.wasm "$DIST_DIR/skyglow-webgl2/"*.wasm "$DIST_DIR/street/"*.wasm \
-             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/skyglow/"*.js "$DIST_DIR/skyglow-webgl2/"*.js "$DIST_DIR/street/"*.js \
+    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/skyglow/"*.wasm "$DIST_DIR/skyglow-webgl2/"*.wasm "$DIST_DIR/street/"*.wasm "$DIST_DIR/greenhouse/"*.wasm "$DIST_DIR/tm25/"*.wasm \
+             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/skyglow/"*.js "$DIST_DIR/skyglow-webgl2/"*.js "$DIST_DIR/street/"*.js "$DIST_DIR/greenhouse/"*.js "$DIST_DIR/tm25/"*.js \
              "$DIST_DIR/"*.css; do
         if [[ -f "$f" ]]; then
             # Skip non-hashed loader files (we use hashed versions)
@@ -1630,7 +2059,9 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
                [[ "$basename_f" == "gmaps-loader.js" ]] || \
                [[ "$basename_f" == "templates-loader.js" ]] || \
                [[ "$basename_f" == "skyglow-loader.js" ]] || \
-               [[ "$basename_f" == "street-loader.js" ]]; then
+               [[ "$basename_f" == "street-loader.js" ]] || \
+               [[ "$basename_f" == "greenhouse-loader.js" ]] || \
+               [[ "$basename_f" == "tm25-loader.js" ]]; then
                 continue
             fi
             # Skip if .br exists and is at least as new as source
@@ -1828,6 +2259,12 @@ if [[ "$HAVE_BROTLI" == "true" ]]; then
         STREET_SIZE=$(ls -lh "$STREET_WASM_FILE_DIST" 2>/dev/null | awk '{print $5}')
         STREET_BR=$(ls -lh "${STREET_WASM_FILE_DIST}.br" 2>/dev/null | awk '{print $5}')
         [[ -n "$STREET_SIZE" ]] && echo "  Street Designer:    $STREET_SIZE -> $STREET_BR (loads on demand)"
+    fi
+    if [[ "$BUILD_GREENHOUSE" == "true" ]] && [[ -n "$GREENHOUSE_WASM_HASH" ]]; then
+        GREENHOUSE_WASM_FILE_DIST="$DIST_DIR/greenhouse/${GREENHOUSE_BINARY}-${GREENHOUSE_WASM_HASH}_bg.wasm"
+        GREENHOUSE_SIZE=$(ls -lh "$GREENHOUSE_WASM_FILE_DIST" 2>/dev/null | awk '{print $5}')
+        GREENHOUSE_BR=$(ls -lh "${GREENHOUSE_WASM_FILE_DIST}.br" 2>/dev/null | awk '{print $5}')
+        [[ -n "$GREENHOUSE_SIZE" ]] && echo "  Greenhouse Demo:    $GREENHOUSE_SIZE -> $GREENHOUSE_BR (loads on demand)"
     fi
     if [[ -n "$QUIZ_SIZE" ]]; then
         QUIZ_BR=$(ls -lh "${QUIZ_WASM_FILE}.br" 2>/dev/null | awk '{print $5}')

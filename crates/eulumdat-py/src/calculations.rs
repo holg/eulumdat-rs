@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use ::eulumdat as core;
+use core::format_angle;
 use core::{
     CieFluxCodes as CoreCieFluxCodes, GldfPhotometricData as CoreGldfPhotometricData,
     PhotometricCalculations as CoreCalcs, PhotometricSummary as CorePhotoSummary,
@@ -163,7 +164,7 @@ impl From<CoreZonalLumens30> for ZonalLumens30 {
 #[derive(Clone, Debug)]
 pub struct PhotometricSummary {
     // Flux and efficiency
-    /// Total lamp flux (lm)
+    /// Lamp flux of the primary (first) lamp set (lm)
     #[pyo3(get)]
     pub total_lamp_flux: f64,
     /// Calculated flux from intensity integration (lm)
@@ -186,17 +187,32 @@ pub struct PhotometricSummary {
     /// Luminaire efficacy (lm/W)
     #[pyo3(get)]
     pub luminaire_efficacy: f64,
-    /// Total system wattage (W)
+    /// System wattage of the primary (first) lamp set (W)
     #[pyo3(get)]
     pub total_wattage: f64,
 
-    // Beam characteristics
-    /// Beam angle - 50% intensity (degrees)
+    // Beam characteristics (50 % / 10 % of the peak)
+    /// Beam angle in the section through the peak (degrees, None = no lobe)
     #[pyo3(get)]
-    pub beam_angle: f64,
-    /// Field angle - 10% intensity (degrees)
+    pub beam_angle: Option<f64>,
+    /// Field angle in the section through the peak (degrees, None = no lobe)
     #[pyo3(get)]
-    pub field_angle: f64,
+    pub field_angle: Option<f64>,
+    /// Section `beam_angle` / `field_angle` were measured in, e.g. "C0–C180"
+    #[pyo3(get)]
+    pub beam_section: String,
+    /// Beam angle of the C0–C180 section (degrees)
+    #[pyo3(get)]
+    pub beam_c0_c180: Option<f64>,
+    /// Field angle of the C0–C180 section (degrees)
+    #[pyo3(get)]
+    pub field_c0_c180: Option<f64>,
+    /// Beam angle of the C90–C270 section (degrees)
+    #[pyo3(get)]
+    pub beam_c90_c270: Option<f64>,
+    /// Field angle of the C90–C270 section (degrees)
+    #[pyo3(get)]
+    pub field_c90_c270: Option<f64>,
 
     // Intensity statistics
     /// Maximum intensity (cd/klm)
@@ -255,9 +271,11 @@ Efficacy
 
 CIE Flux Code:         {}
 
-Beam Characteristics
-  Beam Angle (50%):    {:.1}°
-  Field Angle (10%):   {:.1}°
+Beam Characteristics (50 % / 10 % of peak)
+  Beam Angle ({}): {}
+  Field Angle ({}): {}
+  C0–C180:             {} / {}
+  C90–C270:            {} / {}
 
 Intensity (cd/klm)
   Maximum:             {:.1}
@@ -285,8 +303,14 @@ Zonal Lumens (%)
             self.luminaire_efficacy,
             self.total_wattage,
             self.inner_cie_codes,
-            self.beam_angle,
-            self.field_angle,
+            self.beam_section,
+            format_angle(self.beam_angle),
+            self.beam_section,
+            format_angle(self.field_angle),
+            format_angle(self.beam_c0_c180),
+            format_angle(self.field_c0_c180),
+            format_angle(self.beam_c90_c270),
+            format_angle(self.field_c90_c270),
             self.max_intensity,
             self.min_intensity,
             self.avg_intensity,
@@ -304,10 +328,10 @@ Zonal Lumens (%)
     /// Format as single-line compact summary.
     fn to_compact(&self) -> String {
         format!(
-            "CIE:{} Beam:{:.0}° Field:{:.0}° Eff:{:.0}lm/W S/H:{:.1}×{:.1}",
+            "CIE:{} Beam:{} Field:{} Eff:{:.0}lm/W S/H:{:.1}×{:.1}",
             self.inner_cie_codes,
-            self.beam_angle,
-            self.field_angle,
+            format_angle(self.beam_angle),
+            format_angle(self.field_angle),
             self.luminaire_efficacy,
             self.spacing_c0,
             self.spacing_c90,
@@ -320,8 +344,11 @@ Zonal Lumens (%)
 
     fn __repr__(&self) -> String {
         format!(
-            "PhotometricSummary(flux={:.0}lm, beam={:.1}°, field={:.1}°, eff={:.1}lm/W)",
-            self.total_lamp_flux, self.beam_angle, self.field_angle, self.luminaire_efficacy
+            "PhotometricSummary(flux={:.0}lm, beam={}, field={}, eff={:.1}lm/W)",
+            self.total_lamp_flux,
+            format_angle(self.beam_angle),
+            format_angle(self.field_angle),
+            self.luminaire_efficacy
         )
     }
 
@@ -341,6 +368,12 @@ Zonal Lumens (%)
         dict.set_item("total_wattage", self.total_wattage).unwrap();
         dict.set_item("beam_angle", self.beam_angle).unwrap();
         dict.set_item("field_angle", self.field_angle).unwrap();
+        dict.set_item("beam_section", &self.beam_section).unwrap();
+        dict.set_item("beam_c0_c180", self.beam_c0_c180).unwrap();
+        dict.set_item("field_c0_c180", self.field_c0_c180).unwrap();
+        dict.set_item("beam_c90_c270", self.beam_c90_c270).unwrap();
+        dict.set_item("field_c90_c270", self.field_c90_c270)
+            .unwrap();
         dict.set_item("max_intensity", self.max_intensity).unwrap();
         dict.set_item("min_intensity", self.min_intensity).unwrap();
         dict.set_item("avg_intensity", self.avg_intensity).unwrap();
@@ -385,6 +418,11 @@ impl From<CorePhotoSummary> for PhotometricSummary {
             total_wattage: s.total_wattage,
             beam_angle: s.beam_angle,
             field_angle: s.field_angle,
+            beam_section: s.peak_section.label(),
+            beam_c0_c180: s.sections.c0_c180.beam,
+            field_c0_c180: s.sections.c0_c180.field,
+            beam_c90_c270: s.sections.c90_c270.beam,
+            field_c90_c270: s.sections.c90_c270.field,
             max_intensity: s.max_intensity,
             min_intensity: s.min_intensity,
             avg_intensity: s.avg_intensity,
@@ -432,16 +470,16 @@ pub struct GldfPhotometricData {
     pub photometric_code: String,
     /// Half peak (beam) divergence C0 (degrees)
     #[pyo3(get)]
-    pub half_peak_c0: f64,
+    pub half_peak_c0: Option<f64>,
     /// Half peak (beam) divergence C90 (degrees)
     #[pyo3(get)]
-    pub half_peak_c90: f64,
+    pub half_peak_c90: Option<f64>,
     /// Tenth peak (field) divergence C0 (degrees)
     #[pyo3(get)]
-    pub tenth_peak_c0: f64,
+    pub tenth_peak_c0: Option<f64>,
     /// Tenth peak (field) divergence C90 (degrees)
     #[pyo3(get)]
-    pub tenth_peak_c90: f64,
+    pub tenth_peak_c90: Option<f64>,
     /// BUG rating string
     #[pyo3(get)]
     pub bug_rating: String,
@@ -505,12 +543,14 @@ impl GldfPhotometricData {
             self.photometric_code
         ));
         s.push_str(&format!(
-            "Half Peak Divergence:    {:.1}° / {:.1}° (C0/C90)\n",
-            self.half_peak_c0, self.half_peak_c90
+            "Half Peak Divergence:    {} / {} (C0–C180 / C90–C270)\n",
+            format_angle(self.half_peak_c0),
+            format_angle(self.half_peak_c90)
         ));
         s.push_str(&format!(
-            "Tenth Peak Divergence:   {:.1}° / {:.1}° (C0/C90)\n",
-            self.tenth_peak_c0, self.tenth_peak_c90
+            "Tenth Peak Divergence:   {} / {} (C0–C180 / C90–C270)\n",
+            format_angle(self.tenth_peak_c0),
+            format_angle(self.tenth_peak_c90)
         ));
         s.push_str(&format!("BUG Rating:              {}\n", self.bug_rating));
 
@@ -754,11 +794,11 @@ impl PhotometricCalcs {
         CoreCalcs::zonal_lumens_30deg(ldt).into()
     }
 
-    pub fn beam_angle(ldt: &core::Eulumdat) -> f64 {
+    pub fn beam_angle(ldt: &core::Eulumdat) -> Option<f64> {
         CoreCalcs::beam_angle(ldt)
     }
 
-    pub fn field_angle(ldt: &core::Eulumdat) -> f64 {
+    pub fn field_angle(ldt: &core::Eulumdat) -> Option<f64> {
         CoreCalcs::field_angle(ldt)
     }
 

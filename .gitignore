@@ -198,3 +198,9 @@ assets/bistro_exterior_ktx2/
 crates/eulumdat-bevy/assets/
 crates/eulumdat-bevy/data/
 scripts/video_scenes/
+
+# Third-party photometric files used locally by
+# crates/eulumdat/tests/beam_field_sections.rs (no redistribution licence;
+# see crates/eulumdat/tests/fixtures/beam_field/README.md)
+crates/eulumdat/tests/fixtures/beam_field/sample*.ldt
+crates/eulumdat/tests/fixtures/beam_field/[1-4].IES

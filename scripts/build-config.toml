@@ -34,9 +34,18 @@ bevy = true
 typst = true
 gmaps = true
 templates = true
-skyglow = true
+# Skyglow: disabled since the Bevy 0.19 upgrade — `examples/skyglow_demo.rs`
+# still uses `SceneRoot`, which 0.19 replaced with `WorldAssetRoot`, so the
+# bundle no longer compiles. The previously built, content-hashed bundle in
+# dist/skyglow*/ is kept and index.html keeps pointing at it (see
+# scripts/relink-skyglow-loader.sh). Re-enable once the demo is ported.
+skyglow = false
 # Street designer — lazy-loaded multi-luminaire compliance app
 street = true
+# Greenhouse demo — "Schweinestall → Gewächshaus" spectral daylight + LED showcase (WebGPU only)
+greenhouse = true
+# TM-25 ray file viewer — lazy-loaded (?wasm=tm25), WebGPU only
+tm25 = true
 
 [bundles.leptos]
 description = "Leptos editor"
@@ -65,6 +74,16 @@ size_estimate = "~25MB compressed"
 description = "Street Designer — multi-luminaire RP-8 / EN 13201 / CJJ 45 / MLO compliance"
 load_strategy = "on_demand"
 size_estimate = "~3MB compressed"
+
+[bundles.greenhouse]
+description = "Greenhouse Spectral Lab — daylight + spectral glazing + TM-33 grow lights + Monte Carlo (?wasm=greenhouse_demo)"
+load_strategy = "on_demand"
+size_estimate = "~25MB compressed"
+
+[bundles.tm25]
+description = "TM-25 Ray File Viewer — near-field LED ray sets, far-field solid (?wasm=tm25)"
+load_strategy = "on_demand"
+size_estimate = "~20MB compressed"
 
 # GonioSim is compiled INTO the Leptos bundle (not a separate WASM).
 # No separate build step, loader, or content hashing needed.

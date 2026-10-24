@@ -1,5 +1,8 @@
 //! Core Eulumdat data structure.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+#[cfg(feature = "std")]
 use std::path::Path;
 
 use crate::error::{anyhow, invalid_value, Result};
@@ -14,6 +17,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Tries UTF-8 first, then falls back to ISO-8859-1 (Latin-1) which is common
 /// for LDT/IES files from Windows tools.
+#[cfg(feature = "std")]
 fn read_with_encoding_fallback<P: AsRef<Path>>(path: P) -> Result<String> {
     let bytes = std::fs::read(path.as_ref()).map_err(|e| anyhow!("Failed to read file: {}", e))?;
 
@@ -135,7 +139,9 @@ impl Symmetry {
 
 /// Lamp set configuration.
 ///
-/// A luminaire can have up to 20 lamp sets, each describing a group of lamps.
+/// A file can list up to 20 standard lamp sets. They are alternative
+/// fittings for the same relative distribution; absolute values use the
+/// first one (see [`Eulumdat::primary_lamp_set`]).
 #[derive(Debug, Clone, Default, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct LampSet {
@@ -288,6 +294,7 @@ impl Eulumdat {
     /// Automatically handles both UTF-8 and ISO-8859-1 (Latin-1) encoded files.
     /// This is necessary because many LDT files from Windows-based tools use
     /// ISO-8859-1 encoding.
+    #[cfg(feature = "std")]
     pub fn from_file(path: impl AsRef<std::path::Path>) -> Result<Self> {
         let content = read_with_encoding_fallback(path)?;
         Self::parse(&content)
@@ -299,6 +306,7 @@ impl Eulumdat {
     }
 
     /// Save to a file path.
+    #[cfg(feature = "std")]
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> Result<()> {
         let content = self.to_ldt();
         std::fs::write(path, content)?;
@@ -316,7 +324,7 @@ impl Eulumdat {
     }
 
     /// Validate strictly and return errors if validation fails.
-    pub fn validate_strict(&self) -> std::result::Result<(), Vec<ValidationError>> {
+    pub fn validate_strict(&self) -> core::result::Result<(), Vec<ValidationError>> {
         crate::validation::validate_strict(self)
     }
 
@@ -325,24 +333,73 @@ impl Eulumdat {
         self.symmetry.calc_mc(self.num_c_planes)
     }
 
-    /// Get total luminous flux from all lamp sets.
-    pub fn total_luminous_flux(&self) -> f64 {
+    /// The lamp set that absolute values (cd, lm, lm/W) refer to: the first.
+    ///
+    /// EULUMDAT line 26 lists `n` *standard* lamp sets ("Standard-
+    /// Bestückungen"). They are alternative fittings of luminaires with the
+    /// same relative distribution, not lamps installed at the same time, so
+    /// absolute values refer to one set. The first set is the primary one.
+    pub fn primary_lamp_set(&self) -> Option<&LampSet> {
+        self.lamp_sets.first()
+    }
+
+    /// Lamp luminous flux of the primary lamp set (lm).
+    ///
+    /// This is the flux that converts cd/klm to cd. For absolute photometry
+    /// (negative number of lamps) the field holds the luminaire flux.
+    pub fn luminous_flux(&self) -> f64 {
+        self.primary_lamp_set()
+            .map_or(0.0, |ls| ls.total_luminous_flux)
+    }
+
+    /// System wattage (incl. ballast) of the primary lamp set (W).
+    pub fn wattage(&self) -> f64 {
+        self.primary_lamp_set()
+            .map_or(0.0, |ls| ls.wattage_with_ballast)
+    }
+
+    /// Sum of the luminous flux of all lamp sets (lm).
+    ///
+    /// Lamp sets are alternatives (see [`Self::primary_lamp_set`]); the sum
+    /// only describes a luminaire if a file misuses the sets for lamps that
+    /// are installed together.
+    pub fn sum_of_lamp_sets_flux(&self) -> f64 {
         self.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum()
     }
 
-    /// Get total wattage from all lamp sets.
-    pub fn total_wattage(&self) -> f64 {
+    /// Sum of the wattage of all lamp sets (W). See [`Self::sum_of_lamp_sets_flux`].
+    pub fn sum_of_lamp_sets_wattage(&self) -> f64 {
         self.lamp_sets
             .iter()
             .map(|ls| ls.wattage_with_ballast)
             .sum()
     }
 
-    /// Get luminous efficacy in lm/W.
+    /// Get total luminous flux from all lamp sets.
+    #[deprecated(
+        since = "0.8.0",
+        note = "lamp sets are alternatives, not additive: use `luminous_flux()` (primary set) \
+                or `sum_of_lamp_sets_flux()` for the old sum"
+    )]
+    pub fn total_luminous_flux(&self) -> f64 {
+        self.sum_of_lamp_sets_flux()
+    }
+
+    /// Get total wattage from all lamp sets.
+    #[deprecated(
+        since = "0.8.0",
+        note = "lamp sets are alternatives, not additive: use `wattage()` (primary set) \
+                or `sum_of_lamp_sets_wattage()` for the old sum"
+    )]
+    pub fn total_wattage(&self) -> f64 {
+        self.sum_of_lamp_sets_wattage()
+    }
+
+    /// Lamp luminous efficacy of the primary lamp set (lm/W).
     pub fn luminous_efficacy(&self) -> f64 {
-        let wattage = self.total_wattage();
+        let wattage = self.wattage();
         if wattage > 0.0 {
-            self.total_luminous_flux() / wattage
+            self.luminous_flux() / wattage
         } else {
             0.0
         }
@@ -464,8 +521,8 @@ impl Eulumdat {
                     self.height_c90 = h0;
                     self.height_c180 = h90;
                     self.height_c270 = h180;
-                    std::mem::swap(&mut self.length, &mut self.width);
-                    std::mem::swap(
+                    core::mem::swap(&mut self.length, &mut self.width);
+                    core::mem::swap(
                         &mut self.luminous_area_length,
                         &mut self.luminous_area_width,
                     );
@@ -483,8 +540,8 @@ impl Eulumdat {
                     self.height_c90 = h180;
                     self.height_c180 = h270;
                     self.height_c270 = h0;
-                    std::mem::swap(&mut self.length, &mut self.width);
-                    std::mem::swap(
+                    core::mem::swap(&mut self.length, &mut self.width);
+                    core::mem::swap(
                         &mut self.luminous_area_length,
                         &mut self.luminous_area_width,
                     );

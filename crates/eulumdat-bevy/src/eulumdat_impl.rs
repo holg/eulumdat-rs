@@ -18,7 +18,7 @@ impl PhotometricData for Eulumdat {
     }
 
     fn total_flux(&self) -> f64 {
-        self.total_luminous_flux()
+        self.luminous_flux()
     }
 
     fn light_output_ratio(&self) -> f64 {
@@ -51,23 +51,15 @@ impl PhotometricData for Eulumdat {
     }
 
     fn beam_angle(&self) -> f64 {
-        // Calculate beam angle: find gamma where intensity drops to 50% of max
-        let max_intensity = self.max_intensity();
-        if max_intensity <= 0.0 {
+        // Half of the beam angle (50 % of the peak, section through the peak)
+        if self.max_intensity() <= 0.0 {
             return std::f64::consts::FRAC_PI_4; // 45 degrees default
         }
-
-        let half_max = max_intensity * 0.5;
-
-        // Scan from nadir (0°) outward to find 50% point
-        for g in 0..90 {
-            let intensity = self.sample(0.0, g as f64);
-            if intensity < half_max {
-                return (g as f64).to_radians();
-            }
-        }
-
-        std::f64::consts::FRAC_PI_2 // 90 degrees if not found
+        // No downward lobe (e.g. up-light): treat as wide
+        eulumdat::PhotometricCalculations::half_beam_angle(self)
+            .map_or(std::f64::consts::FRAC_PI_2, |half| {
+                half.min(90.0).to_radians()
+            })
     }
 }
 

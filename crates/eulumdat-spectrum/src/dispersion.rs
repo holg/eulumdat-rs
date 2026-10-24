@@ -11,6 +11,9 @@
 //! bend blue light more than red — real chromatic behaviour that a scalar IOR
 //! cannot reproduce (prismatic edges, colour-fringing of clear optics).
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 /// Sellmeier coefficients (B and C terms, λ in µm).
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

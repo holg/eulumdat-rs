@@ -4,6 +4,8 @@
 //! 3D photometric data to 2D screen coordinates.
 
 use super::Point2D;
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 /// Isometric projection for 3D butterfly diagrams
 ///

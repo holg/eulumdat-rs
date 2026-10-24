@@ -91,6 +91,10 @@ pub use eulumdat_impl::{EulumdatLight, EulumdatLightBundle};
 #[cfg(feature = "viewer")]
 pub mod viewer;
 
+/// TM-25 ray file viewer (feature `tm25`).
+#[cfg(feature = "tm25")]
+pub mod tm25;
+
 // Re-export commonly used types at crate root for convenience
 pub use photometric::{
     PhotometricData, PhotometricLight, PhotometricLightBundle, PhotometricPlugin,

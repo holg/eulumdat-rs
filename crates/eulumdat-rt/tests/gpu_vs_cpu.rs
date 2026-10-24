@@ -174,7 +174,7 @@ fn from_lvk_free_space_gpu_vs_cpu() {
     // Load a real LDT and trace through free space on both GPU and CPU
     let content = include_str!("../../eulumdat-wasm/templates/fluorescent_luminaire.ldt");
     let ldt = eulumdat::Eulumdat::parse(content).unwrap();
-    let lamp_flux = ldt.total_luminous_flux();
+    let lamp_flux = ldt.luminous_flux();
     let calculated_flux = eulumdat::PhotometricCalculations::calculated_luminous_flux(&ldt);
 
     // Build CDF for GPU

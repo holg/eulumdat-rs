@@ -213,6 +213,19 @@ pub struct LuminaireOpticalData {
 
     /// Multiple custom data items (TM-33-23 style)
     pub custom_data_items: Vec<CustomDataItem>,
+
+    /// Alternative lamp fittings from an EULUMDAT file (lamp sets 2..n).
+    ///
+    /// EULUMDAT lamp sets are alternatives for the same relative
+    /// distribution, while ATLA emitters are installed together. The
+    /// primary lamp set becomes the emitter; the others are kept here so
+    /// LDT → ATLA → LDT keeps them. They are not counted in any total and
+    /// are not written to ATLA / TM-33 files, which describe one fitting.
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
+    pub alternative_lamp_sets: Vec<Emitter>,
 }
 
 /// Header section containing general luminaire identification

@@ -6,6 +6,9 @@
 //! resampling. Values are *relative radiant power*; absolute scaling is applied
 //! at the source (luminous flux) and never baked into the curve.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 /// A spectral power distribution on an arbitrary wavelength grid (nm).
 ///
 /// Invariant: `wavelengths` is strictly ascending and the same length as

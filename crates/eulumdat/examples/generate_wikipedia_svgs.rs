@@ -11,7 +11,7 @@
 
 use eulumdat::{
     diagram::{ConeDiagram, PolarDiagram, SvgTheme},
-    Eulumdat, PhotometricCalculations,
+    format_angle, Eulumdat, PhotometricCalculations,
 };
 use std::fs;
 use std::path::Path;
@@ -161,8 +161,14 @@ fn generate_spotlight_diagrams(
 
     // Print analysis
     println!("   Spotlight analysis:");
-    println!("   - Beam angle (IES): {:.1}°", analysis.beam_angle_ies);
-    println!("   - Field angle (IES): {:.1}°", analysis.field_angle_ies);
+    println!(
+        "   - Beam angle (50% of peak): {}",
+        format_angle(analysis.beam_angle_ies)
+    );
+    println!(
+        "   - Field angle (10% of peak): {}",
+        format_angle(analysis.field_angle_ies)
+    );
     println!(
         "   - Center/Max ratio: {:.1}%",
         analysis.center_to_max_ratio() * 100.0
@@ -185,9 +191,18 @@ fn generate_batwing_diagrams(
 
     // Print analysis
     println!("   Batwing analysis:");
-    println!("   - Beam angle (IES): {:.1}°", analysis.beam_angle_ies);
-    println!("   - Beam angle (CIE): {:.1}°", analysis.beam_angle_cie);
-    println!("   - Difference: {:.1}°", analysis.beam_angle_difference());
+    println!(
+        "   - Beam angle (50% of peak): {}",
+        format_angle(analysis.beam_angle_ies)
+    );
+    println!(
+        "   - Beam angle (50% of center): {}",
+        format_angle(analysis.beam_angle_cie)
+    );
+    println!(
+        "   - Difference: {}",
+        format_angle(analysis.beam_angle_difference())
+    );
     println!(
         "   - Center/Max ratio: {:.1}%",
         analysis.center_to_max_ratio() * 100.0
@@ -209,8 +224,11 @@ fn generate_flood_diagrams(
     fs::write(output_dir.join("polar_wide_flood.svg"), &svg)?;
 
     println!("   Wide flood analysis:");
-    println!("   - Beam angle: {:.1}°", analysis.beam_angle_ies);
-    println!("   - Field angle: {:.1}°", analysis.field_angle_ies);
+    println!("   - Beam angle: {}", format_angle(analysis.beam_angle_ies));
+    println!(
+        "   - Field angle: {}",
+        format_angle(analysis.field_angle_ies)
+    );
 
     Ok(())
 }
@@ -249,9 +267,9 @@ fn generate_cone_diagram(
     fs::write(output_dir.join("cone_diagram_wikipedia.svg"), &svg)?;
 
     println!("   Cone diagram:");
-    println!("   - Beam angle: {:.1}°", cone.beam_angle);
-    println!("   - Field angle: {:.1}°", cone.field_angle);
-    println!("   - Beam diameter at 3m: {:.2}m", cone.beam_diameter);
+    println!("   - Beam angle: {}", format_angle(cone.beam_angle));
+    println!("   - Field angle: {}", format_angle(cone.field_angle));
+    println!("   - Beam diameter at 3m: {:.2?}m", cone.beam_diameter);
     println!("   - Classification: {}", cone.beam_classification());
 
     Ok(())

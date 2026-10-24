@@ -91,31 +91,61 @@ impl From<&Eulumdat> for LuminaireOpticalData {
                 }],
                 mounting: None,
                 num_emitters: Some(
-                    ldt.lamp_sets
-                        .iter()
-                        .map(|ls| lamp_count_to_quantity(ls.num_lamps))
-                        .sum(),
+                    ldt.primary_lamp_set()
+                        .map_or(0, |ls| lamp_count_to_quantity(ls.num_lamps)),
                 ),
             });
         }
 
-        // Create emitters — one per lamp set (preserving multi-lamp-set data)
+        // The primary lamp set becomes the emitter. Further lamp sets are
+        // alternative fittings (EULUMDAT line 26), not additional light
+        // sources, so they must not become additive ATLA emitters; they are
+        // kept aside for the round trip back to LDT.
         if ldt.lamp_sets.len() <= 1 {
-            // Single lamp set: create one emitter with intensity data
-            let emitter = create_emitter_from_ldt(ldt);
-            doc.emitters.push(emitter);
+            doc.emitters.push(create_emitter_from_ldt(ldt));
         } else {
-            // Multiple lamp sets: each gets its own emitter
-            // The first emitter carries the intensity distribution
-            // (it represents the combined output)
-            for (i, ls) in ldt.lamp_sets.iter().enumerate() {
-                let emitter =
-                    create_emitter_from_lamp_set(ls, if i == 0 { Some(ldt) } else { None });
-                doc.emitters.push(emitter);
-            }
+            doc.emitters
+                .push(create_emitter_from_lamp_set(&ldt.lamp_sets[0], Some(ldt)));
+            doc.alternative_lamp_sets = ldt.lamp_sets[1..]
+                .iter()
+                .map(|ls| create_emitter_from_lamp_set(ls, None))
+                .collect();
         }
 
         doc
+    }
+}
+
+/// One EULUMDAT lamp set from an ATLA emitter.
+fn lamp_set_from_emitter(emitter: &Emitter) -> LampSet {
+    // Restore EULUMDAT's absolute-photometry convention: -1 lamps.
+    let is_absolute = emitter
+        .intensity_distribution
+        .as_ref()
+        .and_then(|d| d.absolute_photometry)
+        .unwrap_or(false);
+    LampSet {
+        num_lamps: if is_absolute {
+            -1
+        } else {
+            emitter.quantity as i32
+        },
+        lamp_type: emitter.description.clone().unwrap_or_default(),
+        total_luminous_flux: emitter
+            .measured_lumens
+            .or(emitter.rated_lumens)
+            .unwrap_or(0.0),
+        color_appearance: emitter
+            .cct
+            .map(|cct| format!("{}K", cct as i32))
+            .unwrap_or_default(),
+        color_rendering_group: emitter
+            .color_rendering
+            .as_ref()
+            .and_then(|cr| cr.ra)
+            .map(cri_to_group)
+            .unwrap_or_default(),
+        wattage_with_ballast: emitter.input_watts.unwrap_or(0.0),
     }
 }
 
@@ -172,9 +202,9 @@ fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumda
 }
 
 fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
-    // Calculate total flux and power from lamp sets
-    let total_lumens: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
-    let total_watts: f64 = ldt.lamp_sets.iter().map(|ls| ls.wattage_with_ballast).sum();
+    // Flux and power of the (single) lamp set
+    let total_lumens = ldt.luminous_flux();
+    let total_watts = ldt.wattage();
 
     // Get CCT from first lamp set if available
     let cct = ldt
@@ -317,40 +347,32 @@ impl From<&LuminaireOpticalData> for Eulumdat {
             }
         }
 
-        // Emitters -> lamp sets and intensity data
-        // Each emitter becomes one lamp set (preserving multi-lamp-set data)
-        for emitter in &doc.emitters {
-            // Restore EULUMDAT's absolute-photometry convention: -1 lamps.
-            let is_absolute = emitter
-                .intensity_distribution
-                .as_ref()
-                .and_then(|d| d.absolute_photometry)
-                .unwrap_or(false);
-            let lamp_set = LampSet {
-                num_lamps: if is_absolute {
+        // Emitters -> lamp sets. ATLA emitters are installed together while
+        // EULUMDAT lamp sets are alternatives, so several emitters become one
+        // lamp set with summed lamps, flux and power. Alternative fittings
+        // kept from an LDT import follow as further lamp sets.
+        let mut sets = doc.emitters.iter().map(lamp_set_from_emitter);
+        if let Some(mut primary) = sets.next() {
+            for other in sets {
+                primary.num_lamps = if primary.num_lamps < 0 || other.num_lamps < 0 {
                     -1
                 } else {
-                    emitter.quantity as i32
-                },
-                lamp_type: emitter.description.clone().unwrap_or_default(),
-                total_luminous_flux: emitter
-                    .measured_lumens
-                    .or(emitter.rated_lumens)
-                    .unwrap_or(0.0),
-                color_appearance: emitter
-                    .cct
-                    .map(|cct| format!("{}K", cct as i32))
-                    .unwrap_or_default(),
-                color_rendering_group: emitter
-                    .color_rendering
-                    .as_ref()
-                    .and_then(|cr| cr.ra)
-                    .map(cri_to_group)
-                    .unwrap_or_default(),
-                wattage_with_ballast: emitter.input_watts.unwrap_or(0.0),
-            };
-            ldt.lamp_sets.push(lamp_set);
+                    primary.num_lamps + other.num_lamps
+                };
+                primary.total_luminous_flux += other.total_luminous_flux;
+                primary.wattage_with_ballast += other.wattage_with_ballast;
+                if !other.lamp_type.is_empty() && other.lamp_type != primary.lamp_type {
+                    primary.lamp_type = if primary.lamp_type.is_empty() {
+                        other.lamp_type
+                    } else {
+                        format!("{} + {}", primary.lamp_type, other.lamp_type)
+                    };
+                }
+            }
+            ldt.lamp_sets.push(primary);
         }
+        ldt.lamp_sets
+            .extend(doc.alternative_lamp_sets.iter().map(lamp_set_from_emitter));
 
         // Intensity distribution — from first emitter that has it
         if let Some(emitter) = doc
@@ -665,6 +687,66 @@ impl LuminaireOpticalData {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn two_set_ldt() -> Eulumdat {
+        let set = |lm: f64, w: f64, t: &str| LampSet {
+            num_lamps: 1,
+            lamp_type: t.to_string(),
+            total_luminous_flux: lm,
+            wattage_with_ballast: w,
+            color_appearance: "4000K".to_string(),
+            ..Default::default()
+        };
+        Eulumdat {
+            c_angles: vec![0.0],
+            g_angles: vec![0.0, 90.0, 180.0],
+            intensities: vec![vec![300.0, 100.0, 0.0]],
+            num_c_planes: 1,
+            num_g_planes: 3,
+            lamp_sets: vec![
+                set(1983.0, 17.6, "LED Module A"),
+                set(2643.0, 24.9, "LED Module B"),
+            ],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn alternative_lamp_sets_are_not_additive_emitters() {
+        let ldt = two_set_ldt();
+        let doc = LuminaireOpticalData::from_eulumdat(&ldt);
+        assert_eq!(doc.emitters.len(), 1);
+        assert_eq!(doc.total_luminous_flux(), 1983.0);
+        assert_eq!(doc.total_input_watts(), 17.6);
+        assert!(doc.emitters[0].intensity_distribution.is_some());
+        assert_eq!(doc.alternative_lamp_sets.len(), 1);
+
+        // LDT → ATLA → LDT keeps both sets
+        let back = doc.to_eulumdat();
+        assert_eq!(back.lamp_sets, ldt.lamp_sets);
+        assert_eq!(back.luminous_flux(), 1983.0);
+    }
+
+    #[test]
+    fn several_emitters_become_one_summed_lamp_set() {
+        let emitter = |lm: f64, w: f64, d: &str| Emitter {
+            description: Some(d.to_string()),
+            quantity: 2,
+            rated_lumens: Some(lm),
+            input_watts: Some(w),
+            ..Default::default()
+        };
+        let mut doc = LuminaireOpticalData::new();
+        doc.emitters = vec![emitter(600.0, 6.0, "Red"), emitter(400.0, 4.0, "Blue")];
+        let ldt = doc.to_eulumdat();
+        assert_eq!(ldt.lamp_sets.len(), 1);
+        let ls = &ldt.lamp_sets[0];
+        assert_eq!(ls.num_lamps, 4);
+        assert_eq!(ls.total_luminous_flux, 1000.0);
+        assert_eq!(ls.wattage_with_ballast, 10.0);
+        assert_eq!(ls.lamp_type, "Red + Blue");
+        assert_eq!(ldt.luminous_flux(), doc.total_luminous_flux());
+    }
 
     #[test]
     fn test_cct_parsing() {

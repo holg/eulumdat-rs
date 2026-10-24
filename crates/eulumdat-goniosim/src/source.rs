@@ -77,6 +77,12 @@ pub enum Source {
     /// directions (down-going). Built via
     /// [`crate::daylight::SkyDomeSource`].
     SkyDome(crate::daylight::SkyDomeSource),
+
+    /// A measured or simulated ray set (IES TM-25 ray file): every photon
+    /// replays one stored ray, chosen with probability proportional to its
+    /// flux, so the near field (start points on the die, the lens, the
+    /// package) is reproduced exactly instead of being collapsed to a point.
+    RaySet(RaySetSource),
 }
 
 impl Source {
@@ -108,6 +114,7 @@ impl Source {
             Source::FromLvk { flux_lm, .. } => *flux_lm,
             Source::SunDisc { flux_lm, .. } => *flux_lm,
             Source::SkyDome(d) => d.flux_lm,
+            Source::RaySet(r) => r.flux_lm,
         }
     }
 
@@ -207,7 +214,104 @@ impl Source {
             }
 
             Source::SkyDome(dome) => dome.sample(rng),
+
+            Source::RaySet(set) => set.sample(rng),
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Ray-set source (TM-25 style)
+// ---------------------------------------------------------------------------
+
+/// Stored rays for [`Source::RaySet`]: start points in scene units (metres
+/// for the web goniometer, whatever the scene uses), unit directions, and a
+/// cumulative flux table for importance sampling. Photons carry equal energy,
+/// so a ray is drawn with probability ∝ its flux and the set's total flux is
+/// `flux_lm`.
+#[derive(Debug, Clone)]
+pub struct RaySetSource {
+    origins: Vec<Point3<f64>>,
+    directions: Vec<Unit<Vector3<f64>>>,
+    /// Cumulative flux, normalised to 1.0 at the end.
+    cdf: Vec<f64>,
+    /// Total flux of the set, lumens (or the photometric stand-in for
+    /// radiometric files).
+    pub flux_lm: f64,
+}
+
+impl RaySetSource {
+    /// Build from `(origin, direction, weight)` triples. Rays with a
+    /// non-positive or non-finite weight or a zero-length direction are
+    /// skipped. Returns `None` when nothing usable remains.
+    pub fn new<I>(rays: I, flux_lm: f64) -> Option<Self>
+    where
+        I: IntoIterator<Item = (Point3<f64>, Vector3<f64>, f64)>,
+    {
+        let mut origins = Vec::new();
+        let mut directions = Vec::new();
+        let mut cdf = Vec::new();
+        let mut acc = 0.0;
+        for (o, d, w) in rays {
+            if !w.is_finite() || w <= 0.0 {
+                continue;
+            }
+            let Some(dir) = Unit::try_new(d, 1e-12) else {
+                continue;
+            };
+            acc += w;
+            origins.push(o);
+            directions.push(dir);
+            cdf.push(acc);
+        }
+        if origins.is_empty() || acc <= 0.0 {
+            return None;
+        }
+        for c in &mut cdf {
+            *c /= acc;
+        }
+        if let Some(last) = cdf.last_mut() {
+            *last = 1.0;
+        }
+        Some(Self {
+            origins,
+            directions,
+            cdf,
+            flux_lm,
+        })
+    }
+
+    /// Number of stored rays.
+    pub fn len(&self) -> usize {
+        self.origins.len()
+    }
+
+    /// True when no rays are stored (cannot happen for a value from [`Self::new`]).
+    pub fn is_empty(&self) -> bool {
+        self.origins.is_empty()
+    }
+
+    /// Axis-aligned bounds of the start points.
+    pub fn bounds(&self) -> (Point3<f64>, Point3<f64>) {
+        let mut lo = Point3::new(f64::MAX, f64::MAX, f64::MAX);
+        let mut hi = Point3::new(f64::MIN, f64::MIN, f64::MIN);
+        for o in &self.origins {
+            for i in 0..3 {
+                lo[i] = lo[i].min(o[i]);
+                hi[i] = hi[i].max(o[i]);
+            }
+        }
+        (lo, hi)
+    }
+
+    /// Draw one stored ray, flux weighted.
+    pub fn sample<R: Rng>(&self, rng: &mut R) -> Ray {
+        let u: f64 = rng.random();
+        let i = match self.cdf.binary_search_by(|c| c.partial_cmp(&u).unwrap()) {
+            Ok(i) => i,
+            Err(i) => i.min(self.cdf.len() - 1),
+        };
+        Ray::new(self.origins[i], self.directions[i])
     }
 }
 
@@ -438,5 +542,29 @@ mod tests {
                 "LED should sample within cone"
             );
         }
+    }
+
+    #[test]
+    fn ray_set_samples_proportional_to_flux() {
+        use rand::SeedableRng;
+        let rays = vec![
+            (Point3::origin(), Vector3::new(0.0, 0.0, -1.0), 3.0),
+            (Point3::new(1.0, 0.0, 0.0), Vector3::new(1.0, 0.0, 0.0), 1.0),
+            (Point3::new(2.0, 0.0, 0.0), Vector3::zeros(), 5.0), // skipped: no direction
+            (Point3::new(3.0, 0.0, 0.0), Vector3::new(0.0, 1.0, 0.0), 0.0), // skipped: no flux
+        ];
+        let set = RaySetSource::new(rays, 42.0).unwrap();
+        assert_eq!(set.len(), 2);
+        assert_eq!(set.flux_lm, 42.0);
+        let src = Source::RaySet(set);
+        assert_eq!(src.flux_lm(), 42.0);
+        let mut rng = rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(1);
+        let n = 20_000;
+        let down = (0..n)
+            .filter(|_| src.sample(&mut rng).direction.z < -0.5)
+            .count();
+        let frac = down as f64 / n as f64;
+        assert!((frac - 0.75).abs() < 0.02, "down fraction {frac}");
+        assert!(RaySetSource::new(Vec::new(), 1.0).is_none());
     }
 }

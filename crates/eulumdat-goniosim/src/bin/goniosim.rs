@@ -68,7 +68,7 @@ fn cmd_roundtrip(args: &[String]) {
     let num_photons = parse_flag_u64(args, "--photons", 2_000_000);
 
     let ldt = load_ldt(input_path);
-    let lamp_flux = ldt.total_luminous_flux();
+    let lamp_flux = ldt.luminous_flux();
     // Use the calculated flux from intensity integration — this is the actual
     // luminous output implied by the cd/klm data, which may differ from
     // lamp_flux * LOR for some files.
@@ -178,7 +178,7 @@ fn cmd_trace(args: &[String]) {
     let num_photons = parse_flag_u64(args, "--photons", 1_000_000);
 
     let ldt = load_ldt(input_path);
-    let lamp_flux = ldt.total_luminous_flux();
+    let lamp_flux = ldt.luminous_flux();
     // calculated_luminous_flux returns the integrated flux from intensity data.
     // This is the value to use as source flux for FromLvk — it represents the
     // actual luminous output encoded in the cd/klm distribution.

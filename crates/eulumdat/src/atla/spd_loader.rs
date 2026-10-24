@@ -487,6 +487,40 @@ pub fn to_atla(loaded: &LoadedSpd) -> LuminaireOpticalData {
     doc
 }
 
+/// Attach a spectral power distribution to an existing luminaire document so
+/// spectral calculations (PPFD, colorimetry, mesopic, Monte Carlo) can use it
+/// alongside the intensity distribution.
+///
+/// `emitter`: `Some(i)` targets that emitter (lamp set); `None` — or an index
+/// out of range — updates every emitter. A document without emitters gets one
+/// created. Returns the number of emitters that now carry the SPD.
+pub fn attach_spd(
+    doc: &mut LuminaireOpticalData,
+    spd: &SpectralDistribution,
+    emitter: Option<usize>,
+) -> usize {
+    if doc.emitters.is_empty() {
+        doc.emitters.push(Emitter {
+            spectral_distribution: Some(spd.clone()),
+            quantity: 1,
+            ..Default::default()
+        });
+        return 1;
+    }
+    match emitter {
+        Some(i) if i < doc.emitters.len() => {
+            doc.emitters[i].spectral_distribution = Some(spd.clone());
+            1
+        }
+        _ => {
+            for e in &mut doc.emitters {
+                e.spectral_distribution = Some(spd.clone());
+            }
+            doc.emitters.len()
+        }
+    }
+}
+
 /// User-facing warnings for an SPD-only load: same shape as `spdx::get_warnings`.
 pub fn get_warnings(loaded: &LoadedSpd) -> Vec<String> {
     let mut w = vec![
@@ -516,6 +550,28 @@ pub fn get_warnings(loaded: &LoadedSpd) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn attach_spd_targets_emitters() {
+        let spd = parse("# t\n400\t0.5\n500\t1.0\n600\t0.5\n").unwrap().spd;
+        let mut doc = LuminaireOpticalData::default();
+        assert_eq!(attach_spd(&mut doc, &spd, None), 1);
+        assert_eq!(doc.emitters.len(), 1);
+        assert!(doc.emitters[0].spectral_distribution.is_some());
+
+        let mut doc = LuminaireOpticalData {
+            emitters: vec![Emitter::default(), Emitter::default()],
+            ..Default::default()
+        };
+        assert_eq!(attach_spd(&mut doc, &spd, Some(1)), 1);
+        assert!(doc.emitters[0].spectral_distribution.is_none());
+        assert!(doc.emitters[1].spectral_distribution.is_some());
+        assert_eq!(attach_spd(&mut doc, &spd, Some(7)), 2);
+        assert!(doc
+            .emitters
+            .iter()
+            .all(|e| e.spectral_distribution.is_some()));
+    }
 
     #[test]
     fn detects_luxeon_spd() {

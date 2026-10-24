@@ -6,6 +6,9 @@
 //! This lets the sky dome carry a colour that varies with altitude/azimuth
 //! without storing a spectrum per direction — just a CCT field.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 use crate::spd::Spd;
 
 /// Reconstruct a CIE D-series daylight SPD at a correlated colour temperature.

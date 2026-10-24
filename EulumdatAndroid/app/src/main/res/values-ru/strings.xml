@@ -214,7 +214,7 @@
     <string name="luminaire_optical_tilt_angle">Угол наклона (°)</string>
     <string name="luminaire_optical_title">Оптические свойства</string>
     <string name="luminaire_photometric_beam_angle">Угол луча</string>
-    <string name="luminaire_photometric_beam_angle_50">Угол луча (50%)</string>
+    <string name="luminaire_photometric_beam_angle_50">Угол луча (50% от макс.)</string>
     <string name="luminaire_photometric_cct">Цветовая температура</string>
     <string name="luminaire_photometric_cie_class">Классификация CIE</string>
     <string name="luminaire_photometric_cri">Индекс цветопередачи</string>
@@ -222,7 +222,7 @@
     <string name="luminaire_photometric_dlor">Нижний КПД</string>
     <string name="luminaire_photometric_efficacy">Световая отдача</string>
     <string name="luminaire_photometric_field_angle">Угол поля</string>
-    <string name="luminaire_photometric_field_angle_10">Угол поля (10%)</string>
+    <string name="luminaire_photometric_field_angle_10">Угол поля (10% от макс.)</string>
     <string name="luminaire_photometric_lamp_efficacy">Эффективность ламп</string>
     <string name="luminaire_photometric_lor">КПД светильника</string>
     <string name="luminaire_photometric_luminaire_efficacy">Эффективность светильника</string>
@@ -231,8 +231,8 @@
     <string name="luminaire_photometric_spacing_criterion">Критерий расстояния</string>
     <string name="luminaire_photometric_symmetry">Симметрия</string>
     <string name="luminaire_photometric_total_flux">Общий световой поток</string>
-    <string name="luminaire_photometric_total_lamp_flux">Общий поток ламп</string>
-    <string name="luminaire_photometric_total_wattage">Общая мощность</string>
+    <string name="luminaire_photometric_total_lamp_flux">Поток ламп (комплект 1)</string>
+    <string name="luminaire_photometric_total_wattage">Мощность (комплект 1)</string>
     <string name="luminaire_photometric_ulor">Верхний КПД</string>
     <string name="luminaire_physical_dimensions">Размеры</string>
     <string name="luminaire_physical_dimensions_mm">Размеры светильника (мм)</string>

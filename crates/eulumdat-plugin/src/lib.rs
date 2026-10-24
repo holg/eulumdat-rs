@@ -92,28 +92,56 @@ impl EulumdatEngine {
     // Calculations
     // =========================================================================
 
-    /// Calculate beam angle (angle at 50% max intensity)
-    pub fn beam_angle(&self) -> Result<f64, JsValue> {
+    /// Beam angle: full width at 50 % of the peak, in the vertical section
+    /// through the peak direction. `undefined` when the lobe does not drop
+    /// below 50 % on both sides (e.g. up-lights).
+    pub fn beam_angle(&self) -> Result<Option<f64>, JsValue> {
         let ldt = self.get_data()?;
         Ok(PhotometricCalculations::beam_angle(ldt))
     }
 
-    /// Calculate field angle (angle at 10% max intensity)
-    pub fn field_angle(&self) -> Result<f64, JsValue> {
+    /// Field angle: full width at 10 % of the peak, same section as
+    /// `beam_angle`. `undefined` when there is no crossing.
+    pub fn field_angle(&self) -> Result<Option<f64>, JsValue> {
         let ldt = self.get_data()?;
         Ok(PhotometricCalculations::field_angle(ldt))
     }
 
-    /// Calculate half beam angle
-    pub fn half_beam_angle(&self) -> Result<f64, JsValue> {
+    /// Half of `beam_angle`.
+    pub fn half_beam_angle(&self) -> Result<Option<f64>, JsValue> {
         let ldt = self.get_data()?;
         Ok(PhotometricCalculations::half_beam_angle(ldt))
     }
 
-    /// Calculate half field angle
-    pub fn half_field_angle(&self) -> Result<f64, JsValue> {
+    /// Half of `field_angle`.
+    pub fn half_field_angle(&self) -> Result<Option<f64>, JsValue> {
         let ldt = self.get_data()?;
         Ok(PhotometricCalculations::half_field_angle(ldt))
+    }
+
+    /// Beam angle (50 % of the section peak) of the section C–(C+180),
+    /// e.g. `c_plane = 0` for C0–C180.
+    pub fn beam_angle_section(&self, c_plane: f64) -> Result<Option<f64>, JsValue> {
+        let ldt = self.get_data()?;
+        Ok(PhotometricCalculations::beam_angle_section(ldt, c_plane))
+    }
+
+    /// Field angle (10 % of the section peak) of the section C–(C+180).
+    pub fn field_angle_section(&self, c_plane: f64) -> Result<Option<f64>, JsValue> {
+        let ldt = self.get_data()?;
+        Ok(PhotometricCalculations::field_angle_section(ldt, c_plane))
+    }
+
+    /// Lamp flux of the primary (first) lamp set in lm.
+    pub fn lamp_flux(&self) -> Result<f64, JsValue> {
+        let ldt = self.get_data()?;
+        Ok(ldt.luminous_flux())
+    }
+
+    /// Wattage of the primary (first) lamp set in W.
+    pub fn lamp_wattage(&self) -> Result<f64, JsValue> {
+        let ldt = self.get_data()?;
+        Ok(ldt.wattage())
     }
 
     /// Calculate total luminous flux
@@ -451,10 +479,15 @@ struct SummaryWrapper {
     lamp_efficacy: f64,
     luminaire_efficacy: f64,
     total_wattage: f64,
-    beam_angle: f64,
-    field_angle: f64,
-    beam_angle_cie: f64,
-    field_angle_cie: f64,
+    beam_angle: Option<f64>,
+    field_angle: Option<f64>,
+    beam_section: String,
+    beam_c0_c180: Option<f64>,
+    field_c0_c180: Option<f64>,
+    beam_c90_c270: Option<f64>,
+    field_c90_c270: Option<f64>,
+    beam_angle_cie: Option<f64>,
+    field_angle_cie: Option<f64>,
     is_batwing: bool,
     max_intensity: f64,
     min_intensity: f64,
@@ -476,6 +509,11 @@ impl From<&PhotometricSummary> for SummaryWrapper {
             total_wattage: s.total_wattage,
             beam_angle: s.beam_angle,
             field_angle: s.field_angle,
+            beam_section: s.peak_section.label(),
+            beam_c0_c180: s.sections.c0_c180.beam,
+            field_c0_c180: s.sections.c0_c180.field,
+            beam_c90_c270: s.sections.c90_c270.beam,
+            field_c90_c270: s.sections.c90_c270.field,
             beam_angle_cie: s.beam_angle_cie,
             field_angle_cie: s.field_angle_cie,
             is_batwing: s.is_batwing,
@@ -490,13 +528,19 @@ impl From<&PhotometricSummary> for SummaryWrapper {
 
 #[derive(Serialize, Deserialize)]
 struct BeamFieldWrapper {
-    beam_angle_ies: f64,
-    field_angle_ies: f64,
-    beam_angle_cie: f64,
-    field_angle_cie: f64,
+    beam_angle_ies: Option<f64>,
+    field_angle_ies: Option<f64>,
+    beam_section: String,
+    beam_c0_c180: Option<f64>,
+    field_c0_c180: Option<f64>,
+    beam_c90_c270: Option<f64>,
+    field_c90_c270: Option<f64>,
+    beam_angle_cie: Option<f64>,
+    field_angle_cie: Option<f64>,
     max_intensity: f64,
     center_intensity: f64,
     max_intensity_gamma: f64,
+    max_intensity_c: f64,
     is_batwing: bool,
     beam_threshold_ies: f64,
     beam_threshold_cie: f64,
@@ -509,11 +553,17 @@ impl From<&eulumdat::BeamFieldAnalysis> for BeamFieldWrapper {
         Self {
             beam_angle_ies: a.beam_angle_ies,
             field_angle_ies: a.field_angle_ies,
+            beam_section: a.peak_section.label(),
+            beam_c0_c180: a.c0_c180.beam,
+            field_c0_c180: a.c0_c180.field,
+            beam_c90_c270: a.c90_c270.beam,
+            field_c90_c270: a.c90_c270.field,
             beam_angle_cie: a.beam_angle_cie,
             field_angle_cie: a.field_angle_cie,
             max_intensity: a.max_intensity,
             center_intensity: a.center_intensity,
             max_intensity_gamma: a.max_intensity_gamma,
+            max_intensity_c: a.max_intensity_c,
             is_batwing: a.is_batwing,
             beam_threshold_ies: a.beam_threshold_ies,
             beam_threshold_cie: a.beam_threshold_cie,

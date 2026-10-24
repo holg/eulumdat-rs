@@ -75,7 +75,7 @@ fn ldt_for(key: &str) -> Eulumdat {
 /// Run one case: regular nx*ny ceiling layout, radiosity solve, normative-grid
 /// work-plane stats. Returns (e_avg, u0).
 fn evaluate(c: &Case, ldt: &Eulumdat) -> (f64, f64) {
-    let flux = ldt.total_luminous_flux() * MF;
+    let flux = ldt.luminous_flux() * MF;
     let mut lums = Vec::with_capacity(c.nx * c.ny);
     for i in 0..c.nx {
         for j in 0..c.ny {

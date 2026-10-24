@@ -1,0 +1,20 @@
+[package]
+name = "eulumdat-tm25"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Bridge between tm25ray (IES TM-25 ray files) and eulumdat: far field → EULUMDAT document, spectral table → ATLA spectrum"
+keywords = ["lighting", "tm-25", "ray-file", "photometry", "eulumdat"]
+categories = ["science"]
+
+[features]
+default = []
+# Pass-through to tm25ray's memory-mapped native reader.
+mmap = ["tm25ray/mmap"]
+
+[dependencies]
+eulumdat.workspace = true
+eulumdat-spectrum.workspace = true
+tm25ray = "0.2"

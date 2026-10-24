@@ -324,8 +324,8 @@ fn test_multilamp_flux_not_double_counted() {
     let one_lamp = make(1, 8100.0);
 
     assert_eq!(
-        two_lamp.total_luminous_flux(),
-        one_lamp.total_luminous_flux(),
+        two_lamp.luminous_flux(),
+        one_lamp.luminous_flux(),
         "canonical total flux must ignore num_lamps"
     );
 

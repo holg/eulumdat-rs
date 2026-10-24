@@ -6,6 +6,9 @@
 //! tristimulus from the 5 nm CMFs, CCT via Robertson isotemperature lines with a
 //! McCamy fallback, Duv as signed 1960-uv distance from the Planckian locus.
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+
 use crate::lut::{cie_x, cie_y, cie_z};
 use crate::spd::Spd;
 

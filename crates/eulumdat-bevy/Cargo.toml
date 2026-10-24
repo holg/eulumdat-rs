@@ -29,6 +29,19 @@ name = "skyglow-demo"
 path = "examples/skyglow_demo.rs"
 required-features = ["post-process"]
 
+# Greenhouse Demo binary ("Schweinestall → Gewächshaus") — spectral daylight +
+# horticultural LED showcase. WebGPU-only (Bevy Atmosphere needs compute).
+[[bin]]
+name = "greenhouse-demo"
+path = "examples/greenhouse_demo.rs"
+required-features = ["post-process", "bevy-ui"]
+
+# TM-25 ray file viewer — lazy WASM bundle (?wasm=tm25) and native window.
+[[bin]]
+name = "tm25-viewer"
+path = "examples/tm25_viewer.rs"
+required-features = ["tm25"]
+
 [features]
 # Default: full viewer with demo scenes, WebGPU rendering
 default = ["viewer", "webgpu"]
@@ -77,6 +90,9 @@ post-process = ["bevy/bevy_post_process"]
 
 # Enable native egui settings panel (WIP — egui_panel module)
 egui-ui = []
+# TM-25 ray file viewer plugin (src/tm25). Pulls the reader crate and the
+# browser sync deps; the default `eulumdat-3d` bundle does not enable it.
+tm25 = ["dep:eulumdat-tm25", "wasm-sync"]
 
 [dependencies]
 # Published Bevy 0.19 — the shadow-field PRs (`shadow_maps_enabled`
@@ -107,6 +123,13 @@ bevy = { version = "0.19", default-features = false, features = [
     "zstd_rust",
 ] }
 eulumdat = { workspace = true, features = ["serde"] }
+# Daylight (solar position, sky models), spectral (SPD → PPFD/CCT) and the
+# CPU Monte Carlo tracer — used by the greenhouse demo's canopy analysis.
+# goniosim without `parallel` (rayon) so the same code path runs on wasm32.
+eulumdat-daylight = { workspace = true }
+eulumdat-goniosim = { workspace = true, default-features = false }
+eulumdat-spectrum = { workspace = true }
+eulumdat-tm25 = { workspace = true, optional = true }
 serde = { workspace = true }
 
 # JSON parsing for star catalog + designer data sync
@@ -143,7 +166,7 @@ js-sys = { version = "0.3", optional = true }
 # Optional WASM dependencies - only needed for standalone/wasm-sync
 wasm-bindgen = { version = "=0.2.114", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
-web-sys = { version = "0.3", features = ["Window", "Storage"], optional = true }
+web-sys = { version = "0.3", features = ["Window", "Storage", "Blob", "File"], optional = true }
 
 # File dialogs (native only)
 [[example]]
@@ -153,3 +176,11 @@ required-features = ["post-process"]
 [[example]]
 name = "light_stress"
 required-features = ["post-process"]
+
+[[example]]
+name = "greenhouse_demo"
+required-features = ["post-process", "bevy-ui"]
+
+[[example]]
+name = "tm25_viewer"
+required-features = ["tm25"]

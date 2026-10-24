@@ -66,7 +66,7 @@ pub struct PhotometricSummary {
     pub cie_flux_codes: CieFluxCodes, // N1-N5 values
 
     // Beam characteristics
-    pub beam_angle: f64,            // 50% intensity angle (degrees)
+    pub beam_angle: Option<f64>,    // 50 % of peak, section through the peak (degrees)
     pub field_angle: f64,           // 10% intensity angle (degrees)
 
     // Intensity statistics
@@ -243,14 +243,15 @@ let ldt = Eulumdat::from_file("luminaire.ldt")?;
 let cie = PhotometricCalculations::cie_flux_codes(&ldt);
 println!("CIE: {} {} {} {} {}", cie.n1, cie.n2, cie.n3, cie.n4, cie.n5);
 
-// Beam angles
+// Beam angles: full width at 50 % / 10 % of the peak (CIE S 017 / IES) in
+// the section through the peak; `None` when there is no lobe (up-lights)
 let beam = PhotometricCalculations::beam_angle(&ldt);
 let field = PhotometricCalculations::field_angle(&ldt);
-println!("Beam: {:.1}deg, Field: {:.1}deg", beam, field);
+println!("Beam: {}, Field: {}", format_angle(beam), format_angle(field));
 
-// Per-plane beam angles
-let beam_c0 = PhotometricCalculations::beam_angle_for_plane(&ldt, 0.0);
-let beam_c90 = PhotometricCalculations::beam_angle_for_plane(&ldt, 90.0);
+// Per-section beam angles (GLDF half-peak divergence C0–C180 / C90–C270)
+let beam_c0 = PhotometricCalculations::beam_angle_section(&ldt, 0.0);
+let beam_c90 = PhotometricCalculations::beam_angle_section(&ldt, 90.0);
 
 // Spacing criterion
 let (s_h_c0, s_h_c90) = PhotometricCalculations::spacing_criteria(&ldt);

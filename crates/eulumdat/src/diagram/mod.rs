@@ -25,37 +25,58 @@
 //! }
 //! ```
 
+#[allow(unused_imports)]
+use crate::prelude::*;
+#[cfg(feature = "std")]
 mod butterfly;
+#[cfg(feature = "std")]
 mod cartesian;
 pub(crate) mod color;
+#[cfg(feature = "std")]
 mod cone;
 pub(crate) mod contour;
+#[cfg(feature = "std")]
 mod floodlight_cartesian;
 mod heatmap;
+#[cfg(feature = "std")]
 mod isocandela;
 mod isolux;
 mod labels;
 mod polar;
+#[cfg(feature = "std")]
 mod principal_planes;
 mod projection;
+#[cfg(feature = "std")]
 mod svg;
+#[cfg(feature = "std")]
 mod watchface;
 
+#[cfg(feature = "std")]
 pub use butterfly::{ButterflyDiagram, ButterflyWing, CPlaneData};
+#[cfg(feature = "std")]
 pub use cartesian::{CartesianCurve, CartesianDiagram, CartesianPoint};
 pub use color::{heatmap_color, hsl_to_rgb, Color, ColorPalette};
+#[cfg(feature = "std")]
 pub use cone::{ConeDiagram, ConeIlluminanceRow, ConeIlluminanceTable};
+#[cfg(feature = "std")]
 pub use floodlight_cartesian::{
     FloodlightCartesianDiagram, FloodlightCurve, FloodlightPoint, YScale,
 };
 pub use heatmap::{HeatmapCell, HeatmapDiagram};
+#[cfg(feature = "std")]
 pub use isocandela::{IsocandelaCell, IsocandelaContour, IsocandelaDiagram};
 pub use isolux::{IsoluxCell, IsoluxContour, IsoluxDiagram, IsoluxParams};
 pub use labels::DiagramLabels;
 pub use polar::{PolarCurve, PolarDiagram, PolarPoint};
+#[cfg(feature = "std")]
 pub use principal_planes::principal_planes_svg;
 pub use projection::IsometricProjection;
-pub use svg::{ConeDiagramLabels, DetailLevel, IsometricConfig, SvgLabels, SvgTheme};
+#[cfg(feature = "std")]
+pub use svg::{
+    ConeDiagramLabels, DetailLevel, IsometricConfig, SvgLabels, SvgTheme, ThemeLoadError,
+    ThemeOverrides,
+};
+#[cfg(feature = "std")]
 pub use watchface::WatchFaceStyle;
 
 /// Common 2D point used across diagram types

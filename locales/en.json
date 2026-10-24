@@ -189,8 +189,8 @@
     },
     "photometric": {
       "total_flux": "Total Luminous Flux",
-      "total_lamp_flux": "Total Lamp Flux",
-      "total_wattage": "Total Wattage",
+      "total_lamp_flux": "Lamp Flux (Lamp Set 1)",
+      "total_wattage": "Wattage (Lamp Set 1)",
       "lamp_efficacy": "Lamp Efficacy",
       "luminaire_efficacy": "Luminaire Efficacy",
       "efficacy": "Luminous Efficacy",
@@ -200,9 +200,9 @@
       "cct": "Color Temperature",
       "cri": "Color Rendering Index",
       "beam_angle": "Beam Angle",
-      "beam_angle_50": "Beam Angle (50%)",
+      "beam_angle_50": "Beam Angle (50% of peak)",
       "field_angle": "Field Angle",
-      "field_angle_10": "Field Angle (10%)",
+      "field_angle_10": "Field Angle (10% of peak)",
       "cie_class": "CIE Classification",
       "symmetry": "Symmetry",
       "max_intensity": "Max Intensity",
@@ -305,18 +305,18 @@
   },
   "comparison": {
     "metrics": {
-      "total_lamp_flux": "Total Lamp Flux",
+      "total_lamp_flux": "Lamp Flux (Set 1)",
       "calculated_flux": "Calculated Flux",
       "lor": "Light Output Ratio",
       "dlor": "DLOR",
       "ulor": "ULOR",
       "lamp_efficacy": "Lamp Efficacy",
       "luminaire_efficacy": "Luminaire Efficacy",
-      "total_wattage": "Total Wattage",
-      "beam_angle": "Beam Angle (IES)",
-      "field_angle": "Field Angle (IES)",
-      "beam_angle_cie": "Beam Angle (CIE)",
-      "field_angle_cie": "Field Angle (CIE)",
+      "total_wattage": "Wattage (Set 1)",
+      "beam_angle": "Beam Angle (50% of peak)",
+      "field_angle": "Field Angle (10% of peak)",
+      "beam_angle_cie": "Beam Angle (50% of center)",
+      "field_angle_cie": "Field Angle (10% of center)",
       "upward_beam_angle": "Upward Beam Angle",
       "upward_field_angle": "Upward Field Angle",
       "max_intensity": "Max Intensity",
@@ -661,7 +661,8 @@
       "intensity": "Intensity",
       "diagram": "Diagram",
       "compare": "Compare",
-      "bim": "BIM"
+      "bim": "BIM",
+      "theme": "Theme"
     },
     "validation": {
       "title": "Validation"
@@ -725,7 +726,10 @@
       "lcs": "LCS",
       "isolux": "Isolux",
       "isocandela": "Isocandela",
-      "floodlight": "Floodlight"
+      "floodlight": "Floodlight",
+      "cPlane": "C-Plane",
+      "cPlaneAll": "All C-Planes",
+      "cPlaneSelect": "Select C-Plane"
     },
     "template": {
       "downlight": "Downlight",

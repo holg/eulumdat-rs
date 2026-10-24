@@ -1,0 +1,17 @@
+[package]
+name = "eulumdat-digitize"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Digitize manufacturer spectrum chart images (axes + filled curve) into relative spectral power distributions"
+keywords = ["lighting", "spectrum", "digitize", "chart", "photometry"]
+categories = ["science", "multimedia::images"]
+
+# Operates on raw RGB/RGBA pixel buffers so it stays dependency-free: the CLI
+# decodes with `image`, the web editor lets the browser decode via <canvas>.
+[dependencies]
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }

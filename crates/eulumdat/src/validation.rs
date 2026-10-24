@@ -3,6 +3,8 @@
 //! Implements comprehensive validation based on the 41 constraints from the Eulumdat specification.
 
 use crate::eulumdat::{Eulumdat, Symmetry};
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 /// A validation warning (non-fatal issue).
 #[derive(Debug, Clone, PartialEq)]
@@ -13,8 +15,8 @@ pub struct ValidationWarning {
     pub message: String,
 }
 
-impl std::fmt::Display for ValidationWarning {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for ValidationWarning {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "[{}] {}", self.code, self.message)
     }
 }
@@ -28,19 +30,20 @@ pub struct ValidationError {
     pub message: String,
 }
 
-impl std::fmt::Display for ValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Display for ValidationError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "[{}] {}", self.code, self.message)
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for ValidationError {}
 
 // ---------------------------------------------------------------------------
 // English fallback message builder
 // ---------------------------------------------------------------------------
 
-fn english_message(code: &str, args: &[&dyn std::fmt::Display]) -> String {
+fn english_message(code: &str, args: &[&dyn core::fmt::Display]) -> String {
     match code {
         "W001" => "Type indicator value is out of range (1-3)".to_string(),
         "W002" => "Symmetry indicator value is out of range (0-4)".to_string(),
@@ -237,7 +240,7 @@ fn check_symmetry_correctness(ldt: &Eulumdat) -> Option<(f64, String)> {
 
 fn validate_inner(
     ldt: &Eulumdat,
-    msg: &dyn Fn(&str, &[&dyn std::fmt::Display]) -> String,
+    msg: &dyn Fn(&str, &[&dyn core::fmt::Display]) -> String,
 ) -> Vec<ValidationWarning> {
     let mut warnings = Vec::new();
 
@@ -634,7 +637,7 @@ fn validate_inner(
 
 fn validate_strict_inner(
     ldt: &Eulumdat,
-    msg: &dyn Fn(&str, &[&dyn std::fmt::Display]) -> String,
+    msg: &dyn Fn(&str, &[&dyn core::fmt::Display]) -> String,
 ) -> Result<(), Vec<ValidationError>> {
     let mut errors = Vec::new();
 

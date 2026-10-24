@@ -3,7 +3,8 @@
 use eulumdat::{
     bug_rating::BugDiagram,
     diagram::{ButterflyDiagram, CartesianDiagram, HeatmapDiagram, PolarDiagram, SvgTheme},
-    Eulumdat, PhotometricCalculations, PhotometricComparison, PhotometricSummary, Significance,
+    format_angle, Eulumdat, PhotometricCalculations, PhotometricComparison, PhotometricSummary,
+    Significance,
 };
 
 use crate::generator::ReportSection;
@@ -368,8 +369,8 @@ fn generate_summary_section(ldt: &Eulumdat) -> String {
     #metric("Luminaire Efficacy", "{:.1}", unit: "lm/W")
     #colbreak()
     #metric("Max Intensity", "{:.0}", unit: "cd/klm")
-    #metric("Beam Angle (50%)", "{:.1}", unit: "°")
-    #metric("Field Angle (10%)", "{:.1}", unit: "°")
+    #metric("Beam Angle (50% of peak, {})", "{}")
+    #metric("Field Angle (10% of peak)", "{}")
   ]
 ]
 
@@ -395,8 +396,9 @@ fn generate_summary_section(ldt: &Eulumdat) -> String {
         summary.lor,
         summary.luminaire_efficacy,
         summary.max_intensity,
-        summary.beam_angle,
-        summary.field_angle,
+        summary.peak_section.label(),
+        format_angle(summary.beam_angle),
+        format_angle(summary.field_angle),
         summary.cie_flux_codes.n1,
         summary.cie_flux_codes.n2,
         summary.cie_flux_codes.n3,
@@ -555,22 +557,24 @@ fn generate_photometric_data_section(ldt: &Eulumdat) -> String {
   [Tilt Angle], [{:.1} °],
 )
 
-== Beam Characteristics (IES Definition)
+== Beam Characteristics (50 % / 10 % of peak, CIE S 017 / IES)
 
 #data-table(
   [*Property*], [*Value*],
-  [Maximum Intensity], [{:.0} cd/klm],
-  [Beam Angle (50%)], [{:.1} °],
-  [Field Angle (10%)], [{:.1} °],
+  [Maximum Intensity], [{:.0} cd/klm at C{:.0} γ{:.0}°],
+  [Beam Angle (section through peak, {})], [{}],
+  [Field Angle (section through peak)], [{}],
+  [Beam / Field C0–C180], [{} / {}],
+  [Beam / Field C90–C270], [{} / {}],
 )
 
 == Efficacy
 
 #data-table(
   [*Property*], [*Value*],
-  [Total Lamp Flux], [{:.0} lm],
+  [Lamp Flux (lamp set 1)], [{:.0} lm],
   [Luminaire Luminous Flux], [{:.0} lm],
-  [Total Input Power], [{:.1} W],
+  [Input Power (lamp set 1)], [{:.1} W],
   [Lamp Efficacy], [{:.1} lm/W],
   [Luminaire Efficacy], [{:.1} lm/W],
 )
@@ -584,8 +588,15 @@ fn generate_photometric_data_section(ldt: &Eulumdat) -> String {
         ldt.conversion_factor,
         ldt.tilt_angle,
         summary.max_intensity,
-        summary.beam_angle,
-        summary.field_angle,
+        summary.peak.c,
+        summary.peak.gamma,
+        summary.peak_section.label(),
+        format_angle(summary.beam_angle),
+        format_angle(summary.field_angle),
+        format_angle(summary.sections.c0_c180.beam),
+        format_angle(summary.sections.c0_c180.field),
+        format_angle(summary.sections.c90_c270.beam),
+        format_angle(summary.sections.c90_c270.field),
         summary.total_lamp_flux,
         summary.calculated_flux,
         summary.total_wattage,

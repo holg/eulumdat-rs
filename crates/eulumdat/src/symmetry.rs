@@ -4,6 +4,8 @@
 //! Symmetry can significantly reduce the amount of data needed to represent a luminaire.
 
 use crate::eulumdat::{Eulumdat, Symmetry};
+#[allow(unused_imports)]
+use crate::prelude::*;
 
 /// Handler for symmetry-based operations on photometric data.
 pub struct SymmetryHandler;
@@ -334,8 +336,8 @@ impl SymmetryHandler {
                 let normalized = intensity / max_intensity;
                 let g_rad = g_angle.to_radians();
                 // Standard polar: angle from vertical, distance = normalized intensity
-                let x = normalized * (-(g_rad) + std::f64::consts::FRAC_PI_2).cos();
-                let y = normalized * (-(g_rad) + std::f64::consts::FRAC_PI_2).sin();
+                let x = normalized * (-(g_rad) + core::f64::consts::FRAC_PI_2).cos();
+                let y = normalized * (-(g_rad) + core::f64::consts::FRAC_PI_2).sin();
                 (x, y)
             })
             .collect()

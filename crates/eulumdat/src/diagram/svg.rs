@@ -316,6 +316,10 @@ pub struct SvgTheme {
     pub curve_c90_c270_fill: String,
     /// Font family
     pub font_family: String,
+    /// Curve stroke width in px, applied inline so it renders everywhere
+    /// (CoreGraphics/`NSImage` ignores CSS `<style>`; inline attributes work).
+    #[cfg_attr(feature = "serde", serde(default = "default_curve_width"))]
+    pub curve_width: f64,
     /// Localized labels for diagram text
     pub labels: SvgLabels,
 }
@@ -324,6 +328,11 @@ impl Default for SvgTheme {
     fn default() -> Self {
         Self::light()
     }
+}
+
+/// Default curve stroke width in px (matches the historic hardcoded value).
+pub(crate) fn default_curve_width() -> f64 {
+    2.5
 }
 
 impl SvgTheme {
@@ -342,6 +351,7 @@ impl SvgTheme {
             curve_c90_c270: "#ef4444".to_string(),
             curve_c90_c270_fill: "rgba(239,68,68,0.15)".to_string(),
             font_family: "system-ui, -apple-system, sans-serif".to_string(),
+            curve_width: default_curve_width(),
             labels: SvgLabels::default(),
         }
     }
@@ -361,6 +371,7 @@ impl SvgTheme {
             curve_c90_c270: "#f87171".to_string(),
             curve_c90_c270_fill: "rgba(248,113,113,0.2)".to_string(),
             font_family: "system-ui, -apple-system, sans-serif".to_string(),
+            curve_width: default_curve_width(),
             labels: SvgLabels::default(),
         }
     }
@@ -380,6 +391,7 @@ impl SvgTheme {
             curve_c90_c270: "var(--diagram-c0, #ef4444)".to_string(),
             curve_c90_c270_fill: "var(--diagram-c0-fill, rgba(239,68,68,0.15))".to_string(),
             font_family: "system-ui, -apple-system, sans-serif".to_string(),
+            curve_width: default_curve_width(),
             labels: SvgLabels::default(),
         }
     }
@@ -422,7 +434,144 @@ impl SvgTheme {
         ];
         COLORS[index % COLORS.len()]
     }
+
+    /// Apply a set of partial overrides onto this theme, returning a new theme.
+    ///
+    /// Only the fields present (`Some`) in `overrides` replace the corresponding
+    /// field; everything else is inherited from `self`. This is how an external
+    /// theme file customises just a few colours/fonts on top of a base preset.
+    /// The i18n `labels` are never touched by an override (they come from the
+    /// locale, not the colour theme).
+    pub fn with_overrides(mut self, overrides: &ThemeOverrides) -> Self {
+        macro_rules! set {
+            ($field:ident) => {
+                if let Some(v) = &overrides.$field {
+                    self.$field = v.clone();
+                }
+            };
+        }
+        set!(background);
+        set!(surface);
+        set!(grid);
+        set!(axis);
+        set!(text);
+        set!(text_secondary);
+        set!(legend_bg);
+        set!(curve_c0_c180);
+        set!(curve_c0_c180_fill);
+        set!(curve_c90_c270);
+        set!(curve_c90_c270_fill);
+        set!(font_family);
+        if let Some(w) = overrides.curve_width {
+            self.curve_width = w;
+        }
+        self
+    }
+
+    /// Build a theme from a base preset name (`"light"`, `"dark"`, or
+    /// `"css"`/`"css_variables"`) plus partial overrides.
+    pub fn from_base_and_overrides(base: &str, overrides: &ThemeOverrides) -> Self {
+        let base = match base {
+            "dark" => Self::dark(),
+            "css" | "css_variables" => Self::css_variables(),
+            _ => Self::light(),
+        };
+        base.with_overrides(overrides)
+    }
+
+    /// Parse a theme file (TOML) into `(base, overrides)` and build the theme.
+    ///
+    /// The file may set an optional `base = "light" | "dark" | "css"` key to
+    /// choose the preset it customises (default `"light"`), and any subset of
+    /// the colour/font fields. A `base` argument, if `Some`, wins over the
+    /// file's `base` key (e.g. a CLI `--dark` flag).
+    #[cfg(feature = "toml")]
+    pub fn from_toml_str(s: &str, base_override: Option<&str>) -> Result<Self, ThemeLoadError> {
+        let file: ThemeFile = toml::from_str(s).map_err(|e| ThemeLoadError(e.to_string()))?;
+        let base = base_override.unwrap_or(file.base.as_deref().unwrap_or("light"));
+        Ok(Self::from_base_and_overrides(base, &file.overrides))
+    }
+
+    /// The `base` preset named by a TOML theme file, if any.
+    #[cfg(feature = "toml")]
+    pub fn toml_base(s: &str) -> Result<Option<String>, ThemeLoadError> {
+        let file: ThemeFile = toml::from_str(s).map_err(|e| ThemeLoadError(e.to_string()))?;
+        Ok(file.base)
+    }
+
+    /// Parse a theme file (JSON), same semantics as [`Self::from_toml_str`].
+    #[cfg(feature = "json")]
+    pub fn from_json_str(s: &str, base_override: Option<&str>) -> Result<Self, ThemeLoadError> {
+        let file: ThemeFile = serde_json::from_str(s).map_err(|e| ThemeLoadError(e.to_string()))?;
+        let base = base_override.unwrap_or(file.base.as_deref().unwrap_or("light"));
+        Ok(Self::from_base_and_overrides(base, &file.overrides))
+    }
+
+    /// Load a theme from a file path, dispatching on extension (`.json` → JSON,
+    /// otherwise TOML). Needs a file format, not just the serde derives.
+    #[cfg(feature = "toml")]
+    pub fn from_file(
+        path: impl AsRef<std::path::Path>,
+        base_override: Option<&str>,
+    ) -> Result<Self, ThemeLoadError> {
+        let path = path.as_ref();
+        let s = std::fs::read_to_string(path).map_err(|e| ThemeLoadError(e.to_string()))?;
+        let is_json = path.extension().and_then(|e| e.to_str()) == Some("json");
+        #[cfg(feature = "json")]
+        if is_json {
+            return Self::from_json_str(&s, base_override);
+        }
+        #[cfg(not(feature = "json"))]
+        let _ = is_json;
+        Self::from_toml_str(&s, base_override)
+    }
 }
+
+/// Partial colour/font overrides for [`SvgTheme`]. Every field is optional so a
+/// theme file need only specify what it changes.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(default))]
+pub struct ThemeOverrides {
+    pub background: Option<String>,
+    pub surface: Option<String>,
+    pub grid: Option<String>,
+    pub axis: Option<String>,
+    pub text: Option<String>,
+    pub text_secondary: Option<String>,
+    pub legend_bg: Option<String>,
+    /// Alias-friendly names: `curve_c0` maps to the C0–C180 curve, `curve_c90`
+    /// to C90–C270 (kept as the struct's canonical field names below).
+    pub curve_c0_c180: Option<String>,
+    pub curve_c0_c180_fill: Option<String>,
+    pub curve_c90_c270: Option<String>,
+    pub curve_c90_c270_fill: Option<String>,
+    pub font_family: Option<String>,
+    /// Curve stroke width in px (applied inline; renders everywhere).
+    pub curve_width: Option<f64>,
+}
+
+/// A theme file: an optional `base` preset plus flattened field overrides.
+/// Only the file loaders build one, so it follows their features.
+#[cfg(any(feature = "toml", feature = "json"))]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+struct ThemeFile {
+    base: Option<String>,
+    #[serde(flatten)]
+    overrides: ThemeOverrides,
+}
+
+/// Error loading or parsing a theme file.
+#[derive(Debug, Clone)]
+pub struct ThemeLoadError(pub String);
+
+impl std::fmt::Display for ThemeLoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "theme load error: {}", self.0)
+    }
+}
+
+impl std::error::Error for ThemeLoadError {}
 
 /// Rendering configuration for the isometric isolux SVG view.
 ///
@@ -559,12 +708,12 @@ impl PolarDiagram {
 
         // SVG header
         svg.push_str(&format!(
-            r#"<svg viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">"#
+            r#"<svg viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg" class="diagram-polar">"#
         ));
 
         // Background
         svg.push_str(&format!(
-            r#"<rect x="0" y="0" width="{size}" height="{size}" fill="{}"/>"#,
+            r#"<rect class="bg" x="0" y="0" width="{size}" height="{size}" fill="{}"/>"#,
             theme.background
         ));
 
@@ -666,8 +815,11 @@ impl PolarDiagram {
         let path_c0_c180 = self.c0_c180_curve.to_svg_path(center, center, scale);
         if !path_c0_c180.is_empty() {
             svg.push_str(&format!(
-                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5"/>"#,
-                path_c0_c180, theme.curve_c0_c180_fill, theme.curve_c0_c180
+                r#"<path class="curve-c0" d="{}" fill="{}" stroke="{}" stroke-width="{width}"/>"#,
+                path_c0_c180,
+                theme.curve_c0_c180_fill,
+                theme.curve_c0_c180,
+                width = theme.curve_width
             ));
         }
 
@@ -676,10 +828,11 @@ impl PolarDiagram {
             let path_c90_c270 = self.c90_c270_curve.to_svg_path(center, center, scale);
             if !path_c90_c270.is_empty() {
                 svg.push_str(&format!(
-                    r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5" stroke-dasharray="6,4"/>"#,
+                    r#"<path class="curve-c90" d="{}" fill="{}" stroke="{}" stroke-width="{width}" stroke-dasharray="6,4"/>"#,
                     path_c90_c270,
                     theme.curve_c90_c270_fill,
-                    theme.curve_c90_c270
+                    theme.curve_c90_c270,
+                    width = theme.curve_width
                 ));
             }
         }
@@ -913,8 +1066,11 @@ impl PolarDiagram {
         let path_c0_c180 = self.c0_c180_curve.to_svg_path(center, center, scale);
         if !path_c0_c180.is_empty() {
             svg.push_str(&format!(
-                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5"/>"#,
-                path_c0_c180, theme.curve_c0_c180_fill, theme.curve_c0_c180
+                r#"<path class="curve-c0" d="{}" fill="{}" stroke="{}" stroke-width="{width}"/>"#,
+                path_c0_c180,
+                theme.curve_c0_c180_fill,
+                theme.curve_c0_c180,
+                width = theme.curve_width
             ));
         }
 
@@ -923,10 +1079,11 @@ impl PolarDiagram {
             let path_c90_c270 = self.c90_c270_curve.to_svg_path(center, center, scale);
             if !path_c90_c270.is_empty() {
                 svg.push_str(&format!(
-                    r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5" stroke-dasharray="6,4"/>"#,
+                    r#"<path class="curve-c90" d="{}" fill="{}" stroke="{}" stroke-width="{width}" stroke-dasharray="6,4"/>"#,
                     path_c90_c270,
                     theme.curve_c90_c270_fill,
-                    theme.curve_c90_c270
+                    theme.curve_c90_c270,
+                    width = theme.curve_width
                 ));
             }
         }
@@ -1012,12 +1169,12 @@ impl PolarDiagram {
 
         // SVG header
         svg.push_str(&format!(
-            r#"<svg viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">"#
+            r#"<svg viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg" class="diagram-polar">"#
         ));
 
         // Background
         svg.push_str(&format!(
-            r#"<rect x="0" y="0" width="{size}" height="{size}" fill="{}"/>"#,
+            r#"<rect class="bg" x="0" y="0" width="{size}" height="{size}" fill="{}"/>"#,
             theme.background
         ));
 
@@ -1120,18 +1277,19 @@ impl PolarDiagram {
         let orange = "#f97316"; // Field angle
         let blue = "#3b82f6"; // CIE beam angle (for batwing)
 
-        // === BEAM ANGLE MARKER (IES - 50% of max intensity) ===
-        // Note: beam_angle is now the full angle per CIE S 017:2020
-        // We need the half angle for drawing (angle from nadir to edge)
-        let half_beam = summary.beam_angle / 2.0;
-        if half_beam > 0.0 && half_beam < 90.0 {
-            let beam_rad = half_beam.to_radians();
-            // Draw arc from center to beam angle on both sides
+        // Edge direction (signed γ, C0 side = right) → point on the diagram
+        let edge_point = |gamma: f64, r: f64| {
+            let a = gamma.to_radians();
+            (center + r * a.sin(), center + r * a.cos())
+        };
+
+        // === BEAM ANGLE MARKER (50 % of the C0–C180 section peak) ===
+        // Drawn at the actual 50 % crossings of the C0–C180 section, which
+        // need not be symmetric about nadir.
+        if let Some((left, right)) = summary.sections.c0_c180.beam_edges {
             let arc_radius = radius * 0.85;
-            let x1 = center - arc_radius * beam_rad.sin();
-            let y1 = center + arc_radius * beam_rad.cos();
-            let x2 = center + arc_radius * beam_rad.sin();
-            let y2 = center + arc_radius * beam_rad.cos();
+            let (x1, y1) = edge_point(left, arc_radius);
+            let (x2, y2) = edge_point(right, arc_radius);
 
             // Dashed arc for beam angle
             svg.push_str(&format!(
@@ -1154,16 +1312,11 @@ impl PolarDiagram {
             ));
         }
 
-        // === FIELD ANGLE MARKER (10% intensity) ===
-        // Note: field_angle is now the full angle per CIE S 017:2020
-        let half_field = summary.field_angle / 2.0;
-        if half_field > 0.0 && half_field < 90.0 {
-            let field_rad = half_field.to_radians();
+        // === FIELD ANGLE MARKER (10 % of the C0–C180 section peak) ===
+        if let Some((left, right)) = summary.sections.c0_c180.field_edges {
             let arc_radius = radius * 0.9;
-            let x1 = center - arc_radius * field_rad.sin();
-            let y1 = center + arc_radius * field_rad.cos();
-            let x2 = center + arc_radius * field_rad.sin();
-            let y2 = center + arc_radius * field_rad.cos();
+            let (x1, y1) = edge_point(left, arc_radius);
+            let (x2, y2) = edge_point(right, arc_radius);
 
             // Dotted arc for field angle
             svg.push_str(&format!(
@@ -1186,9 +1339,9 @@ impl PolarDiagram {
             ));
         }
 
-        // === CIE BEAM ANGLE MARKER (50% of center intensity) - only for batwing ===
-        // Note: beam_angle_cie is now the full angle per CIE S 017:2020
-        let half_cie_beam = summary.beam_angle_cie / 2.0;
+        // === CENTRE-BEAM MARKER (50 % of the nadir intensity) - only for batwing ===
+        // Drawn symmetric about nadir at half the C0–C180 centre-beam width.
+        let half_cie_beam = summary.beam_angle_cie.map_or(0.0, |a| a / 2.0);
         if summary.is_batwing && half_cie_beam > 0.0 && half_cie_beam < 90.0 {
             let cie_rad = half_cie_beam.to_radians();
             let arc_radius = radius * 0.80; // Slightly inside IES marker
@@ -1220,7 +1373,7 @@ impl PolarDiagram {
 
         // === UPWARD BEAM ANGLE MARKER (for uplights/direct-indirect) ===
         let purple = "#a855f7"; // Upward beam angle color
-        let half_upward_beam = summary.upward_beam_angle / 2.0;
+        let half_upward_beam = summary.upward_beam_angle.map_or(0.0, |a| a / 2.0);
         if half_upward_beam > 0.0 && half_upward_beam < 90.0 {
             // Draw upward beam angle lines in upper hemisphere
             // For upward light, we draw from center going UP (negative y direction)
@@ -1255,7 +1408,7 @@ impl PolarDiagram {
 
         // === UPWARD FIELD ANGLE MARKER ===
         let pink = "#ec4899"; // Upward field angle color
-        let half_upward_field = summary.upward_field_angle / 2.0;
+        let half_upward_field = summary.upward_field_angle.map_or(0.0, |a| a / 2.0);
         if half_upward_field > 0.0 && half_upward_field < 90.0 {
             let upward_field_rad = half_upward_field.to_radians();
             let arc_radius = radius * 0.9;
@@ -1289,8 +1442,11 @@ impl PolarDiagram {
         let path_c0_c180 = self.c0_c180_curve.to_svg_path(center, center, scale);
         if !path_c0_c180.is_empty() {
             svg.push_str(&format!(
-                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5"/>"#,
-                path_c0_c180, theme.curve_c0_c180_fill, theme.curve_c0_c180
+                r#"<path class="curve-c0" d="{}" fill="{}" stroke="{}" stroke-width="{width}"/>"#,
+                path_c0_c180,
+                theme.curve_c0_c180_fill,
+                theme.curve_c0_c180,
+                width = theme.curve_width
             ));
         }
 
@@ -1299,10 +1455,11 @@ impl PolarDiagram {
             let path_c90_c270 = self.c90_c270_curve.to_svg_path(center, center, scale);
             if !path_c90_c270.is_empty() {
                 svg.push_str(&format!(
-                    r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5" stroke-dasharray="6,4"/>"#,
+                    r#"<path class="curve-c90" d="{}" fill="{}" stroke="{}" stroke-width="{width}" stroke-dasharray="6,4"/>"#,
                     path_c90_c270,
                     theme.curve_c90_c270_fill,
-                    theme.curve_c90_c270
+                    theme.curve_c90_c270,
+                    width = theme.curve_width
                 ));
             }
         }
@@ -1332,9 +1489,16 @@ impl PolarDiagram {
         let box_y = 10.0;
         let box_w = 135.0;
         // Calculate box height based on what's shown
-        let has_upward = summary.upward_beam_angle > 0.0;
-        let extra_lines =
-            (if summary.is_batwing { 1 } else { 0 }) + (if has_upward { 2 } else { 0 });
+        let has_upward = summary.upward_beam_angle.is_some();
+        // C90–C270 lines only when that section is drawn and differs
+        let c90 = summary.sections.c90_c270;
+        let c0 = summary.sections.c0_c180;
+        let show_c90_lines = self.show_c90_c270() && (c90.beam != c0.beam || c90.field != c0.field);
+        let extra_lines = (if summary.is_batwing { 1 } else { 0 })
+            + (if has_upward { 2 } else { 0 })
+            + (if show_c90_lines { 2 } else { 0 });
+        let box_w = box_w + 20.0;
+        let box_x = box_x - 20.0;
         let box_h = 95.0 + (extra_lines as f64 * 14.0);
 
         svg.push_str(&format!(
@@ -1354,23 +1518,32 @@ impl PolarDiagram {
         ));
         text_y += line_height;
 
-        // Show IES beam angle (always) - label as "Down" if there's also upward
+        // Peak-referenced beam angle (50 % of the section peak) per section;
+        // label as "↓" if there's also upward light
         let beam_label = if has_upward {
             format!("{} ↓", theme.labels.beam)
         } else {
             theme.labels.beam.clone()
         };
+        let deg = |v: Option<f64>| v.map_or_else(|| "—".to_string(), |a| format!("{a:.0}°"));
         svg.push_str(&format!(
-            r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} {:.0}°</text>"#,
-            text_x, text_y, theme.text, green, beam_label, summary.beam_angle
+            r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} C0–C180 {}</text>"#,
+            text_x, text_y, theme.text, green, beam_label, deg(c0.beam)
         ));
         text_y += line_height;
+        if show_c90_lines {
+            svg.push_str(&format!(
+                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} C90–C270 {}</text>"#,
+                text_x, text_y, theme.text, green, beam_label, deg(c90.beam)
+            ));
+            text_y += line_height;
+        }
 
-        // Show CIE beam angle if batwing (differs from IES)
+        // Centre-beam angle (50 % of the nadir intensity) if batwing
         if summary.is_batwing {
             svg.push_str(&format!(
-                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">▲</tspan> {} {:.0}° (CIE)</text>"#,
-                text_x, text_y, theme.text, blue, theme.labels.beam, summary.beam_angle_cie
+                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">▲</tspan> {} {} (50% I₀)</text>"#,
+                text_x, text_y, theme.text, blue, theme.labels.beam, deg(summary.beam_angle_cie)
             ));
             text_y += line_height;
         }
@@ -1378,23 +1551,30 @@ impl PolarDiagram {
         // Show upward beam/field angles if present
         if has_upward {
             svg.push_str(&format!(
-                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} ↑ {:.0}°</text>"#,
-                text_x, text_y, theme.text, purple, theme.labels.beam, summary.upward_beam_angle
+                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">●</tspan> {} ↑ {}</text>"#,
+                text_x, text_y, theme.text, purple, theme.labels.beam, deg(summary.upward_beam_angle)
             ));
             text_y += line_height;
 
             svg.push_str(&format!(
-                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">◆</tspan> {} ↑ {:.0}°</text>"#,
-                text_x, text_y, theme.text, pink, theme.labels.field, summary.upward_field_angle
+                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">◆</tspan> {} ↑ {}</text>"#,
+                text_x, text_y, theme.text, pink, theme.labels.field, deg(summary.upward_field_angle)
             ));
             text_y += line_height;
         }
 
         svg.push_str(&format!(
-            r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">◆</tspan> {} {:.0}°</text>"#,
-            text_x, text_y, theme.text, orange, theme.labels.field, summary.field_angle
+            r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">◆</tspan> {} C0–C180 {}</text>"#,
+            text_x, text_y, theme.text, orange, theme.labels.field, deg(c0.field)
         ));
         text_y += line_height;
+        if show_c90_lines {
+            svg.push_str(&format!(
+                r#"<text x="{}" y="{}" font-size="10" fill="{}"><tspan fill="{}">◆</tspan> {} C90–C270 {}</text>"#,
+                text_x, text_y, theme.text, orange, theme.labels.field, deg(c90.field)
+            ));
+            text_y += line_height;
+        }
 
         svg.push_str(&format!(
             r#"<text x="{text_x}" y="{text_y}" font-size="10" fill="{}" font-family="{}">{} {:.0} lm/W</text>"#,
@@ -1572,28 +1752,29 @@ impl PolarDiagram {
             theme.text
         ));
 
-        // Helper function to draw beam/field angle arc
+        // Helper to draw a beam/field angle between two edge directions
+        // (signed γ in the C0–C180 section, C0 side = right)
         let draw_angle_arc = |svg: &mut String,
-                              half_angle: f64,
+                              edges: Option<(f64, f64)>,
                               color: &str,
                               label: &str,
                               offset: f64,
                               dashed: bool| {
-            if half_angle <= 0.0 || half_angle > 90.0 {
+            let Some((left, right)) = edges else {
                 return;
-            }
+            };
 
             let arc_radius = radius * 0.85 - offset;
-            let angle_rad = half_angle.to_radians();
+            let (l_rad, r_rad) = (left.to_radians(), right.to_radians());
 
-            // Arc endpoints (symmetric around nadir)
-            let x1 = center + arc_radius * angle_rad.sin();
-            let y1 = center + arc_radius * angle_rad.cos();
-            let x2 = center - arc_radius * angle_rad.sin();
-            let y2 = center + arc_radius * angle_rad.cos();
+            // Arc endpoints: right edge → through nadir → left edge
+            let x1 = center + arc_radius * r_rad.sin();
+            let y1 = center + arc_radius * r_rad.cos();
+            let x2 = center + arc_radius * l_rad.sin();
+            let y2 = center + arc_radius * l_rad.cos();
 
-            // Draw arc
-            let large_arc = if half_angle > 45.0 { 1 } else { 0 };
+            // Draw arc (large-arc only when the span exceeds 180°)
+            let large_arc = if right - left > 180.0 { 1 } else { 0 };
             let dash = if dashed {
                 r#" stroke-dasharray="6,3""#
             } else {
@@ -1615,47 +1796,51 @@ impl PolarDiagram {
             let label_y = center + arc_radius + 18.0;
             svg.push_str(&format!(
                 r#"<text x="{center}" y="{label_y:.1}" text-anchor="middle" font-size="12" font-weight="bold" fill="{color}" font-family="{}">{label} {:.0}°</text>"#,
-                theme.font_family, half_angle * 2.0
+                theme.font_family, right - left
             ));
         };
 
-        // Draw beam angle (IES - green, solid)
-        // Note: analysis angles are now full angles per CIE S 017:2020, need half for drawing
+        // The drawn curve is the C0–C180 section, so the peak-referenced
+        // angles shown are those of that section (50 % / 10 % of its peak).
+        let section = &analysis.c0_c180;
+
+        // Draw beam angle (50 % of section peak - green, solid)
         draw_angle_arc(
             &mut svg,
-            analysis.beam_angle_ies / 2.0,
+            section.beam_edges,
             "#22c55e",
-            "Beam (IES):",
+            "Beam 50% (C0–C180):",
             0.0,
             false,
         );
 
-        // Draw field angle (IES - orange, dashed)
+        // Draw field angle (10 % of section peak - orange, dashed)
         draw_angle_arc(
             &mut svg,
-            analysis.field_angle_ies / 2.0,
+            section.field_edges,
             "#f97316",
-            "Field (IES):",
+            "Field 10% (C0–C180):",
             30.0,
             true,
         );
 
         // If showing both definitions and they differ significantly
         if show_both_definitions && analysis.is_batwing {
-            // Draw CIE beam angle (blue, solid)
+            // Centre-beam angle (50 % of the nadir intensity; blue, solid),
+            // drawn symmetric about nadir
             draw_angle_arc(
                 &mut svg,
-                analysis.beam_angle_cie / 2.0,
+                analysis.beam_angle_cie.map(|a| (-a / 2.0, a / 2.0)),
                 "#3b82f6",
-                "Beam (CIE):",
+                "Beam 50% I₀:",
                 60.0,
                 false,
             );
         }
 
-        // 50% and 10% threshold circles
-        let beam_threshold_r = analysis.beam_threshold_ies / scale;
-        let field_threshold_r = analysis.field_threshold_ies / scale;
+        // 50% and 10% threshold circles of the C0–C180 section peak
+        let beam_threshold_r = section.peak_intensity * 0.5 / scale;
+        let field_threshold_r = section.peak_intensity * 0.1 / scale;
         let beam_color = "#22c55e";
         let field_color = "#f97316";
 
@@ -1969,14 +2154,16 @@ impl CartesianDiagram {
             ));
         }
 
-        // === BEAM ANGLE MARKER (50%) ===
-        // Note: beam_angle is now the full angle per CIE S 017:2020
-        // For the Cartesian diagram, we plot gamma (half angle) on x-axis
+        // === BEAM ANGLE MARKER (50 % of the C0–C180 section peak) ===
+        // The x-axis is γ on one side, so the marker sits at the C0-side
+        // crossing; the label shows the full width of the section.
         let green = "#22c55e";
         let orange = "#f97316";
+        let c0 = summary.sections.c0_c180;
 
-        let half_beam = summary.beam_angle / 2.0;
-        if half_beam > 0.0 && half_beam < self.max_gamma {
+        let beam_edge = c0.beam_edges.map_or(0.0, |(_, right)| right);
+        if let (Some(beam), true) = (c0.beam, beam_edge > 0.0 && beam_edge < self.max_gamma) {
+            let half_beam = beam_edge;
             let beam_x = margin_left + plot_width * (half_beam / self.max_gamma);
             svg.push_str(&format!(
                 r#"<line x1="{beam_x:.1}" y1="{margin_top}" x2="{beam_x:.1}" y2="{:.1}" stroke="{}" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>"#,
@@ -1985,18 +2172,18 @@ impl CartesianDiagram {
             ));
             // Display full angle in label per CIE definition
             svg.push_str(&format!(
-                r#"<text x="{beam_x:.1}" y="{:.1}" text-anchor="middle" font-size="9" fill="{}" font-weight="bold">{} {:.0}°</text>"#,
+                r#"<text x="{beam_x:.1}" y="{:.1}" text-anchor="middle" font-size="9" fill="{}" font-weight="bold">{} C0–C180 {:.0}°</text>"#,
                 margin_top - 5.0,
                 green,
                 theme.labels.beam,
-                summary.beam_angle
+                beam
             ));
         }
 
-        // === FIELD ANGLE MARKER (10%) ===
-        // Note: field_angle is now the full angle per CIE S 017:2020
-        let half_field = summary.field_angle / 2.0;
-        if half_field > 0.0 && half_field < self.max_gamma {
+        // === FIELD ANGLE MARKER (10 % of the C0–C180 section peak) ===
+        let field_edge = c0.field_edges.map_or(0.0, |(_, right)| right);
+        if let (Some(field), true) = (c0.field, field_edge > 0.0 && field_edge < self.max_gamma) {
+            let half_field = field_edge;
             let field_x = margin_left + plot_width * (half_field / self.max_gamma);
             svg.push_str(&format!(
                 r#"<line x1="{field_x:.1}" y1="{margin_top}" x2="{field_x:.1}" y2="{:.1}" stroke="{}" stroke-width="2" stroke-dasharray="4,3" opacity="0.7"/>"#,
@@ -2005,11 +2192,11 @@ impl CartesianDiagram {
             ));
             // Display full angle in label per CIE definition
             svg.push_str(&format!(
-                r#"<text x="{field_x:.1}" y="{:.1}" text-anchor="middle" font-size="9" fill="{}" font-weight="bold">{} {:.0}°</text>"#,
+                r#"<text x="{field_x:.1}" y="{:.1}" text-anchor="middle" font-size="9" fill="{}" font-weight="bold">{} C0–C180 {:.0}°</text>"#,
                 margin_top - 5.0,
                 orange,
                 theme.labels.field,
-                summary.field_angle
+                field
             ));
         }
 
@@ -2895,7 +3082,74 @@ impl ConeDiagramLabels {
     }
 }
 
+/// Scaled drawing geometry of a cone diagram (offsets relative to the beam
+/// axis at floor level, edge directions in radians).
+struct ConeGeometry {
+    beam_x: Option<(f64, f64)>,
+    field_x: Option<(f64, f64)>,
+    beam_rad: Option<(f64, f64)>,
+    field_rad: Option<(f64, f64)>,
+}
+
+/// SVG arc from the left to the right edge direction (through nadir).
+fn cone_edge_arc(cx: f64, cy: f64, r: f64, (left, right): (f64, f64)) -> String {
+    format!(
+        "M {:.1} {:.1} A {r} {r} 0 0 0 {:.1} {:.1}",
+        cx + r * left.sin(),
+        cy + r * left.cos(),
+        cx + r * right.sin(),
+        cy + r * right.cos()
+    )
+}
+
+fn cone_angle_text(v: Option<f64>) -> String {
+    v.map_or_else(|| "—".to_string(), |a| format!("{a:.0}°"))
+}
+
+fn cone_length_text(v: Option<f64>, unit: &str) -> String {
+    v.map_or_else(|| "—".to_string(), |d| format!("{d:.2}{unit}"))
+}
+
 impl ConeDiagram {
+    /// Edge rays are drawn at most this far from nadir; wider edges never
+    /// reach the floor (their footprint is reported as "—").
+    const MAX_DRAW_DEG: f64 = 80.0;
+
+    fn geometry(&self, cone_height: f64, cone_width: f64) -> ConeGeometry {
+        let rad = |e: Option<(f64, f64)>| {
+            e.map(|(l, r)| {
+                (
+                    l.clamp(-Self::MAX_DRAW_DEG, Self::MAX_DRAW_DEG)
+                        .to_radians(),
+                    r.clamp(-Self::MAX_DRAW_DEG, Self::MAX_DRAW_DEG)
+                        .to_radians(),
+                )
+            })
+        };
+        let beam_rad = rad(self.beam_edges);
+        let field_rad = rad(self.field_edges);
+        let widest = field_rad.or(beam_rad).unwrap_or((0.0, 0.0));
+        let max_spread = (widest.0.tan().abs().max(widest.1.tan().abs()) * cone_height)
+            .max(cone_width / 2.0 * 0.9);
+        let scale = (cone_width / 2.0 * 0.85) / max_spread;
+        let x = |(l, r): (f64, f64)| (l.tan() * cone_height * scale, r.tan() * cone_height * scale);
+        ConeGeometry {
+            beam_x: beam_rad.map(x),
+            field_x: field_rad.map(x),
+            beam_rad,
+            field_rad,
+        }
+    }
+
+    /// Section label, e.g. "C0–C180".
+    fn section_label(&self) -> String {
+        format!(
+            "C{:.0}–C{:.0}",
+            self.section_c,
+            (self.section_c + 180.0).rem_euclid(360.0)
+        )
+    }
+
     /// Generate SVG string for the cone diagram
     ///
     /// Shows a side-view of the light cone with beam and field angles,
@@ -2918,8 +3172,8 @@ impl ConeDiagram {
         // Create a copy with converted distance values for display
         let mut converted = self.clone();
         converted.mounting_height = units.convert_meters(self.mounting_height);
-        converted.beam_diameter = units.convert_meters(self.beam_diameter);
-        converted.field_diameter = units.convert_meters(self.field_diameter);
+        converted.beam_diameter = self.beam_diameter.map(|d| units.convert_meters(d));
+        converted.field_diameter = self.field_diameter.map(|d| units.convert_meters(d));
         converted.to_svg_with_labels(width, height, theme, &labels)
     }
 
@@ -2945,17 +3199,11 @@ impl ConeDiagram {
         // Floor Y (bottom)
         let floor_y = margin_top + cone_height;
 
-        // Calculate cone spread at floor
-        let beam_half_angle = self.beam_angle.to_radians();
-        let field_half_angle = self.field_angle.to_radians();
-
-        // Scale factor to fit the cone within available width
-        let max_spread = (field_half_angle.tan() * cone_height).max(cone_width / 2.0 * 0.9);
-        let scale = (cone_width / 2.0 * 0.85) / max_spread;
-
-        // Calculate X positions at floor level
-        let beam_x_offset = beam_half_angle.tan() * cone_height * scale;
-        let field_x_offset = field_half_angle.tan() * cone_height * scale;
+        // Edge directions of the drawn section scaled to the floor
+        // (left = C+180 side, right = C side)
+        let geo = self.geometry(cone_height, cone_width);
+        let (beam_l, beam_r) = geo.beam_x.unwrap_or((0.0, 0.0));
+        let (field_l, field_r) = geo.field_x.unwrap_or((beam_l, beam_r));
 
         let mut svg = String::new();
 
@@ -2989,20 +3237,24 @@ impl ConeDiagram {
         ));
 
         // Field angle cone (outer, draw first)
-        svg.push_str(&format!(
-            r#"<path d="M {cx} {luminaire_y} L {:.1} {floor_y} L {:.1} {floor_y} Z" fill="url(#fieldGradient)" stroke="{}" stroke-width="1.5" stroke-dasharray="6,3"/>"#,
-            cx - field_x_offset,
-            cx + field_x_offset,
-            "#f97316"
-        ));
+        if geo.field_x.is_some() {
+            svg.push_str(&format!(
+                r#"<path d="M {cx} {luminaire_y} L {:.1} {floor_y} L {:.1} {floor_y} Z" fill="url(#fieldGradient)" stroke="{}" stroke-width="1.5" stroke-dasharray="6,3"/>"#,
+                cx + field_l,
+                cx + field_r,
+                "#f97316"
+            ));
+        }
 
         // Beam angle cone (inner, draw on top)
-        svg.push_str(&format!(
-            r#"<path d="M {cx} {luminaire_y} L {:.1} {floor_y} L {:.1} {floor_y} Z" fill="url(#beamGradient)" stroke="{}" stroke-width="2"/>"#,
-            cx - beam_x_offset,
-            cx + beam_x_offset,
-            "#fbbf24"
-        ));
+        if geo.beam_x.is_some() {
+            svg.push_str(&format!(
+                r#"<path d="M {cx} {luminaire_y} L {:.1} {floor_y} L {:.1} {floor_y} Z" fill="url(#beamGradient)" stroke="{}" stroke-width="2"/>"#,
+                cx + beam_l,
+                cx + beam_r,
+                "#fbbf24"
+            ));
+        }
 
         // Center line (dashed)
         svg.push_str(&format!(
@@ -3073,99 +3325,101 @@ impl ConeDiagram {
 
         // Beam diameter dimension (below floor)
         let beam_dim_y = floor_y + 20.0;
-        svg.push_str(&format!(
-            r#"<line x1="{:.1}" y1="{floor_y}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
-            cx - beam_x_offset, cx - beam_x_offset, beam_dim_y + 5.0, "#fbbf24"
-        ));
-        svg.push_str(&format!(
-            r#"<line x1="{:.1}" y1="{floor_y}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
-            cx + beam_x_offset, cx + beam_x_offset, beam_dim_y + 5.0, "#fbbf24"
-        ));
-        svg.push_str(&format!(
-            r#"<line x1="{:.1}" y1="{beam_dim_y}" x2="{:.1}" y2="{beam_dim_y}" stroke="{}" stroke-width="1.5"/>"#,
-            cx - beam_x_offset, cx + beam_x_offset, "#fbbf24"
-        ));
+        if self.beam_diameter.is_some() {
+            svg.push_str(&format!(
+                r#"<line x1="{:.1}" y1="{floor_y}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
+                cx + beam_l, cx + beam_l, beam_dim_y + 5.0, "#fbbf24"
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{:.1}" y1="{floor_y}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
+                cx + beam_r, cx + beam_r, beam_dim_y + 5.0, "#fbbf24"
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{:.1}" y1="{beam_dim_y}" x2="{:.1}" y2="{beam_dim_y}" stroke="{}" stroke-width="1.5"/>"#,
+                cx + beam_l, cx + beam_r, "#fbbf24"
+            ));
+        }
         // Beam diameter label
         svg.push_str(&format!(
-            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="11" fill="{}" font-family="{}" font-weight="600">{} {:.2}{}</text>"#,
+            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="11" fill="{}" font-family="{}" font-weight="600">{} {}</text>"#,
             beam_dim_y - 4.0,
             "#b45309", // Darker amber
             theme.font_family,
             labels.beam_diameter,
-            self.beam_diameter,
-            labels.meter
+            cone_length_text(self.beam_diameter, &labels.meter)
         ));
 
         // Field diameter dimension (further below)
         let field_dim_y = floor_y + 45.0;
-        svg.push_str(&format!(
-            r#"<line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
-            cx - field_x_offset,
-            beam_dim_y + 10.0,
-            cx - field_x_offset,
-            field_dim_y + 5.0,
-            "#f97316"
-        ));
-        svg.push_str(&format!(
-            r#"<line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
-            cx + field_x_offset,
-            beam_dim_y + 10.0,
-            cx + field_x_offset,
-            field_dim_y + 5.0,
-            "#f97316"
-        ));
-        svg.push_str(&format!(
-            r#"<line x1="{:.1}" y1="{field_dim_y}" x2="{:.1}" y2="{field_dim_y}" stroke="{}" stroke-width="1.5" stroke-dasharray="4,2"/>"#,
-            cx - field_x_offset, cx + field_x_offset, "#f97316"
-        ));
+        if self.field_diameter.is_some() {
+            svg.push_str(&format!(
+                r#"<line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
+                cx + field_l,
+                beam_dim_y + 10.0,
+                cx + field_l,
+                field_dim_y + 5.0,
+                "#f97316"
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
+                cx + field_r,
+                beam_dim_y + 10.0,
+                cx + field_r,
+                field_dim_y + 5.0,
+                "#f97316"
+            ));
+            svg.push_str(&format!(
+                r#"<line x1="{:.1}" y1="{field_dim_y}" x2="{:.1}" y2="{field_dim_y}" stroke="{}" stroke-width="1.5" stroke-dasharray="4,2"/>"#,
+                cx + field_l, cx + field_r, "#f97316"
+            ));
+        }
         // Field diameter label
         svg.push_str(&format!(
-            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">{} {:.2}{}</text>"#,
+            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">{} {}</text>"#,
             field_dim_y - 4.0,
             "#c2410c", // Darker orange
             theme.font_family,
             labels.field_diameter,
-            self.field_diameter,
-            labels.meter
+            cone_length_text(self.field_diameter, &labels.meter)
         ));
 
-        // Angle annotations (right side)
+        // Angle annotations (arc from edge to edge, label on the right)
 
         // Beam angle arc and label
         let arc_radius = 50.0;
-        let beam_arc_end_x = cx + arc_radius * beam_half_angle.sin();
-        let beam_arc_end_y = luminaire_y + arc_radius * beam_half_angle.cos();
+        if let Some(edges) = geo.beam_rad {
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="none" stroke="{}" stroke-width="1.5"/>"#,
+                cone_edge_arc(cx, luminaire_y, arc_radius, edges),
+                "#fbbf24"
+            ));
+        }
         svg.push_str(&format!(
-            r#"<path d="M {cx} {:.1} A {arc_radius} {arc_radius} 0 0 1 {beam_arc_end_x:.1} {beam_arc_end_y:.1}" fill="none" stroke="{}" stroke-width="1.5"/>"#,
-            luminaire_y + arc_radius,
-            "#fbbf24"
-        ));
-        svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" font-size="11" fill="{}" font-family="{}" font-weight="600">{:.0}° ({})</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" font-size="11" fill="{}" font-family="{}" font-weight="600">{} ({})</text>"#,
             cx + arc_radius + 8.0,
             luminaire_y + arc_radius / 2.0 + 4.0,
             "#b45309",
             theme.font_family,
-            self.beam_angle,
+            cone_angle_text(self.beam_angle),
             labels.intensity_50
         ));
 
         // Field angle arc and label
         let field_arc_radius = 70.0;
-        let field_arc_end_x = cx + field_arc_radius * field_half_angle.sin();
-        let field_arc_end_y = luminaire_y + field_arc_radius * field_half_angle.cos();
+        if let Some(edges) = geo.field_rad {
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="none" stroke="{}" stroke-width="1" stroke-dasharray="4,2"/>"#,
+                cone_edge_arc(cx, luminaire_y, field_arc_radius, edges),
+                "#f97316"
+            ));
+        }
         svg.push_str(&format!(
-            r#"<path d="M {cx} {:.1} A {field_arc_radius} {field_arc_radius} 0 0 1 {field_arc_end_x:.1} {field_arc_end_y:.1}" fill="none" stroke="{}" stroke-width="1" stroke-dasharray="4,2"/>"#,
-            luminaire_y + field_arc_radius,
-            "#f97316"
-        ));
-        svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" font-size="10" fill="{}" font-family="{}">{:.0}° ({})</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" font-size="10" fill="{}" font-family="{}">{} ({})</text>"#,
             cx + field_arc_radius + 8.0,
             luminaire_y + field_arc_radius / 2.0 + 20.0,
             "#c2410c",
             theme.font_family,
-            self.field_angle,
+            cone_angle_text(self.field_angle),
             labels.intensity_10
         ));
 
@@ -3217,17 +3471,16 @@ impl ConeDiagram {
             self.beam_classification()
         ));
 
-        // C-plane annotation (below classification, top right)
-        if let Some(c) = self.selected_c_plane {
-            svg.push_str(&format!(
-                r#"<text x="{:.1}" y="48" text-anchor="end" font-size="11" fill="{}" font-family="{}">{} C{:.0}°</text>"#,
-                width - 15.0,
-                theme.text_secondary,
-                theme.font_family,
-                labels.c_plane_label,
-                c
-            ));
-        }
+        // Section annotation (below classification, top right): the cone is
+        // always drawn in one section C–(C+180)
+        svg.push_str(&format!(
+            r#"<text x="{:.1}" y="48" text-anchor="end" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
+            width - 15.0,
+            theme.text_secondary,
+            theme.font_family,
+            labels.c_plane_label,
+            self.section_label()
+        ));
 
         svg.push_str("</svg>");
         svg
@@ -3256,14 +3509,9 @@ impl ConeDiagram {
         let luminaire_y = margin_top;
         let floor_y = margin_top + cone_height;
 
-        let beam_half_angle = self.beam_angle.to_radians();
-        let field_half_angle = self.field_angle.to_radians();
-
-        let max_spread = (field_half_angle.tan() * cone_height).max(cone_width / 2.0 * 0.9);
-        let scale = (cone_width / 2.0 * 0.85) / max_spread;
-
-        let beam_x_offset = beam_half_angle.tan() * cone_height * scale;
-        let field_x_offset = field_half_angle.tan() * cone_height * scale;
+        let geo = self.geometry(cone_height, cone_width);
+        let (beam_l, beam_r) = geo.beam_x.unwrap_or((0.0, 0.0));
+        let (field_l, field_r) = geo.field_x.unwrap_or((beam_l, beam_r));
 
         let mut svg = String::new();
 
@@ -3310,15 +3558,15 @@ impl ConeDiagram {
         // Field angle cone (outer)
         svg.push_str(&format!(
             r#"<path d="M {cx} {luminaire_y} L {:.1} {floor_y} L {:.1} {floor_y} Z" fill="url(#fieldGradWiki)" stroke="{field_color}" stroke-width="2" stroke-dasharray="8,4"/>"#,
-            cx - field_x_offset,
-            cx + field_x_offset
+            cx + field_l,
+            cx + field_r
         ));
 
         // Beam angle cone (inner)
         svg.push_str(&format!(
             r#"<path d="M {cx} {luminaire_y} L {:.1} {floor_y} L {:.1} {floor_y} Z" fill="url(#beamGradWiki)" stroke="{beam_color}" stroke-width="2.5"/>"#,
-            cx - beam_x_offset,
-            cx + beam_x_offset
+            cx + beam_l,
+            cx + beam_r
         ));
 
         // Center beam axis (dashed)
@@ -3366,38 +3614,38 @@ impl ConeDiagram {
 
         // Beam angle annotation with arc
         let arc_r = 60.0;
-        let beam_arc_x = cx + arc_r * beam_half_angle.sin();
-        let beam_arc_y = luminaire_y + arc_r * beam_half_angle.cos();
-        svg.push_str(&format!(
-            r#"<path d="M {cx} {:.1} A {arc_r} {arc_r} 0 0 1 {beam_arc_x:.1} {beam_arc_y:.1}" fill="none" stroke="{beam_color}" stroke-width="2.5"/>"#,
-            luminaire_y + arc_r
-        ));
+        if let Some(edges) = geo.beam_rad {
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="none" stroke="{beam_color}" stroke-width="2.5"/>"#,
+                cone_edge_arc(cx, luminaire_y, arc_r, edges)
+            ));
+        }
         // Beam angle arrow and label
         svg.push_str(&format!(
             r#"<text x="{:.1}" y="{:.1}" font-size="13" font-weight="bold" fill="{beam_color}" font-family="{}">Beam angle</text>"#,
             cx + arc_r + 15.0, luminaire_y + arc_r / 2.0 - 5.0, theme.font_family
         ));
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" font-size="12" fill="{beam_color}" font-family="{}">{:.0}° (50% I_max)</text>"#,
-            cx + arc_r + 15.0, luminaire_y + arc_r / 2.0 + 12.0, theme.font_family, self.beam_angle
+            r#"<text x="{:.1}" y="{:.1}" font-size="12" fill="{beam_color}" font-family="{}">{} (50% I_max, {})</text>"#,
+            cx + arc_r + 15.0, luminaire_y + arc_r / 2.0 + 12.0, theme.font_family, cone_angle_text(self.beam_angle), self.section_label()
         ));
 
         // Field angle annotation with arc
         let field_arc_r = 85.0;
-        let field_arc_x = cx + field_arc_r * field_half_angle.sin();
-        let field_arc_y = luminaire_y + field_arc_r * field_half_angle.cos();
-        svg.push_str(&format!(
-            r#"<path d="M {cx} {:.1} A {field_arc_r} {field_arc_r} 0 0 1 {field_arc_x:.1} {field_arc_y:.1}" fill="none" stroke="{field_color}" stroke-width="2" stroke-dasharray="6,3"/>"#,
-            luminaire_y + field_arc_r
-        ));
+        if let Some(edges) = geo.field_rad {
+            svg.push_str(&format!(
+                r#"<path d="{}" fill="none" stroke="{field_color}" stroke-width="2" stroke-dasharray="6,3"/>"#,
+                cone_edge_arc(cx, luminaire_y, field_arc_r, edges)
+            ));
+        }
         // Field angle label
         svg.push_str(&format!(
             r#"<text x="{:.1}" y="{:.1}" font-size="12" font-weight="bold" fill="{field_color}" font-family="{}">Field angle</text>"#,
             cx + field_arc_r + 15.0, luminaire_y + field_arc_r / 2.0 + 30.0, theme.font_family
         ));
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" font-size="11" fill="{field_color}" font-family="{}">{:.0}° (10% I_max)</text>"#,
-            cx + field_arc_r + 15.0, luminaire_y + field_arc_r / 2.0 + 45.0, theme.font_family, self.field_angle
+            r#"<text x="{:.1}" y="{:.1}" font-size="11" fill="{field_color}" font-family="{}">{} (10% I_max)</text>"#,
+            cx + field_arc_r + 15.0, luminaire_y + field_arc_r / 2.0 + 45.0, theme.font_family, cone_angle_text(self.field_angle)
         ));
 
         // Mounting height dimension (left)
@@ -3427,38 +3675,38 @@ impl ConeDiagram {
         let beam_dim_y = floor_y + 25.0;
         svg.push_str(&format!(
             r#"<line x1="{:.1}" y1="{floor_y}" x2="{:.1}" y2="{:.1}" stroke="{beam_color}" stroke-width="1"/>"#,
-            cx - beam_x_offset, cx - beam_x_offset, beam_dim_y + 5.0
+            cx + beam_l, cx + beam_l, beam_dim_y + 5.0
         ));
         svg.push_str(&format!(
             r#"<line x1="{:.1}" y1="{floor_y}" x2="{:.1}" y2="{:.1}" stroke="{beam_color}" stroke-width="1"/>"#,
-            cx + beam_x_offset, cx + beam_x_offset, beam_dim_y + 5.0
+            cx + beam_r, cx + beam_r, beam_dim_y + 5.0
         ));
         svg.push_str(&format!(
             r#"<line x1="{:.1}" y1="{beam_dim_y}" x2="{:.1}" y2="{beam_dim_y}" stroke="{beam_color}" stroke-width="2"/>"#,
-            cx - beam_x_offset, cx + beam_x_offset
+            cx + beam_l, cx + beam_r
         ));
         svg.push_str(&format!(
-            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="11" font-weight="bold" fill="{beam_color}" font-family="{}">Beam ⌀ {:.2}m</text>"#,
-            beam_dim_y - 6.0, theme.font_family, self.beam_diameter
+            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="11" font-weight="bold" fill="{beam_color}" font-family="{}">Beam ⌀ {}</text>"#,
+            beam_dim_y - 6.0, theme.font_family, cone_length_text(self.beam_diameter, "m")
         ));
 
         // Field diameter
         let field_dim_y = floor_y + 55.0;
         svg.push_str(&format!(
             r#"<line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="{field_color}" stroke-width="1"/>"#,
-            cx - field_x_offset, beam_dim_y + 10.0, cx - field_x_offset, field_dim_y + 5.0
+            cx + field_l, beam_dim_y + 10.0, cx + field_l, field_dim_y + 5.0
         ));
         svg.push_str(&format!(
             r#"<line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="{field_color}" stroke-width="1"/>"#,
-            cx + field_x_offset, beam_dim_y + 10.0, cx + field_x_offset, field_dim_y + 5.0
+            cx + field_r, beam_dim_y + 10.0, cx + field_r, field_dim_y + 5.0
         ));
         svg.push_str(&format!(
             r#"<line x1="{:.1}" y1="{field_dim_y}" x2="{:.1}" y2="{field_dim_y}" stroke="{field_color}" stroke-width="1.5" stroke-dasharray="6,3"/>"#,
-            cx - field_x_offset, cx + field_x_offset
+            cx + field_l, cx + field_r
         ));
         svg.push_str(&format!(
-            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="10" fill="{field_color}" font-family="{}">Field ⌀ {:.2}m</text>"#,
-            field_dim_y - 6.0, theme.font_family, self.field_diameter
+            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="10" fill="{field_color}" font-family="{}">Field ⌀ {}</text>"#,
+            field_dim_y - 6.0, theme.font_family, cone_length_text(self.field_diameter, "m")
         ));
 
         // Legend box with definitions
@@ -3470,7 +3718,7 @@ impl ConeDiagram {
         ));
 
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" font-size="11" font-weight="bold" fill="{}" font-family="{}">Definitions (IES):</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" font-size="11" font-weight="bold" fill="{}" font-family="{}">Definitions (CIE / IES):</text>"#,
             legend_x + 8.0, legend_y + 16.0, theme.text, theme.font_family
         ));
 
@@ -3502,7 +3750,7 @@ impl ConeDiagram {
 
         // Formula note at bottom
         svg.push_str(&format!(
-            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="9" fill="{}" font-family="{}">Beam diameter = 2 × height × tan(beam_angle / 2)</text>"#,
+            r#"<text x="{cx}" y="{:.1}" text-anchor="middle" font-size="9" fill="{}" font-family="{}">Beam ⌀ = height × (tan γ_right − tan γ_left), γ = signed 50 % edge directions</text>"#,
             height - 12.0, theme.text_secondary, theme.font_family
         ));
 
@@ -4763,12 +5011,12 @@ impl PolarDiagram {
 
         // SVG header
         svg.push_str(&format!(
-            r#"<svg viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">"#
+            r#"<svg viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg" class="diagram-polar">"#
         ));
 
         // Background
         svg.push_str(&format!(
-            r#"<rect x="0" y="0" width="{size}" height="{size}" fill="{}"/>"#,
+            r#"<rect class="bg" x="0" y="0" width="{size}" height="{size}" fill="{}"/>"#,
             theme.background
         ));
 
@@ -4835,8 +5083,11 @@ impl PolarDiagram {
         let path = a.c0_c180_curve.to_svg_path(center, center, scale);
         if !path.is_empty() {
             svg.push_str(&format!(
-                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5"/>"#,
-                path, fill_a_c0, color_a_c0
+                r#"<path class="curve-c0" d="{}" fill="{}" stroke="{}" stroke-width="{width}"/>"#,
+                path,
+                fill_a_c0,
+                color_a_c0,
+                width = theme.curve_width
             ));
         }
         // File A - C90-C270
@@ -4854,8 +5105,11 @@ impl PolarDiagram {
         let path = b.c0_c180_curve.to_svg_path(center, center, scale);
         if !path.is_empty() {
             svg.push_str(&format!(
-                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="2.5"/>"#,
-                path, fill_b_c0, color_b_c0
+                r#"<path class="curve-c0" d="{}" fill="{}" stroke="{}" stroke-width="{width}"/>"#,
+                path,
+                fill_b_c0,
+                color_b_c0,
+                width = theme.curve_width
             ));
         }
         // File B - C90-C270
@@ -5166,6 +5420,77 @@ impl CartesianDiagram {
 mod tests {
     use super::*;
     use crate::Eulumdat;
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn theme_file_partial_override_inherits_the_rest() {
+        // A theme file that only changes a few fields keeps the base for all others.
+        let toml = r##"
+            text = "#222222"
+            font_family = "Inter, sans-serif"
+            curve_c0_c180 = "#e4002b"
+        "##;
+        let base = SvgTheme::light();
+        let themed = SvgTheme::from_toml_str(toml, None).unwrap();
+        // Overridden fields changed…
+        assert_eq!(themed.text, "#222222");
+        assert_eq!(themed.font_family, "Inter, sans-serif");
+        assert_eq!(themed.curve_c0_c180, "#e4002b");
+        // …everything else inherited from the light base.
+        assert_eq!(themed.background, base.background);
+        assert_eq!(themed.grid, base.grid);
+        assert_eq!(themed.curve_c90_c270, base.curve_c90_c270);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn theme_file_base_key_selects_preset() {
+        // `base = "dark"` in the file starts from the dark preset.
+        let toml = r##"
+            base = "dark"
+            text = "#eeeeee"
+        "##;
+        let themed = SvgTheme::from_toml_str(toml, None).unwrap();
+        assert_eq!(themed.text, "#eeeeee");
+        assert_eq!(themed.background, SvgTheme::dark().background);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn base_override_argument_wins_over_file_base() {
+        // A CLI `--dark` (base_override) beats the file's `base = "light"`.
+        let toml = r#"base = "light""#;
+        let themed = SvgTheme::from_toml_str(toml, Some("dark")).unwrap();
+        assert_eq!(themed.background, SvgTheme::dark().background);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn empty_theme_file_equals_base_preset() {
+        let themed = SvgTheme::from_toml_str("", Some("light")).unwrap();
+        let base = SvgTheme::light();
+        assert_eq!(themed.text, base.text);
+        assert_eq!(themed.font_family, base.font_family);
+        assert_eq!(themed.curve_c0_c180, base.curve_c0_c180);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn curve_width_override_applies() {
+        // A curve_width in the file overrides the preset default (2.5).
+        let toml = "curve_width = 6.0\n";
+        let themed = SvgTheme::from_toml_str(toml, None).unwrap();
+        assert_eq!(themed.curve_width, 6.0);
+        assert_eq!(SvgTheme::light().curve_width, 2.5);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn bad_theme_file_is_a_clean_error() {
+        // Unknown key or malformed TOML → Err, not a panic. (serde is not
+        // deny_unknown_fields here, so use genuinely broken TOML.)
+        assert!(SvgTheme::from_toml_str("text = ", None).is_err());
+    }
 
     #[allow(clippy::field_reassign_with_default)]
     fn create_test_ldt() -> Eulumdat {

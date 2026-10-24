@@ -3,9 +3,15 @@
 //! Generates the vectors and data needed for traditional polar intensity diagrams
 //! showing C0-C180 and C90-C270 planes.
 
-use super::{DiagramScale, Point2D, SvgTheme};
-use crate::{Eulumdat, PhotometricSummary, Symmetry, SymmetryHandler};
-use std::f64::consts::FRAC_PI_2;
+#[cfg(feature = "std")]
+use super::SvgTheme;
+use super::{DiagramScale, Point2D};
+#[allow(unused_imports)]
+use crate::prelude::*;
+#[cfg(feature = "std")]
+use crate::PhotometricSummary;
+use crate::{Eulumdat, Symmetry, SymmetryHandler};
+use core::f64::consts::FRAC_PI_2;
 
 /// A point in a polar curve
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -224,6 +230,7 @@ impl PolarDiagram {
     /// This is the universal entry point — use from any frontend (WASM, desktop, CLI).
     /// If `c_plane` is None, renders the default C0-C180 / C90-C270 overview.
     /// If `c_plane` is Some(angle), renders that specific C-plane pair.
+    #[cfg(feature = "std")]
     pub fn render_svg(
         ldt: &Eulumdat,
         c_plane: Option<f64>,
@@ -235,6 +242,7 @@ impl PolarDiagram {
     }
 
     /// Render with an optional forced radial maximum (for consistent scaling across diagrams).
+    #[cfg(feature = "std")]
     pub fn render_svg_with_max(
         ldt: &Eulumdat,
         c_plane: Option<f64>,

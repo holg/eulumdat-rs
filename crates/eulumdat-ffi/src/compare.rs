@@ -29,8 +29,11 @@ pub struct ComparisonMetricFfi {
     pub name: String,
     pub key: String,
     pub unit: String,
+    /// Value from A; NaN when undefined (e.g. no beam angle for an up-light)
     pub value_a: f64,
+    /// Value from B; NaN when undefined
     pub value_b: f64,
+    /// B − A; NaN when only one side is defined
     pub delta: f64,
     pub delta_percent: f64,
     pub significance: SignificanceLevel,

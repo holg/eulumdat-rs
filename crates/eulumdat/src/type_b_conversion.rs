@@ -27,8 +27,10 @@
 //! C = atan2(sin(H), sin(V) · cos(H))
 //! ```
 
+#[allow(unused_imports)]
+use crate::prelude::*;
 use crate::Eulumdat;
-use std::f64::consts::PI;
+use core::f64::consts::PI;
 
 /// Type B photometric coordinate conversion utilities
 pub struct TypeBConversion;

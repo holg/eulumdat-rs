@@ -372,6 +372,11 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_batch_convert_contents(RustBuffer files, 
 RustBuffer uniffi_eulumdat_ffi_fn_func_batch_convert_to_ies(RustBuffer files, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_BEAM_FIELD_ANALYSIS
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_BEAM_FIELD_ANALYSIS
+RustBuffer uniffi_eulumdat_ffi_fn_func_beam_field_analysis(RustBuffer ldt, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_CALCULATE_BUG_RATING
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_CALCULATE_BUG_RATING
 RustBuffer uniffi_eulumdat_ffi_fn_func_calculate_bug_rating(RustBuffer ldt, RustCallStatus *_Nonnull out_status
@@ -487,6 +492,11 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_butterfly_svg(RustBuffer ldt, do
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_butterfly_svg_localized(RustBuffer ldt, double width, double height, double tilt_degrees, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUTTERFLY_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_BUTTERFLY_SVG_THEMED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_butterfly_svg_themed(RustBuffer ldt, double width, double height, double tilt_degrees, RustBuffer config, RustCallStatus *_Nonnull out_status
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_DIAGRAM
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_DIAGRAM
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_diagram(RustBuffer ldt, double width, double height, uint32_t max_curves, RustCallStatus *_Nonnull out_status
@@ -510,6 +520,16 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_for_plane(RustBuff
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_localized(RustBuffer ldt, double width, double height, uint32_t max_curves, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_THEMED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_themed(RustBuffer ldt, double width, double height, uint32_t max_curves, RustBuffer config, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_THEMED_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_CARTESIAN_SVG_THEMED_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_cartesian_svg_themed_localized(RustBuffer ldt, double width, double height, uint32_t max_curves, RustBuffer config, RustBuffer language, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_COMPLICATION_SVG
@@ -565,6 +585,11 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_heatmap_svg(RustBuffer ldt, doub
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_heatmap_svg_localized(RustBuffer ldt, double width, double height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_HEATMAP_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_HEATMAP_SVG_THEMED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_heatmap_svg_themed(RustBuffer ldt, double width, double height, RustBuffer config, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_ISOCANDELA_SVG
@@ -625,6 +650,16 @@ RustBuffer uniffi_eulumdat_ffi_fn_func_generate_polar_svg_for_plane(RustBuffer l
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_LOCALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_LOCALIZED
 RustBuffer uniffi_eulumdat_ffi_fn_func_generate_polar_svg_localized(RustBuffer ldt, double width, double height, RustBuffer theme, RustBuffer language, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_THEMED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_polar_svg_themed(RustBuffer ldt, double width, double height, RustBuffer config, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_THEMED_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_POLAR_SVG_THEMED_LOCALIZED
+RustBuffer uniffi_eulumdat_ffi_fn_func_generate_polar_svg_themed_localized(RustBuffer ldt, double width, double height, RustBuffer config, RustBuffer language, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_GENERATE_SPECTRAL_SVG
@@ -695,6 +730,31 @@ double uniffi_eulumdat_ffi_fn_func_sample_intensity(RustBuffer ldt, double c_ang
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SAMPLE_INTENSITY_NORMALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SAMPLE_INTENSITY_NORMALIZED
 double uniffi_eulumdat_ffi_fn_func_sample_intensity_normalized(RustBuffer ldt, double c_angle, double g_angle, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SECTION_ANGLES
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_SECTION_ANGLES
+RustBuffer uniffi_eulumdat_ffi_fn_func_section_angles(RustBuffer ldt, double c_plane, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_CONFIG_FROM_TOML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_CONFIG_FROM_TOML
+RustBuffer uniffi_eulumdat_ffi_fn_func_theme_config_from_toml(RustBuffer toml, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_CONFIG_FROM_TYPE
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_CONFIG_FROM_TYPE
+RustBuffer uniffi_eulumdat_ffi_fn_func_theme_config_from_type(RustBuffer theme_type, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_CONFIG_TO_TOML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_CONFIG_TO_TOML
+RustBuffer uniffi_eulumdat_ffi_fn_func_theme_config_to_toml(RustBuffer config, RustCallStatus *_Nonnull out_status
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_PRESET
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_THEME_PRESET
+RustBuffer uniffi_eulumdat_ffi_fn_func_theme_preset(RustBuffer name, RustCallStatus *_Nonnull out_status
 );
 #endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_FN_FUNC_VALIDATE_LDT
@@ -1019,6 +1079,12 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_batch_convert_to_ies(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_BEAM_FIELD_ANALYSIS
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_BEAM_FIELD_ANALYSIS
+uint16_t uniffi_eulumdat_ffi_checksum_func_beam_field_analysis(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_CALCULATE_BUG_RATING
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_CALCULATE_BUG_RATING
 uint16_t uniffi_eulumdat_ffi_checksum_func_calculate_bug_rating(void
@@ -1157,6 +1223,12 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg_localized(void
     
 );
 #endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUTTERFLY_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_BUTTERFLY_SVG_THEMED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_butterfly_svg_themed(void
+    
+);
+#endif
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_DIAGRAM
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_DIAGRAM
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_diagram(void
@@ -1184,6 +1256,18 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_for_plane(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_LOCALIZED
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_localized(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_THEMED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_themed(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_THEMED_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_CARTESIAN_SVG_THEMED_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_cartesian_svg_themed_localized(void
     
 );
 #endif
@@ -1250,6 +1334,12 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_HEATMAP_SVG_LOCALIZED
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg_localized(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_HEATMAP_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_HEATMAP_SVG_THEMED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_heatmap_svg_themed(void
     
 );
 #endif
@@ -1322,6 +1412,18 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_for_plane(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_LOCALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_LOCALIZED
 uint16_t uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_localized(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_THEMED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_THEMED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_themed(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_THEMED_LOCALIZED
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_GENERATE_POLAR_SVG_THEMED_LOCALIZED
+uint16_t uniffi_eulumdat_ffi_checksum_func_generate_polar_svg_themed_localized(void
     
 );
 #endif
@@ -1406,6 +1508,36 @@ uint16_t uniffi_eulumdat_ffi_checksum_func_sample_intensity(void
 #ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SAMPLE_INTENSITY_NORMALIZED
 #define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SAMPLE_INTENSITY_NORMALIZED
 uint16_t uniffi_eulumdat_ffi_checksum_func_sample_intensity_normalized(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SECTION_ANGLES
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_SECTION_ANGLES
+uint16_t uniffi_eulumdat_ffi_checksum_func_section_angles(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_CONFIG_FROM_TOML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_CONFIG_FROM_TOML
+uint16_t uniffi_eulumdat_ffi_checksum_func_theme_config_from_toml(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_CONFIG_FROM_TYPE
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_CONFIG_FROM_TYPE
+uint16_t uniffi_eulumdat_ffi_checksum_func_theme_config_from_type(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_CONFIG_TO_TOML
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_CONFIG_TO_TOML
+uint16_t uniffi_eulumdat_ffi_checksum_func_theme_config_to_toml(void
+    
+);
+#endif
+#ifndef UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_PRESET
+#define UNIFFI_FFIDEF_UNIFFI_EULUMDAT_FFI_CHECKSUM_FUNC_THEME_PRESET
+uint16_t uniffi_eulumdat_ffi_checksum_func_theme_preset(void
     
 );
 #endif

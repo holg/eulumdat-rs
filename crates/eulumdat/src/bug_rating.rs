@@ -57,7 +57,7 @@ impl ZoneLumens {
             return zones;
         }
 
-        let total_flux: f64 = ldt.lamp_sets.iter().map(|ls| ls.total_luminous_flux).sum();
+        let total_flux: f64 = ldt.luminous_flux();
 
         let scale = total_flux / 1000.0;
 

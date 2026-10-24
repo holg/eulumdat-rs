@@ -144,7 +144,7 @@ fn rows() -> Vec<Row> {
 
 fn lamp_flux(ldt: &Eulumdat) -> f64 {
     // Total luminous flux of the luminaire (lm).
-    ldt.total_luminous_flux()
+    ldt.luminous_flux()
 }
 
 fn main() {
