@@ -930,6 +930,9 @@ pub const EXPORTS_KEY: &str = "tm25_exports";
 /// IndexedDB key (via the loader's `tm25StashFile`) of the ray subset that
 /// the virtual goniometer picks up.
 pub const GONIO_STASH_KEY: &str = "gonio";
+/// IndexedDB key of the same subset as a LightTools binary ray file, for the
+/// shell's download button (binary, so not in the localStorage JSON).
+pub const LIGHTTOOLS_STASH_KEY: &str = "lighttools";
 
 /// Files the shell can hand out for the loaded ray set: LDT / IES / ATLA of
 /// the far field (the same smoothed grid the solid shows) and the header
@@ -951,8 +954,22 @@ pub fn exports_json(l: &LoadedRays) -> String {
         "atla_xml": e.atla_xml,
         "spd": e.spd,
         "rays_kept": l.rays.len(),
+        "lighttools": eulumdat_tm25::LightToolsHeader::from_tm25(&l.header).is_ok(),
     })
     .to_string()
+}
+
+/// The kept rays as a LightTools binary ray file (`.ray`): radiometric or
+/// photometric as the file is, with the wavelength per ray when it has one.
+/// Empty when the header cannot be mapped (no flux column).
+pub fn subset_lighttools_bytes(l: &LoadedRays) -> Vec<u8> {
+    match eulumdat_tm25::to_lighttools_bytes(&l.header, &l.rays) {
+        Ok(b) => b,
+        Err(e) => {
+            warn!("LightTools subset write failed: {e}");
+            Vec::new()
+        }
+    }
 }
 
 /// The kept rays as a TM-25 file (header copied, flux already rescaled to the
@@ -973,16 +990,21 @@ fn publish_exports(l: &LoadedRays) {
         if let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
             let _ = storage.set_item(EXPORTS_KEY, &json);
         }
-        // Hand the subset to the goniometer through the loader's IndexedDB stash.
-        let bytes = subset_tm25_bytes(l);
-        if !bytes.is_empty() {
-            if let Some(window) = web_sys::window() {
-                use wasm_bindgen::JsCast;
-                if let Ok(f) = js_sys::Reflect::get(&window, &"tm25StashFile".into())
-                    .and_then(|f| f.dyn_into::<js_sys::Function>())
-                {
-                    let arr = js_sys::Uint8Array::from(bytes.as_slice());
-                    let _ = f.call2(&window, &arr, &GONIO_STASH_KEY.into());
+        // Hand the subset to the goniometer (TM-25) and to the LightTools
+        // download button (.ray) through the loader's IndexedDB stash.
+        if let Some(window) = web_sys::window() {
+            use wasm_bindgen::JsCast;
+            if let Ok(f) = js_sys::Reflect::get(&window, &"tm25StashFile".into())
+                .and_then(|f| f.dyn_into::<js_sys::Function>())
+            {
+                for (key, bytes) in [
+                    (GONIO_STASH_KEY, subset_tm25_bytes(l)),
+                    (LIGHTTOOLS_STASH_KEY, subset_lighttools_bytes(l)),
+                ] {
+                    if !bytes.is_empty() {
+                        let arr = js_sys::Uint8Array::from(bytes.as_slice());
+                        let _ = f.call2(&window, &arr, &key.into());
+                    }
                 }
             }
         }

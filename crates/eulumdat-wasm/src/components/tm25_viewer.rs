@@ -72,6 +72,37 @@ async fn fetch_as_file(url: &str) -> Result<web_sys::File, String> {
         .map_err(|e| format!("cannot wrap as File: {e:?}"))
 }
 
+/// Put `bytes` back into the loader's IndexedDB stash under `key`, so a
+/// download button that took them can be used again.
+fn restash_bytes(key: &str, bytes: &[u8]) {
+    if let Some(window) = web_sys::window() {
+        if let Ok(f) = js_sys::Reflect::get(&window, &"tm25StashFile".into())
+            .and_then(|f| f.dyn_into::<js_sys::Function>())
+        {
+            let arr = js_sys::Uint8Array::from(bytes);
+            let _ = f.call2(&window, &arr, &key.into());
+        }
+    }
+}
+
+/// Download the LightTools `.ray` the viewer stashed (see
+/// `eulumdat_bevy::tm25::LIGHTTOOLS_STASH_KEY`), then put it back.
+fn download_lighttools(name: String) {
+    wasm_bindgen_futures::spawn_local(async move {
+        match super::goniosim::take_tm25_stash("lighttools").await {
+            Some(bytes) => {
+                super::file_handler::download_bytes(
+                    &format!("{name}.ray"),
+                    &bytes,
+                    "application/octet-stream",
+                );
+                restash_bytes("lighttools", &bytes);
+            }
+            None => web_sys::console::warn_1(&"no LightTools export stashed".into()),
+        }
+    });
+}
+
 /// The `url` query parameter, if the page was opened with one.
 fn url_param() -> Option<String> {
     let search = web_sys::window()?.location().search().ok()?;
@@ -414,6 +445,8 @@ pub fn Tm25Viewer() -> impl IntoView {
                     let spd = text("spd");
                     let lumens = e.get("lamp_lumens").and_then(|v| v.as_f64()).unwrap_or(0.0);
                     let kept = e.get("rays_kept").and_then(|v| v.as_u64()).unwrap_or(0);
+                    let has_lt = e.get("lighttools").and_then(|v| v.as_bool()).unwrap_or(false);
+                    let n_lt = name.clone();
                     let btn = "padding: 5px 9px; background: #2a2f3a; color: #e8ecf1; border: 0; border-radius: 6px; cursor: pointer; font-size: 12px;";
                     let n_dl = name.clone();
                     let dl = move |content: Option<String>, ext: &'static str| {
@@ -444,6 +477,7 @@ pub fn Tm25Viewer() -> impl IntoView {
                             <button style=btn on:click=dl(ies, "ies")>"IES .ies"</button>
                             <button style=btn on:click=dl(xml, "xml")>"ATLA .xml"</button>
                             {spd.clone().map(|_| view! { <button style=btn on:click=dl(spd.clone(), "spd")>"Spectrum .spd"</button> })}
+                            {has_lt.then(|| view! { <button style=btn title="LightTools binary ray file of the kept rays, flux rescaled to the file total" on:click=move |_| download_lighttools(n_lt.clone())>"LightTools .ray"</button> })}
                         </div>
                         <div style="color: #9aa4b2; font-size: 11px; margin-top: 6px;">{
                             if lumens > 0.0 { format!("lamp flux {lumens:.2} lm · ATLA carries the spectrum") }

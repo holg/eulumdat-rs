@@ -1636,7 +1636,7 @@ fn check_webgpu_available() -> bool {
 
 /// Read (and clear) a value stashed by the TM-25 loader (`tm25TakeFile(key)`):
 /// a `Uint8Array` or a `Blob`. `None` when nothing is there.
-async fn take_tm25_stash(key: &str) -> Option<Vec<u8>> {
+pub(crate) async fn take_tm25_stash(key: &str) -> Option<Vec<u8>> {
     let window = web_sys::window()?;
     let take = js_sys::Reflect::get(&window, &"tm25TakeFile".into()).ok()?;
     let take: js_sys::Function = take.dyn_into().ok()?;
