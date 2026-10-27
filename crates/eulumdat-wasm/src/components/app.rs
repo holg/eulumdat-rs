@@ -1586,7 +1586,7 @@ pub fn App() -> impl IntoView {
                                     {move || locale.get().ui.header.open.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.spd,.SPD,.csv,.CSV,.oxl,.OXL,.oxc,.OXC,.png,.PNG,.jpg,.JPG,.jpeg,.JPEG,.webp,.WEBP,.tm25ray,.TM25RAY"
+                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.spd,.SPD,.csv,.CSV,.oxl,.OXL,.oxc,.OXC,.png,.PNG,.jpg,.JPG,.jpeg,.JPEG,.webp,.WEBP,.tm25ray,.TM25RAY,.ray,.RAY"
                                         style="display: none;"
                                         on:change=on_file_input
                                         aria-label="Open LDT, IES, SPDX, XML, or JSON file"

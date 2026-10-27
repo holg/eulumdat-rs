@@ -234,7 +234,10 @@ pub struct Exports {
 /// written by tm25ray 0.1.x are 4 to 20 bytes off (its spectral-block
 /// layout differed from the standard), so check before streaming.
 pub fn check_file_size(h: &Header, total_size: u64) -> core::result::Result<(), String> {
-    let expected = h.ray_start as u64 + h.ray_block_size();
+    let mut expected = h.ray_start as u64 + h.ray_block_size();
+    if h.is_lighttools() {
+        expected += tm25ray::lighttools::LT_END.len() as u64;
+    }
     if expected == total_size {
         Ok(())
     } else {

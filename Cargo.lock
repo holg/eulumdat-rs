@@ -10261,9 +10261,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tm25ray"
-version = "0.2.1"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0601cd3f3da94f22559cd62450eb8a229099c6502d7ba768bf7b0d6ff94867c"
+checksum = "8a8bb5e834e9f040307614ebbd424dafad9f377befa20b0b7a60d9f55239a8de"
 dependencies = [
  "memmap2",
  "thiserror 1.0.69",

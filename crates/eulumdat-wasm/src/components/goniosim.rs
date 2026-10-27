@@ -319,6 +319,21 @@ pub fn GonioSimDemo(
     // +x towards +y; the goniometer has γ = 0 on −Z and the same C, so the map
     // is (x, y, z) → (x, y, −z) with mm → m.
     let load_tm25 = move |name: String, bytes: Vec<u8>| {
+        // A LightTools .ray is converted to TM-25 in memory first.
+        let bytes = if eulumdat_tm25::is_lighttools(&bytes) {
+            match eulumdat_tm25::LightToolsFile::parse(&bytes) {
+                Ok(lt) => {
+                    let (h, rays) = lt.to_tm25(&name);
+                    eulumdat_tm25::to_bytes(&h, &rays).unwrap_or_default()
+                }
+                Err(e) => {
+                    set_ray_source_info.set(format!("{name}: {e}"));
+                    return;
+                }
+            }
+        } else {
+            bytes
+        };
         let file = match eulumdat_tm25::Tm25File::parse(&bytes) {
             Ok(f) => f,
             Err(e) => {
@@ -442,7 +457,7 @@ pub fn GonioSimDemo(
             if let Some(file) = files.get(0) {
                 let name = file.name();
                 let load_ldt = load_ldt;
-                if name.to_lowercase().ends_with(".tm25ray") {
+                if super::tm25_viewer::is_tm25_file(&name) {
                     wasm_bindgen_futures::spawn_local(async move {
                         if let Ok(bytes) = gloo_file::futures::read_as_bytes(&file.into()).await {
                             load_tm25(name, bytes);
@@ -979,7 +994,7 @@ pub fn GonioSimDemo(
                                     {move || locale.get().goniosim.upload.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.oxl,.OXL,.oxc,.OXC,.tm25ray,.TM25RAY"
+                                        accept=".ldt,.LDT,.ies,.IES,.oxl,.OXL,.oxc,.OXC,.tm25ray,.TM25RAY,.ray,.RAY"
                                         style="display: none;"
                                         on:change=on_file_input
                                     />

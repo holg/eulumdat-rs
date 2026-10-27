@@ -364,7 +364,19 @@ impl Ingest {
 }
 
 /// Grow-and-retry header parse over a prefix of the file.
-pub fn parse_header_prefix(prefix: &[u8]) -> Result<Header, Tm25Error> {
+/// Parse the header at the start of a ray file: TM-25, or a LightTools
+/// binary ray file (`LTRF`), which comes back as a synthesised TM-25 header
+/// whose column layout, `ray_start` and `n_rays` (from `file_size`) let the
+/// same record decoder stream it. `name` fills the synthesised name field.
+pub fn parse_header_prefix(
+    prefix: &[u8],
+    name: &str,
+    file_size: Option<u64>,
+) -> Result<Header, Tm25Error> {
+    if eulumdat_tm25::is_lighttools(prefix) {
+        let lt = eulumdat_tm25::LightToolsHeader::parse(prefix)?;
+        return Ok(lt.to_tm25_header(name, file_size));
+    }
     Header::parse(prefix, &ParseOptions::default())
 }
 
@@ -542,7 +554,7 @@ fn load_native_blocking(path: &str, tx: &Sender<LoadMsg>) -> Result<LoadedRays, 
             filled += n;
         }
         prefix.truncate(filled);
-        match parse_header_prefix(&prefix) {
+        match parse_header_prefix(&prefix, &file_name_of(path), Some(total)) {
             Ok(h) => break h,
             Err(Tm25Error::Truncated { needed, .. }) if needed > prefix.len() && filled == need => {
                 need = needed
@@ -559,11 +571,17 @@ fn load_native_blocking(path: &str, tx: &Sender<LoadMsg>) -> Result<LoadedRays, 
     }
     let mut buf = vec![0u8; 4 << 20];
     let mut last_report = 0u64;
-    loop {
-        let n = file.read(&mut buf).map_err(|e| e.to_string())?;
+    // Stop at the end of the ray block: a LightTools file has a trailer.
+    let mut left = header
+        .ray_block_size()
+        .saturating_sub(ingest.count() * header.record_size() as u64);
+    while left > 0 {
+        let want = (left.min(buf.len() as u64)) as usize;
+        let n = file.read(&mut buf[..want]).map_err(|e| e.to_string())?;
         if n == 0 {
             break;
         }
+        left -= n as u64;
         ingest.feed(&buf[..n]);
         if ingest.count() - last_report > 1_000_000 {
             last_report = ingest.count();
@@ -578,11 +596,15 @@ fn load_native_blocking(path: &str, tx: &Sender<LoadMsg>) -> Result<LoadedRays, 
             total
         ));
     }
-    let name = std::path::Path::new(path)
+    Ok(ingest.finish(file_name_of(path)))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn file_name_of(path: &str) -> String {
+    std::path::Path::new(path)
         .file_name()
         .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_else(|| path.to_string());
-    Ok(ingest.finish(name))
+        .unwrap_or_else(|| path.to_string())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -703,7 +725,7 @@ async fn load_browser_file() -> Result<Option<LoadedRays>, String> {
     let mut need = (1u64 << 20).min(size as u64) as f64;
     let (header, prefix) = loop {
         let prefix = read(0.0, need).await?;
-        match parse_header_prefix(&prefix) {
+        match parse_header_prefix(&prefix, &name, Some(size as u64)) {
             Ok(h) => break (h, prefix),
             Err(Tm25Error::Truncated { needed, .. }) if (needed as f64) > need && need < size => {
                 need = (needed as f64).min(size);
@@ -722,8 +744,10 @@ async fn load_browser_file() -> Result<Option<LoadedRays>, String> {
         offset += whole;
     }
     let step = ((4u64 << 20) as f64 / rs).floor() * rs;
-    while offset < size {
-        let end = (offset + step).min(size);
+    // End of the ray block, not of the file: a LightTools file has a trailer.
+    let block_end = (header.ray_start as f64 + header.ray_block_size() as f64).min(size);
+    while offset < block_end {
+        let end = (offset + step).min(block_end);
         let bytes = read(offset, end).await?;
         ingest.feed(&bytes);
         offset = end;
@@ -888,7 +912,7 @@ fn status_json(l: &LoadedRays, irr: Option<&IrradianceGrid>) -> String {
     };
     let cut_x = cut(0.0, 180.0);
     let cut_y = cut(90.0, 270.0);
-    let spectrum = h.shared_spectrum().map(|t| {
+    let spectrum = spectrum_of(l).map(|t| {
         serde_json::json!({
             "wavelengths": t.wavelengths_nm,
             "values": t.values,
@@ -933,6 +957,20 @@ pub const GONIO_STASH_KEY: &str = "gonio";
 /// IndexedDB key of the same subset as a LightTools binary ray file, for the
 /// shell's download button (binary, so not in the localStorage JSON).
 pub const LIGHTTOOLS_STASH_KEY: &str = "lighttools";
+/// IndexedDB key of the subset as a LightTools file with a wavelength per
+/// ray drawn from the shared spectral table: the explicit second option,
+/// since LightTools cannot reassign a spectrum that is hard-wired into rays.
+pub const LIGHTTOOLS_SAMPLED_STASH_KEY: &str = "lighttools_sampled";
+
+/// The spectrum to show and to export: the header's shared table, or a
+/// flux-weighted 5 nm histogram of the kept rays' wavelengths for a file
+/// with a wavelength per ray (spectral identifier 2).
+pub fn spectrum_of(l: &LoadedRays) -> Option<eulumdat_tm25::SpectralTable> {
+    l.header
+        .shared_spectrum()
+        .cloned()
+        .or_else(|| eulumdat_tm25::spectrum_from_rays(&l.rays, l.flux_kind(), 5.0))
+}
 
 /// Files the shell can hand out for the loaded ray set: LDT / IES / ATLA of
 /// the far field (the same smoothed grid the solid shows) and the header
@@ -955,8 +993,19 @@ pub fn exports_json(l: &LoadedRays) -> String {
         "spd": e.spd,
         "rays_kept": l.rays.len(),
         "lighttools": eulumdat_tm25::LightToolsHeader::from_tm25(&l.header).is_ok(),
+        // LightTools .sre beside the .ray: the spectrum stays reassignable there.
+        "sre": spectrum_of(l).map(|t| eulumdat_tm25::write_sre(&t, &stem)),
+        // The sampled-wavelength .ray exists only for a shared table + radiant flux.
+        "lighttools_sampled": l.header.shared_spectrum().is_some() && l.header.flags.radiant_flux,
     })
     .to_string()
+}
+
+/// The kept rays as a LightTools file with a wavelength per ray drawn from
+/// the shared spectral table (see [`LIGHTTOOLS_SAMPLED_STASH_KEY`]). Empty
+/// when the file has no table or no radiant flux.
+pub fn subset_lighttools_sampled_bytes(l: &LoadedRays) -> Vec<u8> {
+    eulumdat_tm25::to_lighttools_bytes_sampled(&l.header, &l.rays, 1).unwrap_or_default()
 }
 
 /// The kept rays as a LightTools binary ray file (`.ray`): radiometric or
@@ -1000,6 +1049,10 @@ fn publish_exports(l: &LoadedRays) {
                 for (key, bytes) in [
                     (GONIO_STASH_KEY, subset_tm25_bytes(l)),
                     (LIGHTTOOLS_STASH_KEY, subset_lighttools_bytes(l)),
+                    (
+                        LIGHTTOOLS_SAMPLED_STASH_KEY,
+                        subset_lighttools_sampled_bytes(l),
+                    ),
                 ] {
                     if !bytes.is_empty() {
                         let arr = js_sys::Uint8Array::from(bytes.as_slice());
@@ -1605,6 +1658,53 @@ mod tests {
             "Downloads/rayfile_SU_CULCP1_VC_20260512_IES_TM25/rayfile_SU_CULCP1_VC_100k_20260512_IES_TM25.TM25RAY",
         );
         std::fs::read(&path).ok()
+    }
+
+    /// A LightTools .ray written from a file loads through the same
+    /// header + ingest path as the TM-25 subset it came from, and gives the
+    /// same far field, flux and bounds: the round trip the viewer shows.
+    #[test]
+    fn lighttools_round_trip_loads_the_same() {
+        let Some(bytes) = vendor_file() else {
+            return;
+        };
+        let f = eulumdat_tm25::Tm25File::parse(&bytes).unwrap();
+        let mut ingest = Ingest::new(f.header.clone(), 5_000, 1);
+        ingest.feed(&bytes[f.header.ray_start..]);
+        let l = ingest.finish("rayfile_100k.TM25RAY".into());
+
+        let load = |bytes: &[u8], name: &str| {
+            let h = parse_header_prefix(
+                &bytes[..bytes.len().min(65_536)],
+                name,
+                Some(bytes.len() as u64),
+            )
+            .unwrap();
+            eulumdat_tm25::check_file_size(&h, bytes.len() as u64).unwrap();
+            let mut ing = Ingest::new(h.clone(), 5_000, 1);
+            let end = h.ray_start + h.ray_block_size() as usize;
+            for chunk in bytes[h.ray_start..end].chunks(10_007) {
+                ing.feed(chunk);
+            }
+            ing.finish(name.into())
+        };
+        let a = load(&subset_tm25_bytes(&l), "subset.TM25RAY");
+        let b = load(&subset_lighttools_bytes(&l), "subset.ray");
+        assert!(b.header.is_lighttools());
+        assert!(!a.header.is_lighttools());
+        assert_eq!(a.ray_count, b.ray_count);
+        assert_eq!(a.rays.len(), b.rays.len());
+        assert_eq!(a.rays, b.rays);
+        assert_eq!(a.min, b.min);
+        assert_eq!(a.max, b.max);
+        assert_eq!(a.header.flux_kind(), b.header.flux_kind());
+        assert_eq!(a.header.radiant_flux_w, b.header.radiant_flux_w);
+        let fa = a.far_field.smoothed(1, 1, 12.0);
+        let fb = b.far_field.smoothed(1, 1, 12.0);
+        assert_eq!(fa.half_intensity_gamma(), fb.half_intensity_gamma());
+        assert_eq!(fa.max_intensity(), fb.max_intensity());
+        assert_eq!(fa.azimuthal_average(), fb.azimuthal_average());
+        assert_eq!(b.header.text.name(), "subset.ray");
     }
 
     /// The export bundle carries every format and the stashed subset is a

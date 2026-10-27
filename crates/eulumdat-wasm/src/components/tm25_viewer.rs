@@ -23,9 +23,11 @@ extern "C" {
     pub fn tm25_stash_file(file: &web_sys::File) -> js_sys::Promise;
 }
 
-/// True for `.tm25ray` file names.
+/// True for file names the ray viewer opens: `.tm25ray`, and `.ray`
+/// (LightTools binary; other `.ray` dialects are rejected by magic on load).
 pub fn is_tm25_file(name: &str) -> bool {
-    name.to_lowercase().ends_with(".tm25ray")
+    let n = name.to_lowercase();
+    n.ends_with(".tm25ray") || n.ends_with(".ray")
 }
 
 /// Stash `file` for the viewer and navigate to `?wasm=tm25`.
@@ -85,20 +87,17 @@ fn restash_bytes(key: &str, bytes: &[u8]) {
     }
 }
 
-/// Download the LightTools `.ray` the viewer stashed (see
-/// `eulumdat_bevy::tm25::LIGHTTOOLS_STASH_KEY`), then put it back.
-fn download_lighttools(name: String) {
+/// Download a LightTools `.ray` the viewer stashed under `key` (see
+/// `eulumdat_bevy::tm25::LIGHTTOOLS_STASH_KEY` and
+/// `LIGHTTOOLS_SAMPLED_STASH_KEY`), then put it back.
+fn download_lighttools(key: &'static str, filename: String) {
     wasm_bindgen_futures::spawn_local(async move {
-        match super::goniosim::take_tm25_stash("lighttools").await {
+        match super::goniosim::take_tm25_stash(key).await {
             Some(bytes) => {
-                super::file_handler::download_bytes(
-                    &format!("{name}.ray"),
-                    &bytes,
-                    "application/octet-stream",
-                );
-                restash_bytes("lighttools", &bytes);
+                super::file_handler::download_bytes(&filename, &bytes, "application/octet-stream");
+                restash_bytes(key, &bytes);
             }
-            None => web_sys::console::warn_1(&"no LightTools export stashed".into()),
+            None => web_sys::console::warn_1(&format!("no {key} export stashed").into()),
         }
     });
 }
@@ -343,8 +342,8 @@ pub fn Tm25Viewer() -> impl IntoView {
                 <div style="font-size: 18px; font-weight: 300; margin-bottom: 10px;">"Ray File Viewer"</div>
 
                 <label style="display: block; margin-bottom: 10px;">
-                    <span style="display: inline-block; padding: 6px 10px; background: #1f6feb; border-radius: 6px; cursor: pointer;">"Open .TM25RAY"</span>
-                    <input type="file" accept=".tm25ray,.TM25RAY" style="display: none;" on:change=on_file_input />
+                    <span style="display: inline-block; padding: 6px 10px; background: #1f6feb; border-radius: 6px; cursor: pointer;">"Open .TM25RAY or LightTools .ray"</span>
+                    <input type="file" accept=".tm25ray,.TM25RAY,.ray,.RAY" style="display: none;" on:change=on_file_input />
                 </label>
                 <div style="color: #9aa4b2; font-size: 12px; margin-bottom: 10px;">"or drop a ray file anywhere on the page"</div>
 
@@ -446,7 +445,9 @@ pub fn Tm25Viewer() -> impl IntoView {
                     let lumens = e.get("lamp_lumens").and_then(|v| v.as_f64()).unwrap_or(0.0);
                     let kept = e.get("rays_kept").and_then(|v| v.as_u64()).unwrap_or(0);
                     let has_lt = e.get("lighttools").and_then(|v| v.as_bool()).unwrap_or(false);
-                    let n_lt = name.clone();
+                    let has_lt_sampled = e.get("lighttools_sampled").and_then(|v| v.as_bool()).unwrap_or(false);
+                    let sre = text("sre");
+                    let (n_lt, n_lts) = (name.clone(), name.clone());
                     let btn = "padding: 5px 9px; background: #2a2f3a; color: #e8ecf1; border: 0; border-radius: 6px; cursor: pointer; font-size: 12px;";
                     let n_dl = name.clone();
                     let dl = move |content: Option<String>, ext: &'static str| {
@@ -477,7 +478,9 @@ pub fn Tm25Viewer() -> impl IntoView {
                             <button style=btn on:click=dl(ies, "ies")>"IES .ies"</button>
                             <button style=btn on:click=dl(xml, "xml")>"ATLA .xml"</button>
                             {spd.clone().map(|_| view! { <button style=btn on:click=dl(spd.clone(), "spd")>"Spectrum .spd"</button> })}
-                            {has_lt.then(|| view! { <button style=btn title="LightTools binary ray file of the kept rays, flux rescaled to the file total" on:click=move |_| download_lighttools(n_lt.clone())>"LightTools .ray"</button> })}
+                            {has_lt.then(|| view! { <button style=btn title="LightTools binary ray file of the kept rays, flux rescaled to the file total; no colour information, assign the spectrum in LightTools" on:click=move |_| download_lighttools("lighttools", format!("{}.ray", n_lt))>"LightTools .ray"</button> })}
+                            {sre.clone().map(|_| view! { <button style=btn title="The spectrum as a LightTools .sre spectral distribution file, to assign to the ray data source" on:click=dl(sre.clone(), "sre")>"LightTools .sre"</button> })}
+                            {has_lt_sampled.then(|| view! { <button style=btn title="Second option: a wavelength per ray drawn from the spectral table. The spectrum is then hard-wired into the rays in LightTools and cannot be reassigned; for sources whose spectrum varies over position and angle" on:click=move |_| download_lighttools("lighttools_sampled", format!("{}_sampled.ray", n_lts))>"LightTools .ray + λ"</button> })}
                         </div>
                         <div style="color: #9aa4b2; font-size: 11px; margin-top: 6px;">{
                             if lumens > 0.0 { format!("lamp flux {lumens:.2} lm · ATLA carries the spectrum") }
