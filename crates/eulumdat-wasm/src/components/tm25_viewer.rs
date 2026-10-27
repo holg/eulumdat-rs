@@ -102,11 +102,54 @@ fn download_lighttools(key: &'static str, filename: String) {
     });
 }
 
-/// The `url` query parameter, if the page was opened with one.
-fn url_param() -> Option<String> {
+/// Build the report, compile it to PDF in the browser, download it; on a
+/// compiler failure download the Typst source instead.
+fn download_report(
+    st: serde_json::Value,
+    ex: Option<serde_json::Value>,
+    lum: Option<serde_json::Value>,
+    file_name: String,
+    set_busy: WriteSignal<bool>,
+) {
+    let data = eulumdat_typst::tm25_report::from_json(&st, ex.as_ref(), lum.as_ref(), &file_name);
+    let source = eulumdat_typst::generate_tm25_report(&data);
+    let stem = file_name
+        .rsplit_once('.')
+        .map(|(a, _)| a.to_string())
+        .unwrap_or(file_name.clone());
+    set_busy.set(true);
+    wasm_bindgen_futures::spawn_local(async move {
+        match super::app::compile_typst_to_pdf(&source).await {
+            Ok(pdf) => super::file_handler::download_bytes(
+                &format!("{stem}_report.pdf"),
+                &pdf,
+                "application/pdf",
+            ),
+            Err(e) => {
+                web_sys::console::error_1(
+                    &format!("PDF report failed: {e}; downloading the Typst source").into(),
+                );
+                super::file_handler::download_file(
+                    &format!("{stem}_report.typ"),
+                    &source,
+                    "text/plain",
+                );
+            }
+        }
+        set_busy.set(false);
+    });
+}
+
+/// A query parameter of the page, if present and non-empty.
+fn query_param(key: &str) -> Option<String> {
     let search = web_sys::window()?.location().search().ok()?;
     let params = web_sys::UrlSearchParams::new_with_str(&search).ok()?;
-    params.get("url").filter(|u| !u.is_empty())
+    params.get(key).filter(|u| !u.is_empty())
+}
+
+/// The `url` query parameter, if the page was opened with one.
+fn url_param() -> Option<String> {
+    query_param("url")
 }
 
 fn backend_unsupported() -> bool {
@@ -137,6 +180,7 @@ struct Settings {
     plane_cells: usize,
     show_camera_view: bool,
     camera_cone_deg: f32,
+    luminance_pixel_mm: f32,
 }
 
 impl Default for Settings {
@@ -158,7 +202,61 @@ impl Default for Settings {
             plane_cells: 96,
             show_camera_view: false,
             camera_cone_deg: 8.0,
+            luminance_pixel_mm: 0.05,
         }
+    }
+}
+
+/// Paint a luminance map (row-major values, `w × h`) into `canvas` with the
+/// irradiance colour ramp, black for unlit pixels; row 0 is the bottom.
+fn paint_luminance(
+    canvas: &web_sys::HtmlCanvasElement,
+    w: usize,
+    h: usize,
+    values: &[f64],
+    peak: f64,
+) {
+    canvas.set_width(w as u32);
+    canvas.set_height(h as u32);
+    let Some(ctx) = canvas
+        .get_context("2d")
+        .ok()
+        .flatten()
+        .and_then(|c| c.dyn_into::<web_sys::CanvasRenderingContext2d>().ok())
+    else {
+        return;
+    };
+    let mut px = vec![0u8; w * h * 4];
+    let stops: [[f64; 3]; 5] = [
+        [0.0, 0.0, 255.0],
+        [0.0, 255.0, 255.0],
+        [0.0, 255.0, 0.0],
+        [255.0, 255.0, 0.0],
+        [255.0, 0.0, 0.0],
+    ];
+    for y in 0..h {
+        for x in 0..w {
+            let v = values.get(y * w + x).copied().unwrap_or(0.0);
+            let i = ((h - 1 - y) * w + x) * 4;
+            if v <= 0.0 || peak <= 0.0 {
+                px[i + 3] = 255;
+                continue;
+            }
+            let t = (v / peak).clamp(0.0, 1.0) * 4.0;
+            let k = (t.floor() as usize).min(3);
+            let f = t - k as f64;
+            for c in 0..3 {
+                px[i + c] = (stops[k][c] + (stops[k + 1][c] - stops[k][c]) * f) as u8;
+            }
+            px[i + 3] = 255;
+        }
+    }
+    if let Ok(img) = web_sys::ImageData::new_with_u8_clamped_array_and_sh(
+        wasm_bindgen::Clamped(&px),
+        w as u32,
+        h as u32,
+    ) {
+        let _ = ctx.put_image_data(&img, 0.0, 0.0);
     }
 }
 
@@ -190,10 +288,14 @@ pub fn Tm25Viewer() -> impl IntoView {
     let (progress, set_progress) = signal(String::new());
     let (file_name, set_file_name) = signal::<Option<String>>(None);
     let (cam_view, set_cam_view) = signal(String::new());
+    let (luminance, set_luminance) = signal::<Option<serde_json::Value>>(None);
+    let (luminance_raw, set_luminance_raw) = signal(String::new());
+    let lum_canvas = NodeRef::<leptos::html::Canvas>::new();
     let (exposure_s, set_exposure_s) = signal(1.0f64);
     // Export bundle from Bevy (`tm25_exports`): LDT / IES / ATLA / SPD texts.
     let (exports, set_exports) = signal::<Option<serde_json::Value>>(None);
     let (exports_raw, set_exports_raw) = signal(String::new());
+    let (report_busy, set_report_busy) = signal(false);
 
     // Settings → localStorage on every change.
     Effect::new(move |_| write_settings(&settings.get()));
@@ -208,6 +310,21 @@ pub fn Tm25Viewer() -> impl IntoView {
                 if let Ok(Some(c)) = st.get_item("tm25_camera_view") {
                     if cam_view.get_untracked() != c {
                         set_cam_view.set(c);
+                    }
+                }
+                match st.get_item("tm25_luminance") {
+                    Ok(Some(json)) => {
+                        if luminance_raw.get_untracked() != json {
+                            set_luminance
+                                .set(serde_json::from_str::<serde_json::Value>(&json).ok());
+                            set_luminance_raw.set(json);
+                        }
+                    }
+                    _ => {
+                        if !luminance_raw.get_untracked().is_empty() {
+                            set_luminance.set(None);
+                            set_luminance_raw.set(String::new());
+                        }
                     }
                 }
                 if let Ok(Some(json)) = st.get_item("tm25_exports") {
@@ -232,6 +349,25 @@ pub fn Tm25Viewer() -> impl IntoView {
             );
         }
         cb.forget();
+    });
+
+    // Paint the luminance map whenever it changes.
+    Effect::new(move |_| {
+        let Some(m) = luminance.get() else { return };
+        let Some(canvas) = lum_canvas.get() else {
+            return;
+        };
+        let w = m.get("width").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+        let h = m.get("height").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+        let peak = m.get("peak").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let values: Vec<f64> = m
+            .get("values")
+            .and_then(|v| v.as_array())
+            .map(|a| a.iter().map(|x| x.as_f64().unwrap_or(0.0)).collect())
+            .unwrap_or_default();
+        if w > 0 && h > 0 && values.len() == w * h {
+            paint_luminance(&canvas, w, h, &values, peak);
+        }
     });
 
     Effect::new(move |_| {
@@ -287,6 +423,19 @@ pub fn Tm25Viewer() -> impl IntoView {
         });
         start_loading();
     };
+
+    // `?wasm=tm25&autoload=1&name=…`: another page on this origin (the
+    // tm25.eu viewer) stashed its file for us; start the bundle at once, it
+    // takes the file from the stash.
+    Effect::new(move |_| {
+        if query_param("autoload").is_none() || file_name.get_untracked().is_some() {
+            return;
+        }
+        set_file_name.set(Some(
+            query_param("name").unwrap_or_else(|| "ray file".into()),
+        ));
+        start_loading();
+    });
 
     // `?wasm=tm25&url=…`: fetch that file and load it as if it had been
     // dropped, so a link can open a sample in one click.
@@ -348,6 +497,7 @@ pub fn Tm25Viewer() -> impl IntoView {
                 <div style="color: #9aa4b2; font-size: 12px; margin-bottom: 10px;">"or drop a ray file anywhere on the page"</div>
 
                 {move || file_name.get().map(|n| view! { <div style="margin-bottom: 6px; word-break: break-all;">{n}</div> })}
+                <super::tm25_mix::Tm25Mixer on_mixed=Callback::new(move |file: web_sys::File| take_file(file)) />
                 {move || (!progress.get().is_empty() && status.get().is_none()).then(|| view! { <div style="color: #9aa4b2;">{format!("streaming {}", progress.get())}</div> })}
 
                 <hr style="border: 0; border-top: 1px solid #2a2f3a; margin: 10px 0;" />
@@ -401,6 +551,28 @@ pub fn Tm25Viewer() -> impl IntoView {
                         prop:value=move || settings.get().camera_cone_deg.to_string()
                         on:input=move |ev| { let v: f32 = event_target_value(&ev).parse().unwrap_or(8.0); upd(&|s| s.camera_cone_deg = v); } />
                 </label>
+                <label style="display: block; margin: 6px 0;">
+                    <span>{move || format!("Luminance pixel {:.3} mm", settings.get().luminance_pixel_mm)}</span>
+                    <input type="range" min="-2.3" max="0" step="0.05" style="width: 100%;"
+                        prop:value=move || settings.get().luminance_pixel_mm.log10().to_string()
+                        on:input=move |ev| { let v: f32 = event_target_value(&ev).parse().unwrap_or(-1.3); upd(&|s| s.luminance_pixel_mm = 10f32.powf(v)); } />
+                </label>
+                {move || luminance.get().filter(|_| settings.get().show_camera_view).map(|m| {
+                    let f = |k: &str| m.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0);
+                    let unit = m.get("unit").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    let (w, h) = (f("width"), f("height"));
+                    let px = f("pixel_mm");
+                    let fmt = |v: f64| if v >= 1e5 { format!("{:.3e}", v) } else { format!("{:.0}", v) };
+                    view! {
+                        <div style="margin-top: 8px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #8fb4ff;">{format!("Luminance map · {unit}")}</div>
+                        <canvas node_ref=lum_canvas style="width: 100%; height: auto; display: block; margin-top: 4px; border-radius: 6px; background: #000; image-rendering: pixelated;" />
+                        <div style="display: flex; justify-content: space-between; color: #9aa4b2; font-size: 11px;"><span>"0"</span><span>{format!("peak {} {unit}", fmt(f("peak")))}</span></div>
+                        <div style="color: #9aa4b2; font-size: 12px;">{format!(
+                            "{} × {} px of {px:.3} mm ({:.2} × {:.2} mm) · mean over lit pixels {} {unit} · {:.0} rays per pixel, ≈ {:.0} % noise",
+                            w, h, w * px, h * px, fmt(f("mean_lit")), f("rays_per_lit_pixel"), 100.0 / f("rays_per_lit_pixel").max(1e-9).sqrt()
+                        )}</div>
+                    }
+                })}
                 {move || {
                     let c = cam_view.get();
                     (settings.get().show_camera_view && !c.is_empty()).then(|| {
@@ -483,6 +655,16 @@ pub fn Tm25Viewer() -> impl IntoView {
                             {sre.clone().map(|_| view! { <button style=btn title="The spectrum as a LightTools .sre spectral distribution file, to assign to the ray data source" on:click=dl(sre.clone(), "sre")>"LightTools .sre"</button> })}
                             {has_lt_sampled.then(|| view! { <button style=btn title="Second option: a wavelength per ray drawn from the spectral table. The spectrum is then hard-wired into the rays in LightTools and cannot be reassigned; for sources whose spectrum varies over position and angle" on:click=move |_| download_lighttools("lighttools_sampled", format!("{}_sampled.ray", n_lts))>"LightTools .ray + λ"</button> })}
                             {quality_txt.clone().map(|_| view! { <button style=btn title="The quality report as text" on:click=dl(quality_txt.clone(), "quality.txt")>"Quality report .txt"</button> })}
+                        </div>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                            <button style="padding: 6px 10px; background: #6f42c1; color: #fff; border: 0; border-radius: 6px; cursor: pointer; font-size: 12px;"
+                                title="A PDF with the header, quality findings, far-field diagrams, spectrum with CCT, irradiance plane and the luminance map (switch on the camera view to include it)"
+                                disabled=move || report_busy.get()
+                                on:click=move |_| {
+                                    let Some(st) = status.get_untracked() else { return };
+                                    let lum = luminance.get_untracked().filter(|_| settings.get_untracked().show_camera_view);
+                                    download_report(st, exports.get_untracked(), lum, file_name.get_untracked().unwrap_or_else(|| "rayfile".into()), set_report_busy);
+                                }>{move || if report_busy.get() { "Rendering PDF…" } else { "PDF report" }}</button>
                         </div>
                         <div style="color: #9aa4b2; font-size: 11px; margin-top: 6px;">{
                             if lumens > 0.0 { format!("lamp flux {lumens:.2} lm · ATLA carries the spectrum") }

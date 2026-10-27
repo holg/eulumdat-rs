@@ -83,6 +83,8 @@ pub struct Tm25Settings {
     pub show_camera_view: bool,
     /// Half angle of the acceptance cone, degrees.
     pub camera_cone_deg: f32,
+    /// Pixel side of the luminance map drawn for the camera view, mm.
+    pub luminance_pixel_mm: f32,
 }
 
 impl Default for Tm25Settings {
@@ -104,6 +106,7 @@ impl Default for Tm25Settings {
             plane_cells: 96,
             show_camera_view: false,
             camera_cone_deg: 8.0,
+            luminance_pixel_mm: 0.05,
         }
     }
 }
@@ -460,6 +463,7 @@ struct CamViewState {
     last_cone: f32,
     last_count: usize,
     last_display: usize,
+    last_pixel: f32,
 }
 
 #[derive(Component)]
@@ -1561,6 +1565,7 @@ fn camera_view(
             clear(&mut commands);
             state.last_dir = None;
             publish_camera_view(0, 0, 0.0);
+            publish_luminance(None);
         }
         return;
     }
@@ -1570,6 +1575,7 @@ fn camera_view(
     let v_bevy = Vec3::new(cp * sy, sp, cp * cy).normalize();
     let v = eulumdat_tm25::from_bevy(v_bevy.to_array());
     let cone = settings.camera_cone_deg.clamp(0.5, 60.0);
+    let pixel = settings.luminance_pixel_mm.clamp(0.005, 5.0);
     let moved = match state.last_dir {
         Some(d) => (d[0] * v[0] + d[1] * v[1] + d[2] * v[2]) < (0.5f32).to_radians().cos(),
         None => true,
@@ -1577,13 +1583,19 @@ fn camera_view(
     if !moved
         && (state.last_cone - cone).abs() < 1e-3
         && state.last_display == settings.display_count
+        && (state.last_pixel - pixel).abs() < 1e-6
     {
         return;
     }
     state.last_dir = Some(v);
     state.last_cone = cone;
     state.last_display = settings.display_count;
+    state.last_pixel = pixel;
     clear(&mut commands);
+    // Luminance map of the kept rays from this direction (docs/luminance.md).
+    publish_luminance(
+        eulumdat_tm25::luminance_map(&l.rays, l.flux_kind(), v, cone, pixel, 96).as_ref(),
+    );
 
     let cos_cone = cone.to_radians().cos();
     let s = settings.point_size_mm.max(0.001) * 2.0;
@@ -1614,6 +1626,63 @@ fn camera_view(
             MeshMaterial3d(materials.add(additive_material())),
             CamViewEntity,
         ));
+    }
+}
+
+/// The luminance map as JSON in `localStorage["tm25_luminance"]` for the
+/// shell: parameters, statistics and the row-major pixel values.
+fn publish_luminance(m: Option<&eulumdat_tm25::LuminanceMap>) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let Some(storage) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) else {
+            return;
+        };
+        match m {
+            None => {
+                let _ = storage.remove_item("tm25_luminance");
+            }
+            Some(m) => {
+                // 4 significant digits keep a 96 × 96 map under 100 KB.
+                let values: Vec<f64> = m
+                    .values
+                    .iter()
+                    .map(|v| {
+                        if *v == 0.0 {
+                            0.0
+                        } else {
+                            let e = 10f64.powi(3 - v.abs().log10().floor() as i32);
+                            (v * e).round() / e
+                        }
+                    })
+                    .collect();
+                let json = serde_json::json!({
+                    "unit": m.unit(),
+                    "pixel_mm": m.pixel_mm,
+                    "cone_deg": m.cone_deg,
+                    "width": m.width,
+                    "height": m.height,
+                    "origin_mm": m.origin_mm,
+                    "direction": m.direction,
+                    "peak": m.peak,
+                    "mean_lit": m.mean_lit,
+                    "lit_pixels": m.lit_pixels,
+                    "rays": m.rays,
+                    "rays_per_lit_pixel": m.rays_per_lit_pixel,
+                    "values": values,
+                });
+                let _ = storage.set_item("tm25_luminance", &json.to_string());
+            }
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(m) = m {
+        debug!(
+            "luminance map {}×{} px, peak {:.4} {}",
+            m.width,
+            m.height,
+            m.peak,
+            m.unit()
+        );
     }
 }
 

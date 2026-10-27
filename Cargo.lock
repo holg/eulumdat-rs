@@ -4334,6 +4334,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "eulumdat-report-wasm"
+version = "0.8.0"
+dependencies = [
+ "eulumdat-typst",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "eulumdat-rt"
 version = "0.8.0"
 dependencies = [
@@ -4381,6 +4389,7 @@ version = "0.8.0"
 dependencies = [
  "eulumdat",
  "eulumdat-spectrum",
+ "eulumdat-typst",
  "tm25ray",
 ]
 
@@ -4416,6 +4425,8 @@ dependencies = [
  "chrono",
  "comemo",
  "eulumdat",
+ "eulumdat-spectrum",
+ "serde_json",
  "tempfile",
  "thiserror 1.0.69",
  "typst",
@@ -10261,9 +10272,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tm25ray"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4573cf82a7be18e7a670848a1f857ce3dcf541081b2b38cc656ad8fe384242a5"
+checksum = "fc92c876696fc28dc1de39593c290972467e1d56dd2f94018f01cf0761a62c23"
 dependencies = [
  "memmap2",
  "thiserror 1.0.69",

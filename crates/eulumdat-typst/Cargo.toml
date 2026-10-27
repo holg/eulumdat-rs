@@ -16,6 +16,8 @@ default = []
 compile = ["typst", "typst-pdf", "comemo"]
 # Enable PDF compilation via typst CLI (requires typst binary installed)
 cli-compile = []
+# JSON → report data for the TM-25 report (the viewer's status/exports/luminance JSON).
+json = ["serde_json", "eulumdat-spectrum"]
 
 [dependencies]
 anyhow = "1.0"
@@ -23,6 +25,8 @@ base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "wasmbind"] }
 comemo = { version = "0.4", optional = true }
 eulumdat.workspace = true
+eulumdat-spectrum = { workspace = true, optional = true }
+serde_json = { version = "1.0", optional = true }
 thiserror = "1.0"
 typst = { version = "0.12", optional = true }
 typst-pdf = { version = "0.12", optional = true }

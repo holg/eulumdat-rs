@@ -31,9 +31,11 @@
 mod error;
 mod generator;
 pub mod template;
+pub mod tm25_report;
 #[cfg(feature = "compile")]
 mod world;
 
 pub use error::{ReportError, Result};
 pub use generator::{PaperSize, ReportGenerator, ReportOptions, ReportSection};
 pub use template::{generate_comparison_report, generate_typst_with_files};
+pub use tm25_report::{generate_tm25_report, Tm25ReportData};

@@ -1,0 +1,14 @@
+[package]
+name = "eulumdat-report-wasm"
+version = "0.8.0"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+description = "wasm-bindgen bindings for the TM-25 ray file report (Typst source from the viewer's JSON), used by tm25.eu"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+eulumdat-typst = { workspace = true, features = ["json"] }
+wasm-bindgen.workspace = true

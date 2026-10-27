@@ -37,6 +37,7 @@ pub mod street_launcher;
 mod tabs;
 pub mod templates;
 pub mod theme;
+pub mod tm25_mix;
 pub mod tm25_viewer;
 mod validation_panel;
 mod zonal_designer;

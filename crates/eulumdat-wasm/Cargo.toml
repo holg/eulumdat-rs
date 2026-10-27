@@ -65,7 +65,7 @@ eulumdat-i18n.workspace = true
 eulumdat-rt = { workspace = true, default-features = false }
 eulumdat-spectrum.workspace = true
 eulumdat-tm25.workspace = true
-eulumdat-typst.workspace = true
+eulumdat-typst = { workspace = true, features = ["json"] }
 eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates", version = "0.8.0" }
 getrandom = { version = "0.3", features = ["wasm_js"] }
 gloo.workspace = true

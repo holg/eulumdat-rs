@@ -16,7 +16,7 @@ extern "C" {
 
 /// Compile Typst source to PDF using the WASM typst compiler.
 /// SVGs are already embedded inline in the source.
-async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
+pub(crate) async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
     match compile_typst_to_pdf_js(typst_source).await {
         Ok(js_val) => {
             let array = js_sys::Uint8Array::new(&js_val);
