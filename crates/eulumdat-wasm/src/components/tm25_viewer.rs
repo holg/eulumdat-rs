@@ -447,6 +447,7 @@ pub fn Tm25Viewer() -> impl IntoView {
                     let has_lt = e.get("lighttools").and_then(|v| v.as_bool()).unwrap_or(false);
                     let has_lt_sampled = e.get("lighttools_sampled").and_then(|v| v.as_bool()).unwrap_or(false);
                     let sre = text("sre");
+                    let quality_txt = text("quality_txt");
                     let (n_lt, n_lts) = (name.clone(), name.clone());
                     let btn = "padding: 5px 9px; background: #2a2f3a; color: #e8ecf1; border: 0; border-radius: 6px; cursor: pointer; font-size: 12px;";
                     let n_dl = name.clone();
@@ -481,6 +482,7 @@ pub fn Tm25Viewer() -> impl IntoView {
                             {has_lt.then(|| view! { <button style=btn title="LightTools binary ray file of the kept rays, flux rescaled to the file total; no colour information, assign the spectrum in LightTools" on:click=move |_| download_lighttools("lighttools", format!("{}.ray", n_lt))>"LightTools .ray"</button> })}
                             {sre.clone().map(|_| view! { <button style=btn title="The spectrum as a LightTools .sre spectral distribution file, to assign to the ray data source" on:click=dl(sre.clone(), "sre")>"LightTools .sre"</button> })}
                             {has_lt_sampled.then(|| view! { <button style=btn title="Second option: a wavelength per ray drawn from the spectral table. The spectrum is then hard-wired into the rays in LightTools and cannot be reassigned; for sources whose spectrum varies over position and angle" on:click=move |_| download_lighttools("lighttools_sampled", format!("{}_sampled.ray", n_lts))>"LightTools .ray + λ"</button> })}
+                            {quality_txt.clone().map(|_| view! { <button style=btn title="The quality report as text" on:click=dl(quality_txt.clone(), "quality.txt")>"Quality report .txt"</button> })}
                         </div>
                         <div style="color: #9aa4b2; font-size: 11px; margin-top: 6px;">{
                             if lumens > 0.0 { format!("lamp flux {lumens:.2} lm · ATLA carries the spectrum") }
@@ -537,6 +539,26 @@ pub fn Tm25Viewer() -> impl IntoView {
                         <div style="color: #9aa4b2;">{t(1)} {" · "} {t(6)}</div>
                         <div style="margin-top: 8px;">{format!("{} rays · {} · {}", g("rays"), flux_line, g("date").as_str().unwrap_or(""))}</div>
                         <div style="color: #9aa4b2; font-size: 12px;">{format!("kept {} for display · columns {}", g("kept"), g("columns").as_array().map(|a| a.len()).unwrap_or(0))}</div>
+                        {st.get("quality").cloned().map(|q| {
+                            let errors = q.get("errors").and_then(|v| v.as_u64()).unwrap_or(0);
+                            let warnings = q.get("warnings").and_then(|v| v.as_u64()).unwrap_or(0);
+                            let verdict = q.get("verdict").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                            let noise = q.get("noise").and_then(|v| v.as_f64()).unwrap_or(0.0);
+                            let color = if errors > 0 { "#ff6b6b" } else if warnings > 0 { "#ffd166" } else { "#8ee07a" };
+                            let findings: Vec<(String, String, String)> = q.get("findings").and_then(|v| v.as_array()).map(|a| a.iter().map(|f| (
+                                f.get("severity").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                f.get("code").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                                f.get("message").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                            )).collect()).unwrap_or_default();
+                            view! {
+                                <div style="margin-top: 10px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #8fb4ff;">"Quality"</div>
+                                <div><span style=format!("color: {color}; font-weight: 600;")>{verdict}</span><span style="color: #9aa4b2; font-size: 12px;">{format!(" · far-field noise {:.0} % per 10°×5° bin at γ = 30°", noise * 100.0)}</span></div>
+                                {findings.into_iter().map(|(sev, code, msg)| {
+                                    let c = match sev.as_str() { "error" => "#ff6b6b", "warning" => "#ffd166", _ => "#9aa4b2" };
+                                    view! { <div style="font-size: 12px; margin-top: 3px;"><span style=format!("color: {c}; font-family: ui-monospace, monospace;")>{code}</span>{format!(": {msg}")}</div> }
+                                }).collect::<Vec<_>>()}
+                            }
+                        })}
                         <div style="margin-top: 10px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #8fb4ff;">"Far field"</div>
                         <svg viewBox="0 0 260 80" style="width: 100%; height: auto; background: #0b0d12; border-radius: 6px; margin-top: 4px;">
                             <polyline points=poly fill="none" stroke="#8fb4ff" stroke-width="1.5" />

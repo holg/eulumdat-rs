@@ -265,6 +265,8 @@ pub struct LoadedRays {
     pub max: [f32; 3],
     pub ray_count: u64,
     pub max_ray_flux: f32,
+    /// Consistency checks over every ray (`tm25ray::quality`).
+    pub quality: eulumdat_tm25::QualityReport,
 }
 
 impl LoadedRays {
@@ -300,6 +302,7 @@ pub struct Ingest {
     max: [f32; 3],
     max_flux: f32,
     carry: Vec<u8>,
+    quality: eulumdat_tm25::QualityAccumulator,
 }
 
 impl Ingest {
@@ -309,12 +312,13 @@ impl Ingest {
             layout: RayLayout::from_header(&header),
             ff: FarFieldBuilder::new(10.0, 5.0, kind),
             res: Reservoir::new(keep, seed),
-            header,
             count: 0,
             min: [f32::MAX; 3],
             max: [f32::MIN; 3],
             max_flux: 0.0,
             carry: Vec::new(),
+            quality: eulumdat_tm25::QualityAccumulator::new(&header),
+            header,
         }
     }
 
@@ -339,6 +343,7 @@ impl Ingest {
                 *hi = hi.max(v);
             }
             self.max_flux = self.max_flux.max(r.flux(kind));
+            self.quality.add(&r);
             self.res.push(r);
             self.count += 1;
         }
@@ -359,6 +364,7 @@ impl Ingest {
             max: self.max,
             ray_count: self.count,
             max_ray_flux: self.max_flux,
+            quality: self.quality.finish(),
         }
     }
 }
@@ -942,6 +948,18 @@ fn status_json(l: &LoadedRays, irr: Option<&IrradianceGrid>) -> String {
             "cut_y": cut_y,
         },
         "spectrum": spectrum,
+        "quality": {
+            "verdict": l.quality.verdict(),
+            "errors": l.quality.errors(),
+            "warnings": l.quality.warnings(),
+            "noise": l.quality.far_field_noise,
+            "duplicates": l.quality.stats.duplicates,
+            "findings": l.quality.findings.iter().map(|f| serde_json::json!({
+                "severity": f.severity.as_str(),
+                "code": f.code,
+                "message": f.message,
+            })).collect::<Vec<_>>(),
+        },
         "irradiance": irradiance,
         "uv": uv,
         "horticulture": horticulture,
@@ -997,6 +1015,7 @@ pub fn exports_json(l: &LoadedRays) -> String {
         "sre": spectrum_of(l).map(|t| eulumdat_tm25::write_sre(&t, &stem)),
         // The sampled-wavelength .ray exists only for a shared table + radiant flux.
         "lighttools_sampled": l.header.shared_spectrum().is_some() && l.header.flags.radiant_flux,
+        "quality_txt": l.quality.to_text(&l.name),
     })
     .to_string()
 }
