@@ -87,6 +87,14 @@ fn has_webgpu() -> bool {
         .unwrap_or(false)
 }
 
+/// The canvas surface target exists only on wasm32; CI lints this crate
+/// natively too, so that build gets a stub that never runs.
+#[cfg(not(target_arch = "wasm32"))]
+async fn init_gpu(_canvas: web_sys::HtmlCanvasElement) -> Result<Gpu, String> {
+    Err("WebGPU canvas surfaces exist only in the browser".into())
+}
+
+#[cfg(target_arch = "wasm32")]
 async fn init_gpu(canvas: web_sys::HtmlCanvasElement) -> Result<Gpu, String> {
     // On the web the default instance is the WebGPU backend.
     let instance = wgpu::Instance::default();
