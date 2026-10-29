@@ -2853,6 +2853,26 @@ pub struct UiLightScene {
     pub waiting: String,
     #[serde(default = "ls_summary")]
     pub summary: String,
+    #[serde(default = "ls_scene_greenhouse")]
+    pub scene_greenhouse: String,
+    #[serde(default = "ls_desc_greenhouse")]
+    pub desc_greenhouse: String,
+    #[serde(default = "ls_canopy_height")]
+    pub canopy_height: String,
+    #[serde(default = "ls_photoperiod")]
+    pub photoperiod: String,
+    #[serde(default = "ls_ppfd_from_spd")]
+    pub ppfd_from_spd: String,
+    #[serde(default = "ls_ppfd_assumed")]
+    pub ppfd_assumed: String,
+    #[serde(default = "ls_dli")]
+    pub dli: String,
+    #[serde(default = "ls_dli_explain")]
+    pub dli_explain: String,
+    #[serde(default = "ls_hint_ppfd")]
+    pub hint_ppfd: String,
+    #[serde(default = "ls_unit_ppfd")]
+    pub unit_ppfd: String,
 }
 
 impl Default for UiLightScene {
@@ -2937,6 +2957,16 @@ impl Default for UiLightScene {
             starting: ls_starting(),
             waiting: ls_waiting(),
             summary: ls_summary(),
+            scene_greenhouse: ls_scene_greenhouse(),
+            desc_greenhouse: ls_desc_greenhouse(),
+            canopy_height: ls_canopy_height(),
+            photoperiod: ls_photoperiod(),
+            ppfd_from_spd: ls_ppfd_from_spd(),
+            ppfd_assumed: ls_ppfd_assumed(),
+            dli: ls_dli(),
+            dli_explain: ls_dli_explain(),
+            hint_ppfd: ls_hint_ppfd(),
+            unit_ppfd: ls_unit_ppfd(),
         }
     }
 }
@@ -3214,6 +3244,16 @@ pub struct DashboardGuide {
     pub compare_hint: String,
     #[serde(default = "dg_zoom")]
     pub zoom: String,
+    #[serde(default = "dg_mode_overview")]
+    pub mode_overview: String,
+    #[serde(default = "dg_mode_beam_angles")]
+    pub mode_beam_angles: String,
+    #[serde(default = "dg_mode_beam_intensities")]
+    pub mode_beam_intensities: String,
+    #[serde(default = "dg_mode_ugr")]
+    pub mode_ugr: String,
+    #[serde(default = "dg_about_site")]
+    pub about_site: String,
 }
 
 impl Default for DashboardGuide {
@@ -3234,6 +3274,11 @@ impl Default for DashboardGuide {
             compare: dg_compare(),
             compare_hint: dg_compare_hint(),
             zoom: dg_zoom(),
+            mode_overview: dg_mode_overview(),
+            mode_beam_angles: dg_mode_beam_angles(),
+            mode_beam_intensities: dg_mode_beam_intensities(),
+            mode_ugr: dg_mode_ugr(),
+            about_site: dg_about_site(),
         }
     }
 }
@@ -3380,6 +3425,10 @@ pub struct DashboardFeatures {
     pub gldf_desc: String,
     #[serde(default = "df_quiz_desc")]
     pub quiz_desc: String,
+    #[serde(default = "df_spectrum_lab_title")]
+    pub spectrum_lab_title: String,
+    #[serde(default = "df_spectrum_lab_desc")]
+    pub spectrum_lab_desc: String,
 }
 
 impl Default for DashboardFeatures {
@@ -3431,6 +3480,8 @@ impl Default for DashboardFeatures {
             digitizer_desc: df_digitizer_desc(),
             gldf_desc: df_gldf_desc(),
             quiz_desc: df_quiz_desc(),
+            spectrum_lab_title: df_spectrum_lab_title(),
+            spectrum_lab_desc: df_spectrum_lab_desc(),
         }
     }
 }
@@ -3550,7 +3601,8 @@ fn df_spectral_desc() -> String {
     "Spectra, CCT, CRI, TM-30, melanopic and horticultural PPFD from SPD data".into()
 }
 fn df_greenhouse_desc() -> String {
-    "Grow lights and daylight through spectral glazing with a canopy PPFD map and Monte Carlo check".into()
+    "Grow lights and daylight through spectral glazing with a canopy PPFD map and Monte Carlo check"
+        .into()
 }
 fn df_daylight_desc() -> String {
     "Sun position, clear and overcast sky and daylight factors for any place and date".into()
@@ -3562,7 +3614,7 @@ fn df_gonio_desc() -> String {
     "Monte Carlo measurement of lamps with covers and reflectors; LDT from a design".into()
 }
 fn df_tm25_desc() -> String {
-    "Near-field LED ray sets: far-field solid, spectrum, luminance map and LDT / ATLA export".into()
+    "Near-field LED ray sets: far-field solid, spectrum, luminance map and LDT / ATLA export. Also at tm25.eu.".into()
 }
 fn df_digitizer_desc() -> String {
     "Drop a spectrum chart image and get an SPD file attached to the luminaire".into()
@@ -3572,4 +3624,55 @@ fn df_gldf_desc() -> String {
 }
 fn df_quiz_desc() -> String {
     "175 questions on photometry and lighting design in eight languages".into()
+}
+fn dg_mode_overview() -> String {
+    "Overview".into()
+}
+fn dg_mode_beam_angles() -> String {
+    "Beam angles".into()
+}
+fn dg_mode_beam_intensities() -> String {
+    "Intensities".into()
+}
+fn dg_mode_ugr() -> String {
+    "UGR table".into()
+}
+fn ls_scene_greenhouse() -> String {
+    "Greenhouse".into()
+}
+fn ls_desc_greenhouse() -> String {
+    "Glasshouse with two crop benches; values on the canopy in PPFD (µmol/m²/s) with the daily light integral.".into()
+}
+fn ls_canopy_height() -> String {
+    "Canopy height".into()
+}
+fn ls_photoperiod() -> String {
+    "Photoperiod".into()
+}
+fn ls_ppfd_from_spd() -> String {
+    "PPFD from the luminaire's spectrum: {f} µmol per lx·s".into()
+}
+fn ls_ppfd_assumed() -> String {
+    "No spectrum in the file: PPFD assumes a white LED, {f} µmol per lx·s. Load an ATLA / TM-33 file or attach an SPD for the real factor.".into()
+}
+fn ls_dli() -> String {
+    "DLI".into()
+}
+fn ls_dli_explain() -> String {
+    "DLI = PPFD average × photoperiod, in mol/m²/day. Leafy greens want 12–17, fruiting crops 20–30.".into()
+}
+fn ls_hint_ppfd() -> String {
+    "Colour = PPFD in µmol/m²/s on every surface (scale in the panel) · lines every {step}".into()
+}
+fn ls_unit_ppfd() -> String {
+    "µmol/m²/s".into()
+}
+fn dg_about_site() -> String {
+    "What is Candelabra?".into()
+}
+fn df_spectrum_lab_title() -> String {
+    "Spectrum Lab".into()
+}
+fn df_spectrum_lab_desc() -> String {
+    "Photon-by-photon spectral Monte Carlo: night vision (S/P), circadian (melanopic DER), mesopic road luminance, colour over angle and a dark-sky report".into()
 }

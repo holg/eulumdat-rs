@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <linearGradient id="spd-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:0.4"/>
+      <stop offset="50%" style="stop-color:#10b981;stop-opacity:0.4"/>
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0.4"/>
+    </linearGradient>
+    <linearGradient id="spectrum-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0.0%" style="stop-color:#7c3aed"/>
+      <stop offset="10.0%" style="stop-color:#3b82f6"/>
+      <stop offset="22.5%" style="stop-color:#22d3ee"/>
+      <stop offset="37.5%" style="stop-color:#22c55e"/>
+      <stop offset="50.0%" style="stop-color:#eab308"/>
+      <stop offset="60.0%" style="stop-color:#f97316"/>
+      <stop offset="80.0%" style="stop-color:#ef4444"/>
+      <stop offset="100.0%" style="stop-color:#b91c1c"/>
+
+    </linearGradient>
+  </defs>
+  <rect width="500" height="500" fill="#ffffff"/>
+  <rect x="60.0" y="30" width="20.5" height="420" fill="#7c3aed15" />
+  <rect x="60.0" y="30" width="20.5" height="4" fill="#7c3aed" opacity="0.6"/>
+  <line x1="60" y1="450.0" x2="470" y2="450.0" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="52" y="450.0" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="end" dominant-baseline="middle">0%</text>
+  <line x1="60" y1="345.0" x2="470" y2="345.0" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="52" y="345.0" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="end" dominant-baseline="middle">25%</text>
+  <line x1="60" y1="240.0" x2="470" y2="240.0" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="52" y="240.0" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="end" dominant-baseline="middle">50%</text>
+  <line x1="60" y1="135.0" x2="470" y2="135.0" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="52" y="135.0" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="end" dominant-baseline="middle">75%</text>
+  <line x1="60" y1="30.0" x2="470" y2="30.0" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="52" y="30.0" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="end" dominant-baseline="middle">100%</text>
+  <line x1="80.5" y1="30" x2="80.5" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="80.5" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">400</text>
+  <line x1="131.8" y1="30" x2="131.8" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="131.8" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">450</text>
+  <line x1="183.0" y1="30" x2="183.0" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="183.0" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">500</text>
+  <line x1="234.2" y1="30" x2="234.2" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="234.2" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">550</text>
+  <line x1="285.5" y1="30" x2="285.5" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="285.5" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">600</text>
+  <line x1="336.8" y1="30" x2="336.8" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="336.8" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">650</text>
+  <line x1="388.0" y1="30" x2="388.0" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="388.0" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">700</text>
+  <line x1="439.2" y1="30" x2="439.2" y2="450" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="439.2" y="468" fill="#333333" font-size="11" font-family="system-ui, sans-serif" text-anchor="middle">750</text>
+  <rect x="60" y="30" width="410" height="420" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+  <rect x="60" y="480" width="410" height="8" fill="url(#spectrum-gradient)" rx="2"/>
+  <path d="M 60.0 450.0 L 60.0 441.6 L 80.5 416.4 L 101.0 345.0 L 121.5 177.0 L 131.8 93.0 L 142.0 147.6 L 162.5 303.0 L 183.0 332.4 L 203.5 315.6 L 224.0 290.4 L 244.5 273.6 L 265.0 282.0 L 285.5 261.0 L 306.0 219.0 L 326.5 135.0 L 347.0 30.0 L 367.5 156.0 L 388.0 345.0 L 408.5 387.0 L 429.0 416.4 L 449.5 437.4 L 470.0 445.8 L 470.0 450.0 Z" fill="url(#spd-gradient)" stroke="none"/>
+  <path d="M 60.0 441.6 L 80.5 416.4 L 101.0 345.0 L 121.5 177.0 L 131.8 93.0 L 142.0 147.6 L 162.5 303.0 L 183.0 332.4 L 203.5 315.6 L 224.0 290.4 L 244.5 273.6 L 265.0 282.0 L 285.5 261.0 L 306.0 219.0 L 326.5 135.0 L 347.0 30.0 L 367.5 156.0 L 388.0 345.0 L 408.5 387.0 L 429.0 416.4 L 449.5 437.4 L 470.0 445.8" fill="none" stroke="#1e40af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="347.0" cy="30.0" r="4" fill="#1e40af" stroke="#ffffff" stroke-width="2"/>
+  <text x="347.0" y="20.0" fill="#333333" font-size="10" font-family="system-ui, sans-serif" text-anchor="middle">660nm</text>
+  <text x="265" y="492" fill="#333333" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle">Wavelength (nm)</text>
+  <text x="15" y="240" fill="#333333" font-size="12" font-family="system-ui, sans-serif" text-anchor="middle" transform="rotate(-90 15 240)">Relative Power</text>
+  <text x="250" y="18" fill="#333333" font-size="14" font-family="system-ui, sans-serif" font-weight="bold" text-anchor="middle">Spectral Power Distribution</text>
+</svg>

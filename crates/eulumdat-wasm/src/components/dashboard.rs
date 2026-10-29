@@ -786,7 +786,10 @@ pub fn Dashboard(
                 // left was invisible to first-time visitors.
                 <div class="dashboard-guide">
                     <div class="guide-text">
-                        <div class="guide-title">{move || locale.get().dashboard.guide.title.clone()}</div>
+                        <div class="guide-title">
+                            {move || locale.get().dashboard.guide.title.clone()}
+                            <a class="guide-about" href="../" title="Candelabra">{move || locale.get().dashboard.guide.about_site.clone()}</a>
+                        </div>
                         <div class="guide-step">{move || locale.get().dashboard.guide.step1.clone()}</div>
                         <div class="guide-step">
                             {move || locale.get().dashboard.guide.step2.clone()}
@@ -985,7 +988,11 @@ pub fn Dashboard(
                     if !loading.get() {
                         let count = entries.get().len();
                         let lib_n = library_count.get();
-                        let luminaires_text = locale.get().dashboard.luminaires_count
+                        let luminaires_text = locale
+                            .get()
+                            .dashboard
+                            .luminaires_count
+                            .replace("{0}", &count.to_string())
                             .replace("{}", &count.to_string());
                         let click_text = locale.get().dashboard.click_to_select.clone();
                         Some(view! {
@@ -1051,6 +1058,7 @@ pub enum Feature {
     Maps,
     Street,
     Spectral,
+    SpectrumLab,
     Greenhouse,
     Daylight,
     Skyglow,
@@ -1062,7 +1070,7 @@ pub enum Feature {
 }
 
 impl Feature {
-    pub const ALL: [Feature; 21] = [
+    pub const ALL: [Feature; 22] = [
         Feature::Editor,
         Feature::Validation,
         Feature::Bug,
@@ -1076,6 +1084,7 @@ impl Feature {
         Feature::Maps,
         Feature::Street,
         Feature::Spectral,
+        Feature::SpectrumLab,
         Feature::Greenhouse,
         Feature::Daylight,
         Feature::Skyglow,
@@ -1101,6 +1110,7 @@ impl Feature {
             Feature::Maps => "\u{1F5FA}\u{FE0F}",
             Feature::Street => "\u{1F6E3}\u{FE0F}",
             Feature::Spectral => "\u{1F308}",
+            Feature::SpectrumLab => "\u{1F52D}",
             Feature::Greenhouse => "\u{1F331}",
             Feature::Daylight => "\u{2600}\u{FE0F}",
             Feature::Skyglow => "\u{1F30C}",
@@ -1139,6 +1149,7 @@ impl Feature {
             Feature::Maps => t(&f.maps_title, &f.maps_desc),
             Feature::Street => t(&f.street_title, &f.street_desc),
             Feature::Spectral => t(&f.spectral_title, &f.spectral_desc),
+            Feature::SpectrumLab => t(&f.spectrum_lab_title, &f.spectrum_lab_desc),
             Feature::Greenhouse => t(&f.greenhouse_title, &f.greenhouse_desc),
             Feature::Daylight => t(&f.daylight_title, &f.daylight_desc),
             Feature::Skyglow => t(&f.skyglow_title, &f.skyglow_desc),
@@ -1277,6 +1288,17 @@ fn DashboardSidebar(
                                     on:click=move |_| set_diagram_mode.set(mode)
                                 >
                                     <span class="sidebar-icon">{mode.icon()}</span>
+                                    <span class="sidebar-label">
+                                        {move || {
+                                            let g = locale.get().dashboard.guide;
+                                            match mode {
+                                                DiagramMode::Overview => g.mode_overview.clone(),
+                                                DiagramMode::BeamAngles => g.mode_beam_angles.clone(),
+                                                DiagramMode::BeamIntensities => g.mode_beam_intensities.clone(),
+                                                DiagramMode::UgrTable => g.mode_ugr.clone(),
+                                            }
+                                        }}
+                                    </span>
                                 </button>
                             }
                         }).collect_view()}

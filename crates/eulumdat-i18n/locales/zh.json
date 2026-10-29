@@ -345,7 +345,7 @@
   },
   "ui": {
     "header": {
-      "title": "Photometrica",
+      "title": "Candelabra",
       "file": "文件",
       "new": "新建",
       "open": "打开...",
@@ -663,7 +663,7 @@
       "empty_hint": "比较光通量、光效、光束角、光强分布等参数。"
     },
     "about": {
-      "title": "Photometrica",
+      "title": "Candelabra",
       "subtitle": "开放的光度学工作台：编辑器、图表、光照场景、光谱。基于 eulumdat-rs。",
       "desc_parsing": "解析EULUMDAT (.ldt)、IES、TM-33、ATLA-S001、SPDX文件。",
       "desc_diagrams": "生成SVG图表：极坐标、直角坐标、光谱、热力图。",
@@ -759,7 +759,17 @@
       "no_webgpu": "无 WebGPU：以预览尺寸在 CPU 上追踪",
       "starting": "正在启动 WebGPU…",
       "waiting": "等待查看器…",
-      "summary": "{name} · {lm} lm · 峰值 {cd} cd · 主光束 C{c}（{pct} %）"
+      "summary": "{name} · {lm} lm · 峰值 {cd} cd · 主光束 C{c}（{pct} %）",
+      "scene_greenhouse": "温室",
+      "desc_greenhouse": "带两条栽培台的玻璃温室；冠层上的数值以 PPFD（µmol/m²/s）显示，并给出日光积分。",
+      "canopy_height": "冠层高度",
+      "photoperiod": "光周期",
+      "ppfd_from_spd": "PPFD 由灯具光谱得出：每 lx·s {f} µmol",
+      "ppfd_assumed": "文件中无光谱：PPFD 按白光 LED 假定，每 lx·s {f} µmol。加载 ATLA / TM-33 文件或附加 SPD 以获得真实系数。",
+      "dli": "DLI",
+      "dli_explain": "DLI = 平均 PPFD × 光周期，单位 mol/m²/天。叶菜需 12–17，果菜需 20–30。",
+      "hint_ppfd": "颜色 = 各表面的 PPFD（µmol/m²/s，刻度见面板）· 等值线每 {step} 一条",
+      "unit_ppfd": "µmol/m²/s"
     }
   },
   "report": {
@@ -1165,7 +1175,12 @@
       "pdf": "PDF 报告",
       "compare": "比较",
       "compare_hint": "Ctrl / ⌘ + 点击第二行可比较两个灯具",
-      "zoom": "放大图表"
+      "zoom": "放大图表",
+      "mode_overview": "概览",
+      "mode_beam_angles": "光束角",
+      "mode_beam_intensities": "光强",
+      "mode_ugr": "UGR 表",
+      "about_site": "Candelabra 是什么？"
     },
     "features": {
       "heading": "本站的全部功能",
@@ -1210,10 +1225,12 @@
       "daylight_desc": "任意地点和日期的太阳位置、晴空与阴天及采光系数",
       "skyglow_desc": "使用真实星表的夜空亮度与光污染演示",
       "gonio_desc": "带罩与反射器灯具的蒙特卡洛测量；由设计生成 LDT",
-      "tm25_desc": "近场 LED 光线集：远场光度体、光谱、亮度图及 LDT / ATLA 导出",
+      "tm25_desc": "近场 LED 光线集：远场光度体、光谱、亮度图及 LDT / ATLA 导出 也可访问 tm25.eu。",
       "digitizer_desc": "拖入光谱曲线图片，得到附加到灯具的 SPD 文件",
       "gldf_desc": "拖入 .gldf：光度数据加上厂商 L3D 外形，用于光照场景",
-      "quiz_desc": "八种语言的 175 道光度学与照明设计题"
+      "quiz_desc": "八种语言的 175 道光度学与照明设计题",
+      "spectrum_lab_title": "Spectrum Lab",
+      "spectrum_lab_desc": "逐光子光谱蒙特卡洛：夜视（S/P）、昼夜节律（褪黑素 DER）、中间视觉路面亮度、随角度变化的颜色和暗夜报告"
     }
   },
   "maps_designer": {

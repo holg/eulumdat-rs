@@ -101,6 +101,12 @@ description = "Virtual Goniophotometer (Monte Carlo tracer)"
 load_strategy = "embedded"
 note = "Part of Leptos bundle, no separate build"
 
+[site]
+# Canonical public URL of the site: the landing page generator uses it for
+# <link rel="canonical">, og:url and the absolute og:image.
+url = "https://candelabra.eu/"
+# url = "https://iesna.eu/"
+
 [deploy]
 # rsync target for deployment (user@host:/path/)
 # Leave empty to disable deploy command

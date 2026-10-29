@@ -51,6 +51,23 @@ impl CompareDiagramMode {
         }
     }
 
+    /// Link id (`diagram=<id>`) → mode.
+    fn from_id(id: &str) -> Option<Self> {
+        Some(match id {
+            "polar" => Self::Polar,
+            "cartesian" => Self::Cartesian,
+            "heatmap" => Self::Heatmap,
+            "3d" | "butterfly" => Self::Butterfly,
+            "cone" => Self::Cone,
+            "isocandela" => Self::Isocandela,
+            "isolux" => Self::Isolux,
+            "floodlight" | "vh" => Self::Floodlight,
+            "bug" => Self::Bug,
+            "lcs" => Self::Lcs,
+            _ => return None,
+        })
+    }
+
     const ALL: &[Self] = &[
         Self::Polar,
         Self::Cartesian,
@@ -234,7 +251,17 @@ pub fn ComparePanel(
 ) -> impl IntoView {
     let unit_system = use_unit_system();
     let locale = use_locale();
-    let (diagram_mode, set_diagram_mode) = signal(CompareDiagramMode::default());
+    // A deep link (`#tab=compare&…&diagram=isocandela`) picks the first view.
+    let initial_mode = use_context::<super::app::RtLinkParams>()
+        .and_then(|p| {
+            p.0.get_value()
+                .iter()
+                .find(|(k, _)| k == "diagram")
+                .map(|(_, v)| v.clone())
+        })
+        .and_then(|v| CompareDiagramMode::from_id(&v))
+        .unwrap_or_default();
+    let (diagram_mode, set_diagram_mode) = signal(initial_mode);
     let (drag_active, set_drag_active) = signal(false);
 
     // Cone diagram controls

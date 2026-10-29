@@ -345,7 +345,7 @@
   },
   "ui": {
     "header": {
-      "title": "Photometrica",
+      "title": "Candelabra",
       "file": "Archivo",
       "new": "Nuevo",
       "open": "Abrir...",
@@ -663,7 +663,7 @@
       "empty_hint": "Compara flujo, eficacia, ángulos de haz, distribución de intensidad y más."
     },
     "about": {
-      "title": "Photometrica",
+      "title": "Candelabra",
       "subtitle": "Banco de trabajo fotométrico abierto: editor, diagramas, escenas de luz, espectros. Basado en eulumdat-rs.",
       "desc_parsing": "Parsea archivos EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX.",
       "desc_diagrams": "Genera diagramas SVG: polar, cartesiano, espectral, mapa de calor.",
@@ -759,7 +759,17 @@
       "no_webgpu": "Sin WebGPU: trazado en la CPU a tamaño de vista previa",
       "starting": "Iniciando WebGPU…",
       "waiting": "Esperando al visor…",
-      "summary": "{name} · {lm} lm · pico {cd} cd · haz C{c} ({pct} %)"
+      "summary": "{name} · {lm} lm · pico {cd} cd · haz C{c} ({pct} %)",
+      "scene_greenhouse": "Invernadero",
+      "desc_greenhouse": "Invernadero de vidrio con dos mesas de cultivo; valores sobre el dosel en PPFD (µmol/m²/s) con la integral de luz diaria.",
+      "canopy_height": "Altura del dosel",
+      "photoperiod": "Fotoperiodo",
+      "ppfd_from_spd": "PPFD a partir del espectro de la luminaria: {f} µmol por lx·s",
+      "ppfd_assumed": "Sin espectro en el archivo: el PPFD supone un LED blanco, {f} µmol por lx·s. Cargue un archivo ATLA / TM-33 o adjunte un SPD para el factor real.",
+      "dli": "DLI",
+      "dli_explain": "DLI = PPFD medio × fotoperiodo, en mol/m²/día. Hojas verdes 12–17, cultivos de fruto 20–30.",
+      "hint_ppfd": "Color = PPFD en µmol/m²/s en cada superficie (escala en el panel) · líneas cada {step}",
+      "unit_ppfd": "µmol/m²/s"
     }
   },
   "report": {
@@ -1165,7 +1175,12 @@
       "pdf": "Informe PDF",
       "compare": "Comparar",
       "compare_hint": "Ctrl / ⌘ + clic en una segunda fila para comparar dos luminarias",
-      "zoom": "Ampliar diagrama"
+      "zoom": "Ampliar diagrama",
+      "mode_overview": "Resumen",
+      "mode_beam_angles": "Ángulos",
+      "mode_beam_intensities": "Intensidades",
+      "mode_ugr": "Tabla UGR",
+      "about_site": "¿Qué es Candelabra?"
     },
     "features": {
       "heading": "Todo lo que hay en este sitio",
@@ -1210,10 +1225,12 @@
       "daylight_desc": "Posición solar, cielo despejado y cubierto y factores de luz diurna para cualquier lugar y fecha",
       "skyglow_desc": "Demostración de brillo del cielo nocturno y contaminación lumínica con datos reales de estrellas",
       "gonio_desc": "Medición Monte Carlo de lámparas con cubiertas y reflectores; LDT a partir de un diseño",
-      "tm25_desc": "Conjuntos de rayos LED de campo cercano: sólido de campo lejano, espectro, mapa de luminancia y exportación LDT / ATLA",
+      "tm25_desc": "Conjuntos de rayos LED de campo cercano: sólido de campo lejano, espectro, mapa de luminancia y exportación LDT / ATLA También en tm25.eu.",
       "digitizer_desc": "Suelte la imagen de un espectro y obtenga un archivo SPD adjunto a la luminaria",
       "gldf_desc": "Suelte un .gldf: fotometría más el cuerpo L3D del fabricante en la escena de luz",
-      "quiz_desc": "175 preguntas sobre fotometría y diseño de iluminación en ocho idiomas"
+      "quiz_desc": "175 preguntas sobre fotometría y diseño de iluminación en ocho idiomas",
+      "spectrum_lab_title": "Spectrum Lab",
+      "spectrum_lab_desc": "Monte Carlo espectral fotón a fotón: visión nocturna (S/P), circadiano (DER melanópico), luminancia vial mesópica, color según el ángulo e informe de cielo oscuro"
     }
   },
   "maps_designer": {

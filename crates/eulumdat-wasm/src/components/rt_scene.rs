@@ -12,7 +12,7 @@ use eulumdat::Eulumdat;
 use eulumdat_rt::lightscene::SceneRenderer;
 use eulumdat_scene::cpu::CpuTracer;
 use eulumdat_scene::mesh::LuminaireMesh;
-use eulumdat_scene::scene::SceneKind;
+use eulumdat_scene::scene::{suggest_scene, SceneKind};
 use eulumdat_scene::sync::{scene_id, Status, SyncSettings};
 use eulumdat_scene::viewer::{ViewMode, Viewer};
 use leptos::prelude::*;
@@ -486,7 +486,20 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
         });
     });
     let (load_state, set_load_state) = signal(LoadState::Idle);
-    let (settings, set_settings) = signal(SyncSettings::default());
+    // A deep link (`#tab=light-scene&scene=…&mode=…`) sets the first
+    // settings and counts as the visitor's own scene choice.
+    let (link_settings, link_scene) = use_context::<super::app::RtLinkParams>()
+        .map(|p| {
+            let pairs = p.0.get_value();
+            let mut s = SyncSettings::default();
+            let any = s.apply_query(&pairs);
+            (
+                if any { s } else { SyncSettings::default() },
+                pairs.iter().any(|(k, _)| k == "scene"),
+            )
+        })
+        .unwrap_or((SyncSettings::default(), false));
+    let (settings, set_settings) = signal(link_settings);
     let (status, set_status) = signal(Status::default());
     let browser = StoredValue::new(detect_browser());
 
@@ -495,6 +508,7 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
     // also ticks on round trips that leave the data as it was, and a reload
     // restarts the picture and resets exposure and colour temperature.
     let last_ldt = StoredValue::new(String::new());
+    let scene_touched = StoredValue::new(link_scene);
     Effect::new(move |_| {
         let ldt = ldc.get();
         let text = ldt.to_ldt();
@@ -502,6 +516,14 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
             return;
         }
         last_ldt.set_value(text);
+        // Until the visitor picks a scene, follow the luminaire: an office
+        // light in the street looks wrong and vice versa.
+        if !scene_touched.get_value() {
+            let kind = suggest_scene(&ldt);
+            if settings.get_untracked().scene != scene_id(kind) {
+                set_settings.set(SyncSettings::for_scene(kind));
+            }
+        }
         shared_sv.with_value(|sh| {
             if let Ok(mut s) = sh.try_borrow_mut() {
                 s.viewer.load("editor luminaire", ldt, None);
@@ -521,10 +543,12 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
     });
 
     // Panel settings → viewer; the compute choice stays in the tab.
+    let ppfd = use_context::<super::app::PpfdFactor>();
     Effect::new(move |_| {
         let mut s = settings.get();
         s.overlay = false;
         s.active = true;
+        s.ppfd_factor = ppfd.and_then(|c| c.0.get());
         let cpu = s.compute == "cpu" || !webgpu.get();
         shared_sv.with_value(|sh| {
             let Ok(mut sh) = sh.try_borrow_mut() else {
@@ -709,7 +733,7 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
 
     view! {
         <div class="rt-scene" style="width: 100%; height: 100%; display: flex; min-height: 0;">
-            <RtControlPanel settings=settings set_settings=set_settings status=status webgpu=webgpu />
+            <RtControlPanel settings=settings set_settings=set_settings status=status webgpu=webgpu scene_touched=scene_touched />
 
             <div style="flex: 1; position: relative; min-width: 0; background: #07080a; border-radius: 0 8px 8px 0; overflow: hidden;">
                 <canvas
@@ -770,7 +794,14 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
                             {move || {
                                 let tt = t.get();
                                 match settings.get().mode.as_str() {
-                                    "isolux" => fill(&tt.hint_isolux, &[("{step}", format!("{:.0}", status.get().iso_step))]),
+                                    "isolux" => {
+                                        let st = status.get();
+                                        if st.ppfd_factor > 0.0 {
+                                            fill(&tt.hint_ppfd, &[("{step}", format!("{:.0}", st.iso_step * st.ppfd_factor))])
+                                        } else {
+                                            fill(&tt.hint_isolux, &[("{step}", format!("{:.0}", st.iso_step))])
+                                        }
+                                    }
                                     "points" => tt.hint_points,
                                     _ => tt.hint_render,
                                 }
@@ -874,6 +905,7 @@ fn height_range(s: &SyncSettings) -> (f32, f32) {
         "parking" => (3.0, 14.0),
         "facade" => (0.2, 9.0),
         "office" => (1.2, (s.ceiling_height - 0.12).max(1.2)),
+        "greenhouse" => (s.canopy_height + 0.2, 3.85),
         _ => (4.0, 14.0),
     }
 }
@@ -893,6 +925,7 @@ fn RtControlPanel(
     set_settings: WriteSignal<SyncSettings>,
     status: ReadSignal<Status>,
     webgpu: ReadSignal<bool>,
+    scene_touched: StoredValue<bool>,
 ) -> impl IntoView {
     let t = Memo::new(move |_| use_locale().get().ui.light_scene.clone());
     let (open, set_open) = signal(true);
@@ -943,15 +976,15 @@ fn RtControlPanel(
 
                     <Section title=Signal::derive(move || t.get().step_scene)>
                         <div style="display: flex; gap: 4px;">
-                            {[SceneKind::Street, SceneKind::Parking, SceneKind::Facade, SceneKind::Office].into_iter().map(|kind| {
+                            {[SceneKind::Street, SceneKind::Parking, SceneKind::Facade, SceneKind::Office, SceneKind::Greenhouse].into_iter().map(|kind| {
                                 let id = scene_id(kind);
                                 let label = move || {
                                     let tt = t.get();
-                                    match kind { SceneKind::Street => tt.scene_street, SceneKind::Parking => tt.scene_parking, SceneKind::Facade => tt.scene_facade, SceneKind::Office => tt.scene_office }
+                                    match kind { SceneKind::Street => tt.scene_street, SceneKind::Parking => tt.scene_parking, SceneKind::Facade => tt.scene_facade, SceneKind::Office => tt.scene_office, SceneKind::Greenhouse => tt.scene_greenhouse }
                                 };
                                 view! {
                                     <button style=move || seg_style(settings.get().scene == id)
-                                        on:click=move |_| upd(&|s| { if s.scene != id { *s = SyncSettings::for_scene(kind); } })>
+                                        on:click=move |_| { scene_touched.set_value(true); upd(&|s| { if s.scene != id { *s = SyncSettings::for_scene(kind); } }) }>
                                         {label}
                                     </button>
                                 }
@@ -960,7 +993,7 @@ fn RtControlPanel(
                         <div style=desc_style>
                             {move || {
                                 let tt = t.get();
-                                match settings.get().scene.as_str() { "parking" => tt.desc_parking, "facade" => tt.desc_facade, "office" => tt.desc_office, _ => tt.desc_street }
+                                match settings.get().scene.as_str() { "parking" => tt.desc_parking, "facade" => tt.desc_facade, "office" => tt.desc_office, "greenhouse" => tt.desc_greenhouse, _ => tt.desc_street }
                             }}
                         </div>
                     </Section>
@@ -987,11 +1020,11 @@ fn RtControlPanel(
                                 <div style="display: flex; gap: 8px; align-items: stretch; margin-top: 4px;">
                                     <div style="width: 10px; height: 110px; border-radius: 3px; background: linear-gradient(to top, #440154, #3b528b 25%, #21918c 50%, #5ec962 75%, #fde725);"></div>
                                     <div style="display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: var(--text-secondary); font-variant-numeric: tabular-nums;">
-                                        <span>{format!("{:.0} lx", s.lux_max)}</span>
-                                        <span>{format!("{:.0}", s.lux_max * 0.5)}</span>
+                                        <span>{if s.ppfd_factor > 0.0 { format!("{:.0} {}", s.lux_max * s.ppfd_factor, t.get().unit_ppfd) } else { format!("{:.0} lx", s.lux_max) }}</span>
+                                        <span>{format!("{:.0}", s.lux_max * 0.5 * if s.ppfd_factor > 0.0 { s.ppfd_factor } else { 1.0 })}</span>
                                         <span>"0"</span>
                                     </div>
-                                    <div style="font-size: 10px; color: var(--text-secondary); align-self: flex-end;">{fill(&t.get().legend_lines, &[("{step}", format!("{:.0}", s.iso_step))])}</div>
+                                    <div style="font-size: 10px; color: var(--text-secondary); align-self: flex-end;">{fill(&t.get().legend_lines, &[("{step}", format!("{:.0}", s.iso_step * if s.ppfd_factor > 0.0 { s.ppfd_factor } else { 1.0 }))])}</div>
                                 </div>
                             }
                         })}
@@ -1000,18 +1033,26 @@ fn RtControlPanel(
                             let tt = t.get();
                             view! {
                                 <table style="width: 100%; font-size: 10.5px; border-collapse: collapse; margin-top: 4px; font-variant-numeric: tabular-nums;">
-                                    <thead><tr style="color: var(--text-secondary);"><th style="text-align: left;">{tt.col_grid.clone()}</th><th style="text-align: right;">{tt.col_em.clone()}</th><th style="text-align: right;">{tt.col_emin.clone()}</th><th style="text-align: right;">{tt.col_uo.clone()}</th></tr></thead>
+                                    <thead><tr style="color: var(--text-secondary);"><th style="text-align: left;">{tt.col_grid.clone()}</th><th style="text-align: right;">{tt.col_em.clone()}</th><th style="text-align: right;">{tt.col_emin.clone()}</th><th style="text-align: right;">{tt.col_uo.clone()}</th>{(s.ppfd_factor > 0.0).then(|| view! { <th style="text-align: right;">{tt.dli.clone()}</th> })}</tr></thead>
                                     <tbody>
                                         {if s.grids.is_empty() {
-                                            view! { <tr><td colspan="4" style="color: var(--text-secondary);">{tt.measuring.clone()}</td></tr> }.into_any()
+                                            view! { <tr><td colspan="5" style="color: var(--text-secondary);">{tt.measuring.clone()}</td></tr> }.into_any()
                                         } else {
+                                            let k = if s.ppfd_factor > 0.0 { s.ppfd_factor } else { 1.0 };
+                                            let hours = s.photoperiod;
+                                            let f = s.ppfd_factor;
                                             s.grids.iter().map(|g| view! {
-                                                <tr><td>{g.name.clone()}</td><td style="text-align: right;">{fmt_lux(g.em)}</td><td style="text-align: right;">{fmt_lux(g.emin)}</td><td style="text-align: right;">{format!("{:.2}", g.uo)}</td></tr>
+                                                <tr><td>{g.name.clone()}</td><td style="text-align: right;">{fmt_lux(g.em * k)}</td><td style="text-align: right;">{fmt_lux(g.emin * k)}</td><td style="text-align: right;">{format!("{:.2}", g.uo)}</td>{(f > 0.0).then(|| view! { <td style="text-align: right;">{format!("{:.1}", g.em * f * hours * 3600.0 / 1.0e6)}</td> })}</tr>
                                             }).collect_view().into_any()
                                         }}
                                     </tbody>
                                 </table>
-                                <div style=desc_style>{tt.stats_explain.clone()}</div>
+                                <div style=desc_style>
+                                    {if s.ppfd_factor > 0.0 {
+                                        let note = if s.ppfd_from_spectrum { fill(&tt.ppfd_from_spd, &[("{f}", format!("{:.4}", s.ppfd_factor))]) } else { fill(&tt.ppfd_assumed, &[("{f}", format!("{:.4}", s.ppfd_factor))]) };
+                                        format!("{} {} {}", tt.unit_ppfd, note, tt.dli_explain)
+                                    } else { tt.stats_explain.clone() }}
+                                </div>
                             }
                         })}
                     </Section>
@@ -1022,7 +1063,7 @@ fn RtControlPanel(
                             let tt = t.get();
                             let (lo, hi) = height_range(&s);
                             view! {
-                                <Range label=if s.scene == "office" { tt.height_above_floor } else { tt.mounting_height } unit="m" value=s.height min=lo max=hi step=0.05
+                                <Range label=if s.scene == "office" || s.scene == "greenhouse" { tt.height_above_floor } else { tt.mounting_height } unit="m" value=s.height min=lo max=hi step=0.05
                                     on_change=move |v| upd(&|s| s.height = v) />
                             }
                         }}
@@ -1032,6 +1073,10 @@ fn RtControlPanel(
                             match s.scene.as_str() {
                                 "office" => view! { <Range label=tt.ceiling_height unit="m" value=s.ceiling_height min=2.4 max=4.5 step=0.05 on_change=move |v| upd(&|s| { s.ceiling_height = v; s.height = s.height.min(v - 0.12); }) /> }.into_any(),
                                 "facade" => view! { <Range label=tt.distance_to_facade unit="m" value=s.wall_distance min=0.2 max=6.0 step=0.05 on_change=move |v| upd(&|s| s.wall_distance = v) /> }.into_any(),
+                                "greenhouse" => view! {
+                                    <Range label=tt.canopy_height unit="m" value=s.canopy_height min=0.5 max=2.2 step=0.05 on_change=move |v| upd(&|s| { s.canopy_height = v; s.height = s.height.max(v + 0.2); }) />
+                                    <Range label=tt.photoperiod unit="h" value=s.photoperiod min=6.0 max=24.0 step=0.5 on_change=move |v| upd(&|s| s.photoperiod = v) />
+                                }.into_any(),
                                 _ => view! { <div></div> }.into_any(),
                             }
                         }}

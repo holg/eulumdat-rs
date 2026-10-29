@@ -1,6 +1,8 @@
 [build]
 target = "quiz.html"
 dist = "dist"
+# Relative asset paths: the quiz lives next to the editor under /app/.
+public_url = "./"
 
 [tools]
 wasm_bindgen = "0.2.114"

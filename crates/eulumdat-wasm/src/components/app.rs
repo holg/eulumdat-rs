@@ -841,6 +841,31 @@ pub fn App() -> impl IntoView {
     });
     provide_context((unit_system, set_unit_system));
 
+    // Deep-link parameters from the URL fragment (`#tab=light-scene&scene=
+    // street&mode=points&sample=road-luminaire`), parsed once so the Light
+    // scene tab can take its first settings from them.
+    let link_params = StoredValue::new(parse_hash_params());
+    provide_context(RtLinkParams(link_params));
+
+    // lux → PPFD factor of the loaded spectrum (ATLA / TM-33 emitter SPD), for
+    // the greenhouse scene; `None` lets the viewer assume a white LED.
+    let ppfd_factor = RwSignal::new(None::<f32>);
+    provide_context(PpfdFactor(ppfd_factor));
+    Effect::new(move |_| {
+        let doc = atla_doc.get();
+        let f = doc
+            .emitters
+            .iter()
+            .filter_map(|e| e.spectral_distribution.as_ref())
+            .next()
+            .and_then(|spd| {
+                eulumdat_scene::photometry::ppfd_per_lux(&spd.wavelengths, &spd.values)
+            });
+        if ppfd_factor.get_untracked() != f {
+            ppfd_factor.set(f);
+        }
+    });
+
     // Luminaire body from a GLDF container's L3D model, for the Light scene.
     // Cleared whenever a luminaire that did not come from that container is
     // loaded; GLDF-derived library rows keep the body that is current.
@@ -1071,6 +1096,89 @@ pub fn App() -> impl IntoView {
             // dashboard's collection survives reloads.
             set_library.update(|lib| lib.push(entry));
         };
+
+    // ── `#tab=<id>` — open the editor on a tab (landing-page deep links) ──
+    //
+    // The landing page links straight into a tool, e.g. `app/#tab=light-scene`.
+    // Runs once at startup; unknown ids are ignored. The hash is cleared so a
+    // reload lands on the dashboard again.
+    Effect::new(move |_| {
+        let Some(window) = web_sys::window() else {
+            return;
+        };
+        let Ok(hash) = window.location().hash() else {
+            return;
+        };
+        let _ = hash;
+        let pairs = link_params.get_value();
+        let get = |key: &str| pairs.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone());
+        let tab_id = get("tab");
+        let sample = get("sample");
+        // `sample=<template id>` loads one of the bundled luminaires first,
+        // so a landing-page link can show the street with the road light.
+        if let Some(sample) = sample {
+            if let Some(template) = super::templates::ALL_TEMPLATES
+                .iter()
+                .find(|t| t.id == sample)
+            {
+                load_template(
+                    template,
+                    set_atla_doc,
+                    set_current_file,
+                    set_selected_lamp_set,
+                    set_templates_loading,
+                    rotate_c_planes,
+                );
+            }
+        }
+        let Some(id) = tab_id else {
+            return;
+        };
+        // `compare=<template id>` puts a second bundled luminaire into the
+        // Compare tab next to the loaded one.
+        if let Some(cmp) = get("compare") {
+            if let Some(template) = super::templates::ALL_TEMPLATES.iter().find(|t| t.id == cmp) {
+                if let Some(ldt) = template_to_eulumdat(template) {
+                    set_compare_label_b.set(Some(template.name.to_string()));
+                    set_compare_ldc_b.set(Some(ldt));
+                }
+            }
+        }
+        let tab = match id.as_str() {
+            "light-scene" | "scene" => Some(Tab::SceneRtTab),
+            "scene-3d" => Some(Tab::Scene3DTab),
+            "diagrams" | "polar" | "cartesian" => Some(Tab::Diagram2D),
+            "3d" | "butterfly" => Some(Tab::Diagram3D),
+            "heatmap" => Some(Tab::Heatmap),
+            "cone" => Some(Tab::Cone),
+            "isolux" => Some(Tab::FloodlightIsolux),
+            "isocandela" => Some(Tab::FloodlightIsocandela),
+            "iso-view" => Some(Tab::FloodlightIsoView),
+            "vh" | "floodlight" => Some(Tab::FloodlightVH),
+            "lcs" => Some(Tab::Lcs),
+            "greenhouse-tab" | "ppfd" => Some(Tab::Greenhouse),
+            "spectrum-lab" => Some(Tab::SpectrumDemoTab),
+            "intensity" | "data" => Some(Tab::Intensity),
+            "info" | "general" => Some(Tab::General),
+            "validation" => Some(Tab::ValidationTab),
+            "bug" => Some(Tab::BugRating),
+            "spectral" => Some(Tab::Spectral),
+            "compare" => Some(Tab::CompareTab),
+            "bim" | "export" => Some(Tab::BimTab),
+            "area" => Some(Tab::AreaDesignerTab),
+            "interior" => Some(Tab::ZonalDesignerTab),
+            "maps" => Some(Tab::MapsDesignerTab),
+            "street" => Some(Tab::StreetDesignTab),
+            "goniosim" => Some(Tab::GonioSimTab),
+            "daylight" => Some(Tab::DaylightSkyTab),
+            _ => None,
+        };
+        if let Some(tab) = tab {
+            set_view_mode.set(ViewMode::Editor);
+            set_active_tab.set(tab);
+            let _ = window.location().set_hash("");
+        }
+    });
 
     // ── `?url=…` query param — fetch and load a remote LDT/IES/ATLA ──────
     //
@@ -1588,13 +1696,13 @@ pub fn App() -> impl IntoView {
 
     view! {
         <ThemeProvider mode=theme_mode>
-            <div class=move || format!("app {}", theme_mode.get().class_name()) role="application" aria-label="Photometrica">
+            <div class=move || format!("app {}", theme_mode.get().class_name()) role="application" aria-label="Candelabra">
                 // Skip to main content link for keyboard users
                 <a href="#main-content" class="skip-link">{move || locale.get().ui.header.skip_link.clone()}</a>
 
                 // Header with navigation landmark
                 <header class="header" role="banner">
-                    <h1>{move || locale.get().ui.header.title.clone()}</h1>
+                    <h1><a class="brand-link" href="../" title="Candelabra">{move || locale.get().ui.header.title.clone()}</a></h1>
                     <div class="header-actions">
                         // File menu dropdown
                         <div class="file-menu">
@@ -1868,6 +1976,7 @@ pub fn App() -> impl IntoView {
                                     Feature::Maps => Tab::MapsDesignerTab,
                                     Feature::Street => Tab::StreetDesignTab,
                                     Feature::Spectral | Feature::Digitizer => Tab::Spectral,
+                                    Feature::SpectrumLab => Tab::SpectrumDemoTab,
                                     Feature::Daylight => Tab::DaylightSkyTab,
                                     Feature::Gonio => Tab::GonioSimTab,
                                     // Own pages (greenhouse, skyglow, TM-25, quiz) and the
@@ -2631,4 +2740,48 @@ fn open_gldf(
             crate::library::LibrarySource::LocalFile,
         );
     });
+}
+
+/// `key=value` pairs of the URL fragment, URL-decoded.
+fn parse_hash_params() -> Vec<(String, String)> {
+    let Some(window) = web_sys::window() else {
+        return Vec::new();
+    };
+    let Ok(hash) = window.location().hash() else {
+        return Vec::new();
+    };
+    hash.trim_start_matches('#')
+        .split('&')
+        .filter_map(|part| {
+            let (k, v) = part.split_once('=')?;
+            let dec = |s: &str| {
+                js_sys::decode_uri_component(s)
+                    .ok()
+                    .and_then(|j| j.as_string())
+                    .unwrap_or_else(|| s.to_string())
+            };
+            Some((dec(k), dec(v)))
+        })
+        .collect()
+}
+
+/// Deep-link pairs for the Light scene tab (context).
+#[derive(Clone, Copy)]
+pub struct RtLinkParams(pub StoredValue<Vec<(String, String)>>);
+
+/// lux → PPFD factor of the current spectrum (context for the Light scene).
+#[derive(Clone, Copy)]
+pub struct PpfdFactor(pub RwSignal<Option<f32>>);
+
+/// Parse a bundled template into the lossless luminaire model.
+fn template_to_eulumdat(template: &super::templates::Template) -> Option<Eulumdat> {
+    use super::templates::TemplateFormat;
+    let content = eulumdat_wasm_templates::get_template_content(template.id)?;
+    match template.format {
+        TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
+        TemplateFormat::IesLm63 => eulumdat::IesParser::parse(&content).ok(),
+        TemplateFormat::AtlaXml | TemplateFormat::AtlaJson => eulumdat::atla::parse(&content)
+            .ok()
+            .map(|d| d.to_eulumdat()),
+    }
 }

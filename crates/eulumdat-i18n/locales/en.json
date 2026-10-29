@@ -345,7 +345,7 @@
   },
   "ui": {
     "header": {
-      "title": "Photometrica",
+      "title": "Candelabra",
       "file": "File",
       "new": "New",
       "open": "Open...",
@@ -663,7 +663,7 @@
       "empty_hint": "Compares flux, efficacy, beam angles, intensity distribution, and more."
     },
     "about": {
-      "title": "Photometrica",
+      "title": "Candelabra",
       "subtitle": "Open photometric workbench: editor, diagrams, light scenes, spectra. Built on eulumdat-rs.",
       "desc_parsing": "Parses EULUMDAT (.ldt), IES, TM-33, ATLA-S001, SPDX files.",
       "desc_diagrams": "Generates SVG diagrams: polar, cartesian, spectral, heatmap.",
@@ -759,7 +759,17 @@
       "no_webgpu": "No WebGPU: tracing on the CPU at preview size",
       "starting": "Starting WebGPU…",
       "waiting": "Waiting for the viewer…",
-      "summary": "{name} · {lm} lm · peak {cd} cd · throw C{c} ({pct} %)"
+      "summary": "{name} · {lm} lm · peak {cd} cd · throw C{c} ({pct} %)",
+      "scene_greenhouse": "Greenhouse",
+      "desc_greenhouse": "Glasshouse with two crop benches; values on the canopy in PPFD (µmol/m²/s) with the daily light integral.",
+      "canopy_height": "Canopy height",
+      "photoperiod": "Photoperiod",
+      "ppfd_from_spd": "PPFD from the luminaire's spectrum: {f} µmol per lx·s",
+      "ppfd_assumed": "No spectrum in the file: PPFD assumes a white LED, {f} µmol per lx·s. Load an ATLA / TM-33 file or attach an SPD for the real factor.",
+      "dli": "DLI",
+      "dli_explain": "DLI = PPFD average × photoperiod, in mol/m²/day. Leafy greens want 12–17, fruiting crops 20–30.",
+      "hint_ppfd": "Colour = PPFD in µmol/m²/s on every surface (scale in the panel) · lines every {step}",
+      "unit_ppfd": "µmol/m²/s"
     }
   },
   "report": {
@@ -1165,7 +1175,12 @@
       "pdf": "PDF report",
       "compare": "Compare",
       "compare_hint": "Ctrl / ⌘ + click a second row to compare two luminaires",
-      "zoom": "Zoom diagram"
+      "zoom": "Zoom diagram",
+      "mode_overview": "Overview",
+      "mode_beam_angles": "Beam angles",
+      "mode_beam_intensities": "Intensities",
+      "mode_ugr": "UGR table",
+      "about_site": "What is Candelabra?"
     },
     "features": {
       "heading": "Everything on this site",
@@ -1210,10 +1225,12 @@
       "daylight_desc": "Sun position, clear and overcast sky and daylight factors for any place and date",
       "skyglow_desc": "Night-sky brightness and light-pollution demo with real star data",
       "gonio_desc": "Monte Carlo measurement of lamps with covers and reflectors; LDT from a design",
-      "tm25_desc": "Near-field LED ray sets: far-field solid, spectrum, luminance map and LDT / ATLA export",
+      "tm25_desc": "Near-field LED ray sets: far-field solid, spectrum, luminance map and LDT / ATLA export Also at tm25.eu.",
       "digitizer_desc": "Drop a spectrum chart image and get an SPD file attached to the luminaire",
       "gldf_desc": "Drop a .gldf: photometry plus the manufacturer's L3D body in the Light scene",
-      "quiz_desc": "175 questions on photometry and lighting design in eight languages"
+      "quiz_desc": "175 questions on photometry and lighting design in eight languages",
+      "spectrum_lab_title": "Spectrum Lab",
+      "spectrum_lab_desc": "Photon-by-photon spectral Monte Carlo: night vision (S/P), circadian (melanopic DER), mesopic road luminance, colour over angle and a dark-sky report"
     }
   },
   "maps_designer": {

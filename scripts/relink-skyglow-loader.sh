@@ -8,6 +8,8 @@
 # build-wasm-split.sh once more so index.html.br is refreshed.
 set -euo pipefail
 DIST="$(cd "$(dirname "$0")/.." && pwd)/crates/eulumdat-wasm/dist"
+# Since the landing page took the root, the editor lives in dist/app/.
+if [[ -d "$DIST/app" ]]; then DIST="$DIST/app"; fi
 LOADER=$(ls -t "$DIST"/skyglow-loader-*.js 2>/dev/null | head -1 || true)
 if [[ -z "$LOADER" ]]; then
     echo "relink-skyglow-loader: no hashed skyglow loader in $DIST — nothing to do"

@@ -2486,6 +2486,47 @@ echo ""
 # Deploy / Serve
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Site layout: the landing page takes the root, the app moves to app/.
+# Everything above built the app at the dist root; links inside the app are
+# relative, so moving it into app/ keeps the lazy bundles and the quiz
+# working. The landing page forwards root links with a query or a fragment
+# (?wasm=…, ?url=…, #ldt=…) to app/.
+# -----------------------------------------------------------------------------
+LANDING_DIR="$ROOT_DIR/crates/eulumdat-wasm/landing"
+if [[ -d "$LANDING_DIR" ]]; then
+    mkdir -p "$DIST_DIR/app"
+    for entry in "$DIST_DIR"/* "$DIST_DIR"/.[!.]*; do
+        [[ -e "$entry" ]] || continue
+        [[ "$(basename "$entry")" == "app" ]] && continue
+        mv "$entry" "$DIST_DIR/app/"
+    done
+    cp -R "$LANDING_DIR"/. "$DIST_DIR/"
+    # The generator and its translations are sources, not site files.
+    rm -rf "$DIST_DIR/src"
+    # Kept lazy bundles (disabled in build-config, still served): restore the
+    # hashed loaders and point the app's index.html at them, so a plain
+    # `build-wasm-split.sh deploy` needs no manual copy from the server.
+    KEEP_DIR="$ROOT_DIR/crates/eulumdat-wasm/keep"
+    if [[ -d "$KEEP_DIR" ]]; then
+        for f in "$KEEP_DIR"/*.js "$KEEP_DIR"/*.js.br; do
+            [[ -f "$f" ]] && cp "$f" "$DIST_DIR/app/"
+        done
+        "$ROOT_DIR/scripts/relink-skyglow-loader.sh" || true
+        if [[ "$SKIP_BROTLI" != "true" && "$HAVE_BROTLI" == "true" && ! -f "$DIST_DIR/app/index.html.br" ]]; then
+            brotli -f -q 11 "$DIST_DIR/app/index.html"
+        fi
+    fi
+    # The 404 page stays reachable at the root as well.
+    [[ -f "$DIST_DIR/app/404.html" ]] && cp "$DIST_DIR/app/404.html" "$DIST_DIR/404.html"
+    if [[ "$SKIP_BROTLI" != "true" && "$HAVE_BROTLI" == "true" ]]; then
+        brotli -f -q 11 "$DIST_DIR/index.html"
+        for f in "$DIST_DIR/img/"*.svg; do [[ -f "$f" ]] && brotli -f -q 11 "$f"; done
+    fi
+    echo "Site layout: landing page at / , app at /app/"
+    echo ""
+fi
+
 if [[ "$ACTION" == "deploy" ]]; then
     echo ""
     if [[ -z "$DEPLOY_TARGET" ]]; then

@@ -1,4 +1,4 @@
-/* Photometrica (eulumdat-rs web editor) styles */
+/* Candelabra (eulumdat-rs web editor) styles */
 
 /* ============================================
    LIGHT THEME (default)
@@ -847,6 +847,23 @@ textarea::placeholder {
     color: var(--primary-color);
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+/* The product name leads back to the landing page. */
+.header h1 .brand-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.header h1 .brand-link:hover {
+    text-decoration: underline;
+}
+
+.guide-about {
+    margin-left: 10px;
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--primary-color);
 }
 
 .header-actions {

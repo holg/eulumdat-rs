@@ -259,7 +259,7 @@ fn AppInner() -> impl IntoView {
                 }}
             </main>
             <footer class="quiz-footer">
-                <a href="https://eulumdat.icu" class="footer-link">
+                <a href="./" class="footer-link">
                     {move || ql.get().ui.back_to_editor.clone()}
                 </a>
                 <span class="footer-sep">"|"</span>
