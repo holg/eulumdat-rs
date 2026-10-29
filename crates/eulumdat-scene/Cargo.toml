@@ -1,0 +1,23 @@
+[package]
+name = "eulumdat-scene"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Light scene for the path-traced luminaire viewer: parametric scenes, camera, calculation grids, GPU structs and the WGSL tracer — engine-free"
+keywords = ["lighting", "photometry", "path-tracing", "wgsl"]
+categories = ["rendering", "simulation", "science"]
+
+[dependencies]
+bytemuck = { version = "1.14", features = ["derive"] }
+eulumdat = { workspace = true }
+glam = { version = "0.32", features = ["bytemuck"] }
+serde = { workspace = true, features = ["std"] }
+l3d_rs = { version = "0.2.3", optional = true }
+zip = { version = "2", default-features = false, features = ["deflate"], optional = true }
+
+[features]
+default = []
+# L3D / GLDF readers for the luminaire body.
+l3d = ["dep:l3d_rs", "dep:zip"]

@@ -42,6 +42,12 @@ name = "tm25-viewer"
 path = "examples/tm25_viewer.rs"
 required-features = ["tm25"]
 
+# Path-traced scene viewer — lazy WASM bundle (?wasm=rt_viewer) and native window.
+[[bin]]
+name = "rt-viewer"
+path = "examples/rt_viewer.rs"
+required-features = ["rt-viewer"]
+
 [features]
 # Default: full viewer with demo scenes, WebGPU rendering
 default = ["viewer", "webgpu"]
@@ -93,6 +99,9 @@ egui-ui = []
 # TM-25 ray file viewer plugin (src/tm25). Pulls the reader crate and the
 # browser sync deps; the default `eulumdat-3d` bundle does not enable it.
 tm25 = ["dep:eulumdat-tm25", "wasm-sync"]
+# Path-traced scene viewer (src/rt): compute-shader tracer fed by the IES
+# table, bevy_ui overlay, localStorage luminaire on the web. WebGPU only.
+rt-viewer = ["bevy-ui", "wasm-sync", "dep:bytemuck"]
 
 [dependencies]
 # Published Bevy 0.19 — the shadow-field PRs (`shadow_maps_enabled`
@@ -128,9 +137,11 @@ eulumdat = { workspace = true, features = ["serde"] }
 # goniosim without `parallel` (rayon) so the same code path runs on wasm32.
 eulumdat-daylight = { workspace = true }
 eulumdat-goniosim = { workspace = true, default-features = false }
+eulumdat-scene = { workspace = true }
 eulumdat-spectrum = { workspace = true }
 eulumdat-tm25 = { workspace = true, optional = true }
 serde = { workspace = true }
+bytemuck = { version = "1.14", features = ["derive"], optional = true }
 
 # JSON parsing for star catalog + designer data sync
 serde_json = "1"

@@ -22,6 +22,7 @@ eulumdat-goniosim = { path = "crates/eulumdat-goniosim", version = "0.8.0" }
 eulumdat-i18n = { path = "crates/eulumdat-i18n", version = "0.8.0" }
 eulumdat-photweb = { path = "crates/eulumdat-photweb", version = "0.8.0" }
 eulumdat-rt = { path = "crates/eulumdat-rt", version = "0.8.0" }
+eulumdat-scene = { path = "crates/eulumdat-scene", version = "0.8.0" }
 eulumdat-spectrum = { path = "crates/eulumdat-spectrum", version = "0.8.0" }
 eulumdat-tm25 = { path = "crates/eulumdat-tm25", version = "0.8.0" }
 eulumdat-typst = { path = "crates/eulumdat-typst", version = "0.8.0" }

@@ -323,6 +323,48 @@ impl PhotometricCalculations {
         peak
     }
 
+    /// Flux-weighted horizontal direction of the downward light.
+    ///
+    /// Integrates the distribution over the lower hemisphere on a 1° × 0.5°
+    /// grid and sums the horizontal unit vector of every direction weighted
+    /// by its flux. The C angle of that sum is the direction the luminaire
+    /// throws its light towards; the length of the sum relative to the sum
+    /// of the horizontal components is the asymmetry: 0 for a rotationally
+    /// symmetric or a mirrored batwing distribution, 1 when all downward
+    /// light leaves towards one side. Used to aim an asymmetric optic at a
+    /// road or a wall without the user touching a rotation control.
+    pub fn throw_direction(ldt: &Eulumdat) -> ThrowDirection {
+        let d_c = 1.0_f64;
+        let d_g = 0.5_f64;
+        let mut sum_x = 0.0;
+        let mut sum_z = 0.0;
+        let mut lateral = 0.0;
+        let mut g = d_g / 2.0;
+        while g < 90.0 {
+            let sin_g = g.to_radians().sin();
+            let solid = sin_g * d_g.to_radians() * d_c.to_radians();
+            let mut c = d_c / 2.0;
+            while c < 360.0 {
+                let phi = ldt.sample(c, g) * solid;
+                if phi > 0.0 {
+                    let h = sin_g * phi;
+                    sum_x += c.to_radians().cos() * h;
+                    sum_z += c.to_radians().sin() * h;
+                    lateral += h;
+                }
+                c += d_c;
+            }
+            g += d_g;
+        }
+        let c = sum_z.atan2(sum_x).to_degrees().rem_euclid(360.0);
+        let asymmetry = if lateral > 0.0 {
+            sum_x.hypot(sum_z) / lateral
+        } else {
+            0.0
+        };
+        ThrowDirection { c, asymmetry }
+    }
+
     /// C angle (0 ≤ C < 180) of the vertical section through the global peak.
     ///
     /// For a centre-peaked distribution the C0–C180 section is used: when
@@ -2228,6 +2270,17 @@ fn opt_num(value: Option<f64>) -> String {
     value.map(|v| format!("{v:.1}")).unwrap_or_default()
 }
 
+/// Flux-weighted throw of the downward light, see
+/// [`PhotometricCalculations::throw_direction`].
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ThrowDirection {
+    /// C angle (degrees, 0 ≤ C < 360) the downward flux leans towards.
+    pub c: f64,
+    /// 0 = balanced around the vertical, 1 = everything to one side.
+    pub asymmetry: f64,
+}
+
 /// Direction and value of the global intensity peak.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -3789,6 +3842,35 @@ impl PhotometricCalculations {
 mod tests {
     use super::*;
     use crate::eulumdat::LampSet;
+
+    #[test]
+    fn throw_direction_symmetric_has_no_asymmetry() {
+        let ldt = create_test_ldt();
+        let t = PhotometricCalculations::throw_direction(&ldt);
+        assert!(t.asymmetry < 1e-6, "asymmetry {}", t.asymmetry);
+    }
+
+    #[test]
+    fn throw_direction_points_at_the_bright_plane() {
+        let mut ldt = Eulumdat::new();
+        ldt.symmetry = Symmetry::None;
+        ldt.num_c_planes = 4;
+        ldt.c_plane_distance = 90.0;
+        ldt.num_g_planes = 3;
+        ldt.g_plane_distance = 45.0;
+        ldt.c_angles = vec![0.0, 90.0, 180.0, 270.0];
+        ldt.g_angles = vec![0.0, 45.0, 90.0];
+        // Everything leans towards C90.
+        ldt.intensities = vec![
+            vec![100.0, 20.0, 0.0],
+            vec![100.0, 400.0, 100.0],
+            vec![100.0, 20.0, 0.0],
+            vec![100.0, 20.0, 0.0],
+        ];
+        let t = PhotometricCalculations::throw_direction(&ldt);
+        assert!((t.c - 90.0).abs() < 2.0, "c {}", t.c);
+        assert!(t.asymmetry > 0.5, "asymmetry {}", t.asymmetry);
+    }
 
     fn create_test_ldt() -> Eulumdat {
         let mut ldt = Eulumdat::new();

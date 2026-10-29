@@ -95,6 +95,10 @@ pub mod viewer;
 #[cfg(feature = "tm25")]
 pub mod tm25;
 
+/// Path-traced scene viewer (feature `rt-viewer`).
+#[cfg(feature = "rt-viewer")]
+pub mod rt;
+
 // Re-export commonly used types at crate root for convenience
 pub use photometric::{
     PhotometricData, PhotometricLight, PhotometricLightBundle, PhotometricPlugin,

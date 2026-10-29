@@ -4157,9 +4157,11 @@ name = "eulumdat-bevy"
 version = "0.8.0"
 dependencies = [
  "bevy",
+ "bytemuck",
  "eulumdat",
  "eulumdat-daylight",
  "eulumdat-goniosim",
+ "eulumdat-scene",
  "eulumdat-spectrum",
  "eulumdat-tm25",
  "getrandom 0.3.4",
@@ -4349,6 +4351,7 @@ dependencies = [
  "env_logger",
  "eulumdat",
  "eulumdat-goniosim",
+ "eulumdat-scene",
  "eulumdat-spectrum",
  "flume",
  "getrandom 0.3.4",
@@ -4356,6 +4359,18 @@ dependencies = [
  "log",
  "pollster",
  "wgpu 29.0.4",
+]
+
+[[package]]
+name = "eulumdat-scene"
+version = "0.8.0"
+dependencies = [
+ "bytemuck",
+ "eulumdat",
+ "glam 0.32.1",
+ "l3d_rs",
+ "serde",
+ "zip 2.6.1",
 ]
 
 [[package]]
@@ -4456,6 +4471,7 @@ dependencies = [
  "eulumdat-goniosim",
  "eulumdat-i18n",
  "eulumdat-rt",
+ "eulumdat-scene",
  "eulumdat-spectrum",
  "eulumdat-tm25",
  "eulumdat-typst",
@@ -4472,6 +4488,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "web-sys",
+ "wgpu 29.0.4",
 ]
 
 [[package]]
@@ -6550,7 +6567,7 @@ dependencies = [
  "libc",
  "reqwest",
  "tar",
- "zip",
+ "zip 5.1.1",
 ]
 
 [[package]]
@@ -6573,6 +6590,20 @@ dependencies = [
  "arrayvec",
  "euclid",
  "smallvec",
+]
+
+[[package]]
+name = "l3d_rs"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16fdfcb6172a812d801b1a009adf70afde0dc49d2311fa98bbdd65f1ad630b46"
+dependencies = [
+ "anyhow",
+ "quick-xml 0.37.5",
+ "regex",
+ "serde",
+ "serde_json",
+ "zip 2.6.1",
 ]
 
 [[package]]
@@ -13221,6 +13252,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "zip"
+version = "2.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1dcb24d0152526ae49b9b96c1dcf71850ca1e0b882e4e28ed898a93c41334744"
+dependencies = [
+ "arbitrary",
+ "crc32fast",
+ "crossbeam-utils",
+ "flate2",
+ "indexmap",
+ "memchr",
+ "zopfli",
 ]
 
 [[package]]

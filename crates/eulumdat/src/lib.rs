@@ -376,8 +376,8 @@ pub use calculations::{
     format_angle, BeamFieldAnalysis, BeamFieldSections, CandelaEntry, CandelaTabulation,
     CieFluxCodes, ComprehensiveBeamAnalysis, CuTable, DistributionType, GldfPhotometricData,
     IesMetadata, LightDirection, NemaClassification, PeakDirection, PhotometricCalculations,
-    PhotometricSummary, SectionBeamField, UgrParams, UgrTable, UgrTableValues, ZonalLumens30,
-    CU_RCR_VALUES, CU_REFLECTANCES, UGR_REFLECTANCES, UGR_ROOM_SIZES,
+    PhotometricSummary, SectionBeamField, ThrowDirection, UgrParams, UgrTable, UgrTableValues,
+    ZonalLumens30, CU_RCR_VALUES, CU_REFLECTANCES, UGR_REFLECTANCES, UGR_ROOM_SIZES,
 };
 #[cfg(feature = "std")]
 pub use compare::{ComparisonMetric, PhotometricComparison, Significance};

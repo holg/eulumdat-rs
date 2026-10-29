@@ -9,15 +9,21 @@ description = "GPU ray tracing engine for photometric simulation — wgpu comput
 keywords = ["lighting", "photometry", "ray-tracing", "wgpu", "gpu"]
 categories = ["rendering", "simulation", "science"]
 
+[[bin]]
+name = "rt-scene"
+path = "src/bin/rt_scene.rs"
+required-features = ["native"]
+
 [features]
 default = ["native"]
-native = ["dep:pollster", "dep:env_logger"]
+native = ["dep:pollster", "dep:env_logger", "eulumdat-scene/l3d"]
 
 [dependencies]
 bytemuck = { version = "1.14", features = ["derive"] }
 env_logger = { version = "0.11", optional = true }
 eulumdat = { workspace = true }
 eulumdat-goniosim = { workspace = true, default-features = false }
+eulumdat-scene = { workspace = true }
 eulumdat-spectrum = { workspace = true }
 flume = "0.11"
 glam = "0.29"

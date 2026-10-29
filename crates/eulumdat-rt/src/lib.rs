@@ -14,6 +14,7 @@
 //! ```
 
 pub mod camera;
+pub mod lightscene;
 mod pipeline;
 
 pub use camera::{CameraConfig, CameraImage, GpuCamera};
