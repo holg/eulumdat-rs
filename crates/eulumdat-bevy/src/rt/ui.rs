@@ -290,6 +290,7 @@ pub fn update_status(
             );
         }
         SceneKind::Office => line += &format!("  |  ceiling {:.2} m", p.ceiling_height),
+        SceneKind::Greenhouse => line += &format!("  |  canopy {:.2} m", p.canopy_height),
         SceneKind::Facade => line += &format!("  |  distance {:.2} m", p.wall_distance),
         SceneKind::Parking => {
             if p.count > 1 {

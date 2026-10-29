@@ -10,6 +10,7 @@
 //! EN 13201-3 (road: three rows per lane, longitudinal step ≤ 3 m). The
 //! office measures on the 0.75 m workplane, not on the floor.
 
+use eulumdat::{Eulumdat, PhotometricCalculations};
 use glam::{Mat3, Quat, Vec3};
 
 /// Which place the luminaire is put in.
@@ -25,14 +26,18 @@ pub enum SceneKind {
     Facade,
     /// Office with two desks, workplane grid at 0.75 m.
     Office,
+    /// Glasshouse with two crop benches; the grids lie on the canopy and
+    /// the host shows them in PPFD.
+    Greenhouse,
 }
 
 impl SceneKind {
-    pub const ALL: [SceneKind; 4] = [
+    pub const ALL: [SceneKind; 5] = [
         SceneKind::Street,
         SceneKind::Parking,
         SceneKind::Facade,
         SceneKind::Office,
+        SceneKind::Greenhouse,
     ];
 
     pub fn label(self) -> &'static str {
@@ -41,6 +46,7 @@ impl SceneKind {
             SceneKind::Parking => "Parking lot",
             SceneKind::Facade => "Facade",
             SceneKind::Office => "Office",
+            SceneKind::Greenhouse => "Greenhouse",
         }
     }
 }
@@ -96,6 +102,10 @@ pub struct SceneParams {
     pub wall_finish: WallFinish,
     pub street_layout: StreetLayout,
     pub show_figure: bool,
+    /// Greenhouse: top of the crop above the floor (m); the PPFD grids lie here.
+    pub canopy_height: f32,
+    /// Greenhouse: hours of light per day, for the daily light integral.
+    pub photoperiod: f32,
     /// The luminaire stands on the ground (its body reaches down to it):
     /// no pole, no arm.
     pub freestanding: bool,
@@ -118,6 +128,8 @@ impl SceneParams {
             wall_finish: WallFinish::Render,
             street_layout: StreetLayout::Single,
             show_figure: true,
+            canopy_height: 1.0,
+            photoperiod: 16.0,
             housing_half: Vec3::new(0.1, 0.04, 0.1),
         };
         match kind {
@@ -137,6 +149,13 @@ impl SceneParams {
                 spacing: 2.0,
                 ..base
             },
+            SceneKind::Greenhouse => Self {
+                height: 2.2,
+                spacing: 2.2,
+                count: 8,
+                ceiling_height: 4.0,
+                ..base
+            },
         }
     }
 
@@ -147,6 +166,10 @@ impl SceneParams {
             SceneKind::Parking => (3.0, 14.0),
             SceneKind::Facade => (0.2, 9.0),
             SceneKind::Office => (1.2, room_mount_limit(self).max(1.2)),
+            SceneKind::Greenhouse => (
+                self.canopy_height + 0.2,
+                (GREENHOUSE_EAVE + GREENHOUSE_RISE - 0.15).max(self.canopy_height + 0.3),
+            ),
         }
     }
 
@@ -156,6 +179,7 @@ impl SceneParams {
             SceneKind::Parking => &[1, 2, 3, 4, 6],
             SceneKind::Facade => &[1, 2, 3, 4, 5],
             SceneKind::Office => &[1, 2, 4, 6],
+            SceneKind::Greenhouse => &[1, 2, 4, 6, 8, 12],
         }
     }
 }
@@ -356,6 +380,15 @@ pub const WORKPLANE: f32 = 0.75;
 const MARGIN: f32 = 0.5;
 /// Gap left between the highest point of the luminaire body and the ceiling.
 pub const CEILING_CLEARANCE: f32 = 0.05;
+/// Glasshouse: 10 × 6 m bay, eave height and ridge rise above the eave.
+const GREENHOUSE_L: f32 = 10.0;
+const GREENHOUSE_W: f32 = 6.0;
+const GREENHOUSE_EAVE: f32 = 2.6;
+const GREENHOUSE_RISE: f32 = 1.4;
+const BENCH_TOP: f32 = 0.8;
+/// Bench centre lines (z) and width.
+const BENCH_Z: [f32; 2] = [-1.5, 1.5];
+const BENCH_W: f32 = 1.8;
 
 /// Luminaire local → world rotation: first the yaw around the vertical
 /// (which aims the C0 axis), then the tilt about the world X axis, the one
@@ -1177,6 +1210,188 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 grids,
             }
         }
+        SceneKind::Greenhouse => {
+            let hl = GREENHOUSE_L / 2.0;
+            let hw = GREENHOUSE_W / 2.0;
+            let eave = GREENHOUSE_EAVE;
+            let ridge = eave + GREENHOUSE_RISE;
+            let t = 0.02;
+            let cut = |b: ScenePrim, point: Vec3, inward: Vec3| ScenePrim {
+                cutaway: Some((point, inward)),
+                ..b
+            };
+            // Concrete floor with a soil strip under each bench.
+            boxes.push(bx(
+                v3(-hl - 0.3, -0.25, -hw - 0.3),
+                v3(hl + 0.3, 0.0, hw + 0.3),
+                mat::PAVING,
+            ));
+            // Glass walls (dark at night) and gables, cut away towards the eye.
+            boxes.push(cut(
+                bx(v3(-hl, 0.0, -hw - t), v3(hl, eave, -hw), mat::GLASS),
+                v3(0.0, 0.0, -hw),
+                Vec3::Z,
+            ));
+            boxes.push(cut(
+                bx(v3(-hl, 0.0, hw), v3(hl, eave, hw + t), mat::GLASS),
+                v3(0.0, 0.0, hw),
+                Vec3::NEG_Z,
+            ));
+            boxes.push(cut(
+                bx(v3(-hl - t, 0.0, -hw), v3(-hl, eave, hw), mat::GLASS),
+                v3(-hl, 0.0, 0.0),
+                Vec3::X,
+            ));
+            boxes.push(cut(
+                bx(v3(hl, 0.0, -hw), v3(hl + t, eave, hw), mat::GLASS),
+                v3(hl, 0.0, 0.0),
+                Vec3::NEG_X,
+            ));
+            // Ridge roof: two glass panes leaning on the ridge beam.
+            let slope = (GREENHOUSE_RISE / hw).atan();
+            let pane_half = (hw * hw + GREENHOUSE_RISE * GREENHOUSE_RISE).sqrt() / 2.0;
+            for side in [-1.0_f32, 1.0] {
+                let centre = v3(0.0, eave + GREENHOUSE_RISE / 2.0, side * hw / 2.0);
+                let rot = Mat3::from_quat(Quat::from_rotation_x(-side * slope));
+                boxes.push(cut(
+                    obb(centre, v3(hl, t, pane_half), rot, mat::GLASS),
+                    centre,
+                    v3(0.0, -1.0, 0.0),
+                ));
+            }
+            // Aluminium frame: posts every 2.5 m, eave rails and ridge beam.
+            let mut x = -hl;
+            while x <= hl + 0.01 {
+                for z in [-hw, hw] {
+                    boxes.push(cylinder(v3(x, 0.0, z), v3(x, eave, z), 0.04, mat::METAL));
+                }
+                x += 2.5;
+            }
+            for z in [-hw, hw] {
+                boxes.push(cylinder(
+                    v3(-hl, eave, z),
+                    v3(hl, eave, z),
+                    0.03,
+                    mat::METAL,
+                ));
+            }
+            boxes.push(cylinder(
+                v3(-hl, ridge, 0.0),
+                v3(hl, ridge, 0.0),
+                0.04,
+                mat::METAL,
+            ));
+            // Two benches with a dense crop on top, canopy at `canopy_height`.
+            let canopy = p.canopy_height.max(BENCH_TOP + 0.05);
+            for &bz in BENCH_Z.iter() {
+                let (z0, z1) = (bz - BENCH_W / 2.0, bz + BENCH_W / 2.0);
+                boxes.push(bx(
+                    v3(-hl + 0.5, BENCH_TOP - 0.04, z0),
+                    v3(hl - 0.5, BENCH_TOP, z1),
+                    mat::WHITE,
+                ));
+                let mut lx = -hl + 0.7;
+                while lx < hl - 0.5 {
+                    for lz in [z0 + 0.1, z1 - 0.1] {
+                        boxes.push(cylinder(
+                            v3(lx, 0.0, lz),
+                            v3(lx, BENCH_TOP - 0.04, lz),
+                            0.025,
+                            mat::METAL,
+                        ));
+                    }
+                    lx += 2.0;
+                }
+                // Crop: a soil layer and a foliage slab whose top is the canopy.
+                boxes.push(bx(
+                    v3(-hl + 0.55, BENCH_TOP, z0 + 0.05),
+                    v3(hl - 0.55, BENCH_TOP + 0.12, z1 - 0.05),
+                    mat::SOIL,
+                ));
+                let mut slab = bx(
+                    v3(-hl + 0.55, BENCH_TOP + 0.12, z0 + 0.05),
+                    v3(hl - 0.55, canopy, z1 - 0.05),
+                    mat::HEDGE,
+                );
+                slab.casts_shadow = true;
+                boxes.push(slab);
+            }
+            // Luminaires: `count` fixtures split over the two benches, in a
+            // row along X with `spacing`, hung from the ridge on wires.
+            let per_bench = p.count.div_ceil(2).max(1);
+            let rows: &[f32] = if p.count >= 2 {
+                &BENCH_Z
+            } else {
+                &BENCH_Z[..1]
+            };
+            let y = p.height.min(ridge - 0.15).max(canopy + 0.2);
+            let mut placed = 0;
+            for &bz in rows {
+                for c in 0..per_bench {
+                    if placed >= p.count {
+                        break;
+                    }
+                    let x = (c as f32 - (per_bench as f32 - 1.0) / 2.0) * p.spacing;
+                    lamps.push(SceneLamp {
+                        position: v3(x, y, bz),
+                        rotation: rot,
+                    });
+                    boxes.push(bx_soft(
+                        v3(x - 0.004, y + 0.08, bz - 0.004),
+                        v3(x + 0.004, ridge, bz + 0.004),
+                        mat::METAL,
+                    ));
+                    placed += 1;
+                }
+            }
+            if p.show_figure {
+                figure(v3(hl - 1.6, 0.0, 0.0), &mut boxes);
+            }
+            let canopy_a = receiver(
+                v3(-hl + 0.6, canopy, BENCH_Z[0] - BENCH_W / 2.0 + 0.1),
+                v3(GREENHOUSE_L - 1.2, 0.0, 0.0),
+                v3(0.0, 0.0, BENCH_W - 0.2),
+                Vec3::Y,
+            );
+            let canopy_b = receiver(
+                v3(-hl + 0.6, canopy, BENCH_Z[1] - BENCH_W / 2.0 + 0.1),
+                v3(GREENHOUSE_L - 1.2, 0.0, 0.0),
+                v3(0.0, 0.0, BENCH_W - 0.2),
+                Vec3::Y,
+            );
+            let aisle = receiver(
+                v3(-hl, 0.0, -0.6),
+                v3(GREENHOUSE_L, 0.0, 0.0),
+                v3(0.0, 0.0, 1.2),
+                Vec3::Y,
+            );
+            let grids = vec![
+                norm_grid("canopy A", canopy_a.clone()),
+                norm_grid("canopy B", canopy_b.clone()),
+                norm_grid("aisle", aisle.clone()),
+            ];
+            BuiltScene {
+                kind: p.kind,
+                prims: boxes,
+                lamps,
+                ground: 0,
+                outdoor: false,
+                key_lux: Some(600.0),
+                view: CameraView {
+                    target: v3(0.0, 1.1, 0.0),
+                    yaw: deg(34.0),
+                    pitch: deg(26.0),
+                    distance: 15.0,
+                },
+                limits: CameraLimits {
+                    min_pitch: deg(2.0),
+                    max_distance: 45.0,
+                    ..Default::default()
+                },
+                receivers: vec![canopy_a, canopy_b, aisle],
+                grids,
+            }
+        }
     }
 }
 
@@ -1192,6 +1407,34 @@ pub fn auto_rotation(kind: SceneKind, throw_c: f32, asymmetry: f32) -> f32 {
     };
     let r = (r % 360.0 + 540.0) % 360.0 - 180.0;
     r.round()
+}
+
+/// The scene that suits a luminaire: an asymmetric throw with road-class
+/// flux is a street light, a narrow beam a facade projector, a big
+/// symmetric emitter an area light, everything else belongs in the office.
+pub fn suggest_scene(ldt: &Eulumdat) -> SceneKind {
+    let throw = PhotometricCalculations::throw_direction(ldt);
+    let flux = ldt.luminous_flux();
+    let peak = ldt.max_intensity();
+    let name = ldt.luminaire_name.to_ascii_lowercase();
+    if ["grow", "hortic", "ppfd", "greenhouse", "plant"]
+        .iter()
+        .any(|k| name.contains(k))
+    {
+        SceneKind::Greenhouse
+    } else if ldt.downward_flux_fraction < 50.0 {
+        // Uplights belong indoors, whatever their throw.
+        SceneKind::Office
+    } else if peak > 600.0 {
+        // Narrow beam (cd/klm): a projector for a facade.
+        SceneKind::Facade
+    } else if throw.asymmetry > 0.12 && flux >= 4000.0 {
+        SceneKind::Street
+    } else if flux >= 12000.0 {
+        SceneKind::Parking
+    } else {
+        SceneKind::Office
+    }
 }
 
 /// True when a cutaway surface is hidden from an eye at `eye`.
@@ -1243,6 +1486,34 @@ pub fn segment_blocked(scene: &BuiltScene, from: Vec3, to: Vec3) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn greenhouse_fits_the_budgets() {
+        let mut p = SceneParams::defaults(SceneKind::Greenhouse);
+        p.count = 12;
+        let s = build_scene(&p);
+        assert!(s.prims.len() <= MAX_PRIMS, "{} prims", s.prims.len());
+        assert_eq!(s.lamps.len(), 12);
+        assert_eq!(s.grids.len(), 3);
+        assert!(s.grids[0].receiver.origin.y > BENCH_TOP);
+    }
+
+    #[test]
+    fn suggested_scene_follows_the_luminaire() {
+        let road = Eulumdat::parse(include_str!(
+            "../../eulumdat-wasm/templates/road_luminaire.ldt"
+        ))
+        .unwrap();
+        assert_eq!(suggest_scene(&road), SceneKind::Street);
+        let office = Eulumdat::parse(include_str!(
+            "../../eulumdat-wasm/templates/fluorescent_luminaire.ldt"
+        ))
+        .unwrap();
+        assert_eq!(suggest_scene(&office), SceneKind::Office);
+        let projector =
+            Eulumdat::parse(include_str!("../../eulumdat-wasm/templates/projector.ldt")).unwrap();
+        assert_eq!(suggest_scene(&projector), SceneKind::Facade);
+    }
+
     use super::*;
 
     #[test]

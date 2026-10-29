@@ -69,6 +69,29 @@ fn main() {
                 l3d_bytes = x.l3d;
             }
         }
+        Some(path)
+            if path.to_ascii_lowercase().ends_with(".xml")
+                || path.to_ascii_lowercase().ends_with(".json") =>
+        {
+            // ATLA / TM-33: photometry plus, when present, the spectrum that
+            // turns lux into PPFD for the greenhouse scene.
+            let text = std::fs::read_to_string(&path).expect("read luminaire file");
+            let doc = eulumdat::atla::parse(&text).expect("parse ATLA file");
+            if let Some(spd) = doc
+                .emitters
+                .iter()
+                .filter_map(|e| e.spectral_distribution.as_ref())
+                .next()
+            {
+                if let Some(f) =
+                    eulumdat_scene::photometry::ppfd_per_lux(&spd.wavelengths, &spd.values)
+                {
+                    println!("spectrum: {f:.4} umol per lx*s");
+                    viewer.settings.ppfd_factor = Some(f);
+                }
+            }
+            viewer.load(&path, doc.to_eulumdat(), None);
+        }
         Some(path) => {
             let text = std::fs::read_to_string(&path).expect("read luminaire file");
             let ldt = parse_any(&path, &text).expect("parse luminaire file");
@@ -127,9 +150,14 @@ fn main() {
             eulumdat_scene::photometry::camera_key_lux(&viewer.scene)
         );
         for g in viewer.grid_statistics() {
+            let f = viewer.display_factor();
+            let (k, unit) = if f > 0.0 { (f, "umol") } else { (1.0, "lx") };
             println!(
-                "{:<18} Em {:>7.1}  Emin {:>7.1}  Uo {:.2}",
-                g.name, g.em, g.emin, g.uo
+                "{:<18} Em {:>7.1}  Emin {:>7.1}  Uo {:.2}  [{unit}]",
+                g.name,
+                g.em * k,
+                g.emin * k,
+                g.uo
             );
         }
         let rgba = tracer.present(&viewer.frame_input().params);
@@ -197,10 +225,15 @@ fn main() {
         viewer.lux_max,
         eulumdat_scene::photometry::camera_key_lux(&viewer.scene)
     );
+    let f = viewer.display_factor();
+    let (k, unit) = if f > 0.0 { (f, "umol") } else { (1.0, "lx") };
     for g in viewer.grid_statistics() {
         println!(
-            "{:<18} Em {:>7.1}  Emin {:>7.1}  Uo {:.2}",
-            g.name, g.em, g.emin, g.uo
+            "{:<18} Em {:>7.1}  Emin {:>7.1}  Uo {:.2}  [{unit}]",
+            g.name,
+            g.em * k,
+            g.emin * k,
+            g.uo
         );
     }
 

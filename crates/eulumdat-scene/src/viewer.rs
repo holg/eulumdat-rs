@@ -105,6 +105,9 @@ pub struct Settings {
     pub probe_max_samples: u32,
     /// Trace passes per frame: faster convergence on a strong GPU.
     pub passes_per_frame: u32,
+    /// µmol per (lx·s) of the loaded spectrum, from the host; `None` assumes
+    /// a white LED in PPFD scenes.
+    pub ppfd_factor: Option<f32>,
 }
 
 impl Default for Settings {
@@ -126,6 +129,7 @@ impl Default for Settings {
             max_samples: MAX_SAMPLES,
             probe_max_samples: PROBE_MAX_SAMPLES,
             passes_per_frame: 1,
+            ppfd_factor: None,
         }
     }
 }
@@ -319,6 +323,10 @@ pub enum Command {
     ResetView,
     NextSample,
 }
+
+/// White LED, 4000 K: µmol of PAR photons per lux-second. Used when the
+/// luminaire carries no spectrum.
+pub const DEFAULT_PPFD_PER_LUX: f32 = 0.0152;
 
 pub struct Viewer {
     pub settings: Settings,
@@ -643,6 +651,16 @@ impl Viewer {
         rebuilt
     }
 
+    /// Factor from lux to the displayed unit: µmol/(m²·s) per lx in the
+    /// greenhouse, 0 elsewhere (values stay lux).
+    pub fn display_factor(&self) -> f32 {
+        if self.settings.params.kind == SceneKind::Greenhouse {
+            self.settings.ppfd_factor.unwrap_or(DEFAULT_PPFD_PER_LUX)
+        } else {
+            0.0
+        }
+    }
+
     /// Replace the luminaire body (`None` goes back to the housing box).
     /// The scene is rebuilt because arms and the emitting face follow it.
     pub fn set_mesh(&mut self, mesh: Option<Arc<LuminaireMesh>>) {
@@ -723,8 +741,14 @@ impl Viewer {
             .fold(1.0_f32, |h, l| h.max(l.position.y));
         let anchor_lux = photometry.table.max_cd * self.settings.dimming / (mount * mount).max(1.0);
         self.peak_lux = max.max(anchor_lux).max(1e-3);
-        self.lux_max = nice_ceil(max.max(1e-3) * 1.02);
-        self.iso_step = nice_ceil(self.lux_max / 10.0);
+        let f = self.display_factor();
+        if f > 0.0 {
+            self.lux_max = nice_ceil(max.max(1e-3) * 1.02 * f) / f;
+            self.iso_step = nice_ceil(self.lux_max * f / 10.0) / f;
+        } else {
+            self.lux_max = nice_ceil(max.max(1e-3) * 1.02);
+            self.iso_step = nice_ceil(self.lux_max / 10.0);
+        }
         self.glare_dirty = true;
         self.reset_token += 1;
     }
@@ -968,6 +992,9 @@ impl Viewer {
             probe_max_samples: self.settings.probe_max_samples,
             point_count: self.probes.len() as u32,
             body_tris: self.mesh.as_ref().map_or(0, |m| m.tris.len() as u32),
+            ppfd_factor: self.display_factor(),
+            ppfd_from_spectrum: self.settings.ppfd_factor.is_some(),
+            photoperiod: self.settings.params.photoperiod,
             lux_max: self.lux_max,
             iso_step: self.iso_step,
             key_lux: camera_key_lux(&self.scene),
@@ -992,6 +1019,9 @@ impl Viewer {
         p.spacing = sync.spacing.max(0.5);
         p.wall_distance = sync.wall_distance.max(0.2);
         p.ceiling_height = sync.ceiling_height.clamp(2.4, 4.5);
+        p.canopy_height = sync.canopy_height.clamp(0.5, 2.2);
+        p.photoperiod = sync.photoperiod.clamp(1.0, 24.0);
+        self.settings.ppfd_factor = sync.ppfd_factor.filter(|f| *f > 0.0);
         p.wall_finish = if sync.wall_finish == "brick" {
             WallFinish::Brick
         } else {
@@ -1106,7 +1136,8 @@ impl Viewer {
         let gap = 5.0;
         let mut labels: Vec<(usize, String, f32, f32)> = Vec::new();
         for &(k, dist) in &discs {
-            let text = format_lux(self.probe_values[k]);
+            let f = self.display_factor();
+            let text = format_lux(self.probe_values[k] * if f > 0.0 { f } else { 1.0 });
             let width = text.len() as f32 * 6.4;
             let level = lod_level(layout, k, &sx, &sy, width + gap, label_h + gap);
             if !keep_at_level(&layout.points[k], level) {

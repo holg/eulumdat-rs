@@ -259,6 +259,32 @@ pub fn exposure_for(key_lux: f32, ev: f32) -> f32 {
     (0.45 * std::f32::consts::PI) / (0.3 * key_lux) * 2f32.powf(ev)
 }
 
+/// µmol of PAR photons per lux-second for a spectrum given as (nm, value)
+/// samples (relative or absolute units; the ratio cancels the scale).
+#[cfg(feature = "spectrum")]
+pub fn ppfd_per_lux(wavelengths_nm: &[f64], values: &[f64]) -> Option<f32> {
+    use eulumdat_spectrum::constants::KM_PHOTOPIC;
+    use eulumdat_spectrum::lut::photopic;
+    use eulumdat_spectrum::metrics::ppfd_integral;
+    use eulumdat_spectrum::spd::Spd;
+    if wavelengths_nm.len() < 2 || wavelengths_nm.len() != values.len() {
+        return None;
+    }
+    let coarse = Spd::new(wavelengths_nm, values);
+    // 1 nm resampling so the 400–700 nm PAR edges are sharp.
+    let start = wavelengths_nm[0].floor();
+    let end = wavelengths_nm[wavelengths_nm.len() - 1].ceil();
+    let n = ((end - start) as usize) + 1;
+    let fine: Vec<f64> = (0..n).map(|i| coarse.value_at(start + i as f64)).collect();
+    let spd = Spd::uniform(start, 1.0, &fine);
+    let photopic_integral = spd.integral_weighted(photopic);
+    if photopic_integral <= 1e-12 {
+        return None;
+    }
+    let f = ppfd_integral(&spd) / (KM_PHOTOPIC * photopic_integral);
+    (f.is_finite() && f > 0.0).then_some(f as f32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

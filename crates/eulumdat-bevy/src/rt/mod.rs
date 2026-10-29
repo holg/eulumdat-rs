@@ -318,6 +318,7 @@ fn handle_keys(
         (KeyCode::Digit2, SceneKind::Parking),
         (KeyCode::Digit3, SceneKind::Facade),
         (KeyCode::Digit4, SceneKind::Office),
+        (KeyCode::Digit5, SceneKind::Greenhouse),
     ];
     for (key, kind) in scenes {
         if keys.just_pressed(key) {
