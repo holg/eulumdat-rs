@@ -63,6 +63,8 @@ eulumdat-digitize.workspace = true
 eulumdat-goniosim = { workspace = true, default-features = false }
 eulumdat-i18n.workspace = true
 eulumdat-rt = { workspace = true, default-features = false }
+eulumdat-scene = { workspace = true, features = ["l3d"] }
+wgpu = { version = "29", default-features = false, features = ["wgsl", "webgpu"] }
 eulumdat-spectrum.workspace = true
 eulumdat-tm25.workspace = true
 eulumdat-typst = { workspace = true, features = ["json"] }
@@ -111,6 +113,7 @@ features = [
     "Element",
     "HtmlElement",
     "MouseEvent",
+    "PointerEvent",
     "WheelEvent",
     "DomRect",
     "console",

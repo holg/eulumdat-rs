@@ -41,7 +41,7 @@ use super::butterfly_3d::Butterfly3D;
 use super::cartesian_diagram::CartesianDiagram;
 use super::compare_panel::ComparePanel;
 use super::cone_diagram::{ConeDiagramView, ConeIlluminanceTableView};
-use super::dashboard::Dashboard;
+use super::dashboard::{Dashboard, Feature};
 use super::data_table::DataTable;
 use super::daylight_sky::DaylightSky;
 use super::diagram_zoom::DiagramZoom;
@@ -56,6 +56,7 @@ use super::isolux_isometric::IsoluxIsometric;
 use super::lcs_classification::LcsClassification;
 use super::maps_designer::MapsDesigner;
 use super::polar_diagram::PolarDiagram;
+use super::rt_scene::RtSceneViewer;
 use super::skyglow_demo::SkyglowDemo;
 use super::spectral_diagram::SpectralDiagramView;
 use super::spectrum_demo::SpectrumDemo;
@@ -228,8 +229,9 @@ pub enum Tab {
     CompareTab,
     // BIM group (single tab, no sub-tabs)
     BimTab,
-    // Scene 3D group (single tab, no sub-tabs)
+    // Scene 3D group: Bevy PBR scene and the path-traced light scene
     Scene3DTab,
+    SceneRtTab,
     // Area Designer group (single tab, no sub-tabs)
     AreaDesignerTab,
     // Zonal Designer group (single tab, no sub-tabs)
@@ -264,7 +266,7 @@ impl Tab {
             Tab::ValidationTab => MainTab::Validation,
             Tab::CompareTab => MainTab::Compare,
             Tab::BimTab => MainTab::Bim,
-            Tab::Scene3DTab => MainTab::Scene3D,
+            Tab::Scene3DTab | Tab::SceneRtTab => MainTab::Scene3D,
             Tab::AreaDesignerTab => MainTab::AreaDesigner,
             Tab::ZonalDesignerTab => MainTab::ZonalDesigner,
             Tab::MapsDesignerTab => MainTab::MapsDesigner,
@@ -285,7 +287,7 @@ impl Tab {
             MainTab::Validation => Tab::ValidationTab,
             MainTab::Compare => Tab::CompareTab,
             MainTab::Bim => Tab::BimTab,
-            MainTab::Scene3D => Tab::Scene3DTab,
+            MainTab::Scene3D => Tab::SceneRtTab,
             MainTab::AreaDesigner => Tab::AreaDesignerTab,
             MainTab::ZonalDesigner => Tab::ZonalDesignerTab,
             MainTab::MapsDesigner => Tab::MapsDesignerTab,
@@ -320,7 +322,7 @@ impl Tab {
             MainTab::Validation => &[Tab::ValidationTab],
             MainTab::Compare => &[Tab::CompareTab],
             MainTab::Bim => &[Tab::BimTab],
-            MainTab::Scene3D => &[Tab::Scene3DTab],
+            MainTab::Scene3D => &[Tab::SceneRtTab, Tab::Scene3DTab],
             MainTab::AreaDesigner => &[Tab::AreaDesignerTab],
             MainTab::ZonalDesigner => &[Tab::ZonalDesignerTab],
             MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
@@ -761,6 +763,9 @@ pub fn App() -> impl IntoView {
         if demo == "tm25" {
             return view! { <super::tm25_viewer::Tm25Viewer /> }.into_any();
         }
+        if demo == "rt_viewer" || demo == "rt" {
+            return view! { <super::rt_viewer::RtViewer /> }.into_any();
+        }
     }
 
     // Primary state: ATLA document (source of truth)
@@ -835,6 +840,13 @@ pub fn App() -> impl IntoView {
         save_unit_system(unit_system.get());
     });
     provide_context((unit_system, set_unit_system));
+
+    // Luminaire body from a GLDF container's L3D model, for the Light scene.
+    // Cleared whenever a luminaire that did not come from that container is
+    // loaded; GLDF-derived library rows keep the body that is current.
+    let body_mesh: RwSignal<Option<std::sync::Arc<eulumdat_scene::mesh::LuminaireMesh>>> =
+        RwSignal::new(None);
+    provide_context(body_mesh);
     let (show_about, set_show_about) = signal(false);
 
     // C-plane rotation for IES↔LDT axis correction (EU C0‖length vs US C0⊥length)
@@ -862,6 +874,9 @@ pub fn App() -> impl IntoView {
     // dedup) an entry in the persistent library.
     let load_file_content =
         move |name: String, content: String, source: crate::library::LibrarySource| {
+            if !name.contains(".gldf/") {
+                body_mesh.set(None);
+            }
             // Append to library before parsing so even files that fail to
             // dispatch through any branch still leave a breadcrumb? No —
             // unknown formats already log to console; we only want valid
@@ -1423,6 +1438,7 @@ pub fn App() -> impl IntoView {
             | Tab::CompareTab
             | Tab::BimTab
             | Tab::Scene3DTab
+            | Tab::SceneRtTab
             | Tab::AreaDesignerTab
             | Tab::ZonalDesignerTab
             | Tab::MapsDesignerTab
@@ -1511,6 +1527,10 @@ pub fn App() -> impl IntoView {
                     super::spd_digitize::start(file, pending_chart);
                     return;
                 }
+                if is_gldf_file(&name) {
+                    open_gldf(file, body_mesh, load_file_content);
+                    return;
+                }
                 let load_content = load_file_content;
                 wasm_bindgen_futures::spawn_local(async move {
                     let text = gloo_file::futures::read_as_text(&file.into()).await;
@@ -1547,6 +1567,10 @@ pub fn App() -> impl IntoView {
                         super::spd_digitize::start(file, pending_chart);
                         return;
                     }
+                    if is_gldf_file(&name) {
+                        open_gldf(file, body_mesh, load_file_content);
+                        return;
+                    }
                     let load_content = load_file_content;
                     wasm_bindgen_futures::spawn_local(async move {
                         let text = gloo_file::futures::read_as_text(&file.into()).await;
@@ -1564,7 +1588,7 @@ pub fn App() -> impl IntoView {
 
     view! {
         <ThemeProvider mode=theme_mode>
-            <div class=move || format!("app {}", theme_mode.get().class_name()) role="application" aria-label="Eulumdat Editor">
+            <div class=move || format!("app {}", theme_mode.get().class_name()) role="application" aria-label="Photometrica">
                 // Skip to main content link for keyboard users
                 <a href="#main-content" class="skip-link">{move || locale.get().ui.header.skip_link.clone()}</a>
 
@@ -1586,7 +1610,7 @@ pub fn App() -> impl IntoView {
                                     {move || locale.get().ui.header.open.clone()}
                                     <input
                                         type="file"
-                                        accept=".ldt,.LDT,.ies,.IES,.xml,.XML,.json,.JSON,.spdx,.SPDX,.spd,.SPD,.csv,.CSV,.oxl,.OXL,.oxc,.OXC,.png,.PNG,.jpg,.JPG,.jpeg,.JPEG,.webp,.WEBP,.tm25ray,.TM25RAY,.ray,.RAY"
+                                        accept=".ldt,.LDT,.ies,.IES,.gldf,.GLDF,.xml,.XML,.json,.JSON,.spdx,.SPDX,.spd,.SPD,.csv,.CSV,.oxl,.OXL,.oxc,.OXC,.png,.PNG,.jpg,.JPG,.jpeg,.JPEG,.webp,.WEBP,.tm25ray,.TM25RAY,.ray,.RAY"
                                         style="display: none;"
                                         on:change=on_file_input
                                         aria-label="Open LDT, IES, SPDX, XML, or JSON file"
@@ -1807,6 +1831,9 @@ pub fn App() -> impl IntoView {
                                 // (potentially lossy) re-serialization.
                                 let atla = LuminaireOpticalData::from_eulumdat(&new_ldc);
                                 record_pristine_ldc(&new_ldc, &atla.to_eulumdat());
+                                if !name.contains(".gldf/") {
+                                    body_mesh.set(None);
+                                }
                                 set_ldc.set(new_ldc);
                                 set_current_file.set(Some(name));
                             })
@@ -1822,6 +1849,33 @@ pub fn App() -> impl IntoView {
                             on_designer=Callback::new(move |_| {
                                 set_view_mode.set(ViewMode::Editor);
                                 set_active_tab.set(Tab::AreaDesignerTab);
+                            })
+                            on_light_scene=Callback::new(move |_| {
+                                set_view_mode.set(ViewMode::Editor);
+                                set_active_tab.set(Tab::SceneRtTab);
+                            })
+                            on_feature=Callback::new(move |f: Feature| {
+                                let tab = match f {
+                                    Feature::Editor => Tab::Diagram2D,
+                                    Feature::Validation => Tab::ValidationTab,
+                                    Feature::Bug => Tab::BugRating,
+                                    Feature::Compare => Tab::CompareTab,
+                                    Feature::Bim => Tab::BimTab,
+                                    Feature::LightScene | Feature::Gldf => Tab::SceneRtTab,
+                                    Feature::Scene3D => Tab::Scene3DTab,
+                                    Feature::Area => Tab::AreaDesignerTab,
+                                    Feature::Interior => Tab::ZonalDesignerTab,
+                                    Feature::Maps => Tab::MapsDesignerTab,
+                                    Feature::Street => Tab::StreetDesignTab,
+                                    Feature::Spectral | Feature::Digitizer => Tab::Spectral,
+                                    Feature::Daylight => Tab::DaylightSkyTab,
+                                    Feature::Gonio => Tab::GonioSimTab,
+                                    // Own pages (greenhouse, skyglow, TM-25, quiz) and the
+                                    // PDF report are handled on the dashboard itself.
+                                    _ => return,
+                                };
+                                set_view_mode.set(ViewMode::Editor);
+                                set_active_tab.set(tab);
                             })
                             on_export_pdf=Callback::new(move |export_ldt: Eulumdat| {
                                 let (typst_source, _) = eulumdat_typst::generate_typst_with_files(
@@ -2014,6 +2068,7 @@ pub fn App() -> impl IntoView {
                                                 Tab::CompareTab => locale.get().ui.tabs.compare.clone(),
                                                 Tab::BimTab => locale.get().ui.tabs.bim.clone(),
                                                 Tab::Scene3DTab => locale.get().ui.tabs.scene_3d.clone(),
+                                                Tab::SceneRtTab => locale.get().ui.tabs.scene_rt.clone(),
                                                 Tab::AreaDesignerTab => locale.get().ui.tabs.area_designer.clone(),
                                                 Tab::ZonalDesignerTab => locale.get().ui.tabs.zonal_designer.clone(),
                                                 Tab::MapsDesignerTab => locale.get().ui.tabs.maps_designer.clone(),
@@ -2040,6 +2095,15 @@ pub fn App() -> impl IntoView {
 
                         // Tab content
                         <div class="tab-content">
+                            // The light scene keeps its canvas mounted: Bevy cannot re-attach to a
+                            // new element. Hidden tabs pause it through the `active` flag.
+                            <div style=move || if active_tab.get() == Tab::SceneRtTab {
+                                "height: 640px; position: relative; display: flex;".to_string()
+                            } else {
+                                "position: absolute; left: 0; right: 0; height: 640px; visibility: hidden; pointer-events: none; display: flex;".to_string()
+                            }>
+                                <RtSceneViewer active=Signal::derive(move || active_tab.get() == Tab::SceneRtTab) ldc=ldc />
+                            </div>
                             {move || match active_tab.get() {
                                 Tab::General => view! {
                                     <GeneralTab ldc=ldc set_ldc=set_ldc />
@@ -2378,6 +2442,7 @@ pub fn App() -> impl IntoView {
                                         }}
                                     </div>
                                 }.into_any(),
+                                Tab::SceneRtTab => view! { <div></div> }.into_any(),
                                 Tab::Scene3DTab => view! {
                                     <div class="scene-3d-tab">
                                         <div class="diagram-header">
@@ -2513,4 +2578,57 @@ pub fn App() -> impl IntoView {
             }}
         </ThemeProvider>
     }.into_any()
+}
+
+/// GLDF container (zip with product.xml, photometry and optional L3D body).
+fn is_gldf_file(name: &str) -> bool {
+    name.to_ascii_lowercase().ends_with(".gldf")
+}
+
+/// Open a GLDF container: the brightest photometry becomes the editor's
+/// luminaire (named `container.gldf/ldc/x.ldt`, so it dispatches as LDT /
+/// IES) and the first L3D model becomes the Light scene body.
+fn open_gldf(
+    file: web_sys::File,
+    body_mesh: RwSignal<Option<std::sync::Arc<eulumdat_scene::mesh::LuminaireMesh>>>,
+    load_content: impl Fn(String, String, crate::library::LibrarySource) + 'static,
+) {
+    let name = file.name();
+    wasm_bindgen_futures::spawn_local(async move {
+        let Ok(bytes) = gloo_file::futures::read_as_bytes(&file.into()).await else {
+            web_sys::console::error_1(&"GLDF: could not read the file".into());
+            return;
+        };
+        let Some(x) = eulumdat_scene::l3d::gldf_extract(&bytes) else {
+            web_sys::console::error_1(&"GLDF: no LDT / IES photometry in the container".into());
+            return;
+        };
+        let mesh = x
+            .l3d
+            .as_deref()
+            .and_then(eulumdat_scene::l3d::mesh_source_from_l3d)
+            .and_then(|src| eulumdat_scene::mesh::LuminaireMesh::from_source(&src))
+            .map(std::sync::Arc::new);
+        web_sys::console::info_1(
+            &format!(
+                "GLDF {}: {} photometries, body {}",
+                name,
+                x.photometries.len(),
+                mesh.as_ref().map_or("none".to_string(), |m| format!(
+                    "{} triangles",
+                    m.tris.len()
+                ))
+            )
+            .into(),
+        );
+        let Some(phot) = x.best_photometry() else {
+            return;
+        };
+        body_mesh.set(mesh);
+        load_content(
+            format!("{}/{}", name, phot.name),
+            phot.text.clone(),
+            crate::library::LibrarySource::LocalFile,
+        );
+    });
 }

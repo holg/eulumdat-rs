@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eulumdat Editor - LDT/IES Photometric File Editor</title>
+    <title>Photometrica – photometric workbench: LDT / IES editor, diagrams, light scenes, spectra</title>
+    <meta name="description" content="Photometrica: open photometric workbench in the browser. Edit and validate LDT, IES, ATLA and GLDF luminaire data, draw every diagram, light a street or office with a path tracer, analyse spectra, PPFD and daylight, design areas, interiors and roads.">
+    <meta property="og:title" content="Photometrica – photometric workbench">
+    <meta property="og:description" content="LDT / IES editor, diagrams, path-traced light scenes, spectral lab, goniophotometer, area and street design – all in the browser.">
+    <meta property="og:type" content="website">
     <link data-trunk rel="rust" data-bin="eulumdat-wasm" data-wasm-opt="0">
     <link data-trunk rel="css" href="src/static/styles.css">
     <!-- Typst PDF compiler (lazy-loaded on demand for PDF export) -->
@@ -16,6 +20,7 @@
     <link data-trunk rel="copy-file" href="src/static/street-loader.js">
     <link data-trunk rel="copy-file" href="src/static/greenhouse-loader.js">
     <link data-trunk rel="copy-file" href="src/static/tm25-loader.js">
+    <link data-trunk rel="copy-file" href="src/static/rt-viewer-loader.js">
 </head>
 <body>
     <!-- Typst PDF compiler (~38MB, loaded on demand when user exports PDF) -->
@@ -27,6 +32,7 @@
     <script src="street-loader.js"></script>
     <script src="greenhouse-loader.js"></script>
     <script src="tm25-loader.js"></script>
+    <script src="rt-viewer-loader.js"></script>
     <noscript>This application requires JavaScript to run.</noscript>
 </body>
 </html>

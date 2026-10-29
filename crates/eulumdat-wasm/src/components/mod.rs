@@ -27,6 +27,8 @@ mod isolux_isometric;
 mod lcs_classification;
 mod maps_designer;
 mod polar_diagram;
+pub mod rt_scene;
+pub mod rt_viewer;
 mod sky_viz;
 pub mod skyglow_demo;
 pub mod spd_digitize;

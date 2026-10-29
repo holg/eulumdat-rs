@@ -1,4 +1,4 @@
-/* Eulumdat Editor Styles */
+/* Photometrica (eulumdat-rs web editor) styles */
 
 /* ============================================
    LIGHT THEME (default)
@@ -188,7 +188,7 @@ textarea::placeholder {
 /* Dashboard layout: sidebar + main content */
 .dashboard-layout {
     display: grid;
-    grid-template-columns: 48px 1fr;
+    grid-template-columns: 84px 1fr;
     min-height: 60vh;
     background: var(--background);
     border-radius: 8px;
@@ -198,7 +198,7 @@ textarea::placeholder {
 
 /* Left icon sidebar */
 .dashboard-sidebar {
-    width: 48px;
+    width: 84px;
     background: var(--surface);
     border-right: 1px solid var(--border);
     display: flex;
@@ -209,8 +209,11 @@ textarea::placeholder {
 }
 
 .sidebar-icon-btn {
-    width: 36px;
-    height: 36px;
+    width: 76px;
+    min-height: 36px;
+    padding: 4px 2px;
+    flex-direction: column;
+    gap: 2px;
     border: none;
     background: transparent;
     border-radius: 6px;
@@ -238,6 +241,185 @@ textarea::placeholder {
     opacity: 0.35;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+.sidebar-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.sidebar-label {
+    font-size: 9.5px;
+    line-height: 1.15;
+    color: var(--text-secondary);
+    text-align: center;
+    word-break: break-word;
+}
+
+.sidebar-icon-btn:hover .sidebar-label,
+.sidebar-icon-btn.active .sidebar-label {
+    color: var(--primary-color);
+}
+
+/* Start-page guide above the luminaire list */
+.dashboard-guide {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-color) 10%, var(--surface)), var(--surface));
+}
+
+.guide-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 240px;
+    flex: 1 1 320px;
+}
+
+.guide-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.guide-step {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.guide-selected {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.guide-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.guide-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-elevated, var(--background));
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.guide-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.guide-btn.primary {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+
+.guide-btn.primary:hover {
+    filter: brightness(1.1);
+    color: #fff;
+}
+
+.guide-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.guide-icon {
+    font-size: 1rem;
+}
+
+/* Feature overview on the start page */
+.feature-section {
+    border-bottom: 1px solid var(--border);
+    padding: 6px 16px 10px;
+}
+
+.feature-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.feature-heading {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.feature-toggle {
+    font-size: 0.75rem;
+    color: var(--primary-color);
+}
+
+.feature-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px;
+}
+
+.feature-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    min-height: 92px;
+}
+
+.feature-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.feature-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.feature-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.feature-desc {
+    font-size: 0.7rem;
+    line-height: 1.3;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* Sidebar divider between icon groups */

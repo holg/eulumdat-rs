@@ -155,6 +155,7 @@ BUILD_SKYGLOW=$(toml_get "bundles.skyglow" "false")
 BUILD_STREET=$(toml_get "bundles.street" "false")
 BUILD_GREENHOUSE=$(toml_get "bundles.greenhouse" "false")
 BUILD_TM25=$(toml_get "bundles.tm25" "false")
+BUILD_RTV=$(toml_get "bundles.rt_viewer" "false")
 
 # Deploy settings
 DEPLOY_TARGET=$(toml_get "deploy.target" "")
@@ -270,7 +271,7 @@ needs_rebuild() {
 
 # Names of bundles that support selective `force <module>` rebuilds.
 # Keep in sync with the `needs_rebuild` call sites below.
-FORCE_MODULE_NAMES=("leptos" "bevy" "street" "skyglow" "greenhouse" "tm25" "templates" "eulumdat-core")
+FORCE_MODULE_NAMES=("leptos" "bevy" "street" "skyglow" "greenhouse" "tm25" "rt_viewer" "templates" "eulumdat-core")
 
 # Map bundle name → cargo crate that should be `cargo clean -p`ed when
 # forcing just that module. Without this, `force street` on an unchanged
@@ -286,6 +287,7 @@ force_module_crate() {
         skyglow)   echo "eulumdat-bevy" ;;
         greenhouse) echo "eulumdat-bevy" ;;
         tm25)      echo "eulumdat-bevy" ;;
+        rt_viewer) echo "eulumdat-bevy" ;;
         templates) echo "eulumdat-wasm-templates" ;;
         *)         echo "" ;;
     esac
@@ -437,6 +439,9 @@ if [[ "$BUILD_GREENHOUSE" == "true" ]]; then
 fi
 if [[ "$BUILD_TM25" == "true" ]]; then
     echo "  Bundle 8: TM-25 Ray File Viewer (loads on demand, ?wasm=tm25)"
+fi
+if [[ "$BUILD_RTV" == "true" ]]; then
+    echo "  Bundle 9: Scene Viewer, path traced (loads on demand, ?wasm=rt_viewer)"
 fi
 if [[ "$HAVE_BROTLI" == "true" ]]; then
     echo ""
@@ -771,6 +776,51 @@ if [[ "$BUILD_TM25" == "true" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
+# Step 1.95: Build path-traced Scene Viewer (lazy bundle, WebGPU only)
+# -----------------------------------------------------------------------------
+RTV_BINARY="rt-viewer"
+RTV_OUTPUT="$ROOT_DIR/target/wasm32-unknown-unknown/release"
+RTV_BINDGEN_OUTPUT="$ROOT_DIR/target/rt-viewer-wasm-bindgen"
+if [[ "$BUILD_RTV" == "true" ]]; then
+    RTV_NEEDS_BUILD=false
+    if needs_rebuild "rt_viewer" "$BEVY_DIR"; then
+        RTV_NEEDS_BUILD=true
+    elif [[ ! -f "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}.js" ]]; then
+        RTV_NEEDS_BUILD=true
+    fi
+
+    if [[ "$RTV_NEEDS_BUILD" == "true" ]]; then
+        echo "[1.95/$TOTAL_STEPS] Building Scene Viewer for WASM (WebGPU)..."
+        cd "$ROOT_DIR"
+
+        cargo build --release --target wasm32-unknown-unknown \
+            --bin "$RTV_BINARY" \
+            --features rt-viewer \
+            -p eulumdat-bevy
+
+        mkdir -p "$RTV_BINDGEN_OUTPUT"
+        wasm-bindgen --out-dir "$RTV_BINDGEN_OUTPUT" --target web \
+            "$RTV_OUTPUT/${RTV_BINARY}.wasm"
+
+        if command -v wasm-opt &> /dev/null && [[ -f "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg.wasm" ]]; then
+            echo "    Running wasm-opt..."
+            ORIG_SIZE=$(ls -lh "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg.wasm" | awk '{print $5}')
+            wasm-opt -Oz -o "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg_opt.wasm" \
+                "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg.wasm"
+            mv "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg_opt.wasm" \
+                "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg.wasm"
+            OPT_SIZE=$(ls -lh "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg.wasm" | awk '{print $5}')
+            echo "    Size: $ORIG_SIZE -> $OPT_SIZE"
+        fi
+
+        save_hash "rt_viewer" "$(calculate_source_hash "$BEVY_DIR")"
+        echo ""
+    else
+        echo "[1.95/$TOTAL_STEPS] Scene Viewer: unchanged, skipping build"
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # Step 2: Build Leptos editor
 # -----------------------------------------------------------------------------
 if [[ "$BUILD_LEPTOS" == "true" ]]; then
@@ -1003,6 +1053,28 @@ if [[ "$BUILD_TM25" == "true" ]] && [[ -f "$TM25_BINDGEN_OUTPUT/${TM25_BINARY}.j
         sed_inplace "s/${TM25_BINARY}_bg.wasm/${TM25_BINARY}-${TM25_WASM_HASH}_bg.wasm/g" "$TM25_JS_TARGET"
         echo "  ${TM25_BINARY}-${TM25_JS_HASH}.js"
         echo "  ${TM25_BINARY}-${TM25_WASM_HASH}_bg.wasm"
+    fi
+fi
+echo ""
+RTV_JS_HASH=""
+RTV_WASM_HASH=""
+if [[ "$BUILD_RTV" == "true" ]] && [[ -f "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}.js" ]]; then
+    RTV_JS_HASH=$(hash_md5 "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}.js")
+    RTV_WASM_HASH=$(hash_md5 "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg.wasm")
+    RTV_JS_TARGET="$DIST_DIR/rt-viewer/${RTV_BINARY}-${RTV_JS_HASH}.js"
+    RTV_WASM_TARGET="$DIST_DIR/rt-viewer/${RTV_BINARY}-${RTV_WASM_HASH}_bg.wasm"
+
+    if [[ -f "$RTV_JS_TARGET" ]] && [[ -f "$RTV_WASM_TARGET" ]]; then
+        echo "[3.95/$TOTAL_STEPS] Scene Viewer files: unchanged (hash match), skipping"
+    else
+        echo "[3.95/$TOTAL_STEPS] Adding content hashes to Scene Viewer files..."
+        mkdir -p "$DIST_DIR/rt-viewer"
+        rm -f "$DIST_DIR/rt-viewer/"*.js "$DIST_DIR/rt-viewer/"*.wasm "$DIST_DIR/rt-viewer/"*.br
+        cp "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}.js" "$RTV_JS_TARGET"
+        cp "$RTV_BINDGEN_OUTPUT/${RTV_BINARY}_bg.wasm" "$RTV_WASM_TARGET"
+        sed_inplace "s/${RTV_BINARY}_bg.wasm/${RTV_BINARY}-${RTV_WASM_HASH}_bg.wasm/g" "$RTV_JS_TARGET"
+        echo "  ${RTV_BINARY}-${RTV_JS_HASH}.js"
+        echo "  ${RTV_BINARY}-${RTV_WASM_HASH}_bg.wasm"
     fi
 fi
 echo ""
@@ -1918,6 +1990,103 @@ TM25_LOADER_END
 fi
 
 # -----------------------------------------------------------------------------
+# Step 6.89: Generate rt-viewer-loader.js (if configured)
+# -----------------------------------------------------------------------------
+RTV_LOADER_HASH=""
+if [[ "$BUILD_RTV" == "true" ]] && [[ -n "$RTV_JS_HASH" ]]; then
+    EXISTING_RTV_LOADER=$(ls "$DIST_DIR/rt-viewer-loader-"*.js 2>/dev/null | head -1)
+    if [[ -n "$EXISTING_RTV_LOADER" ]] && grep -q "${RTV_BINARY}-${RTV_JS_HASH}.js" "$EXISTING_RTV_LOADER" 2>/dev/null; then
+        echo "[6.89/$TOTAL_STEPS] rt-viewer-loader.js: unchanged, skipping"
+        RTV_LOADER_HASH=$(echo "$EXISTING_RTV_LOADER" | sed 's/.*rt-viewer-loader-\([^.]*\)\.js/\1/')
+    else
+        echo "[6.89/$TOTAL_STEPS] Generating rt-viewer-loader.js..."
+        rm -f "$DIST_DIR/rt-viewer-loader-"*.js "$DIST_DIR/rt-viewer-loader-"*.js.br
+
+        cat > "$DIST_DIR/rt-viewer-loader-temp.js" << RTV_LOADER_END
+// Path-traced scene viewer loader
+//
+// Lazy-loads the Bevy rt-viewer bundle (WebGPU only: the tracer runs as
+// compute shaders). The bundle reads the editor's current luminaire from
+// localStorage["eulumdat_current_ldt"].
+//
+// Auto-generated by scripts/build-wasm-split.sh with content hashes.
+
+let rtViewerLoaded = false;
+let rtViewerLoading = false;
+let rtViewerLoadPromise = null;
+window.rtViewerBackend = null;
+
+async function probeWebGpuForRtViewer() {
+    if (!navigator.gpu) return false;
+    try {
+        const adapter = await navigator.gpu.requestAdapter();
+        return !!adapter;
+    } catch (_) {
+        return false;
+    }
+}
+
+async function loadRtViewer() {
+    if (rtViewerLoaded) {
+        return;
+    }
+    if (rtViewerLoading && rtViewerLoadPromise) {
+        return rtViewerLoadPromise;
+    }
+    rtViewerLoading = true;
+    rtViewerLoadPromise = (async () => {
+        const webgpuOk = await probeWebGpuForRtViewer();
+        if (!webgpuOk) {
+            window.rtViewerBackend = 'unsupported';
+            rtViewerLoading = false;
+            rtViewerLoadPromise = null;
+            const msg = "WebGPU unavailable — the scene viewer needs WebGPU.";
+            console.error("[RtViewer]", msg);
+            throw new Error(msg);
+        }
+        window.rtViewerBackend = 'webgpu';
+        try {
+            const mod = await import('./rt-viewer/${RTV_BINARY}-${RTV_JS_HASH}.js');
+            await mod.default();
+            rtViewerLoaded = true;
+            rtViewerLoading = false;
+            console.log("[RtViewer] Viewer loaded");
+        } catch (error) {
+            const errorStr = error.toString();
+            if (errorStr.includes("Using exceptions for control flow") ||
+                errorStr.includes("don't mind me")) {
+                rtViewerLoaded = true;
+                rtViewerLoading = false;
+                return;
+            }
+            console.error("[RtViewer] Failed to load:", error);
+            rtViewerLoading = false;
+            rtViewerLoadPromise = null;
+            throw error;
+        }
+    })();
+    return rtViewerLoadPromise;
+}
+
+window.loadRtViewer = loadRtViewer;
+window.isRtViewerLoaded = () => rtViewerLoaded;
+window.isRtViewerLoading = () => rtViewerLoading;
+
+console.log("[RtViewer] Loader ready (JS: ${RTV_JS_HASH}, WASM: ${RTV_WASM_HASH})");
+RTV_LOADER_END
+
+        if command -v md5sum &> /dev/null; then
+            RTV_LOADER_HASH=$(md5sum "$DIST_DIR/rt-viewer-loader-temp.js" | cut -c1-16)
+        else
+            RTV_LOADER_HASH=$(md5 -q "$DIST_DIR/rt-viewer-loader-temp.js" | cut -c1-16)
+        fi
+        mv "$DIST_DIR/rt-viewer-loader-temp.js" "$DIST_DIR/rt-viewer-loader-${RTV_LOADER_HASH}.js"
+        echo "  rt-viewer-loader-${RTV_LOADER_HASH}.js"
+    fi
+    echo ""
+fi
+
+# -----------------------------------------------------------------------------
 # Step 6.6: Update index.html with hashed loader filenames
 # -----------------------------------------------------------------------------
 # Only update if needed (check if already has correct hashes)
@@ -1960,6 +2129,11 @@ if [[ "$BUILD_GREENHOUSE" == "true" ]] && [[ -n "$GREENHOUSE_LOADER_HASH" ]]; th
 fi
 if [[ "$BUILD_TM25" == "true" ]] && [[ -n "$TM25_LOADER_HASH" ]]; then
     if ! grep -q "tm25-loader-${TM25_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
+        INDEX_NEEDS_UPDATE=true
+    fi
+fi
+if [[ "$BUILD_RTV" == "true" ]] && [[ -n "$RTV_LOADER_HASH" ]]; then
+    if ! grep -q "rt-viewer-loader-${RTV_LOADER_HASH}.js" "$DIST_DIR/index.html" 2>/dev/null; then
         INDEX_NEEDS_UPDATE=true
     fi
 fi
@@ -2018,6 +2192,12 @@ if [[ "$INDEX_NEEDS_UPDATE" == "true" ]]; then
         sed "${SED_INPLACE[@]}" "s|tm25-loader-[a-f0-9]*.js\"|tm25-loader-${TM25_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
     fi
 
+    if [[ "$BUILD_RTV" == "true" ]] && [[ -n "$RTV_LOADER_HASH" ]]; then
+        sed "${SED_INPLACE[@]}" "s|rt-viewer-loader.js\"|rt-viewer-loader-${RTV_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|rt-viewer-loader.js?v=[0-9]*\"|rt-viewer-loader-${RTV_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+        sed "${SED_INPLACE[@]}" "s|rt-viewer-loader-[a-f0-9]*.js\"|rt-viewer-loader-${RTV_LOADER_HASH}.js\"|g" "$DIST_DIR/index.html"
+    fi
+
     echo "  Updated loader references"
 else
     echo "[6.6/$TOTAL_STEPS] index.html: unchanged, skipping"
@@ -2048,8 +2228,8 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
     FILES_TO_COMPRESS=()
 
     # Only add files that don't have an up-to-date .br version
-    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/skyglow/"*.wasm "$DIST_DIR/skyglow-webgl2/"*.wasm "$DIST_DIR/street/"*.wasm "$DIST_DIR/greenhouse/"*.wasm "$DIST_DIR/tm25/"*.wasm \
-             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/skyglow/"*.js "$DIST_DIR/skyglow-webgl2/"*.js "$DIST_DIR/street/"*.js "$DIST_DIR/greenhouse/"*.js "$DIST_DIR/tm25/"*.js \
+    for f in "$DIST_DIR/"*.wasm "$DIST_DIR/bevy/"*.wasm "$DIST_DIR/typst/"*.wasm "$DIST_DIR/templates/"*.wasm "$DIST_DIR/skyglow/"*.wasm "$DIST_DIR/skyglow-webgl2/"*.wasm "$DIST_DIR/street/"*.wasm "$DIST_DIR/greenhouse/"*.wasm "$DIST_DIR/tm25/"*.wasm "$DIST_DIR/rt-viewer/"*.wasm \
+             "$DIST_DIR/"*.js "$DIST_DIR/bevy/"*.js "$DIST_DIR/typst/"*.js "$DIST_DIR/templates/"*.js "$DIST_DIR/skyglow/"*.js "$DIST_DIR/skyglow-webgl2/"*.js "$DIST_DIR/street/"*.js "$DIST_DIR/greenhouse/"*.js "$DIST_DIR/tm25/"*.js "$DIST_DIR/rt-viewer/"*.js \
              "$DIST_DIR/"*.css; do
         if [[ -f "$f" ]]; then
             # Skip non-hashed loader files (we use hashed versions)
@@ -2061,7 +2241,8 @@ elif [[ "$HAVE_BROTLI" == "true" ]]; then
                [[ "$basename_f" == "skyglow-loader.js" ]] || \
                [[ "$basename_f" == "street-loader.js" ]] || \
                [[ "$basename_f" == "greenhouse-loader.js" ]] || \
-               [[ "$basename_f" == "tm25-loader.js" ]]; then
+               [[ "$basename_f" == "tm25-loader.js" ]] || \
+               [[ "$basename_f" == "rt-viewer-loader.js" ]]; then
                 continue
             fi
             # Skip if .br exists and is at least as new as source

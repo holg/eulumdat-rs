@@ -46,6 +46,9 @@ street = true
 greenhouse = true
 # TM-25 ray file viewer — lazy-loaded (?wasm=tm25), WebGPU only
 tm25 = true
+# Bevy build of the light scene (?wasm=rt_viewer) — on demand only; the editor's
+# Light scene tab runs the same tracer on plain wgpu inside the Leptos bundle.
+rt_viewer = false
 
 [bundles.leptos]
 description = "Leptos editor"
@@ -84,6 +87,11 @@ size_estimate = "~25MB compressed"
 description = "TM-25 Ray File Viewer — near-field LED ray sets, far-field solid (?wasm=tm25)"
 load_strategy = "on_demand"
 size_estimate = "~20MB compressed"
+
+[bundles.rt_viewer]
+description = "Scene Viewer — path-traced street / open area / wall / room from the IES table, isolux + measurement points (?wasm=rt_viewer)"
+load_strategy = "on_demand"
+size_estimate = "~15MB compressed"
 
 # GonioSim is compiled INTO the Leptos bundle (not a separate WASM).
 # No separate build step, loader, or content hashing needed.

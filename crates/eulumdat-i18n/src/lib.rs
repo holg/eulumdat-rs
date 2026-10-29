@@ -587,6 +587,8 @@ pub struct UiLocale {
     pub about: UiAbout,
     #[serde(default)]
     pub bim: UiBim,
+    #[serde(default)]
+    pub light_scene: UiLightScene,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -640,6 +642,10 @@ pub struct UiHeader {
     pub loading: String,
 }
 
+fn default_scene_rt() -> String {
+    "Light scene".to_string()
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UiTabs {
     // Sub-tabs
@@ -657,6 +663,8 @@ pub struct UiTabs {
     pub lcs: String,
     pub validation: String,
     pub scene_3d: String,
+    #[serde(default = "default_scene_rt")]
+    pub scene_rt: String,
     pub floodlight_vh: String,
     pub floodlight_isolux: String,
     pub floodlight_isocandela: String,
@@ -1332,6 +1340,10 @@ pub struct ZonalDesignerResults {
 /// Dashboard translations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct DashboardLocale {
+    #[serde(default)]
+    pub guide: DashboardGuide,
+    #[serde(default)]
+    pub features: DashboardFeatures,
     pub templates: DashboardTemplates,
     pub modes: DashboardModes,
     pub columns: DashboardColumns,
@@ -2677,4 +2689,887 @@ mod tests {
             assert_eq!(locale.meta.code, lang.code());
         }
     }
+}
+
+/// Light scene (path-traced viewer) translations. Every field falls back to
+/// English so an older locale file still renders the panel.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UiLightScene {
+    #[serde(default = "ls_intro_title")]
+    pub intro_title: String,
+    #[serde(default = "ls_intro_lead")]
+    pub intro_lead: String,
+    #[serde(default = "ls_intro_step1_title")]
+    pub intro_step1_title: String,
+    #[serde(default = "ls_intro_step1")]
+    pub intro_step1: String,
+    #[serde(default = "ls_intro_step2_title")]
+    pub intro_step2_title: String,
+    #[serde(default = "ls_intro_step2")]
+    pub intro_step2: String,
+    #[serde(default = "ls_intro_step3_title")]
+    pub intro_step3_title: String,
+    #[serde(default = "ls_intro_step3")]
+    pub intro_step3: String,
+    #[serde(default = "ls_intro_start")]
+    pub intro_start: String,
+    #[serde(default = "ls_intro_remember")]
+    pub intro_remember: String,
+    #[serde(default = "ls_help")]
+    pub help: String,
+    #[serde(default = "ls_hint_render")]
+    pub hint_render: String,
+    #[serde(default = "ls_hint_isolux")]
+    pub hint_isolux: String,
+    #[serde(default = "ls_hint_points")]
+    pub hint_points: String,
+    #[serde(default = "ls_refining")]
+    pub refining: String,
+    #[serde(default = "ls_complete")]
+    pub complete: String,
+    #[serde(default = "ls_measuring_points")]
+    pub measuring_points: String,
+    #[serde(default = "ls_step_scene")]
+    pub step_scene: String,
+    #[serde(default = "ls_step_view")]
+    pub step_view: String,
+    #[serde(default = "ls_step_placement")]
+    pub step_placement: String,
+    #[serde(default = "ls_light_camera")]
+    pub light_camera: String,
+    #[serde(default = "ls_advanced")]
+    pub advanced: String,
+    #[serde(default = "ls_scene_street")]
+    pub scene_street: String,
+    #[serde(default = "ls_scene_parking")]
+    pub scene_parking: String,
+    #[serde(default = "ls_scene_facade")]
+    pub scene_facade: String,
+    #[serde(default = "ls_scene_office")]
+    pub scene_office: String,
+    #[serde(default = "ls_desc_street")]
+    pub desc_street: String,
+    #[serde(default = "ls_desc_parking")]
+    pub desc_parking: String,
+    #[serde(default = "ls_desc_facade")]
+    pub desc_facade: String,
+    #[serde(default = "ls_desc_office")]
+    pub desc_office: String,
+    #[serde(default = "ls_mode_render")]
+    pub mode_render: String,
+    #[serde(default = "ls_mode_isolux")]
+    pub mode_isolux: String,
+    #[serde(default = "ls_mode_points")]
+    pub mode_points: String,
+    #[serde(default = "ls_mode_render_desc")]
+    pub mode_render_desc: String,
+    #[serde(default = "ls_mode_isolux_desc")]
+    pub mode_isolux_desc: String,
+    #[serde(default = "ls_mode_points_desc")]
+    pub mode_points_desc: String,
+    #[serde(default = "ls_isolines_on_photo")]
+    pub isolines_on_photo: String,
+    #[serde(default = "ls_legend_lines")]
+    pub legend_lines: String,
+    #[serde(default = "ls_col_grid")]
+    pub col_grid: String,
+    #[serde(default = "ls_col_em")]
+    pub col_em: String,
+    #[serde(default = "ls_col_emin")]
+    pub col_emin: String,
+    #[serde(default = "ls_col_uo")]
+    pub col_uo: String,
+    #[serde(default = "ls_measuring")]
+    pub measuring: String,
+    #[serde(default = "ls_stats_explain")]
+    pub stats_explain: String,
+    #[serde(default = "ls_mounting_height")]
+    pub mounting_height: String,
+    #[serde(default = "ls_height_above_floor")]
+    pub height_above_floor: String,
+    #[serde(default = "ls_ceiling_height")]
+    pub ceiling_height: String,
+    #[serde(default = "ls_distance_to_facade")]
+    pub distance_to_facade: String,
+    #[serde(default = "ls_tilt")]
+    pub tilt: String,
+    #[serde(default = "ls_aim_auto")]
+    pub aim_auto: String,
+    #[serde(default = "ls_rotation")]
+    pub rotation: String,
+    #[serde(default = "ls_luminaires")]
+    pub luminaires: String,
+    #[serde(default = "ls_spacing")]
+    pub spacing: String,
+    #[serde(default = "ls_layout_single")]
+    pub layout_single: String,
+    #[serde(default = "ls_layout_opposite")]
+    pub layout_opposite: String,
+    #[serde(default = "ls_layout_staggered")]
+    pub layout_staggered: String,
+    #[serde(default = "ls_facade_render")]
+    pub facade_render: String,
+    #[serde(default = "ls_facade_brick")]
+    pub facade_brick: String,
+    #[serde(default = "ls_person_for_scale")]
+    pub person_for_scale: String,
+    #[serde(default = "ls_cct_from_file")]
+    pub cct_from_file: String,
+    #[serde(default = "ls_cct")]
+    pub cct: String,
+    #[serde(default = "ls_haze")]
+    pub haze: String,
+    #[serde(default = "ls_exposure")]
+    pub exposure: String,
+    #[serde(default = "ls_glare")]
+    pub glare: String,
+    #[serde(default = "ls_bounces")]
+    pub bounces: String,
+    #[serde(default = "ls_reset_view")]
+    pub reset_view: String,
+    #[serde(default = "ls_restart")]
+    pub restart: String,
+    #[serde(default = "ls_restart_tip")]
+    pub restart_tip: String,
+    #[serde(default = "ls_nav_hint")]
+    pub nav_hint: String,
+    #[serde(default = "ls_compute")]
+    pub compute: String,
+    #[serde(default = "ls_per_pixel")]
+    pub per_pixel: String,
+    #[serde(default = "ls_per_point")]
+    pub per_point: String,
+    #[serde(default = "ls_per_frame")]
+    pub per_frame: String,
+    #[serde(default = "ls_samples_line")]
+    pub samples_line: String,
+    #[serde(default = "ls_cpu_note")]
+    pub cpu_note: String,
+    #[serde(default = "ls_no_webgpu")]
+    pub no_webgpu: String,
+    #[serde(default = "ls_starting")]
+    pub starting: String,
+    #[serde(default = "ls_waiting")]
+    pub waiting: String,
+    #[serde(default = "ls_summary")]
+    pub summary: String,
+}
+
+impl Default for UiLightScene {
+    fn default() -> Self {
+        Self {
+            intro_title: ls_intro_title(),
+            intro_lead: ls_intro_lead(),
+            intro_step1_title: ls_intro_step1_title(),
+            intro_step1: ls_intro_step1(),
+            intro_step2_title: ls_intro_step2_title(),
+            intro_step2: ls_intro_step2(),
+            intro_step3_title: ls_intro_step3_title(),
+            intro_step3: ls_intro_step3(),
+            intro_start: ls_intro_start(),
+            intro_remember: ls_intro_remember(),
+            help: ls_help(),
+            hint_render: ls_hint_render(),
+            hint_isolux: ls_hint_isolux(),
+            hint_points: ls_hint_points(),
+            refining: ls_refining(),
+            complete: ls_complete(),
+            measuring_points: ls_measuring_points(),
+            step_scene: ls_step_scene(),
+            step_view: ls_step_view(),
+            step_placement: ls_step_placement(),
+            light_camera: ls_light_camera(),
+            advanced: ls_advanced(),
+            scene_street: ls_scene_street(),
+            scene_parking: ls_scene_parking(),
+            scene_facade: ls_scene_facade(),
+            scene_office: ls_scene_office(),
+            desc_street: ls_desc_street(),
+            desc_parking: ls_desc_parking(),
+            desc_facade: ls_desc_facade(),
+            desc_office: ls_desc_office(),
+            mode_render: ls_mode_render(),
+            mode_isolux: ls_mode_isolux(),
+            mode_points: ls_mode_points(),
+            mode_render_desc: ls_mode_render_desc(),
+            mode_isolux_desc: ls_mode_isolux_desc(),
+            mode_points_desc: ls_mode_points_desc(),
+            isolines_on_photo: ls_isolines_on_photo(),
+            legend_lines: ls_legend_lines(),
+            col_grid: ls_col_grid(),
+            col_em: ls_col_em(),
+            col_emin: ls_col_emin(),
+            col_uo: ls_col_uo(),
+            measuring: ls_measuring(),
+            stats_explain: ls_stats_explain(),
+            mounting_height: ls_mounting_height(),
+            height_above_floor: ls_height_above_floor(),
+            ceiling_height: ls_ceiling_height(),
+            distance_to_facade: ls_distance_to_facade(),
+            tilt: ls_tilt(),
+            aim_auto: ls_aim_auto(),
+            rotation: ls_rotation(),
+            luminaires: ls_luminaires(),
+            spacing: ls_spacing(),
+            layout_single: ls_layout_single(),
+            layout_opposite: ls_layout_opposite(),
+            layout_staggered: ls_layout_staggered(),
+            facade_render: ls_facade_render(),
+            facade_brick: ls_facade_brick(),
+            person_for_scale: ls_person_for_scale(),
+            cct_from_file: ls_cct_from_file(),
+            cct: ls_cct(),
+            haze: ls_haze(),
+            exposure: ls_exposure(),
+            glare: ls_glare(),
+            bounces: ls_bounces(),
+            reset_view: ls_reset_view(),
+            restart: ls_restart(),
+            restart_tip: ls_restart_tip(),
+            nav_hint: ls_nav_hint(),
+            compute: ls_compute(),
+            per_pixel: ls_per_pixel(),
+            per_point: ls_per_point(),
+            per_frame: ls_per_frame(),
+            samples_line: ls_samples_line(),
+            cpu_note: ls_cpu_note(),
+            no_webgpu: ls_no_webgpu(),
+            starting: ls_starting(),
+            waiting: ls_waiting(),
+            summary: ls_summary(),
+        }
+    }
+}
+
+fn ls_intro_title() -> String {
+    "See your luminaire at work".into()
+}
+fn ls_intro_lead() -> String {
+    "Everything you see here is lit by the photometric data of {name}: a path tracer sends rays from the real intensity table into the scene. The picture starts grainy and sharpens as more rays arrive.".into()
+}
+fn ls_intro_step1_title() -> String {
+    "Choose a scene".into()
+}
+fn ls_intro_step1() -> String {
+    "Street, parking lot, facade or office. The luminaire is mounted at a typical height and aimed automatically.".into()
+}
+fn ls_intro_step2_title() -> String {
+    "Choose a view".into()
+}
+fn ls_intro_step2() -> String {
+    "Photo shows what the eye sees. Illuminance paints lux values in colour. Grid places standard measurement points and reports averages and uniformity.".into()
+}
+fn ls_intro_step3_title() -> String {
+    "Look around and adjust".into()
+}
+fn ls_intro_step3() -> String {
+    "Drag to orbit, scroll to zoom. Change mounting height, tilt, spacing and the number of luminaires in the panel on the left.".into()
+}
+fn ls_intro_start() -> String {
+    "Let's go".into()
+}
+fn ls_intro_remember() -> String {
+    "Don't show this again".into()
+}
+fn ls_help() -> String {
+    "Help".into()
+}
+fn ls_hint_render() -> String {
+    "Drag to look around · scroll to zoom · switch to Illuminance to see lux values".into()
+}
+fn ls_hint_isolux() -> String {
+    "Colour = illuminance in lux on every surface (scale in the panel) · lines every {step} lx"
+        .into()
+}
+fn ls_hint_points() -> String {
+    "Points = measurement grids per EN 12464-1 / EN 13201-3 · the table shows average Em, minimum Emin and uniformity Uo".into()
+}
+fn ls_refining() -> String {
+    "Refining image… {pct} %".into()
+}
+fn ls_complete() -> String {
+    "Image complete".into()
+}
+fn ls_measuring_points() -> String {
+    "Measuring {n} points…".into()
+}
+fn ls_step_scene() -> String {
+    "1 · Scene".into()
+}
+fn ls_step_view() -> String {
+    "2 · View".into()
+}
+fn ls_step_placement() -> String {
+    "3 · Placement".into()
+}
+fn ls_light_camera() -> String {
+    "Light and camera".into()
+}
+fn ls_advanced() -> String {
+    "Rays (advanced)".into()
+}
+fn ls_scene_street() -> String {
+    "Street".into()
+}
+fn ls_scene_parking() -> String {
+    "Parking".into()
+}
+fn ls_scene_facade() -> String {
+    "Facade".into()
+}
+fn ls_scene_office() -> String {
+    "Office".into()
+}
+fn ls_desc_street() -> String {
+    "Two-lane road with cycle lane, sidewalks and a facade that catches spill light.".into()
+}
+fn ls_desc_parking() -> String {
+    "Parking bays in the open, measured on the ground.".into()
+}
+fn ls_desc_facade() -> String {
+    "Grazing or washing light on a building front.".into()
+}
+fn ls_desc_office() -> String {
+    "Workplaces, measured on the 0.75 m desk plane.".into()
+}
+fn ls_mode_render() -> String {
+    "Photo".into()
+}
+fn ls_mode_isolux() -> String {
+    "Illuminance".into()
+}
+fn ls_mode_points() -> String {
+    "Grid".into()
+}
+fn ls_mode_render_desc() -> String {
+    "What the eye sees at night.".into()
+}
+fn ls_mode_isolux_desc() -> String {
+    "Lux on every surface as colour, with isolux lines.".into()
+}
+fn ls_mode_points_desc() -> String {
+    "Standard measurement points with Em, Emin and Uo per grid.".into()
+}
+fn ls_isolines_on_photo() -> String {
+    "Isolux lines on the photo".into()
+}
+fn ls_legend_lines() -> String {
+    "lines every {step} lx".into()
+}
+fn ls_col_grid() -> String {
+    "Grid".into()
+}
+fn ls_col_em() -> String {
+    "Em".into()
+}
+fn ls_col_emin() -> String {
+    "Emin".into()
+}
+fn ls_col_uo() -> String {
+    "Uo".into()
+}
+fn ls_measuring() -> String {
+    "measuring…".into()
+}
+fn ls_stats_explain() -> String {
+    "Em = average, Emin = lowest point, Uo = Emin / Em (uniformity). Typical targets: roads Uo ≥ 0.4, office task areas Uo ≥ 0.6.".into()
+}
+fn ls_mounting_height() -> String {
+    "Mounting height".into()
+}
+fn ls_height_above_floor() -> String {
+    "Height above floor".into()
+}
+fn ls_ceiling_height() -> String {
+    "Ceiling height".into()
+}
+fn ls_distance_to_facade() -> String {
+    "Distance to facade".into()
+}
+fn ls_tilt() -> String {
+    "Tilt".into()
+}
+fn ls_aim_auto() -> String {
+    "Aim automatically (throw towards the road / facade)".into()
+}
+fn ls_rotation() -> String {
+    "Rotation".into()
+}
+fn ls_luminaires() -> String {
+    "Luminaires".into()
+}
+fn ls_spacing() -> String {
+    "Spacing".into()
+}
+fn ls_layout_single() -> String {
+    "One side".into()
+}
+fn ls_layout_opposite() -> String {
+    "Opposite".into()
+}
+fn ls_layout_staggered() -> String {
+    "Staggered".into()
+}
+fn ls_facade_render() -> String {
+    "Rendered facade".into()
+}
+fn ls_facade_brick() -> String {
+    "Brick facade".into()
+}
+fn ls_person_for_scale() -> String {
+    "Person for scale".into()
+}
+fn ls_cct_from_file() -> String {
+    "Colour temperature from the file".into()
+}
+fn ls_cct() -> String {
+    "Colour temperature".into()
+}
+fn ls_haze() -> String {
+    "Haze".into()
+}
+fn ls_exposure() -> String {
+    "Exposure".into()
+}
+fn ls_glare() -> String {
+    "Veiling glare".into()
+}
+fn ls_bounces() -> String {
+    "Bounces".into()
+}
+fn ls_reset_view() -> String {
+    "Reset view".into()
+}
+fn ls_restart() -> String {
+    "Restart tracer".into()
+}
+fn ls_restart_tip() -> String {
+    "Start the accumulation over; rebuilds the GPU if it was lost".into()
+}
+fn ls_nav_hint() -> String {
+    "Drag to orbit, right-drag or shift-drag to pan, wheel to zoom.".into()
+}
+fn ls_compute() -> String {
+    "Compute".into()
+}
+fn ls_per_pixel() -> String {
+    "Per pixel".into()
+}
+fn ls_per_point() -> String {
+    "Per point".into()
+}
+fn ls_per_frame() -> String {
+    "Per frame".into()
+}
+fn ls_samples_line() -> String {
+    "{s} / {smax} samples per pixel · {p} / {pmax} per point · key {key} lx".into()
+}
+fn ls_cpu_note() -> String {
+    "The CPU runs the same transport in Rust at preview size: slow, but it works without WebGPU and cross-checks the grid values.".into()
+}
+fn ls_no_webgpu() -> String {
+    "No WebGPU: tracing on the CPU at preview size".into()
+}
+fn ls_starting() -> String {
+    "Starting WebGPU…".into()
+}
+fn ls_waiting() -> String {
+    "Waiting for the viewer…".into()
+}
+fn ls_summary() -> String {
+    "{name} · {lm} lm · peak {cd} cd · throw C{c} ({pct} %)".into()
+}
+
+/// Start-page guide ("what would you like to do?") on the dashboard.
+/// Every field falls back to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DashboardGuide {
+    #[serde(default = "dg_title")]
+    pub title: String,
+    #[serde(default = "dg_step1")]
+    pub step1: String,
+    #[serde(default = "dg_step2")]
+    pub step2: String,
+    #[serde(default = "dg_selected")]
+    pub selected: String,
+    #[serde(default = "dg_nothing_selected")]
+    pub nothing_selected: String,
+    #[serde(default = "dg_open_editor")]
+    pub open_editor: String,
+    #[serde(default = "dg_open_editor_desc")]
+    pub open_editor_desc: String,
+    #[serde(default = "dg_light_scene")]
+    pub light_scene: String,
+    #[serde(default = "dg_light_scene_desc")]
+    pub light_scene_desc: String,
+    #[serde(default = "dg_area_designer")]
+    pub area_designer: String,
+    #[serde(default = "dg_area_designer_desc")]
+    pub area_designer_desc: String,
+    #[serde(default = "dg_pdf")]
+    pub pdf: String,
+    #[serde(default = "dg_compare")]
+    pub compare: String,
+    #[serde(default = "dg_compare_hint")]
+    pub compare_hint: String,
+    #[serde(default = "dg_zoom")]
+    pub zoom: String,
+}
+
+impl Default for DashboardGuide {
+    fn default() -> Self {
+        Self {
+            title: dg_title(),
+            step1: dg_step1(),
+            step2: dg_step2(),
+            selected: dg_selected(),
+            nothing_selected: dg_nothing_selected(),
+            open_editor: dg_open_editor(),
+            open_editor_desc: dg_open_editor_desc(),
+            light_scene: dg_light_scene(),
+            light_scene_desc: dg_light_scene_desc(),
+            area_designer: dg_area_designer(),
+            area_designer_desc: dg_area_designer_desc(),
+            pdf: dg_pdf(),
+            compare: dg_compare(),
+            compare_hint: dg_compare_hint(),
+            zoom: dg_zoom(),
+        }
+    }
+}
+
+fn dg_title() -> String {
+    "What would you like to do?".into()
+}
+fn dg_step1() -> String {
+    "Pick a luminaire from the list below, or drop your own LDT / IES file anywhere on this page."
+        .into()
+}
+fn dg_step2() -> String {
+    "Then open it:".into()
+}
+fn dg_selected() -> String {
+    "Selected:".into()
+}
+fn dg_nothing_selected() -> String {
+    "nothing selected yet".into()
+}
+fn dg_open_editor() -> String {
+    "Editor & diagrams".into()
+}
+fn dg_open_editor_desc() -> String {
+    "Polar, cartesian, isolux, BUG rating, validation, export".into()
+}
+fn dg_light_scene() -> String {
+    "Light scene".into()
+}
+fn dg_light_scene_desc() -> String {
+    "Path-traced street, parking lot, facade or office with lux values".into()
+}
+fn dg_area_designer() -> String {
+    "Area designer".into()
+}
+fn dg_area_designer_desc() -> String {
+    "Place several luminaires and check the lux on the ground".into()
+}
+fn dg_pdf() -> String {
+    "PDF report".into()
+}
+fn dg_compare() -> String {
+    "Compare".into()
+}
+fn dg_compare_hint() -> String {
+    "Ctrl / ⌘ + click a second row to compare two luminaires".into()
+}
+fn dg_zoom() -> String {
+    "Zoom diagram".into()
+}
+
+/// Feature overview on the dashboard; every field falls back to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DashboardFeatures {
+    #[serde(default = "df_heading")]
+    pub heading: String,
+    #[serde(default = "df_show")]
+    pub show: String,
+    #[serde(default = "df_hide")]
+    pub hide: String,
+    #[serde(default = "df_drop_hint")]
+    pub drop_hint: String,
+    #[serde(default = "df_editor_title")]
+    pub editor_title: String,
+    #[serde(default = "df_validation_title")]
+    pub validation_title: String,
+    #[serde(default = "df_bug_title")]
+    pub bug_title: String,
+    #[serde(default = "df_compare_title")]
+    pub compare_title: String,
+    #[serde(default = "df_bim_title")]
+    pub bim_title: String,
+    #[serde(default = "df_report_title")]
+    pub report_title: String,
+    #[serde(default = "df_light_scene_title")]
+    pub light_scene_title: String,
+    #[serde(default = "df_scene_3d_title")]
+    pub scene_3d_title: String,
+    #[serde(default = "df_area_title")]
+    pub area_title: String,
+    #[serde(default = "df_interior_title")]
+    pub interior_title: String,
+    #[serde(default = "df_maps_title")]
+    pub maps_title: String,
+    #[serde(default = "df_street_title")]
+    pub street_title: String,
+    #[serde(default = "df_spectral_title")]
+    pub spectral_title: String,
+    #[serde(default = "df_greenhouse_title")]
+    pub greenhouse_title: String,
+    #[serde(default = "df_daylight_title")]
+    pub daylight_title: String,
+    #[serde(default = "df_skyglow_title")]
+    pub skyglow_title: String,
+    #[serde(default = "df_gonio_title")]
+    pub gonio_title: String,
+    #[serde(default = "df_tm25_title")]
+    pub tm25_title: String,
+    #[serde(default = "df_digitizer_title")]
+    pub digitizer_title: String,
+    #[serde(default = "df_gldf_title")]
+    pub gldf_title: String,
+    #[serde(default = "df_quiz_title")]
+    pub quiz_title: String,
+    #[serde(default = "df_editor_desc")]
+    pub editor_desc: String,
+    #[serde(default = "df_validation_desc")]
+    pub validation_desc: String,
+    #[serde(default = "df_bug_desc")]
+    pub bug_desc: String,
+    #[serde(default = "df_compare_desc")]
+    pub compare_desc: String,
+    #[serde(default = "df_bim_desc")]
+    pub bim_desc: String,
+    #[serde(default = "df_report_desc")]
+    pub report_desc: String,
+    #[serde(default = "df_light_scene_desc")]
+    pub light_scene_desc: String,
+    #[serde(default = "df_scene_3d_desc")]
+    pub scene_3d_desc: String,
+    #[serde(default = "df_area_desc")]
+    pub area_desc: String,
+    #[serde(default = "df_interior_desc")]
+    pub interior_desc: String,
+    #[serde(default = "df_maps_desc")]
+    pub maps_desc: String,
+    #[serde(default = "df_street_desc")]
+    pub street_desc: String,
+    #[serde(default = "df_spectral_desc")]
+    pub spectral_desc: String,
+    #[serde(default = "df_greenhouse_desc")]
+    pub greenhouse_desc: String,
+    #[serde(default = "df_daylight_desc")]
+    pub daylight_desc: String,
+    #[serde(default = "df_skyglow_desc")]
+    pub skyglow_desc: String,
+    #[serde(default = "df_gonio_desc")]
+    pub gonio_desc: String,
+    #[serde(default = "df_tm25_desc")]
+    pub tm25_desc: String,
+    #[serde(default = "df_digitizer_desc")]
+    pub digitizer_desc: String,
+    #[serde(default = "df_gldf_desc")]
+    pub gldf_desc: String,
+    #[serde(default = "df_quiz_desc")]
+    pub quiz_desc: String,
+}
+
+impl Default for DashboardFeatures {
+    fn default() -> Self {
+        Self {
+            heading: df_heading(),
+            show: df_show(),
+            hide: df_hide(),
+            drop_hint: df_drop_hint(),
+            editor_title: df_editor_title(),
+            validation_title: df_validation_title(),
+            bug_title: df_bug_title(),
+            compare_title: df_compare_title(),
+            bim_title: df_bim_title(),
+            report_title: df_report_title(),
+            light_scene_title: df_light_scene_title(),
+            scene_3d_title: df_scene_3d_title(),
+            area_title: df_area_title(),
+            interior_title: df_interior_title(),
+            maps_title: df_maps_title(),
+            street_title: df_street_title(),
+            spectral_title: df_spectral_title(),
+            greenhouse_title: df_greenhouse_title(),
+            daylight_title: df_daylight_title(),
+            skyglow_title: df_skyglow_title(),
+            gonio_title: df_gonio_title(),
+            tm25_title: df_tm25_title(),
+            digitizer_title: df_digitizer_title(),
+            gldf_title: df_gldf_title(),
+            quiz_title: df_quiz_title(),
+            editor_desc: df_editor_desc(),
+            validation_desc: df_validation_desc(),
+            bug_desc: df_bug_desc(),
+            compare_desc: df_compare_desc(),
+            bim_desc: df_bim_desc(),
+            report_desc: df_report_desc(),
+            light_scene_desc: df_light_scene_desc(),
+            scene_3d_desc: df_scene_3d_desc(),
+            area_desc: df_area_desc(),
+            interior_desc: df_interior_desc(),
+            maps_desc: df_maps_desc(),
+            street_desc: df_street_desc(),
+            spectral_desc: df_spectral_desc(),
+            greenhouse_desc: df_greenhouse_desc(),
+            daylight_desc: df_daylight_desc(),
+            skyglow_desc: df_skyglow_desc(),
+            gonio_desc: df_gonio_desc(),
+            tm25_desc: df_tm25_desc(),
+            digitizer_desc: df_digitizer_desc(),
+            gldf_desc: df_gldf_desc(),
+            quiz_desc: df_quiz_desc(),
+        }
+    }
+}
+
+fn df_heading() -> String {
+    "Everything on this site".into()
+}
+fn df_show() -> String {
+    "Show all features".into()
+}
+fn df_hide() -> String {
+    "Hide features".into()
+}
+fn df_drop_hint() -> String {
+    "Most tools work on the luminaire you pick or drop; the rest open their own page.".into()
+}
+fn df_editor_title() -> String {
+    "Editor & diagrams".into()
+}
+fn df_validation_title() -> String {
+    "Validation".into()
+}
+fn df_bug_title() -> String {
+    "BUG & LCS rating".into()
+}
+fn df_compare_title() -> String {
+    "Compare".into()
+}
+fn df_bim_title() -> String {
+    "Export & BIM".into()
+}
+fn df_report_title() -> String {
+    "PDF report".into()
+}
+fn df_light_scene_title() -> String {
+    "Light scene".into()
+}
+fn df_scene_3d_title() -> String {
+    "3D scene".into()
+}
+fn df_area_title() -> String {
+    "Area designer".into()
+}
+fn df_interior_title() -> String {
+    "Interior designer".into()
+}
+fn df_maps_title() -> String {
+    "Maps designer".into()
+}
+fn df_street_title() -> String {
+    "Street design".into()
+}
+fn df_spectral_title() -> String {
+    "Spectral lab".into()
+}
+fn df_greenhouse_title() -> String {
+    "Greenhouse".into()
+}
+fn df_daylight_title() -> String {
+    "Daylight sky".into()
+}
+fn df_skyglow_title() -> String {
+    "Skyglow".into()
+}
+fn df_gonio_title() -> String {
+    "Virtual goniophotometer".into()
+}
+fn df_tm25_title() -> String {
+    "TM-25 ray files".into()
+}
+fn df_digitizer_title() -> String {
+    "Chart digitizer".into()
+}
+fn df_gldf_title() -> String {
+    "GLDF containers".into()
+}
+fn df_quiz_title() -> String {
+    "Lighting quiz".into()
+}
+fn df_editor_desc() -> String {
+    "Edit LDT / IES / ATLA values; polar, cartesian, 3D, heatmap, cone, isolux and beam-angle diagrams".into()
+}
+fn df_validation_desc() -> String {
+    "Checks the file against the EN 13032 / IES LM-63 rules and explains every warning".into()
+}
+fn df_bug_desc() -> String {
+    "IES TM-15 backlight, uplight and glare rating with the luminaire classification system".into()
+}
+fn df_compare_desc() -> String {
+    "Two luminaires side by side: diagrams, flux, efficacy and distribution differences".into()
+}
+fn df_bim_desc() -> String {
+    "LDT, IES, ATLA XML / JSON, SVG, PNG and BIM geometry for your planning tools".into()
+}
+fn df_report_desc() -> String {
+    "Datasheet-style report with diagrams and tables, typeset in the browser".into()
+}
+fn df_light_scene_desc() -> String {
+    "Path-traced street, parking lot, facade or office lit by the real intensity table, with lux grids and isolux".into()
+}
+fn df_scene_3d_desc() -> String {
+    "Walk through a room, road or parking lot with the luminaire as a game-engine light".into()
+}
+fn df_area_desc() -> String {
+    "Place several luminaires on an area and read the illuminance on the ground".into()
+}
+fn df_interior_desc() -> String {
+    "Rooms with zones, workplanes and uniformity per EN 12464-1".into()
+}
+fn df_maps_desc() -> String {
+    "Plan luminaires on a real map and check the lighting of streets and places".into()
+}
+fn df_street_desc() -> String {
+    "Multi-luminaire road lighting against EN 13201, RP-8, CJJ 45 and MLO".into()
+}
+fn df_spectral_desc() -> String {
+    "Spectra, CCT, CRI, TM-30, melanopic and horticultural PPFD from SPD data".into()
+}
+fn df_greenhouse_desc() -> String {
+    "Grow lights and daylight through spectral glazing with a canopy PPFD map and Monte Carlo check".into()
+}
+fn df_daylight_desc() -> String {
+    "Sun position, clear and overcast sky and daylight factors for any place and date".into()
+}
+fn df_skyglow_desc() -> String {
+    "Night-sky brightness and light-pollution demo with real star data".into()
+}
+fn df_gonio_desc() -> String {
+    "Monte Carlo measurement of lamps with covers and reflectors; LDT from a design".into()
+}
+fn df_tm25_desc() -> String {
+    "Near-field LED ray sets: far-field solid, spectrum, luminance map and LDT / ATLA export".into()
+}
+fn df_digitizer_desc() -> String {
+    "Drop a spectrum chart image and get an SPD file attached to the luminaire".into()
+}
+fn df_gldf_desc() -> String {
+    "Drop a .gldf: photometry plus the manufacturer's L3D body in the Light scene".into()
+}
+fn df_quiz_desc() -> String {
+    "175 questions on photometry and lighting design in eight languages".into()
 }

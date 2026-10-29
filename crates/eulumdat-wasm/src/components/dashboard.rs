@@ -520,6 +520,10 @@ pub fn Dashboard(
     on_compare_view: Callback<()>,
     on_export_pdf: Callback<Eulumdat>,
     on_designer: Callback<()>,
+    /// Open the editor on the path-traced Light scene tab.
+    on_light_scene: Callback<()>,
+    /// A card of the feature overview was clicked.
+    on_feature: Callback<Feature>,
     /// Persistent library of opened files (drag-drop, file picker,
     /// `?url=…`). Rendered as rows alongside the templates so the user
     /// can flip back to any previously-loaded fixture without re-uploading.
@@ -734,6 +738,16 @@ pub fn Dashboard(
         }
     };
 
+    // Name of the selected row for the start-page guide.
+    let selected_name = move || -> Option<String> {
+        let row_id = selected_idx.get()?;
+        if row_id == USER_FILE_ROW {
+            Some(ldc.get().luminaire_name.clone())
+        } else {
+            entries.get().get(row_id).map(|e| e.name.clone())
+        }
+    };
+
     // Helper: get current diagrams to show
     let active_diagrams = move || {
         let cfg = config.get();
@@ -764,9 +778,59 @@ pub fn Dashboard(
                 on_compare_view=Callback::new(move |_| on_compare_btn())
                 on_print=Callback::new(move |_| on_print())
                 on_designer=on_designer
+                on_light_scene=on_light_scene
             />
 
             <div class="dashboard-main">
+                // Start-page guide: what to do next. The icon rail on the
+                // left was invisible to first-time visitors.
+                <div class="dashboard-guide">
+                    <div class="guide-text">
+                        <div class="guide-title">{move || locale.get().dashboard.guide.title.clone()}</div>
+                        <div class="guide-step">{move || locale.get().dashboard.guide.step1.clone()}</div>
+                        <div class="guide-step">
+                            {move || locale.get().dashboard.guide.step2.clone()}
+                            " "
+                            <span class="guide-selected">
+                                {move || {
+                                    let g = locale.get().dashboard.guide;
+                                    match selected_name() {
+                                        Some(n) => format!("{} {}", g.selected, n),
+                                        None => g.nothing_selected.clone(),
+                                    }
+                                }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="guide-actions">
+                        <button class="guide-btn primary" title=move || locale.get().dashboard.guide.open_editor_desc.clone()
+                            on:click=move |_| on_edit.run(())>
+                            <span class="guide-icon">"\u{270F}"</span>
+                            <span>{move || locale.get().dashboard.guide.open_editor.clone()}</span>
+                        </button>
+                        <button class="guide-btn" title=move || locale.get().dashboard.guide.light_scene_desc.clone()
+                            on:click=move |_| on_light_scene.run(())>
+                            <span class="guide-icon">"\u{1F4A1}"</span>
+                            <span>{move || locale.get().dashboard.guide.light_scene.clone()}</span>
+                        </button>
+                        <button class="guide-btn" title=move || locale.get().dashboard.guide.area_designer_desc.clone()
+                            on:click=move |_| on_designer.run(())>
+                            <span class="guide-icon">"\u{1F4D0}"</span>
+                            <span>{move || locale.get().dashboard.guide.area_designer.clone()}</span>
+                        </button>
+                        <button class="guide-btn" disabled=move || !has_selection.get() title=move || locale.get().dashboard.export_pdf.clone()
+                            on:click=move |_| on_print()>
+                            <span class="guide-icon">"\u{1F5A8}"</span>
+                            <span>{move || locale.get().dashboard.guide.pdf.clone()}</span>
+                        </button>
+                    </div>
+                </div>
+
+                // Feature overview: every tool of the site at a glance.
+                <FeatureGrid on_feature=Callback::new(move |f: Feature| {
+                    if f == Feature::Report { on_print() } else { on_feature.run(f) }
+                }) />
+
                 // Template switcher
                 <div class="dashboard-toolbar">
                     <select
@@ -971,6 +1035,186 @@ pub fn Dashboard(
 
 // ── Sidebar ───────────────────────────────────────────────────────
 
+/// Everything the site can do, for the overview on the start page.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Feature {
+    Editor,
+    Validation,
+    Bug,
+    Compare,
+    Bim,
+    Report,
+    LightScene,
+    Scene3D,
+    Area,
+    Interior,
+    Maps,
+    Street,
+    Spectral,
+    Greenhouse,
+    Daylight,
+    Skyglow,
+    Gonio,
+    Tm25,
+    Digitizer,
+    Gldf,
+    Quiz,
+}
+
+impl Feature {
+    pub const ALL: [Feature; 21] = [
+        Feature::Editor,
+        Feature::Validation,
+        Feature::Bug,
+        Feature::Compare,
+        Feature::Bim,
+        Feature::Report,
+        Feature::LightScene,
+        Feature::Scene3D,
+        Feature::Area,
+        Feature::Interior,
+        Feature::Maps,
+        Feature::Street,
+        Feature::Spectral,
+        Feature::Greenhouse,
+        Feature::Daylight,
+        Feature::Skyglow,
+        Feature::Gonio,
+        Feature::Tm25,
+        Feature::Digitizer,
+        Feature::Gldf,
+        Feature::Quiz,
+    ];
+
+    fn icon(self) -> &'static str {
+        match self {
+            Feature::Editor => "\u{270F}\u{FE0F}",
+            Feature::Validation => "\u{2705}",
+            Feature::Bug => "\u{1F41E}",
+            Feature::Compare => "\u{2194}\u{FE0F}",
+            Feature::Bim => "\u{1F4E6}",
+            Feature::Report => "\u{1F5A8}\u{FE0F}",
+            Feature::LightScene => "\u{1F4A1}",
+            Feature::Scene3D => "\u{1F3AE}",
+            Feature::Area => "\u{1F4D0}",
+            Feature::Interior => "\u{1F3E2}",
+            Feature::Maps => "\u{1F5FA}\u{FE0F}",
+            Feature::Street => "\u{1F6E3}\u{FE0F}",
+            Feature::Spectral => "\u{1F308}",
+            Feature::Greenhouse => "\u{1F331}",
+            Feature::Daylight => "\u{2600}\u{FE0F}",
+            Feature::Skyglow => "\u{1F30C}",
+            Feature::Gonio => "\u{1F52C}",
+            Feature::Tm25 => "\u{2728}",
+            Feature::Digitizer => "\u{1F4C8}",
+            Feature::Gldf => "\u{1F5C3}\u{FE0F}",
+            Feature::Quiz => "\u{1F393}",
+        }
+    }
+
+    /// Features that live on their own page.
+    fn href(self) -> Option<&'static str> {
+        match self {
+            Feature::Greenhouse => Some("?wasm=greenhouse_demo"),
+            Feature::Skyglow => Some("?wasm=skyglow_demo"),
+            Feature::Tm25 => Some("?wasm=tm25"),
+            Feature::Quiz => Some("quiz.html"),
+            _ => None,
+        }
+    }
+
+    fn texts(self, f: &eulumdat_i18n::DashboardFeatures) -> (String, String) {
+        let t = |a: &String, b: &String| (a.clone(), b.clone());
+        match self {
+            Feature::Editor => t(&f.editor_title, &f.editor_desc),
+            Feature::Validation => t(&f.validation_title, &f.validation_desc),
+            Feature::Bug => t(&f.bug_title, &f.bug_desc),
+            Feature::Compare => t(&f.compare_title, &f.compare_desc),
+            Feature::Bim => t(&f.bim_title, &f.bim_desc),
+            Feature::Report => t(&f.report_title, &f.report_desc),
+            Feature::LightScene => t(&f.light_scene_title, &f.light_scene_desc),
+            Feature::Scene3D => t(&f.scene_3d_title, &f.scene_3d_desc),
+            Feature::Area => t(&f.area_title, &f.area_desc),
+            Feature::Interior => t(&f.interior_title, &f.interior_desc),
+            Feature::Maps => t(&f.maps_title, &f.maps_desc),
+            Feature::Street => t(&f.street_title, &f.street_desc),
+            Feature::Spectral => t(&f.spectral_title, &f.spectral_desc),
+            Feature::Greenhouse => t(&f.greenhouse_title, &f.greenhouse_desc),
+            Feature::Daylight => t(&f.daylight_title, &f.daylight_desc),
+            Feature::Skyglow => t(&f.skyglow_title, &f.skyglow_desc),
+            Feature::Gonio => t(&f.gonio_title, &f.gonio_desc),
+            Feature::Tm25 => t(&f.tm25_title, &f.tm25_desc),
+            Feature::Digitizer => t(&f.digitizer_title, &f.digitizer_desc),
+            Feature::Gldf => t(&f.gldf_title, &f.gldf_desc),
+            Feature::Quiz => t(&f.quiz_title, &f.quiz_desc),
+        }
+    }
+}
+
+const FEATURES_OPEN_KEY: &str = "eulumdat_features_open";
+
+fn features_open_stored() -> bool {
+    web_sys::window()
+        .and_then(|w| w.local_storage().ok().flatten())
+        .and_then(|s| s.get_item(FEATURES_OPEN_KEY).ok().flatten())
+        .is_none_or(|v| v != "0")
+}
+
+fn store_features_open(open: bool) {
+    if let Some(s) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+        let _ = s.set_item(FEATURES_OPEN_KEY, if open { "1" } else { "0" });
+    }
+}
+
+/// Grid of feature cards under the start-page guide; collapsible, the
+/// state is remembered per browser.
+#[component]
+fn FeatureGrid(on_feature: Callback<Feature>) -> impl IntoView {
+    let locale = use_locale();
+    let (open, set_open) = signal(features_open_stored());
+    view! {
+        <div class="feature-section">
+            <button
+                class="feature-head"
+                on:click=move |_| set_open.update(|v| { *v = !*v; store_features_open(*v); })
+            >
+                <span class="feature-heading">{move || locale.get().dashboard.features.heading.clone()}</span>
+                <span class="feature-toggle">
+                    {move || { let f = locale.get().dashboard.features; if open.get() { f.hide.clone() } else { f.show.clone() } }}
+                </span>
+            </button>
+            {move || open.get().then(|| view! {
+                <div class="feature-hint">{move || locale.get().dashboard.features.drop_hint.clone()}</div>
+                <div class="feature-grid">
+                    {Feature::ALL.iter().map(|&f| {
+                        let title_sig = Memo::new(move |_| f.texts(&locale.get().dashboard.features));
+                        view! {
+                            <button
+                                class="feature-card"
+                                title=move || title_sig.get().1
+                                on:click=move |_| {
+                                    match f.href() {
+                                        Some(h) => {
+                                            if let Some(w) = web_sys::window() {
+                                                let _ = w.location().set_href(h);
+                                            }
+                                        }
+                                        None => on_feature.run(f),
+                                    }
+                                }
+                            >
+                                <span class="feature-icon">{f.icon()}</span>
+                                <span class="feature-title">{move || title_sig.get().0}</span>
+                                <span class="feature-desc">{move || title_sig.get().1}</span>
+                            </button>
+                        }
+                    }).collect_view()}
+                </div>
+            })}
+        </div>
+    }
+}
+
 #[component]
 fn DashboardSidebar(
     on_edit: Callback<()>,
@@ -983,6 +1227,7 @@ fn DashboardSidebar(
     on_compare_view: Callback<()>,
     on_print: Callback<()>,
     on_designer: Callback<()>,
+    on_light_scene: Callback<()>,
 ) -> impl IntoView {
     let locale = use_locale();
 
@@ -994,7 +1239,8 @@ fn DashboardSidebar(
                 title=move || locale.get().dashboard.edit_data.clone()
                 on:click=move |_| on_edit.run(())
             >
-                "\u{270F}"
+                <span class="sidebar-icon">"\u{270F}"</span>
+                <span class="sidebar-label">{move || locale.get().dashboard.guide.open_editor.clone()}</span>
             </button>
 
             // Zoom overlay
@@ -1004,7 +1250,8 @@ fn DashboardSidebar(
                 disabled=move || !has_selection.get()
                 on:click=move |_| on_zoom.run(())
             >
-                "\u{1F50D}"
+                <span class="sidebar-icon">"\u{1F50D}"</span>
+                <span class="sidebar-label">{move || locale.get().dashboard.guide.zoom.clone()}</span>
             </button>
 
             // Diagram mode buttons (AEC only)
@@ -1029,7 +1276,7 @@ fn DashboardSidebar(
                                     title=mode_title
                                     on:click=move |_| set_diagram_mode.set(mode)
                                 >
-                                    {mode.icon()}
+                                    <span class="sidebar-icon">{mode.icon()}</span>
                                 </button>
                             }
                         }).collect_view()}
@@ -1047,7 +1294,8 @@ fn DashboardSidebar(
                 disabled=move || !has_compare_pair.get()
                 on:click=move |_| on_compare_view.run(())
             >
-                "\u{2194}"
+                <span class="sidebar-icon">"\u{2194}"</span>
+                <span class="sidebar-label">{move || locale.get().dashboard.guide.compare.clone()}</span>
             </button>
 
             // Area Designer
@@ -1056,7 +1304,18 @@ fn DashboardSidebar(
                 title=move || locale.get().dashboard.area_designer.clone()
                 on:click=move |_| on_designer.run(())
             >
-                "\u{1F4D0}"  // triangular ruler 📐
+                <span class="sidebar-icon">"\u{1F4D0}"</span>
+                <span class="sidebar-label">{move || locale.get().dashboard.guide.area_designer.clone()}</span>
+            </button>
+
+            // Light scene
+            <button
+                class="sidebar-icon-btn"
+                title=move || locale.get().dashboard.guide.light_scene_desc.clone()
+                on:click=move |_| on_light_scene.run(())
+            >
+                <span class="sidebar-icon">"\u{1F4A1}"</span>
+                <span class="sidebar-label">{move || locale.get().dashboard.guide.light_scene.clone()}</span>
             </button>
 
             // Print / Export PDF
@@ -1066,7 +1325,8 @@ fn DashboardSidebar(
                 disabled=move || !has_selection.get()
                 on:click=move |_| on_print.run(())
             >
-                "\u{1F5A8}"
+                <span class="sidebar-icon">"\u{1F5A8}"</span>
+                <span class="sidebar-label">{move || locale.get().dashboard.guide.pdf.clone()}</span>
             </button>
         </aside>
     }
