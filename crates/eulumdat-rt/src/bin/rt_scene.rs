@@ -2,8 +2,10 @@
 //! offscreen texture, written as a PPM. A smoke test for the tracer and a
 //! way to make documentation images without a window.
 //!
-//!     cargo run -p eulumdat-rt --bin rt-scene --release -- file.ldt \
-//!         --scene street --mode isolux --samples 200 --size 1280x800 --tilt 15 --out out.ppm
+//! ```text
+//! cargo run -p eulumdat-rt --bin rt-scene --release -- file.ldt \
+//!     --scene street --mode isolux --samples 200 --size 1280x800 --tilt 15 --out out.ppm
+//! ```
 //!
 //! In `points` mode the per-grid Em / Emin / Uo table is printed. `--cpu`
 //! runs the Rust tracer instead of the GPU (use a small `--size`), which is
