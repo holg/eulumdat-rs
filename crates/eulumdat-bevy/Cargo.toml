@@ -195,3 +195,7 @@ required-features = ["post-process", "bevy-ui"]
 [[example]]
 name = "tm25_viewer"
 required-features = ["tm25"]
+
+[[example]]
+name = "rt_viewer"
+required-features = ["rt-viewer"]
