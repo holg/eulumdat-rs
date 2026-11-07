@@ -11,7 +11,7 @@
 //! office measures on the 0.75 m workplane, not on the floor.
 
 use eulumdat::{Eulumdat, PhotometricCalculations};
-use glam::{Mat3, Quat, Vec3};
+use glam::{Mat3, Quat, Vec2, Vec3};
 
 /// Which place the luminaire is put in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
@@ -29,6 +29,9 @@ pub enum SceneKind {
     /// Glasshouse with two crop benches; the grids lie on the canopy and
     /// the host shows them in PPFD.
     Greenhouse,
+    /// Built from a planner (`SceneParams::plan`): the Interior designer's
+    /// room or the Outdoor designer's area with their luminaires and sensors.
+    Planned,
 }
 
 impl SceneKind {
@@ -47,6 +50,7 @@ impl SceneKind {
             SceneKind::Facade => "Facade",
             SceneKind::Office => "Office",
             SceneKind::Greenhouse => "Greenhouse",
+            SceneKind::Planned => "Planned",
         }
     }
 }
@@ -111,6 +115,18 @@ pub struct SceneParams {
     pub freestanding: bool,
     /// Half extents of the luminaire housing (m), used to keep it clear of the ceiling.
     pub housing_half: Vec3,
+    /// Presence / motion sensors (ground position; height `sensor_height`).
+    pub sensors: Vec<SceneSensor>,
+    /// Sensor height above the ground (m); in the office the sensors sit in
+    /// the ceiling.
+    pub sensor_height: f32,
+    /// Objects moved by hand: the new ground position (x, z) of their anchor.
+    pub moves: Vec<(ObjectId, Vec2)>,
+    /// The plan of a `SceneKind::Planned` scene.
+    pub plan: Option<std::sync::Arc<ScenePlan>>,
+    /// Emergency mode: a planned scene measures its escape routes and open
+    /// area on the floor (EN 1838) instead of the workplane.
+    pub emergency: bool,
 }
 
 impl SceneParams {
@@ -131,6 +147,11 @@ impl SceneParams {
             canopy_height: 1.0,
             photoperiod: 16.0,
             housing_half: Vec3::new(0.1, 0.04, 0.1),
+            sensors: Vec::new(),
+            sensor_height: 5.0,
+            moves: Vec::new(),
+            plan: None,
+            emergency: false,
         };
         match kind {
             SceneKind::Street => base,
@@ -142,11 +163,13 @@ impl SceneParams {
             SceneKind::Facade => Self {
                 height: 3.0,
                 spacing: 2.5,
+                sensor_height: 3.0,
                 ..base
             },
             SceneKind::Office => Self {
                 height: 2.8 - CEILING_CLEARANCE,
                 spacing: 2.0,
+                sensor_height: 2.8,
                 ..base
             },
             SceneKind::Greenhouse => Self {
@@ -154,6 +177,12 @@ impl SceneParams {
                 spacing: 2.2,
                 count: 8,
                 ceiling_height: 4.0,
+                sensor_height: 3.0,
+                ..base
+            },
+            SceneKind::Planned => Self {
+                height: 3.0,
+                sensor_height: 3.0,
                 ..base
             },
         }
@@ -170,6 +199,7 @@ impl SceneParams {
                 self.canopy_height + 0.2,
                 (GREENHOUSE_EAVE + GREENHOUSE_RISE - 0.15).max(self.canopy_height + 0.3),
             ),
+            SceneKind::Planned => (0.2, 40.0),
         }
     }
 
@@ -180,6 +210,7 @@ impl SceneParams {
             SceneKind::Facade => &[1, 2, 3, 4, 5],
             SceneKind::Office => &[1, 2, 4, 6],
             SceneKind::Greenhouse => &[1, 2, 4, 6, 8, 12],
+            SceneKind::Planned => &[],
         }
     }
 }
@@ -262,9 +293,31 @@ pub struct ScenePrim {
     /// Hidden from the camera (but still bouncing light) when the camera is
     /// on the outer side: `(point on the surface, inward normal)`.
     pub cutaway: Option<(Vec3, Vec3)>,
+    /// Reflectance (0–1) overriding the material's brightness (its colour
+    /// is kept); 0 = the material as it is. Planned rooms use the
+    /// designer's ceiling / wall / floor values.
+    pub reflectance: f32,
 }
 
 impl ScenePrim {
+    /// The point lies inside the primitive (exact, for the measurement
+    /// point layout: an oblique wall's bounds would drop points far from it).
+    pub fn contains(&self, p: Vec3) -> bool {
+        match &self.shape {
+            Shape::Box { min, max } => p.cmpge(*min).all() && p.cmple(*max).all(),
+            Shape::Obb { center, half, rot } => {
+                let l = rot.transpose() * (p - *center);
+                l.abs().cmple(*half).all()
+            }
+            Shape::Sphere { center, radius } => (p - *center).length_squared() <= radius * radius,
+            Shape::Capsule { a, b, radius } | Shape::Cylinder { a, b, radius } => {
+                let ab = *b - *a;
+                let t = ((p - *a).dot(ab) / ab.length_squared().max(1e-12)).clamp(0.0, 1.0);
+                (p - (*a + ab * t)).length_squared() <= radius * radius
+            }
+        }
+    }
+
     /// Axis-aligned bounds, for the point layout and the CPU occlusion tests.
     pub fn aabb(&self) -> (Vec3, Vec3) {
         match &self.shape {
@@ -291,12 +344,87 @@ impl ScenePrim {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct SceneLamp {
     pub position: Vec3,
     /// Luminaire local → world.
     pub rotation: Mat3,
+    /// Photometry: 0 = the scene's luminaire, n = the plan's extra type n.
+    pub table: u8,
+    /// What it does in normal and in emergency mode.
+    pub role: LampRole,
 }
+
+/// What a luminaire does in normal operation and in emergency mode (EN 1838).
+#[derive(Clone, Copy, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum LampRole {
+    /// Normal lighting only (off in emergency mode).
+    #[default]
+    Normal,
+    /// Emergency lighting only (off in normal operation).
+    Emergency,
+    /// Both; in emergency mode at `emergency` × its normal flux.
+    Combined { emergency: f32 },
+}
+
+impl LampRole {
+    /// Output (0–1) in normal operation or in emergency mode.
+    pub fn level(self, emergency_mode: bool) -> f32 {
+        match (self, emergency_mode) {
+            (LampRole::Normal, false) | (LampRole::Emergency, true) => 1.0,
+            (LampRole::Normal, true) | (LampRole::Emergency, false) => 0.0,
+            (LampRole::Combined { .. }, false) => 1.0,
+            (LampRole::Combined { emergency }, true) => emergency.clamp(0.0, 1.0),
+        }
+    }
+}
+
+/// Something in the scene that can be moved on the ground by hand.
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+pub enum ObjectId {
+    /// Index in `BuiltScene::lamps` (with its pole, arm or wire).
+    Luminaire(u8),
+    Person,
+    Car(u8),
+    /// Index in `SceneParams::sensors`.
+    Sensor(u8),
+}
+
+/// A movable object: where it stands, where it is grabbed, and what is
+/// drawn for it.
+#[derive(Clone, Debug)]
+pub struct Movable {
+    pub id: ObjectId,
+    /// Ground point it stands on (pole foot, feet, car centre, sensor foot).
+    pub anchor: Vec3,
+    /// Point to grab it by (luminaire head, chest, roof, sensor head).
+    pub handle: Vec3,
+    /// Its primitives in `BuiltScene::prims`.
+    pub prims: std::ops::Range<usize>,
+    /// Its lamp in `BuiltScene::lamps`.
+    pub lamp: Option<usize>,
+    /// Further lamps on the same pole (they move with it).
+    pub extra_lamps: Vec<usize>,
+    /// Half length and half width on the ground (along `yaw_deg`), for the
+    /// detection test.
+    pub half: Vec2,
+    /// Turn around the vertical (degrees, local +X towards +Z).
+    pub yaw_deg: f32,
+}
+
+/// A presence / motion sensor (its ground position).
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct SceneSensor {
+    pub x: f32,
+    pub z: f32,
+}
+
+/// Most sensors in a scene.
+pub const MAX_SENSORS: usize = 16;
+/// Radius of the drawn sensor head (m).
+pub const SENSOR_HEAD_RADIUS: f32 = 0.08;
 
 /// A calculation surface: `origin + s·u + t·v`, `normal` facing the light.
 #[derive(Clone, Debug)]
@@ -307,6 +435,12 @@ pub struct Receiver {
     pub normal: Vec3,
 }
 
+/// Grid names of a planned scene in emergency mode (grids of one name are
+/// evaluated together).
+pub const GRID_ROUTE: &str = "escape route";
+pub const GRID_OPEN_AREA: &str = "open area (floor)";
+pub const GRID_EMPHASIS: &str = "point of emphasis (vertical)";
+
 /// A calculation grid with `nu × nv` measurement points at the cell centres.
 #[derive(Clone, Debug)]
 pub struct MeasureGrid {
@@ -314,10 +448,15 @@ pub struct MeasureGrid {
     pub receiver: Receiver,
     pub nu: usize,
     pub nv: usize,
+    /// Only points inside this outline (world x, z) are measured.
+    pub outline: Option<Vec<Vec2>>,
+    /// … and at least this far from its edges (m; EN 1838 leaves a 0.5 m
+    /// border of an open area out).
+    pub border: f32,
 }
 
 /// Home camera: orbit around `target`.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CameraView {
     pub target: Vec3,
     /// Radians, 0 puts the eye on +Z looking towards −Z.
@@ -360,10 +499,12 @@ pub struct BuiltScene {
     pub limits: CameraLimits,
     pub receivers: Vec<Receiver>,
     pub grids: Vec<MeasureGrid>,
+    /// Luminaires, the person, the cars and the sensors that can be moved.
+    pub movables: Vec<Movable>,
 }
 
-pub const MAX_PRIMS: usize = 192;
-pub const MAX_LAMPS: usize = 16;
+pub const MAX_PRIMS: usize = 256;
+pub const MAX_LAMPS: usize = 128;
 
 /// Lane width per EN 13201, two lanes.
 pub const LANE_WIDTH: f32 = 3.5;
@@ -426,6 +567,7 @@ fn prim(shape: Shape, material: u32) -> ScenePrim {
         material,
         casts_shadow: true,
         cutaway: None,
+        reflectance: 0.0,
     }
 }
 
@@ -464,6 +606,730 @@ fn cylinder(a: Vec3, b: Vec3, radius: f32, material: u32) -> ScenePrim {
 
 fn v3(x: f32, y: f32, z: f32) -> Vec3 {
     Vec3::new(x, y, z)
+}
+
+/// A scene from a planner: the Interior designer's room or the Outdoor
+/// designer's area, with the planned luminaires and sensors.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ScenePlan {
+    /// Shown in the panel ("Classroom 10.0 × 8.0 m").
+    pub name: String,
+    /// A room (walls, ceiling, workplane grid) or an open area (ground grid).
+    pub indoor: bool,
+    /// Outline on the ground (x, z) in m, either winding.
+    pub outline: Vec<Vec2>,
+    /// Room height (m).
+    pub height: f32,
+    /// Reflectances of ceiling, walls and floor (0–1).
+    pub reflectances: [f32; 3],
+    /// Height of the measurement plane (workplane indoors, 0 outdoors).
+    pub plane: f32,
+    pub luminaires: Vec<PlanLuminaire>,
+    /// Sensor ground positions (x, z) and their height.
+    pub sensors: Vec<Vec2>,
+    pub sensor_height: f32,
+    /// Shown under the name (e.g. a limitation of the conversion).
+    pub note: Option<String>,
+    /// Further luminaire types (`PlanLuminaire::photometry` 1, 2, …), e.g.
+    /// the emergency luminaire; the scene's own luminaire is type 0.
+    #[serde(default)]
+    pub photometries: Vec<PlanPhotometry>,
+    /// Emergency lighting of the plan (routes, open area, equipment).
+    #[serde(default)]
+    pub emergency: Option<PlanEmergency>,
+    /// Show it in emergency mode (the designer showed emergency conditions).
+    #[serde(default)]
+    pub emergency_mode: bool,
+}
+
+/// A further luminaire type of a plan (self-contained: the file's text).
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PlanPhotometry {
+    pub name: String,
+    /// EULUMDAT text (scaled to the flux it is used at).
+    pub ldt: String,
+}
+
+/// Emergency lighting drawn on a plan, for showing and checking it in the
+/// scene (plan coordinates (x, z) in m).
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PlanEmergency {
+    /// Escape routes: centre line and width.
+    pub routes: Vec<(Vec<Vec2>, f32)>,
+    /// The open (anti-panic) area, if the room is one.
+    pub open_area: Option<Vec<Vec2>>,
+    /// Points of emphasis: position, height, facing (deg, from +x towards
+    /// +z), symbol.
+    pub points: Vec<PlanPoint>,
+}
+
+/// A point of emphasis (fire equipment, first aid, exit …) on a plan.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PlanPoint {
+    pub position: Vec2,
+    pub height: f32,
+    pub facing_deg: f32,
+    /// Short label (an icon, or "F", "+", "X" …).
+    pub symbol: String,
+    /// Measured vertically, facing `facing_deg` (EN 1838: fire equipment,
+    /// first aid, call points; exits are not).
+    #[serde(default)]
+    pub vertical: bool,
+}
+
+/// A planned luminaire.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct PlanLuminaire {
+    /// Light centre (x, mounting height, z).
+    pub position: Vec3,
+    /// C0 direction in the plan: degrees from +x towards +z (the planners'
+    /// convention, C = atan2(dz, dx)).
+    pub rotation_deg: f32,
+    /// Tilt about the C90 axis (degrees): the beam swings towards C0.
+    pub tilt_deg: f32,
+    /// Pole foot (x, z): a pole, and an arm from its top when the
+    /// luminaire sits away from it. Luminaires on one foot share the pole.
+    pub pole: Option<Vec2>,
+    /// Hangs from the ceiling on a rod.
+    pub pendant: bool,
+    /// Luminaire type: 0 = the scene's luminaire, n = `ScenePlan::photometries[n - 1]`.
+    #[serde(default)]
+    pub photometry: u8,
+    /// Normal, emergency or combined.
+    #[serde(default)]
+    pub role: LampRole,
+}
+
+impl ScenePlan {
+    /// A 10 × 8 m room with one luminaire (when a planned scene has no plan).
+    pub fn example() -> Self {
+        Self {
+            name: "Room 10 × 8 m".into(),
+            indoor: true,
+            outline: vec![
+                Vec2::new(0.0, 0.0),
+                Vec2::new(10.0, 0.0),
+                Vec2::new(10.0, 8.0),
+                Vec2::new(0.0, 8.0),
+            ],
+            height: 3.0,
+            reflectances: [0.7, 0.5, 0.2],
+            plane: 0.8,
+            luminaires: vec![PlanLuminaire {
+                position: Vec3::new(5.0, 2.95, 4.0),
+                rotation_deg: 0.0,
+                tilt_deg: 0.0,
+                pole: None,
+                pendant: false,
+                photometry: 0,
+                role: LampRole::Normal,
+            }],
+            sensors: Vec::new(),
+            sensor_height: 3.0,
+            note: None,
+            photometries: Vec::new(),
+            emergency: None,
+            emergency_mode: false,
+        }
+    }
+}
+
+/// Luminaire local → world for a planned luminaire: C0 to (cos r, 0, sin r)
+/// in world (x, z), then the tilt about the luminaire's C90 axis.
+pub fn plan_rotation(rotation_deg: f32, tilt_deg: f32) -> Mat3 {
+    Mat3::from_rotation_y(-rotation_deg.to_radians()) * Mat3::from_rotation_z(tilt_deg.to_radians())
+}
+
+/// Bounding box of an outline (min, max).
+pub fn outline_bounds(outline: &[Vec2]) -> (Vec2, Vec2) {
+    let lo = outline.iter().fold(Vec2::splat(f32::MAX), |a, p| a.min(*p));
+    let hi = outline.iter().fold(Vec2::splat(f32::MIN), |a, p| a.max(*p));
+    if lo.x > hi.x {
+        (Vec2::ZERO, Vec2::ONE)
+    } else {
+        (lo, hi)
+    }
+}
+
+/// Point-in-polygon (even–odd).
+/// Distance (m) from `p` to the nearest edge of a closed outline.
+pub fn distance_to_outline(outline: &[Vec2], p: Vec2) -> f32 {
+    let n = outline.len();
+    (0..n)
+        .map(|i| {
+            let (a, b) = (outline[i], outline[(i + 1) % n]);
+            let ab = b - a;
+            let t = ((p - a).dot(ab) / ab.length_squared().max(1e-12)).clamp(0.0, 1.0);
+            (a + ab * t - p).length()
+        })
+        .fold(f32::INFINITY, f32::min)
+}
+
+pub fn outline_contains(outline: &[Vec2], q: Vec2) -> bool {
+    let n = outline.len();
+    let mut inside = false;
+    let mut j = n.wrapping_sub(1);
+    for i in 0..n {
+        let (a, b) = (outline[i], outline[j]);
+        if (a.y > q.y) != (b.y > q.y) && q.x < (b.x - a.x) * (q.y - a.y) / (b.y - a.y) + a.x {
+            inside = !inside;
+        }
+        j = i;
+    }
+    inside
+}
+
+/// Area and perimeter of an outline.
+pub fn outline_area_perimeter(outline: &[Vec2]) -> (f32, f32) {
+    let n = outline.len();
+    let (mut a2, mut per) = (0.0, 0.0);
+    for i in 0..n {
+        let (p, q) = (outline[i], outline[(i + 1) % n]);
+        a2 += p.x * q.y - q.x * p.y;
+        per += (q - p).length();
+    }
+    (0.5 * a2.abs(), per)
+}
+
+/// A point well inside the outline (the centre of the bounds if it is
+/// inside, else the inside point of a 12 × 12 scan farthest from the edges).
+fn inside_point(outline: &[Vec2]) -> Vec2 {
+    let (lo, hi) = outline_bounds(outline);
+    let c = (lo + hi) * 0.5;
+    if outline_contains(outline, c) {
+        return c;
+    }
+    let edge_dist = |q: Vec2| {
+        let n = outline.len();
+        (0..n)
+            .map(|i| {
+                let (a, b) = (outline[i], outline[(i + 1) % n]);
+                let ab = b - a;
+                let t = ((q - a).dot(ab) / ab.length_squared().max(1e-9)).clamp(0.0, 1.0);
+                (q - (a + ab * t)).length()
+            })
+            .fold(f32::MAX, f32::min)
+    };
+    let mut best = (outline[0], -1.0);
+    for i in 0..12 {
+        for j in 0..12 {
+            let q = lo + (hi - lo) * Vec2::new((i as f32 + 0.5) / 12.0, (j as f32 + 0.5) / 12.0);
+            if outline_contains(outline, q) {
+                let d = edge_dist(q);
+                if d > best.1 {
+                    best = (q, d);
+                }
+            }
+        }
+    }
+    best.0
+}
+
+/// Scene from a plan: a room (floor, ceiling, one wall per outline edge,
+/// all cut away on the camera side, with the planned reflectances) or an
+/// open area (paving with a kerb along the outline); the luminaires with
+/// their poles, arms or rods; the person; a grid inside the outline.
+fn build_planned(p: &SceneParams, plan: &ScenePlan) -> BuiltScene {
+    let mut boxes: Vec<ScenePrim> = Vec::new();
+    let mut lamps: Vec<SceneLamp> = Vec::new();
+    let mut movables: Vec<Movable> = Vec::new();
+    let outline: Vec<Vec2> = if plan.outline.len() >= 3 {
+        plan.outline.clone()
+    } else {
+        ScenePlan::example().outline
+    };
+    let (lo, hi) = outline_bounds(&outline);
+    let size = hi - lo;
+    let centre = (lo + hi) * 0.5;
+    let h = plan.height.max(2.0);
+    let [rho_c, rho_w, rho_f] = plan.reflectances;
+    let n = outline.len();
+    let (signed, _) = {
+        let mut a2 = 0.0;
+        for i in 0..n {
+            let (a, b) = (outline[i], outline[(i + 1) % n]);
+            a2 += a.x * b.y - b.x * a.y;
+        }
+        (a2, 0.0)
+    };
+    // Inward normal of an edge: left of its direction when the outline
+    // runs counter-clockwise in (x, z).
+    let inward = |d: Vec2| {
+        let left = Vec2::new(-d.y, d.x);
+        if signed >= 0.0 {
+            left
+        } else {
+            -left
+        }
+    };
+    let edge_box = |a: Vec2, b: Vec2, thick: f32, y0: f32, y1: f32, outside: bool| {
+        let d = b - a;
+        let len = d.length().max(1e-3);
+        let dir = d / len;
+        let nin = inward(dir);
+        let off = if outside {
+            -nin * (thick * 0.5)
+        } else {
+            Vec2::ZERO
+        };
+        let mid = (a + b) * 0.5 + off;
+        let x = Vec3::new(dir.x, 0.0, dir.y);
+        let z = x.cross(Vec3::Y);
+        let rot = Mat3::from_cols(x, Vec3::Y, z);
+        (
+            obb(
+                Vec3::new(mid.x, 0.5 * (y0 + y1), mid.y),
+                Vec3::new(0.5 * len + thick, 0.5 * (y1 - y0), 0.5 * thick),
+                rot,
+                mat::WALL,
+            ),
+            nin,
+            (a + b) * 0.5,
+        )
+    };
+    if plan.indoor {
+        let t = 0.25;
+        let mut floor = bx(
+            v3(lo.x - t, -t, lo.y - t),
+            v3(hi.x + t, 0.0, hi.y + t),
+            mat::CARPET,
+        );
+        floor.reflectance = rho_f;
+        boxes.push(floor);
+        let mut ceiling = bx(
+            v3(lo.x - t, h, lo.y - t),
+            v3(hi.x + t, h + t, hi.y + t),
+            mat::CEILING,
+        );
+        ceiling.reflectance = rho_c;
+        ceiling.cutaway = Some((v3(centre.x, h, centre.y), Vec3::NEG_Y));
+        boxes.push(ceiling);
+        for i in 0..n {
+            let (a, b) = (outline[i], outline[(i + 1) % n]);
+            if (b - a).length() < 0.05 {
+                continue;
+            }
+            let (mut wall, nin, mid) = edge_box(a, b, t, 0.0, h, true);
+            wall.reflectance = rho_w;
+            wall.cutaway = Some((v3(mid.x, 0.0, mid.y), Vec3::new(nin.x, 0.0, nin.y)));
+            boxes.push(wall);
+        }
+    } else {
+        for i in 0..n {
+            let (a, b) = (outline[i], outline[(i + 1) % n]);
+            if (b - a).length() < 0.05 {
+                continue;
+            }
+            let (mut kerb, _, _) = edge_box(a, b, 0.15, 0.0, KERB_H, false);
+            kerb.material = mat::KERB;
+            boxes.push(kerb);
+        }
+    }
+
+    // Luminaires; luminaires on one pole foot share that pole and move with it.
+    let mut pole_owner: Vec<(Vec2, usize)> = Vec::new();
+    // over the lamp budget the emergency lamps stay (emergency mode needs
+    // every one of them), normal ones fill the rest in plan order
+    let special = plan
+        .luminaires
+        .iter()
+        .filter(|l| l.role != LampRole::Normal)
+        .count();
+    let mut normal_left = MAX_LAMPS.saturating_sub(special);
+    let kept = plan.luminaires.iter().filter(|l| {
+        if l.role != LampRole::Normal {
+            true
+        } else if normal_left > 0 {
+            normal_left -= 1;
+            true
+        } else {
+            false
+        }
+    });
+    for l in kept.take(MAX_LAMPS) {
+        let start = boxes.len();
+        let rot = plan_rotation(l.rotation_deg, l.tilt_deg);
+        let y = l.position.y;
+        let lamp_xz = Vec2::new(l.position.x, l.position.z);
+        lamps.push(SceneLamp {
+            position: l.position,
+            rotation: rot,
+            table: l.photometry.min(plan.photometries.len() as u8),
+            role: l.role,
+        });
+        let li = lamps.len() - 1;
+        if let Some(foot) = l.pole {
+            if let Some(&(_, owner)) = pole_owner.iter().find(|(q, _)| (*q - foot).length() < 0.05)
+            {
+                // the arm of a further luminaire on an existing pole
+                if (lamp_xz - foot).length() > 0.05 {
+                    let mut arm = cylinder(
+                        v3(foot.x, y + 0.16, foot.y),
+                        v3(lamp_xz.x, y + 0.16, lamp_xz.y),
+                        0.04,
+                        mat::METAL,
+                    );
+                    arm.casts_shadow = false;
+                    boxes.push(arm);
+                }
+                let end = boxes.len();
+                if let Some(m) = movables.get_mut(owner) {
+                    m.extra_lamps.push(li);
+                    // its arm moves with the pole: widen the owner's range
+                    // when it is contiguous, else it stays (rare)
+                    if m.prims.end == start {
+                        m.prims.end = end;
+                    }
+                }
+                continue;
+            }
+            boxes.push(cylinder(
+                v3(foot.x, 0.0, foot.y),
+                v3(foot.x, y * 0.45, foot.y),
+                0.09,
+                mat::METAL,
+            ));
+            boxes.push(cylinder(
+                v3(foot.x, y * 0.45, foot.y),
+                v3(foot.x, y + 0.25, foot.y),
+                0.065,
+                mat::METAL,
+            ));
+            if (lamp_xz - foot).length() > 0.05 {
+                let mut arm = cylinder(
+                    v3(foot.x, y + 0.16, foot.y),
+                    v3(lamp_xz.x, y + 0.16, lamp_xz.y),
+                    0.04,
+                    mat::METAL,
+                );
+                arm.casts_shadow = false;
+                boxes.push(arm);
+            }
+            pole_owner.push((foot, movables.len()));
+            track_lamp(
+                &mut movables,
+                &lamps,
+                start..boxes.len(),
+                v3(foot.x, 0.0, foot.y),
+            );
+        } else {
+            if plan.indoor && l.pendant && y < h - 0.05 {
+                boxes.push(bx_soft(
+                    v3(lamp_xz.x - 0.005, y + 0.08, lamp_xz.y - 0.005),
+                    v3(lamp_xz.x + 0.005, h, lamp_xz.y + 0.005),
+                    mat::METAL,
+                ));
+            }
+            track_lamp(
+                &mut movables,
+                &lamps,
+                start..boxes.len(),
+                v3(lamp_xz.x, 0.0, lamp_xz.y),
+            );
+        }
+    }
+    // no person in emergency mode: EN 1838 measures the empty room (a
+    // figure would shade the route)
+    if p.show_figure && !(p.emergency && plan.emergency.is_some()) {
+        let at = inside_point(&outline);
+        track_figure(v3(at.x, 0.0, at.y), &mut boxes, &mut movables);
+    }
+
+    let plane = if plan.indoor {
+        plan.plane.clamp(0.0, h - 0.1)
+    } else {
+        0.0
+    };
+    let r = receiver(
+        v3(lo.x, plane, lo.y),
+        v3(size.x.max(0.1), 0.0, 0.0),
+        v3(0.0, 0.0, size.y.max(0.1)),
+        Vec3::Y,
+    );
+    let mut grid = norm_grid(if plan.indoor { "workplane" } else { "ground" }, r.clone());
+    grid.outline = Some(outline.clone());
+    let mut grids = vec![grid];
+    if let Some(em) = plan.emergency.as_ref().filter(|_| p.emergency) {
+        // EN 1838 measures on the floor: points every 0.5 m along each
+        // route's centre line, and the open area
+        grids.clear();
+        for (path, _) in &em.routes {
+            for w in path.windows(2) {
+                let a = v3(w[0].x, 0.02, w[0].y);
+                let u = v3(w[1].x, 0.02, w[1].y) - a;
+                let len = u.length();
+                if len < 0.1 {
+                    continue;
+                }
+                let side = Vec3::new(-u.z, 0.0, u.x) / len * 0.02;
+                grids.push(MeasureGrid {
+                    name: GRID_ROUTE,
+                    receiver: receiver(a - side * 0.5, u, side, Vec3::Y),
+                    nu: ((len / 0.5).ceil() as usize).clamp(1, MAX_GRID_AXIS),
+                    nv: 1,
+                    outline: None,
+                    border: 0.0,
+                });
+            }
+        }
+        if let Some(area) = em.open_area.as_ref() {
+            let floor = receiver(
+                v3(lo.x, 0.02, lo.y),
+                v3(size.x.max(0.1), 0.0, 0.0),
+                v3(0.0, 0.0, size.y.max(0.1)),
+                Vec3::Y,
+            );
+            // 0.5 m between points (the grid's cap allowing), the border left out
+            let n = |l: f32| ((l / 0.5).ceil() as usize).clamp(1, MAX_GRID_AXIS);
+            grids.push(MeasureGrid {
+                name: GRID_OPEN_AREA,
+                nu: n(size.x),
+                nv: n(size.y),
+                receiver: floor,
+                outline: Some(area.clone()),
+                border: 0.5,
+            });
+        }
+        // vertical illuminance at the equipment, 5 cm in front of it
+        for pt in em.points.iter().filter(|q| q.vertical) {
+            let f = pt.facing_deg.to_radians();
+            let n = Vec3::new(f.cos(), 0.0, f.sin());
+            let side = Vec3::new(-n.z, 0.0, n.x) * 0.02;
+            let up = Vec3::Y * 0.02;
+            let c = v3(pt.position.x, pt.height, pt.position.y) + n * 0.05;
+            grids.push(MeasureGrid {
+                name: GRID_EMPHASIS,
+                receiver: receiver(c - (side + up) * 0.5, side, up, n),
+                nu: 1,
+                nv: 1,
+                outline: None,
+                border: 0.0,
+            });
+        }
+    }
+    let diag = size.length().max(4.0);
+    BuiltScene {
+        kind: SceneKind::Planned,
+        prims: boxes,
+        lamps,
+        ground: if plan.indoor { 0 } else { 1 },
+        outdoor: !plan.indoor,
+        key_lux: None,
+        view: CameraView {
+            target: v3(centre.x, if plan.indoor { 0.6 } else { 0.0 }, centre.y),
+            yaw: 35.0_f32.to_radians(),
+            pitch: if plan.indoor { 50.0_f32 } else { 35.0 }.to_radians(),
+            distance: diag * if plan.indoor { 1.15 } else { 1.0 } + 3.0,
+        },
+        limits: CameraLimits {
+            max_distance: diag * 4.0 + 50.0,
+            ..Default::default()
+        },
+        receivers: vec![r],
+        grids,
+        movables,
+    }
+}
+
+/// The lamp just pushed, with its primitives `prims`, standing at `anchor`.
+fn track_lamp(
+    movables: &mut Vec<Movable>,
+    lamps: &[SceneLamp],
+    prims: std::ops::Range<usize>,
+    anchor: Vec3,
+) {
+    let i = lamps.len() - 1;
+    movables.push(Movable {
+        id: ObjectId::Luminaire(i as u8),
+        anchor,
+        handle: lamps[i].position,
+        prims,
+        lamp: Some(i),
+        extra_lamps: Vec::new(),
+        half: Vec2::splat(0.3),
+        yaw_deg: 0.0,
+    });
+}
+
+fn track_figure(base: Vec3, out: &mut Vec<ScenePrim>, movables: &mut Vec<Movable>) {
+    let start = out.len();
+    figure(base, out);
+    movables.push(Movable {
+        id: ObjectId::Person,
+        anchor: base,
+        handle: base + Vec3::new(0.0, 1.1, 0.0),
+        prims: start..out.len(),
+        lamp: None,
+        extra_lamps: Vec::new(),
+        half: Vec2::new(0.25, 0.25),
+        yaw_deg: 0.0,
+    });
+}
+
+fn track_car(
+    base: Vec3,
+    yaw_deg: f32,
+    paint: u32,
+    out: &mut Vec<ScenePrim>,
+    movables: &mut Vec<Movable>,
+) {
+    let start = out.len();
+    car(base, yaw_deg, paint, out);
+    let n = movables
+        .iter()
+        .filter(|m| matches!(m.id, ObjectId::Car(_)))
+        .count();
+    movables.push(Movable {
+        id: ObjectId::Car(n as u8),
+        anchor: base,
+        handle: base + Vec3::new(0.0, 1.5, 0.0),
+        prims: start..out.len(),
+        lamp: None,
+        extra_lamps: Vec::new(),
+        half: Vec2::new(2.2, 0.9),
+        yaw_deg,
+    });
+}
+
+impl Shape {
+    /// The same shape shifted by `d`.
+    pub fn translate(&mut self, d: Vec3) {
+        match self {
+            Shape::Box { min, max } => {
+                *min += d;
+                *max += d;
+            }
+            Shape::Obb { center, .. } | Shape::Sphere { center, .. } => *center += d,
+            Shape::Capsule { a, b, .. } | Shape::Cylinder { a, b, .. } => {
+                *a += d;
+                *b += d;
+            }
+        }
+    }
+}
+
+/// Put moved objects at their new ground positions (the anchor goes to
+/// (x, z), everything that belongs to the object follows).
+pub fn apply_moves(scene: &mut BuiltScene, moves: &[(ObjectId, Vec2)]) {
+    for &(id, xz) in moves {
+        let Some(m) = scene.movables.iter_mut().find(|m| m.id == id) else {
+            continue;
+        };
+        let d = Vec3::new(xz.x - m.anchor.x, 0.0, xz.y - m.anchor.z);
+        if d.length_squared() < 1e-12 {
+            continue;
+        }
+        for prim in scene.prims.get_mut(m.prims.clone()).into_iter().flatten() {
+            prim.shape.translate(d);
+            if let Some((point, _)) = prim.cutaway.as_mut() {
+                *point += d;
+            }
+        }
+        for li in m.lamp.into_iter().chain(m.extra_lamps.iter().copied()) {
+            if let Some(l) = scene.lamps.get_mut(li) {
+                l.position += d;
+            }
+        }
+        m.anchor += d;
+        m.handle += d;
+    }
+}
+
+/// Inside size (width × depth × mean height, m) of the closed scenes (office,
+/// greenhouse), for the estimate of the reflected light; `None` outdoors.
+pub fn interior_box(p: &SceneParams) -> Option<Vec3> {
+    match p.kind {
+        SceneKind::Office => Some(Vec3::new(OFFICE_W, p.ceiling_height, OFFICE_D)),
+        SceneKind::Greenhouse => Some(Vec3::new(
+            GREENHOUSE_L,
+            GREENHOUSE_EAVE + 0.5 * GREENHOUSE_RISE,
+            GREENHOUSE_W,
+        )),
+        SceneKind::Planned => p.plan.as_ref().filter(|pl| pl.indoor).map(|pl| {
+            let (lo, hi) = outline_bounds(&pl.outline);
+            Vec3::new(hi.x - lo.x, pl.height, hi.y - lo.y)
+        }),
+        _ => None,
+    }
+}
+
+/// Floor outline (x, z) of a closed scene, where sensor areas end (walls
+/// stop detection); `None` outdoors.
+pub fn room_outline(p: &SceneParams) -> Option<Vec<Vec2>> {
+    match p.kind {
+        SceneKind::Office => {
+            let (hw, hd) = (OFFICE_W / 2.0, OFFICE_D / 2.0);
+            Some(vec![
+                Vec2::new(-hw, -hd),
+                Vec2::new(hw, -hd),
+                Vec2::new(hw, hd),
+                Vec2::new(-hw, hd),
+            ])
+        }
+        SceneKind::Planned => p
+            .plan
+            .as_ref()
+            .filter(|pl| pl.indoor)
+            .map(|pl| pl.outline.clone()),
+        _ => None,
+    }
+}
+
+/// Height of the sensor heads: in the office the ceiling, in the
+/// greenhouse under the ridge.
+pub fn sensor_mount(p: &SceneParams) -> f32 {
+    match p.kind {
+        SceneKind::Office => p.ceiling_height - 0.02,
+        SceneKind::Planned if p.plan.as_ref().is_some_and(|pl| pl.indoor) => {
+            p.plan.as_ref().map_or(3.0, |pl| pl.height) - 0.02
+        }
+        SceneKind::Greenhouse => p
+            .sensor_height
+            .clamp(0.5, GREENHOUSE_EAVE + GREENHOUSE_RISE - 0.1),
+        _ => p.sensor_height.clamp(0.5, 20.0),
+    }
+}
+
+/// The sensors as small white heads; outdoors on a slim post unless they
+/// stand at a pole (then they sit on it).
+fn add_sensors(p: &SceneParams, scene: &mut BuiltScene) {
+    let h = sensor_mount(p);
+    let poles: Vec<Vec3> = scene
+        .movables
+        .iter()
+        .filter(|m| matches!(m.id, ObjectId::Luminaire(_)) && !m.prims.is_empty())
+        .map(|m| m.anchor)
+        .collect();
+    for (i, s) in p.sensors.iter().take(MAX_SENSORS).enumerate() {
+        let start = scene.prims.len();
+        let foot = v3(s.x, 0.0, s.z);
+        let on_pole = poles
+            .iter()
+            .any(|q| Vec2::new(q.x - s.x, q.z - s.z).length() < 0.4);
+        if scene.outdoor && !on_pole {
+            let mut post = cylinder(
+                foot,
+                v3(s.x, h - SENSOR_HEAD_RADIUS, s.z),
+                0.035,
+                mat::METAL,
+            );
+            post.casts_shadow = false;
+            scene.prims.push(post);
+        }
+        let mut head = sphere(v3(s.x, h, s.z), SENSOR_HEAD_RADIUS, mat::WHITE);
+        head.casts_shadow = false;
+        scene.prims.push(head);
+        scene.movables.push(Movable {
+            id: ObjectId::Sensor(i as u8),
+            anchor: foot,
+            handle: v3(s.x, h, s.z),
+            prims: start..scene.prims.len(),
+            lamp: None,
+            extra_lamps: Vec::new(),
+            half: Vec2::ZERO,
+            yaw_deg: 0.0,
+        });
+    }
 }
 
 /// A person for scale: a 1.75 m mannequin standing at `base`, facing +X.
@@ -655,6 +1521,8 @@ fn norm_grid(name: &'static str, r: Receiver) -> MeasureGrid {
         nu: n(lu),
         nv: n(lv),
         receiver: r,
+        outline: None,
+        border: 0.0,
     }
 }
 
@@ -665,6 +1533,8 @@ fn road_grid(name: &'static str, r: Receiver, lanes: u32) -> MeasureGrid {
         nu: ((r.u.length() / 3.0).ceil() as usize).clamp(1, ROAD_GRID_MAX_AXIS),
         nv: 3 * lanes as usize,
         receiver: r,
+        outline: None,
+        border: 0.0,
     }
 }
 
@@ -675,6 +1545,8 @@ fn strip_grid(name: &'static str, r: Receiver, nu: usize, step: f32) -> MeasureG
         nu,
         nv: ((r.v.length() / step).ceil() as usize).clamp(1, MAX_GRID_AXIS),
         receiver: r,
+        outline: None,
+        border: 0.0,
     }
 }
 
@@ -729,8 +1601,16 @@ fn facade(
 }
 
 pub fn build_scene(p: &SceneParams) -> BuiltScene {
+    let mut scene = build_base(p);
+    apply_moves(&mut scene, &p.moves);
+    add_sensors(p, &mut scene);
+    scene
+}
+
+fn build_base(p: &SceneParams) -> BuiltScene {
     let mut boxes: Vec<ScenePrim> = Vec::new();
     let mut lamps: Vec<SceneLamp> = Vec::new();
+    let mut movables: Vec<Movable> = Vec::new();
     let rot = luminaire_rotation(p.rotation, p.tilt, false);
     let rot_far = luminaire_rotation(p.rotation, p.tilt, true);
     let deg = |d: f32| d.to_radians();
@@ -740,6 +1620,10 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
     };
 
     match p.kind {
+        SceneKind::Planned => match p.plan.as_ref() {
+            Some(plan) => build_planned(p, plan),
+            None => build_planned(p, &ScenePlan::example()),
+        },
         SceneKind::Street => {
             let half_length = 24.0_f32.max(p.count as f32 * p.spacing / 2.0 + p.height * 2.5);
             let xa = -half_length - 20.0;
@@ -781,27 +1665,37 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 MAX_PRIMS - 120,
             );
             // Parked cars in the strip, clear of the poles.
-            car(
+            track_car(
                 v3(-9.0, 0.0, park0 + PARKING_STRIP / 2.0),
                 0.0,
                 mat::CAR,
                 &mut boxes,
+                &mut movables,
             );
-            car(
+            track_car(
                 v3(7.5, 0.0, park0 + PARKING_STRIP / 2.0),
                 180.0,
                 mat::CAR_SILVER,
                 &mut boxes,
+                &mut movables,
             );
             // Poles on the near sidewalk edge.
             let pole_z = park1 + 0.5;
             let xs = row_positions(p.count, p.spacing);
             for &x in &xs {
+                let start = boxes.len();
                 let pos = pole(x, pole_z, 1.0, p.height, !p.freestanding, &mut boxes);
                 lamps.push(SceneLamp {
                     position: pos,
                     rotation: rot,
+                    ..Default::default()
                 });
+                track_lamp(
+                    &mut movables,
+                    &lamps,
+                    start..boxes.len(),
+                    v3(x, 0.0, pole_z),
+                );
             }
             let far_pole_z = cyc1 - 0.5;
             let far_xs: Vec<f32> = match p.street_layout {
@@ -810,14 +1704,22 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 StreetLayout::Staggered => xs.iter().map(|x| x + p.spacing / 2.0).collect(),
             };
             for x in far_xs {
+                let start = boxes.len();
                 let pos = pole(x, far_pole_z, -1.0, p.height, !p.freestanding, &mut boxes);
                 lamps.push(SceneLamp {
                     position: pos,
                     rotation: rot_far,
+                    ..Default::default()
                 });
+                track_lamp(
+                    &mut movables,
+                    &lamps,
+                    start..boxes.len(),
+                    v3(x, 0.0, far_pole_z),
+                );
             }
             if p.show_figure {
-                figure(v3(2.5, KERB_H, park1 + 1.0), &mut boxes);
+                track_figure(v3(2.5, KERB_H, park1 + 1.0), &mut boxes, &mut movables);
             }
             let along = v3(2.0 * half_length, 0.0, 0.0);
             let road = receiver(
@@ -853,6 +1755,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 Vec3::Z,
             );
             BuiltScene {
+                movables: std::mem::take(&mut movables),
                 kind: p.kind,
                 prims: boxes,
                 lamps,
@@ -891,6 +1794,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
             let xs = row_positions(cols, p.spacing);
             let half_length = 14.0_f32.max(cols as f32 * p.spacing / 2.0 + p.height * 1.5);
             for &x in &xs {
+                let start = boxes.len();
                 let pos = pole(
                     x,
                     lot_half_z + 0.6,
@@ -902,11 +1806,19 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 lamps.push(SceneLamp {
                     position: pos,
                     rotation: rot,
+                    ..Default::default()
                 });
+                track_lamp(
+                    &mut movables,
+                    &lamps,
+                    start..boxes.len(),
+                    v3(x, 0.0, lot_half_z + 0.6),
+                );
             }
             if p.count > 3 {
                 let far = p.count - 3;
                 for x in row_positions(far, p.spacing) {
+                    let start = boxes.len();
                     let pos = pole(
                         x + p.spacing / 2.0,
                         -lot_half_z - 0.6,
@@ -918,7 +1830,14 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                     lamps.push(SceneLamp {
                         position: pos,
                         rotation: rot_far,
+                        ..Default::default()
                     });
+                    track_lamp(
+                        &mut movables,
+                        &lamps,
+                        start..boxes.len(),
+                        v3(x + p.spacing / 2.0, 0.0, -lot_half_z - 0.6),
+                    );
                 }
             }
             // Bays run across the lot, so the cars stand nose-in along Z.
@@ -928,7 +1847,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 (-1.25, -5.5, -90.0, mat::CAR_RED),
                 (8.75, -5.5, -90.0, mat::CAR),
             ] {
-                car(v3(cx, 0.0, cz), yaw, paint, &mut boxes);
+                track_car(v3(cx, 0.0, cz), yaw, paint, &mut boxes, &mut movables);
             }
             // Hedge behind the pole row.
             boxes.push(bx(
@@ -937,7 +1856,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 mat::HEDGE,
             ));
             if p.show_figure {
-                figure(v3(4.0, 0.0, 0.6), &mut boxes);
+                track_figure(v3(4.0, 0.0, 0.6), &mut boxes, &mut movables);
             }
             let lot = receiver(
                 v3(-half_length, 0.0, -lot_half_z),
@@ -946,6 +1865,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 Vec3::Y,
             );
             BuiltScene {
+                movables: std::mem::take(&mut movables),
                 kind: p.kind,
                 prims: boxes,
                 lamps,
@@ -999,13 +1919,20 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 mat::HEDGE,
             ));
             for x in row_positions(p.count, p.spacing) {
+                let start = boxes.len();
                 lamps.push(SceneLamp {
                     position: v3(x, p.height, 0.0),
                     rotation: rot,
+                    ..Default::default()
                 });
+                track_lamp(&mut movables, &lamps, start..start, v3(x, 0.0, 0.0));
             }
             if p.show_figure {
-                figure(v3(-half_width + 3.0, 0.0, -d + 2.2), &mut boxes);
+                track_figure(
+                    v3(-half_width + 3.0, 0.0, -d + 2.2),
+                    &mut boxes,
+                    &mut movables,
+                );
             }
             let along = v3(2.0 * half_width, 0.0, 0.0);
             let face = receiver(
@@ -1016,6 +1943,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
             );
             let forecourt = receiver(v3(-half_width, 0.0, -d), along, v3(0.0, 0.0, 7.0), Vec3::Y);
             BuiltScene {
+                movables: std::mem::take(&mut movables),
                 kind: p.kind,
                 prims: boxes,
                 lamps,
@@ -1135,9 +2063,11 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 for c in 0..cols {
                     let x = (c as f32 - (cols as f32 - 1.0) / 2.0) * (OFFICE_W / cols as f32);
                     let z = (r as f32 - (rows as f32 - 1.0) / 2.0) * (OFFICE_D / rows as f32);
+                    let start = boxes.len();
                     lamps.push(SceneLamp {
                         position: v3(x, y, z),
                         rotation: rot,
+                        ..Default::default()
                     });
                     let top = rot * Vec3::Y;
                     let anchor = v3(x + top.x * 0.08, y + 0.08, z + top.z * 0.08);
@@ -1148,10 +2078,11 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                             mat::METAL,
                         ));
                     }
+                    track_lamp(&mut movables, &lamps, start..boxes.len(), v3(x, 0.0, z));
                 }
             }
             if p.show_figure {
-                figure(v3(-0.2, 0.0, 1.5), &mut boxes);
+                track_figure(v3(-0.2, 0.0, 1.5), &mut boxes, &mut movables);
             }
             let up = v3(0.0, h, 0.0);
             let workplane = receiver(
@@ -1189,6 +2120,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 grids.push(norm_grid(name, r.clone()));
             }
             BuiltScene {
+                movables: std::mem::take(&mut movables),
                 kind: p.kind,
                 prims: boxes,
                 lamps,
@@ -1332,20 +2264,23 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                         break;
                     }
                     let x = (c as f32 - (per_bench as f32 - 1.0) / 2.0) * p.spacing;
+                    let start = boxes.len();
                     lamps.push(SceneLamp {
                         position: v3(x, y, bz),
                         rotation: rot,
+                        ..Default::default()
                     });
                     boxes.push(bx_soft(
                         v3(x - 0.004, y + 0.08, bz - 0.004),
                         v3(x + 0.004, ridge, bz + 0.004),
                         mat::METAL,
                     ));
+                    track_lamp(&mut movables, &lamps, start..boxes.len(), v3(x, 0.0, bz));
                     placed += 1;
                 }
             }
             if p.show_figure {
-                figure(v3(hl - 1.6, 0.0, 0.0), &mut boxes);
+                track_figure(v3(hl - 1.6, 0.0, 0.0), &mut boxes, &mut movables);
             }
             let canopy_a = receiver(
                 v3(-hl + 0.6, canopy, BENCH_Z[0] - BENCH_W / 2.0 + 0.1),
@@ -1371,6 +2306,7 @@ pub fn build_scene(p: &SceneParams) -> BuiltScene {
                 norm_grid("aisle", aisle.clone()),
             ];
             BuiltScene {
+                movables: std::mem::take(&mut movables),
                 kind: p.kind,
                 prims: boxes,
                 lamps,
@@ -1544,6 +2480,13 @@ mod tests {
             let mut p = SceneParams::defaults(kind);
             p.count = *p.count_options().last().unwrap();
             p.street_layout = StreetLayout::Opposite;
+            // every sensor away from the poles: each gets a post
+            p.sensors = (0..MAX_SENSORS)
+                .map(|i| SceneSensor {
+                    x: 0.7 * i as f32 - 1.0,
+                    z: 0.3,
+                })
+                .collect();
             let s = build_scene(&p);
             assert!(
                 s.prims.len() <= MAX_PRIMS,
@@ -1568,5 +2511,301 @@ mod tests {
         let g = &s.grids[0];
         assert_eq!(g.name, "workplane 0.75 m");
         assert!((g.receiver.origin.y - WORKPLANE).abs() < 1e-6);
+    }
+
+    #[test]
+    fn every_scene_has_movable_lamps_and_a_person() {
+        for kind in SceneKind::ALL {
+            let mut p = SceneParams::defaults(kind);
+            p.count = *p.count_options().last().unwrap();
+            let s = build_scene(&p);
+            for i in 0..s.lamps.len() {
+                let m = s
+                    .movables
+                    .iter()
+                    .find(|m| m.id == ObjectId::Luminaire(i as u8))
+                    .unwrap_or_else(|| panic!("{kind:?}: lamp {i} not movable"));
+                assert_eq!(m.lamp, Some(i));
+                assert_eq!(m.handle, s.lamps[i].position);
+            }
+            assert!(s.movables.iter().any(|m| m.id == ObjectId::Person));
+        }
+        let cars = |k| {
+            build_scene(&SceneParams::defaults(k))
+                .movables
+                .iter()
+                .filter(|m| matches!(m.id, ObjectId::Car(_)))
+                .count()
+        };
+        assert_eq!(cars(SceneKind::Street), 2);
+        assert_eq!(cars(SceneKind::Parking), 4);
+    }
+
+    #[test]
+    fn moving_an_object_moves_its_parts() {
+        let mut p = SceneParams::defaults(SceneKind::Street);
+        p.count = 2;
+        let before = build_scene(&p);
+        let pole = before
+            .movables
+            .iter()
+            .find(|m| m.id == ObjectId::Luminaire(1))
+            .unwrap()
+            .clone();
+        let car = before
+            .movables
+            .iter()
+            .find(|m| m.id == ObjectId::Car(0))
+            .unwrap()
+            .clone();
+        let d = Vec3::new(3.0, 0.0, -1.0);
+        p.moves = vec![
+            (
+                ObjectId::Luminaire(1),
+                Vec2::new(pole.anchor.x + d.x, pole.anchor.z + d.z),
+            ),
+            (
+                ObjectId::Car(0),
+                Vec2::new(car.anchor.x + d.x, car.anchor.z + d.z),
+            ),
+        ];
+        let after = build_scene(&p);
+        assert_eq!(after.prims.len(), before.prims.len());
+        assert!((after.lamps[1].position - (before.lamps[1].position + d)).length() < 1e-5);
+        assert!((after.lamps[0].position - before.lamps[0].position).length() < 1e-6);
+        for range in [pole.prims.clone(), car.prims.clone()] {
+            assert!(!range.is_empty());
+            for i in range {
+                let (a0, _) = before.prims[i].aabb();
+                let (a1, _) = after.prims[i].aabb();
+                assert!((a1 - (a0 + d)).length() < 1e-4, "prim {i}");
+            }
+        }
+        // everything else stays
+        let (o0, _) = before.prims[0].aabb();
+        let (o1, _) = after.prims[0].aabb();
+        assert_eq!(o0, o1);
+    }
+
+    #[test]
+    fn sensors_sit_on_poles_or_posts() {
+        let mut p = SceneParams::defaults(SceneKind::Parking);
+        let base = build_scene(&p);
+        let pole = base
+            .movables
+            .iter()
+            .find(|m| m.id == ObjectId::Luminaire(0))
+            .unwrap()
+            .anchor;
+        p.sensors = vec![
+            SceneSensor {
+                x: pole.x,
+                z: pole.z,
+            },
+            SceneSensor { x: 0.0, z: 0.0 },
+        ];
+        p.sensor_height = 4.0;
+        let s = build_scene(&p);
+        let on_pole = s
+            .movables
+            .iter()
+            .find(|m| m.id == ObjectId::Sensor(0))
+            .unwrap();
+        let free = s
+            .movables
+            .iter()
+            .find(|m| m.id == ObjectId::Sensor(1))
+            .unwrap();
+        assert_eq!(on_pole.prims.len(), 1, "head only");
+        assert_eq!(free.prims.len(), 2, "post and head");
+        assert!((on_pole.handle.y - 4.0).abs() < 1e-6);
+        // the office keeps them in the ceiling
+        let mut o = SceneParams::defaults(SceneKind::Office);
+        o.sensors = vec![SceneSensor { x: 0.0, z: 0.0 }];
+        o.sensor_height = 9.0;
+        let s = build_scene(&o);
+        let h = s.movables.last().unwrap().handle.y;
+        assert!((h - (o.ceiling_height - 0.02)).abs() < 1e-6);
+    }
+
+    fn l_room() -> ScenePlan {
+        ScenePlan {
+            name: "L room".into(),
+            indoor: true,
+            outline: vec![
+                Vec2::new(0.0, 0.0),
+                Vec2::new(10.0, 0.0),
+                Vec2::new(10.0, 4.0),
+                Vec2::new(4.0, 4.0),
+                Vec2::new(4.0, 8.0),
+                Vec2::new(0.0, 8.0),
+            ],
+            height: 3.0,
+            reflectances: [0.7, 0.5, 0.2],
+            plane: 0.8,
+            luminaires: [(2.0, 2.0), (7.0, 2.0), (2.0, 6.0)]
+                .iter()
+                .map(|&(x, z)| PlanLuminaire {
+                    position: Vec3::new(x, 2.5, z),
+                    rotation_deg: 0.0,
+                    tilt_deg: 0.0,
+                    pole: None,
+                    pendant: true,
+                    ..Default::default()
+                })
+                .collect(),
+            sensors: vec![Vec2::new(5.0, 2.0)],
+            sensor_height: 3.0,
+            note: None,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_plan_over_the_lamp_budget_keeps_its_emergency_lamps() {
+        let mut plan = l_room();
+        plan.luminaires = (0..MAX_LAMPS + 20)
+            .map(|i| PlanLuminaire {
+                position: Vec3::new(1.0 + (i % 9) as f32, 2.9, 1.0 + (i / 9 % 6) as f32),
+                role: if i >= MAX_LAMPS + 9 {
+                    LampRole::Emergency
+                } else {
+                    LampRole::Normal
+                },
+                ..Default::default()
+            })
+            .collect();
+        let mut p = SceneParams::defaults(SceneKind::Planned);
+        p.plan = Some(std::sync::Arc::new(plan));
+        let s = build_scene(&p);
+        assert_eq!(s.lamps.len(), MAX_LAMPS);
+        let em = s
+            .lamps
+            .iter()
+            .filter(|l| l.role == LampRole::Emergency)
+            .count();
+        assert_eq!(em, 11, "every emergency lamp stays");
+    }
+
+    #[test]
+    fn planned_room_follows_the_outline() {
+        let mut p = SceneParams::defaults(SceneKind::Planned);
+        p.plan = Some(std::sync::Arc::new(l_room()));
+        let s = build_scene(&p);
+        assert_eq!(s.kind, SceneKind::Planned);
+        assert_eq!(s.lamps.len(), 3);
+        // floor, ceiling, 6 walls (+ rods, person)
+        let walls = s.prims.iter().filter(|b| b.material == mat::WALL).count();
+        assert_eq!(walls, 6);
+        assert!(s
+            .prims
+            .iter()
+            .any(|b| b.material == mat::WALL && (b.reflectance - 0.5).abs() < 1e-6));
+        assert!(s
+            .prims
+            .iter()
+            .any(|b| b.material == mat::CEILING && (b.reflectance - 0.7).abs() < 1e-6));
+        // every wall is hidden from a camera outside the room on its side
+        assert!(s
+            .prims
+            .iter()
+            .filter(|b| b.material == mat::WALL)
+            .all(|b| b.cutaway.is_some()));
+        // the grid measures only inside the L, on the workplane
+        let layout = crate::measure::measurement_layout(&s);
+        assert!(!layout.points.is_empty());
+        let outline = &l_room().outline;
+        for pt in &layout.points {
+            assert!(outline_contains(
+                outline,
+                Vec2::new(pt.position.x, pt.position.z)
+            ));
+            assert!((pt.position.y - 0.8).abs() < 0.05);
+        }
+        // the notch (x 4..10, z 4..8) has no points
+        assert!(!layout
+            .points
+            .iter()
+            .any(|pt| pt.position.x > 4.2 && pt.position.z > 4.2));
+        // area and perimeter of the L
+        let (a, per) = outline_area_perimeter(outline);
+        assert!((a - 56.0).abs() < 1e-4);
+        assert!((per - 36.0).abs() < 1e-4);
+        // the person stands inside
+        let person = s
+            .movables
+            .iter()
+            .find(|m| m.id == ObjectId::Person)
+            .unwrap();
+        assert!(outline_contains(
+            outline,
+            Vec2::new(person.anchor.x, person.anchor.z)
+        ));
+    }
+
+    #[test]
+    fn plan_rotation_matches_the_planners() {
+        // C0 at 90° points along +z (plan y); tilt swings the nadir to C0
+        let r = plan_rotation(90.0, 0.0);
+        assert!((r * Vec3::X - Vec3::Z).length() < 1e-5);
+        let t = plan_rotation(0.0, 30.0) * Vec3::NEG_Y;
+        assert!(t.x > 0.49 && t.x < 0.51 && t.y < -0.8, "{t}");
+    }
+
+    #[test]
+    fn luminaires_on_one_pole_move_together() {
+        let foot = Vec2::new(5.0, 5.0);
+        let lum = |dx: f32| PlanLuminaire {
+            position: Vec3::new(5.0 + dx, 8.0, 5.0),
+            rotation_deg: if dx > 0.0 { 0.0 } else { 180.0 },
+            tilt_deg: 5.0,
+            pole: Some(foot),
+            pendant: false,
+            ..Default::default()
+        };
+        let plan = ScenePlan {
+            name: "area".into(),
+            indoor: false,
+            outline: vec![
+                Vec2::new(0.0, 0.0),
+                Vec2::new(20.0, 0.0),
+                Vec2::new(20.0, 12.0),
+                Vec2::new(0.0, 12.0),
+            ],
+            height: 0.0,
+            reflectances: [0.0, 0.0, 0.1],
+            plane: 0.0,
+            luminaires: vec![lum(1.5), lum(-1.5)],
+            sensors: vec![],
+            sensor_height: 4.0,
+            note: None,
+            ..Default::default()
+        };
+        let mut p = SceneParams::defaults(SceneKind::Planned);
+        p.plan = Some(std::sync::Arc::new(plan));
+        p.show_figure = false;
+        let s = build_scene(&p);
+        assert!(s.outdoor);
+        assert_eq!(s.lamps.len(), 2);
+        // one pole (2 cylinders) + 2 arms + 4 kerbs
+        let metal = s.prims.iter().filter(|b| b.material == mat::METAL).count();
+        assert_eq!(metal, 4);
+        let pole = s
+            .movables
+            .iter()
+            .find(|m| m.id == ObjectId::Luminaire(0))
+            .unwrap();
+        assert_eq!(pole.extra_lamps, vec![1]);
+        assert!(!s.movables.iter().any(|m| m.id == ObjectId::Luminaire(1)));
+        p.moves = vec![(ObjectId::Luminaire(0), Vec2::new(8.0, 5.0))];
+        let moved = build_scene(&p);
+        for i in 0..2 {
+            let d = moved.lamps[i].position - s.lamps[i].position;
+            assert!(
+                (d - Vec3::new(3.0, 0.0, 0.0)).length() < 1e-5,
+                "lamp {i}: {d}"
+            );
+        }
+        assert!(moved.prims.len() == s.prims.len());
     }
 }

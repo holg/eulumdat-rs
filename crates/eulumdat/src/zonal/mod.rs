@@ -14,4 +14,4 @@ pub use compute::{
     Reflectances, Room, SolveMode, ZonalResult,
 };
 pub use presets::{LlfPreset, ReflectancePreset, RoomPreset};
-pub use svg::ZonalSvg;
+pub use svg::{PlanFrame, ZonalSvg};

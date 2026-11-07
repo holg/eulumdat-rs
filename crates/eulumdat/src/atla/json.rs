@@ -189,8 +189,13 @@ struct SpectralDistributionJson {
     units: Option<String>,
 }
 
-/// Parse ATLA JSON document from string
+/// Parse ATLA JSON document from string (ATLA S001-A, or TM-33-23 JSON,
+/// which is read by [`crate::atla::tm33::parse_json`])
 pub fn parse(json: &str) -> Result<LuminaireOpticalData> {
+    #[cfg(feature = "xml")]
+    if crate::atla::tm33::is_tm33_json(json) {
+        return crate::atla::tm33::parse_json(json);
+    }
     let atla_json: AtlaJson = serde_json::from_str(json)?;
     Ok(from_json(atla_json))
 }

@@ -215,6 +215,36 @@ fn load_spd_file(path: &Path) -> Result<eulumdat::atla::SpectralDistribution> {
 }
 
 /// Serialise an ATLA document to .xml or .json according to the output extension.
+/// The spectrum of an emitter as an IES TM-27 SPDX document.
+fn write_spdx(doc: &LuminaireOpticalData, emitter: usize, output: &Path) -> Result<()> {
+    let opts = eulumdat::atla::spdx::WriteOptions {
+        today: Some(today_utc()),
+    };
+    let text = eulumdat::atla::spdx::write(doc, emitter, &opts)
+        .or_else(|| eulumdat::atla::spdx::write(doc, 0, &opts))
+        .context("The luminaire has no spectrum (attach one with --spd)")?;
+    std::fs::write(output, text).context("Failed to write output file")
+}
+
+/// Today's date as `YYYY-MM-DD` (UTC), from the system clock.
+fn today_utc() -> String {
+    let days = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() / 86_400)
+        .unwrap_or(0) as i64;
+    // civil date from days since 1970-01-01 (H. Hinnant's algorithm)
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
 fn write_atla(doc: &LuminaireOpticalData, output: &Path, compact: bool) -> Result<()> {
     let ext = output
         .extension()
@@ -263,7 +293,11 @@ pub fn convert(
         let mut doc = load_luminaire_doc(input, rotate)?;
         let spd = load_spd_file(spd_path)?;
         let n = eulumdat::atla::spd_loader::attach_spd(&mut doc, &spd, emitter);
-        write_atla(&doc, output, compact)?;
+        if out_ext == "spdx" {
+            write_spdx(&doc, emitter.unwrap_or(0), output)?;
+        } else {
+            write_atla(&doc, output, compact)?;
+        }
         println!(
             "Attached {} ({} samples) to {} emitter(s) → {}",
             spd_path.display(),
@@ -334,6 +368,17 @@ pub fn convert(
                 eulumdat::atla::json::write(&atla_doc).context("Failed to write ATLA JSON")?
             }
         }
+        // The spectrum alone -> IES TM-27 SPDX document
+        (_, "spdx") => {
+            let doc = load_luminaire_doc(input, rotate)?;
+            write_spdx(&doc, 0, output)?;
+            println!(
+                "Wrote the spectrum of {} → {} (IES TM-27 SPDX)",
+                input.display(),
+                output.display()
+            );
+            return Ok(());
+        }
         // Any input -> LDT output (via Eulumdat)
         (_, "ldt") => {
             let ldt = load_with_rotation(input, rotate)?;
@@ -349,7 +394,7 @@ pub fn convert(
             IesExporter::export_with_options(&ldt, &opts)
         }
         _ => anyhow::bail!(
-            "Unknown output extension: .{out_ext} (expected .ldt, .ies, .xml, or .json)"
+            "Unknown output extension: .{out_ext} (expected .ldt, .ies, .xml, .json or .spdx)"
         ),
     };
 
@@ -395,6 +440,8 @@ pub fn diagram(
     tilt: f64,
     log_scale: bool,
     units: eulumdat::UnitSystem,
+    sensor: bool,
+    motion: eulumdat::sensor::Motion,
 ) -> Result<()> {
     use eulumdat::diagram::*;
 
@@ -412,6 +459,30 @@ pub fn diagram(
             }
         }
     };
+
+    let is_sensxml = std::fs::read(input)
+        .map(|b| b.windows(8).take(600).any(|w| w == b"<SensXML"))
+        .unwrap_or(false);
+    if sensor || is_sensxml || matches!(diagram_type, DiagramType::SensorPlan) {
+        let svg = sensor_diagram(
+            input,
+            diagram_type,
+            is_sensxml,
+            width,
+            height,
+            mounting_height,
+            motion,
+            &theme,
+        )?;
+        match output {
+            Some(path) => {
+                std::fs::write(path, &svg)?;
+                println!("Diagram saved to {}", path.display());
+            }
+            None => println!("{svg}"),
+        }
+        return Ok(());
+    }
 
     let svg = match diagram_type {
         DiagramType::Polar => {
@@ -517,6 +588,19 @@ pub fn diagram(
             let diagram =
                 IsoluxDiagram::from_eulumdat_with_units(&ldt, width, height, params, units);
             diagram.to_svg_with_units(width, height, &theme, units)
+        }
+        // handled by `sensor_diagram` above
+        DiagramType::SensorPlan => unreachable!("sensor-plan returns earlier"),
+        DiagramType::ColourQuality => {
+            let (spd, name) = load_spectrum_any(input)?;
+            let q = eulumdat::atla::ColourQuality::from_spd(&spd).ok_or_else(|| {
+                anyhow::anyhow!("the spectrum must cover at least 400–700 nm for TM-30 / CRI")
+            })?;
+            let labels = eulumdat::atla::ColourQualityLabels {
+                subtitle: name,
+                ..Default::default()
+            };
+            q.card_svg(&labels, &colour_theme(dark))
         }
         DiagramType::Isocandela => {
             let ldt = load_file(input)?;
@@ -2051,5 +2135,734 @@ pub fn tm25(
         _ => anyhow::bail!("output must be .ldt, .xml or .json"),
     }
     println!("wrote {}", out.display());
+    Ok(())
+}
+
+/// `eulumdat sensor`: a sensor LDT read as a detection volume (metres).
+/// Spectrum from a spectral file (.spd / .csv / .spdx) or the first emitter
+/// of an ATLA document, with a display name.
+fn load_spectrum_any(path: &Path) -> Result<(eulumdat::atla::SpectralDistribution, String)> {
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().trim().to_string())
+        .unwrap_or_default();
+    if matches!(ext.as_str(), "spd" | "csv" | "spdx" | "txt") {
+        return Ok((load_spd_file(path)?, stem));
+    }
+    let doc = load_atla(&path.to_path_buf())?;
+    let spd = doc
+        .emitters
+        .iter()
+        .find_map(|e| e.spectral_distribution.clone())
+        .ok_or_else(|| anyhow::anyhow!("{} carries no spectral distribution", path.display()))?;
+    let name = doc
+        .header
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .map(str::to_string)
+        .unwrap_or(stem);
+    Ok((spd, name))
+}
+
+fn colour_theme(dark: bool) -> eulumdat::atla::Tm30Theme {
+    if dark {
+        eulumdat::atla::Tm30Theme::dark()
+    } else {
+        eulumdat::atla::Tm30Theme::light()
+    }
+}
+
+/// `eulumdat colour`: colour quality of a spectrum.
+pub fn colour(file: &Path, svg: Option<&PathBuf>, dark: bool, name: Option<&str>) -> Result<()> {
+    let (spd, stem) = load_spectrum_any(file)?;
+    let q = eulumdat::atla::ColourQuality::from_spd(&spd).ok_or_else(|| {
+        anyhow::anyhow!("the spectrum must cover at least 400–700 nm for TM-30 / CRI")
+    })?;
+    let tm = &q.tm30;
+    let reference = match tm.reference {
+        eulumdat::atla::Tm30Reference::Planckian => "Planckian".to_string(),
+        eulumdat::atla::Tm30Reference::Daylight => "CIE daylight".to_string(),
+        eulumdat::atla::Tm30Reference::Blend { daylight_share } => format!(
+            "Planckian / CIE daylight blend ({:.0} % daylight)",
+            daylight_share * 100.0
+        ),
+    };
+    println!("{}", name.unwrap_or(&stem));
+    println!("  CCT        {:.0} K", tm.cct);
+    println!("  Duv        {:+.4}", tm.duv);
+    println!("  TM-30 Rf   {:.1}", tm.rf);
+    println!("  TM-30 Rg   {:.1}", tm.rg);
+    println!("  reference  {reference}");
+    match &q.cri {
+        Some(c) => {
+            let star = if c.within_duv_limit {
+                ""
+            } else {
+                "  (|Duv| above the CIE 13.3 limit 0.0054: CRI not defined)"
+            };
+            println!("  CRI Ra     {:.1}{star}", c.ra);
+            println!("  CRI R9     {:.1}", c.r9());
+            println!("  CRI Re     {:.1}  (mean of R1–R15)", c.re);
+            let ri: Vec<String> =
+                c.ri.iter()
+                    .enumerate()
+                    .map(|(i, r)| format!("R{} {:.0}", i + 1, r))
+                    .collect();
+            println!("  {}", ri.join("  "));
+        }
+        None => println!("  CRI        not computable"),
+    }
+    println!();
+    println!("  bin   Rf,h   Rcs,h    Rhs,h");
+    for j in 0..16 {
+        println!(
+            "  h{:<3} {:5.1}  {:+5.1} %  {:+.3}",
+            j + 1,
+            tm.rf_hue[j],
+            tm.rcs_hue[j],
+            tm.rhs_hue[j]
+        );
+    }
+    if let Some(out) = svg {
+        let labels = eulumdat::atla::ColourQualityLabels {
+            subtitle: name.unwrap_or(&stem).to_string(),
+            ..Default::default()
+        };
+        fs::write(out, q.card_svg(&labels, &colour_theme(dark)))
+            .with_context(|| format!("Failed to write {}", out.display()))?;
+        println!("\n  card: {}", out.display());
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn sensor(
+    file: &PathBuf,
+    depth: Option<f64>,
+    height: Option<f64>,
+    target: f64,
+    svg: Option<&PathBuf>,
+    c_step: f64,
+    planning: bool,
+    report: Option<&PathBuf>,
+) -> Result<()> {
+    use eulumdat::diagram::SvgTheme;
+    use eulumdat::sensor::{
+        DetectionVolume, Motion, SensorPlanSvg, SensorPlanTrace, REFERENCE_DEPTH, TRACE_COLORS,
+    };
+
+    let bytes = std::fs::read(file)?;
+    if file
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("xml"))
+        || bytes.windows(8).take(400).any(|w| w == b"<SensXML")
+    {
+        return sensor_xml(
+            file,
+            &bytes,
+            height.unwrap_or(eulumdat::sensor::REFERENCE_DEPTH),
+            svg,
+            depth.is_some(),
+            planning,
+            report,
+        );
+    }
+
+    let ldt = load_file(file)?;
+    let volume = DetectionVolume::new(ldt);
+    let params = volume.params();
+    let (depth, plane) = match (depth, height) {
+        (Some(d), _) => (d, format!("{d:.2} m below the sensor")),
+        (None, Some(h)) => (
+            h - target,
+            format!("sensor at {h:.2} m, target at {target:.2} m"),
+        ),
+        (None, None) => (
+            REFERENCE_DEPTH,
+            format!("{REFERENCE_DEPTH:.2} m below the sensor (reference height)"),
+        ),
+    };
+
+    let l = volume.ldt();
+    println!("{}  {}", l.luminaire_name.trim(), l.luminaire_number.trim());
+    println!(
+        "  matrix {} C × {} γ (γ up to {:.0}°), {:?}, largest range {:.2} m",
+        l.num_c_planes,
+        l.num_g_planes,
+        l.g_angles.last().copied().unwrap_or(0.0),
+        volume.file_symmetry(),
+        l.intensities.iter().flatten().copied().fold(0.0, f64::max)
+    );
+    println!(
+        "  parameter block {:?}  (mounting hint: {:?})",
+        params.raw,
+        params.mounting_hint()
+    );
+    println!("  plane: {plane}");
+
+    let mut traces = Vec::new();
+    for (i, motion) in Motion::ALL.iter().enumerate() {
+        let Some(fp) = volume.motion_footprint(*motion, depth, c_step) else {
+            println!("  {:20} no data", motion.label());
+            continue;
+        };
+        if fp.is_empty() {
+            println!(
+                "  {:20} not detected at this depth (volume ends {:.2} m below the sensor)",
+                motion.label(),
+                volume.motion_depth_limit(*motion).unwrap_or(0.0)
+            );
+            continue;
+        }
+        let q = fp.reach.len() / 4;
+        println!(
+            "  {:20} max range {:6.2} m, area {:7.1} m² (Ø {:.2} m eq.), reach C0/C90/C180/C270 {:.2} / {:.2} / {:.2} / {:.2} m",
+            motion.label(),
+            fp.max_range,
+            fp.area_m2,
+            fp.equivalent_diameter(),
+            fp.reach[0],
+            fp.reach[q],
+            fp.reach[2 * q],
+            fp.reach[3 * q],
+        );
+        traces.push(SensorPlanTrace {
+            footprint: fp,
+            label: motion.label().to_string(),
+            color: TRACE_COLORS[i].to_string(),
+        });
+    }
+    if let Some(path) = svg {
+        std::fs::write(
+            path,
+            SensorPlanSvg::render(&traces, 480.0, &SvgTheme::light()),
+        )?;
+        println!("  wrote {}", path.display());
+    }
+    if let Some(path) = report {
+        let opt = eulumdat_typst::SensorReportOptions {
+            name: report_name(file, &volume.ldt().luminaire_name),
+            height: depth,
+            planning: false,
+            date: eulumdat_typst::sensor_report::today(),
+            demo: volume.ldt().identification.contains("Candelabra demo"),
+        };
+        write_sensor_report(&eulumdat_typst::SensorSource::Ldt(&volume), &opt, path)?;
+    }
+    Ok(())
+}
+
+/// `eulumdat sensor` for a SensXML file: measured heights per motion type and
+/// the footprints at one mounting height.
+fn sensor_xml(
+    file: &std::path::Path,
+    bytes: &[u8],
+    height: f64,
+    svg: Option<&PathBuf>,
+    depth_given: bool,
+    planning: bool,
+    report: Option<&PathBuf>,
+) -> Result<()> {
+    use eulumdat::diagram::SvgTheme;
+    use eulumdat::sensor::{Motion, SensXml, SensorPlanSvg, SensorPlanTrace, TRACE_COLORS};
+
+    let x = SensXml::parse(bytes).map_err(|e| anyhow::anyhow!("SensXML: {e}"))?;
+    let h = &x.header;
+    println!(
+        "{} {}  ({})",
+        h.manufacturer.as_deref().unwrap_or("?"),
+        h.product_name.as_deref().unwrap_or("?"),
+        h.product_number.as_deref().unwrap_or("-")
+    );
+    println!(
+        "  SensXML {}  lab {}  measurement {}  mounting type {:?} (1 wall, 2 ceiling, 3 both)  power {:?} W",
+        x.version.as_deref().unwrap_or("?"),
+        h.laboratory.as_deref().unwrap_or("-"),
+        x.sensor.measurement_type.as_deref().unwrap_or("-"),
+        x.sensor.mounting_type,
+        x.sensor.total_system_power
+    );
+    if depth_given {
+        println!("  note: SensXML is given per mounting height; --depth is ignored, use --height");
+    }
+    for w in &x.warnings {
+        println!("  warning: {w}");
+    }
+    let mut traces = Vec::new();
+    for (i, m) in Motion::ALL.iter().enumerate() {
+        let hs = x.heights(*m);
+        if hs.is_empty() {
+            println!("  {:20} no data", m.label());
+            continue;
+        }
+        let measured: Vec<String> = hs
+            .iter()
+            .map(|&hh| {
+                let r = x
+                    .footprint(*m, hh, false)
+                    .map(|f| f.0.max_range)
+                    .unwrap_or(0.0);
+                let p = x.footprint(*m, hh, true).map(|f| f.0.max_range);
+                match p {
+                    Some(p) if (p - r).abs() > 1e-6 => format!("{hh} m: {r:.2} (plan {p:.2})"),
+                    _ => format!("{hh} m: {r:.2}"),
+                }
+            })
+            .collect();
+        println!(
+            "  {:20} measured max range  {}",
+            m.label(),
+            measured.join(", ")
+        );
+        if let Some((fp, q)) = x.footprint(*m, height, planning) {
+            println!(
+                "  {:20} at {height:.2} m ({q:?}): max {:.2} m, area {:.1} m² (Ø {:.2} m eq.)",
+                "",
+                fp.max_range,
+                fp.area_m2,
+                fp.equivalent_diameter()
+            );
+            traces.push(SensorPlanTrace {
+                footprint: fp,
+                label: format!("{} at {height:.2} m ({q:?})", m.label()),
+                color: TRACE_COLORS[i].to_string(),
+            });
+        }
+    }
+    if let Some(path) = svg {
+        std::fs::write(
+            path,
+            SensorPlanSvg::render(&traces, 480.0, &SvgTheme::light()),
+        )?;
+        println!("  wrote {}", path.display());
+    }
+    if let Some(path) = report {
+        let opt = eulumdat_typst::SensorReportOptions {
+            name: report_name(file, x.header.product_name.as_deref().unwrap_or("")),
+            height,
+            planning,
+            date: eulumdat_typst::sensor_report::today(),
+            demo: x.header.manufacturer.as_deref() == Some("Candelabra demo"),
+        };
+        write_sensor_report(&eulumdat_typst::SensorSource::Xml(&x), &opt, path)?;
+    }
+    Ok(())
+}
+
+/// Title for a sensor report: the product name, else the file name.
+fn report_name(file: &std::path::Path, product: &str) -> String {
+    let p = product.trim();
+    if p.is_empty() {
+        file.file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "Sensor".into())
+    } else {
+        p.to_string()
+    }
+}
+
+/// Write a sensor report as `.typ`, or as `.pdf` via the `typst` CLI (the
+/// `.typ` is kept next to it, so it can be edited and compiled again).
+fn write_sensor_report(
+    src: &eulumdat_typst::SensorSource,
+    opt: &eulumdat_typst::SensorReportOptions,
+    path: &std::path::Path,
+) -> Result<()> {
+    write_typst(&eulumdat_typst::generate_sensor_report(src, opt), path)
+}
+
+/// Write Typst source as `.typ`, or as `.pdf` via the `typst` CLI.
+fn write_typst(source: &str, path: &std::path::Path) -> Result<()> {
+    let ext = path
+        .extension()
+        .map(|e| e.to_string_lossy().to_ascii_lowercase())
+        .unwrap_or_default();
+    match ext.as_str() {
+        "typ" => {
+            std::fs::write(path, source)?;
+            println!("  wrote {}", path.display());
+        }
+        "pdf" => {
+            let typ = path.with_extension("typ");
+            std::fs::write(&typ, source)?;
+            let out = std::process::Command::new("typst")
+                .arg("compile")
+                .arg(&typ)
+                .arg(path)
+                .output()
+                .context("could not run the typst CLI (is typst installed?)")?;
+            if !out.status.success() {
+                anyhow::bail!(
+                    "typst compile failed:\n{}",
+                    String::from_utf8_lossy(&out.stderr)
+                );
+            }
+            println!("  wrote {} (source {})", path.display(), typ.display());
+        }
+        other => anyhow::bail!("report must be .typ or .pdf, not .{other}"),
+    }
+    Ok(())
+}
+
+/// `eulumdat diagram --sensor` / SensXML input: the diagrams that apply to a
+/// sensor, with ranges in metres.
+#[allow(clippy::too_many_arguments)]
+fn sensor_diagram(
+    input: &PathBuf,
+    diagram_type: DiagramType,
+    is_sensxml: bool,
+    width: f64,
+    height: f64,
+    mounting_height: f64,
+    motion: eulumdat::sensor::Motion,
+    theme: &eulumdat::diagram::SvgTheme,
+) -> Result<String> {
+    use eulumdat::sensor::{diagrams, DetectionVolume, Motion, SensXml, SensorDiagram};
+    use eulumdat::sensor::{SensorPlanSvg, SensorPlanTrace, TRACE_COLORS};
+
+    if is_sensxml {
+        let x =
+            SensXml::parse(&std::fs::read(input)?).map_err(|e| anyhow::anyhow!("SensXML: {e}"))?;
+        if matches!(diagram_type, DiagramType::SensorPlan) {
+            let traces: Vec<SensorPlanTrace> = Motion::ALL
+                .iter()
+                .enumerate()
+                .filter_map(|(i, m)| {
+                    x.footprint(*m, mounting_height, false)
+                        .filter(|(fp, _)| !fp.is_empty())
+                        .map(|(fp, q)| SensorPlanTrace {
+                            footprint: fp,
+                            label: format!("{} at {mounting_height:.2} m ({q:?})", m.label()),
+                            color: TRACE_COLORS[i].to_string(),
+                        })
+                })
+                .collect();
+            return Ok(SensorPlanSvg::render(
+                &traces,
+                width.min(height),
+                &diagrams::sensor_theme(theme),
+            ));
+        }
+        // angular views: the volume rebuilt from the measured heights
+        let kind = match diagram_type {
+            DiagramType::Polar => SensorDiagram::Polar,
+            DiagramType::Cartesian => SensorDiagram::Cartesian,
+            DiagramType::Heatmap => SensorDiagram::Heatmap,
+            DiagramType::Butterfly => SensorDiagram::Volume3d,
+            other => anyhow::bail!(
+                "{other:?} is not meaningful for a sensor; sensor diagrams: \
+                 sensor-plan, polar, cartesian, heatmap, butterfly"
+            ),
+        };
+        let volume = x
+            .to_detection_volume(motion, false)
+            .ok_or_else(|| anyhow::anyhow!("the SensXML file has no {} data", motion.label()))?;
+        return Ok(diagrams::render(
+            &volume,
+            kind,
+            width,
+            height,
+            mounting_height,
+            theme,
+        ));
+    }
+
+    let kind = match diagram_type {
+        DiagramType::SensorPlan => SensorDiagram::Plan,
+        DiagramType::Polar => SensorDiagram::Polar,
+        DiagramType::Cartesian => SensorDiagram::Cartesian,
+        DiagramType::Heatmap => SensorDiagram::Heatmap,
+        DiagramType::Butterfly => SensorDiagram::Volume3d,
+        other => anyhow::bail!(
+            "{other:?} is not meaningful for a sensor (it rests on light / illuminance); \
+             sensor diagrams: sensor-plan, polar, cartesian, heatmap, butterfly"
+        ),
+    };
+    let volume = DetectionVolume::new(load_file(input)?);
+    Ok(diagrams::render(
+        &volume,
+        kind,
+        width,
+        height,
+        mounting_height,
+        theme,
+    ))
+}
+
+/// Arguments of `eulumdat sensor-compare`.
+pub struct SensorCompareArgs<'a> {
+    pub a: &'a PathBuf,
+    pub b: &'a PathBuf,
+    pub height: f64,
+    pub workplane: f64,
+    pub planning: bool,
+    pub c_plane: f64,
+    pub motion: &'a str,
+    pub plan: Option<&'a PathBuf>,
+    pub polar: Option<&'a PathBuf>,
+    pub cartesian: Option<&'a PathBuf>,
+    pub height_chart: Option<&'a PathBuf>,
+    pub heights: &'a str,
+    pub room: Option<&'a str>,
+    pub room_motion: Option<&'a str>,
+    pub control: &'a str,
+    pub space: &'a str,
+    pub price: Option<f64>,
+    pub report: Option<&'a PathBuf>,
+}
+
+/// A file given to a sensor command: SensXML is sniffed, anything else is
+/// read as a sensor LDT (the command says it is a sensor).
+fn read_sensor_file(path: &Path) -> Result<eulumdat::sensor::SensorFile> {
+    let bytes = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
+    let xml = path
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("xml"));
+    eulumdat::sensor::SensorFile::from_bytes(&bytes, if xml { "" } else { "sensor/sensldt" })
+        .map_err(|e| anyhow::anyhow!("{}: {e}", path.display()))
+}
+
+fn parse_motion(s: &str) -> Result<eulumdat::sensor::Motion> {
+    use eulumdat::sensor::Motion;
+    match s.to_ascii_lowercase().as_str() {
+        "tangential" | "t" => Ok(Motion::Tangential),
+        "radial" | "r" => Ok(Motion::Radial),
+        "presence" | "p" => Ok(Motion::Presence),
+        other => anyhow::bail!("unknown motion type {other} (tangential, radial, presence)"),
+    }
+}
+
+pub fn sensor_compare(args: &SensorCompareArgs) -> Result<()> {
+    use eulumdat::diagram::SvgTheme;
+    use eulumdat::sensor::compare::{
+        cartesian_overlay_svg, height_chart_svg, plan_overlay_svg, polar_overlay_svg, room_check,
+        CompareConditions, HeightChartLabels, SensorComparison,
+    };
+    use eulumdat::sensor::coverage::{CoverageRoom, DEFAULT_WALL_MARGIN};
+    use eulumdat::sensor::en15193::{OccupancyControl, SpaceType};
+    use eulumdat::sensor::Motion;
+
+    let (a, b) = (read_sensor_file(args.a)?, read_sensor_file(args.b)?);
+    let name = |p: &Path, f: &eulumdat::sensor::SensorFile| {
+        let n = f.name();
+        if n.trim().is_empty() {
+            p.file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default()
+        } else {
+            n
+        }
+    };
+    let (la, lb) = (name(args.a, &a), name(args.b, &b));
+    let cond = CompareConditions {
+        mount: args.height,
+        walk_plane: 0.0,
+        presence_plane: args.workplane,
+        planning: args.planning,
+    };
+    let motion = parse_motion(args.motion)?;
+    let heights = args
+        .heights
+        .split_once(':')
+        .and_then(|(x, y)| Some((x.trim().parse::<f64>().ok()?, y.trim().parse::<f64>().ok()?)))
+        .filter(|(x, y)| y > x && *x > 0.0)
+        .ok_or_else(|| anyhow::anyhow!("--heights must be min:max, e.g. 2:15"))?;
+
+    let cmp = SensorComparison::new(&a, &b, &cond, &la, &lb);
+    print!("{}", cmp.to_text());
+    for (tag, f) in [("A", &a), ("B", &b)] {
+        for w in f.warnings() {
+            println!("  {tag}: {}", w.message());
+        }
+    }
+
+    let theme = SvgTheme::light();
+    // Each SVG is only computed when its file was asked for.
+    let write =
+        |path: Option<&PathBuf>, svg: &dyn Fn() -> Option<String>, what: &str| -> Result<()> {
+            if let Some(p) = path {
+                match svg() {
+                    Some(svg) => {
+                        std::fs::write(p, svg)?;
+                        println!("  wrote {} ({what})", p.display());
+                    }
+                    None => println!(
+                        "  {what}: one of the sensors has no data for {}",
+                        motion.label()
+                    ),
+                }
+            }
+            Ok(())
+        };
+    let label = |m: Motion| m.label().to_string();
+    write(
+        args.plan,
+        &|| {
+            Some(plan_overlay_svg(
+                &a,
+                &b,
+                &cond,
+                &Motion::ALL,
+                520.0,
+                &theme,
+                &label,
+                Some(args.c_plane),
+            ))
+        },
+        "plan overlay",
+    )?;
+    write(
+        args.polar,
+        &|| {
+            polar_overlay_svg(
+                &a,
+                &b,
+                motion,
+                args.planning,
+                args.c_plane,
+                500.0,
+                &theme,
+                &la,
+                &lb,
+            )
+        },
+        "polar overlay",
+    )?;
+    write(
+        args.cartesian,
+        &|| {
+            cartesian_overlay_svg(
+                &a,
+                &b,
+                motion,
+                args.planning,
+                args.c_plane,
+                640.0,
+                400.0,
+                &theme,
+                &la,
+                &lb,
+            )
+        },
+        "cartesian overlay",
+    )?;
+    write(
+        args.height_chart,
+        &|| {
+            Some(height_chart_svg(
+                &a,
+                &b,
+                &cond,
+                &Motion::ALL,
+                heights,
+                680.0,
+                400.0,
+                &theme,
+                &HeightChartLabels::default(),
+                &label,
+                &la,
+                &lb,
+            ))
+        },
+        "range over height",
+    )?;
+
+    let control = OccupancyControl::from_key(args.control)
+        .ok_or_else(|| anyhow::anyhow!("unknown --control {}", args.control))?;
+    let space = SpaceType::from_key(args.space)
+        .ok_or_else(|| anyhow::anyhow!("unknown --space {}", args.space))?;
+    let room = match args.room {
+        None => None,
+        Some(r) => {
+            let (l, w) = r
+                .split_once(['x', 'X', '×'])
+                .and_then(|(l, w)| {
+                    Some((l.trim().parse::<f64>().ok()?, w.trim().parse::<f64>().ok()?))
+                })
+                .ok_or_else(|| anyhow::anyhow!("--room must be LxW, e.g. 10x8"))?;
+            let both_presence = [&a, &b]
+                .iter()
+                .all(|f| f.motions().contains(&Motion::Presence));
+            let room_motion = match args.room_motion {
+                Some(m) => parse_motion(m)?,
+                None if both_presence => Motion::Presence,
+                None => Motion::Tangential,
+            };
+            Some(eulumdat_typst::CompareRoom {
+                length: l,
+                width: w,
+                motion: room_motion,
+                control,
+                space,
+                hold_ok: true,
+                price: args.price,
+            })
+        }
+    };
+    if let Some(r) = room {
+        let cr = CoverageRoom {
+            length: r.length,
+            width: r.width,
+            mount_height: cond.mount,
+            walk_plane: cond.walk_plane,
+            presence_plane: cond.presence_plane,
+            margin: DEFAULT_WALL_MARGIN,
+        };
+        println!(
+            "Room check {:.1} × {:.1} m at {:.2} m, planned for {} (≥ 95 %):",
+            r.length,
+            r.width,
+            cond.mount,
+            r.motion.label()
+        );
+        for (tag, f) in [("A", &a), ("B", &b)] {
+            let ctl = Some((r.control, r.space, r.hold_ok));
+            match room_check(f, &cr, cond.planning, r.motion, 100, ctl) {
+                None => println!("  {tag}: not detected at this height"),
+                Some(c) => {
+                    println!(
+                    "  {tag}: {} sensors ({} × {}{}){}, covered {:.1} %, {:.1} m² each, F_O {}{}",
+                    c.count,
+                    c.nx,
+                    c.ny,
+                    if c.rotation != 0.0 { ", turned 90°" } else { "" },
+                    if c.reached { "" } else { " — target not reached" },
+                    c.covered * 100.0,
+                    c.m2_per_sensor,
+                    c.fo.map(|f| format!("{:.2}", f.f_o)).unwrap_or_default(),
+                    r.price
+                        .map(|p| format!(", cost {:.0}", p * c.count as f64))
+                        .unwrap_or_default()
+                )
+                }
+            }
+        }
+    }
+
+    if let Some(path) = args.report {
+        let demo = |f: &eulumdat::sensor::SensorFile| f.manufacturer().contains("Candelabra demo");
+        let opt = eulumdat_typst::SensorCompareOptions {
+            label_a: la.clone(),
+            label_b: lb.clone(),
+            conditions: cond,
+            c_plane: args.c_plane,
+            motion,
+            heights,
+            room,
+            date: eulumdat_typst::sensor_report::today(),
+            demo: demo(&a) || demo(&b),
+        };
+        write_typst(
+            &eulumdat_typst::generate_sensor_comparison_report(&a, &b, &opt),
+            path,
+        )?;
+    }
     Ok(())
 }

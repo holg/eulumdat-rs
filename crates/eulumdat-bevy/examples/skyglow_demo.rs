@@ -19,7 +19,8 @@
 //!   Scroll      — Zoom
 //!   R           — Reset camera
 //!   P           — Toggle photometric solid visualization
-//!   1 / 2 / 3   — Switch scene (Sponza / Urban / Bistro)
+//!   1 / 2 / 3 / 4 — Switch scene (Sponza / Urban / Bistro / Burg Vischering)
+//!   Z           — Burg Vischering: raise / lower the drawbridge
 //!   [ / ]       — Decrease / increase uplight %
 //!   - / =       — Decrease / increase intensity
 //!   9 / 0       — Decrease / increase haze
@@ -101,6 +102,8 @@ enum SceneChoice {
     Sponza,
     UrbanStreet,
     BistroExterior,
+    /// Burg Vischering, Lüdinghausen: Geobasis NRW 3D-Mesh (see VISCHERING_*).
+    Vischering,
 }
 
 impl SceneChoice {
@@ -110,6 +113,7 @@ impl SceneChoice {
             SceneChoice::Sponza => "Sponza Atrium",
             SceneChoice::UrbanStreet => "Urban Street",
             SceneChoice::BistroExterior => "Bistro Exterior",
+            SceneChoice::Vischering => "Burg Vischering",
         }
     }
 
@@ -118,6 +122,9 @@ impl SceneChoice {
             SceneChoice::Sponza => Vec3::new(-3.7, 0.0, -0.5),
             SceneChoice::UrbanStreet => Vec3::new(8.0, 1.7, 45.0),
             SceneChoice::BistroExterior => Vec3::new(-10.5, 1.7, -1.0),
+            // South-east bank, a little above the trees: the main castle, the
+            // moat and the outer bailey in one view.
+            SceneChoice::Vischering => Vec3::new(58.3, 2.3, -8.6),
         }
     }
 
@@ -126,6 +133,62 @@ impl SceneChoice {
             SceneChoice::Sponza => Vec3::new(10.0, 4.0, -0.5),
             SceneChoice::UrbanStreet => Vec3::new(0.0, 4.0, 20.0),
             SceneChoice::BistroExterior => Vec3::new(0.0, 3.5, 0.0),
+            SceneChoice::Vischering => Vec3::new(22.2, 11.4, -0.7),
+        }
+    }
+}
+
+/// Per-lamp power relative to the Intensity slider (Burg Vischering's floods
+/// are sized to their throw); lamps without it follow the slider 1:1.
+#[derive(Component, Clone, Copy)]
+struct LampScale(f32);
+
+/// The key "moon" light. It is a stylised daylight-level light (15 klx) that
+/// the street scenes hide in their shadows; the open castle park would be
+/// floodlit by it, so Burg Vischering gets a real night.
+#[derive(Component)]
+struct MoonLight;
+
+fn moon_illuminance(scene: SceneChoice) -> f32 {
+    if scene == SceneChoice::Vischering {
+        30.0
+    } else {
+        15000.0
+    }
+}
+
+/// Camera exposure per scene: the castle runs on night levels (moon ~30,
+/// floods 150-600 in the demo's units), the streets on the default.
+fn scene_exposure(scene: SceneChoice) -> bevy::camera::Exposure {
+    if scene == SceneChoice::Vischering {
+        bevy::camera::Exposure { ev100: 6.0 }
+    } else {
+        bevy::camera::Exposure::default()
+    }
+}
+
+/// Haze per scene: the slider's density is tuned for a 30 m street; across
+/// the 300 m castle park the same value is an opaque wall.
+fn scene_haze_factor(scene: SceneChoice) -> f32 {
+    if scene == SceneChoice::Vischering {
+        0.12
+    } else {
+        1.0
+    }
+}
+
+fn update_moon(
+    mut commands: Commands,
+    state: Res<SimulationState>,
+    mut moon: Query<&mut DirectionalLight, With<MoonLight>>,
+    cams: Query<Entity, With<FlyCamera>>,
+) {
+    if state.is_changed() {
+        for mut m in moon.iter_mut() {
+            m.illuminance = moon_illuminance(state.scene);
+        }
+        for cam in cams.iter() {
+            commands.entity(cam).insert(scene_exposure(state.scene));
         }
     }
 }
@@ -246,7 +309,7 @@ impl Rng {
 struct UiEntities {
     mode_text: Entity,
     hints_text: Entity,
-    scene_buttons: [Entity; 3],
+    scene_buttons: [Entity; 4],
     ldt_name: Entity,
     ldt_manufacturer: Entity,
     ldt_flux: Entity,
@@ -292,6 +355,11 @@ struct DebugFlags {
     no_sky: bool,
     no_matfix: bool,
     no_lights: bool,
+    /// Native automation: `--shot=<file.png>` saves one frame once the scene
+    /// has loaded and exits; `--cam=x,y,z,lx,ly,lz` pins the camera;
+    /// `--preserved` starts in the preserved-darkness mode.
+    shot: Option<String>,
+    cam: Option<(Vec3, Vec3)>,
 }
 
 // ---------------------------------------------------------------------------
@@ -302,10 +370,19 @@ fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     let (debug_flags, scene) = {
         let args: Vec<String> = std::env::args().collect();
+        let value = |key: &str| {
+            args.iter()
+                .find_map(|a| a.strip_prefix(key).map(str::to_string))
+        };
         let flags = DebugFlags {
             no_sky: args.iter().any(|a| a == "--no-sky"),
             no_matfix: args.iter().any(|a| a == "--no-matfix"),
             no_lights: args.iter().any(|a| a == "--no-lights"),
+            shot: value("--shot="),
+            cam: value("--cam=").and_then(|v| {
+                let n: Vec<f32> = v.split(',').filter_map(|t| t.trim().parse().ok()).collect();
+                (n.len() == 6).then(|| (Vec3::new(n[0], n[1], n[2]), Vec3::new(n[3], n[4], n[5])))
+            }),
         };
         let scene = args.iter().skip(1).find(|a| !a.starts_with("--")).cloned();
         if flags.no_sky {
@@ -334,11 +411,21 @@ fn main() {
                 no_sky: false,
                 no_matfix: false,
                 no_lights: false,
+                shot: None,
+                cam: None,
             },
             scene,
         )
     };
 
+    #[cfg(not(target_arch = "wasm32"))]
+    let start_preserved = std::env::args().any(|a| a == "--preserved");
+    #[cfg(target_arch = "wasm32")]
+    let start_preserved = false;
+    #[cfg(not(target_arch = "wasm32"))]
+    let start_drawbridge_up = std::env::args().any(|a| a == "--drawbridge-up");
+    #[cfg(target_arch = "wasm32")]
+    let start_drawbridge_up = false;
     let pollution_ldt = Eulumdat::parse(POLLUTION_LDT).expect("Failed to parse road_luminaire.ldt");
     let preserved_ldt = Eulumdat::parse(PRESERVED_LDT).expect("Failed to parse projector.ldt");
     let flood_ldt = Eulumdat::parse(FLOOD_LDT).expect("Failed to parse wiki-flood.ldt");
@@ -365,16 +452,22 @@ fn main() {
     }))
     .add_plugins(PhotometricPlugin::<Eulumdat>::default())
     .insert_resource(SimulationState {
-        mode: Mode::StandardPollution,
+        mode: if start_preserved {
+            Mode::PreservedDarkness
+        } else {
+            Mode::StandardPollution
+        },
         scene: match scene.as_deref() {
             Some("sponza") => SceneChoice::Sponza,
             Some("bistro") => SceneChoice::BistroExterior,
+            Some("vischering") => SceneChoice::Vischering,
             _ => SceneChoice::UrbanStreet,
         },
-        haze_density: 0.04,
-        intensity_scale: 2.0,
-        ambient_brightness: 8.0,
-        uplight_pct: 45.0,
+        // Same values as the Space toggle sets for each mode.
+        haze_density: if start_preserved { 0.005 } else { 0.04 },
+        intensity_scale: if start_preserved { 0.5 } else { 2.0 },
+        ambient_brightness: if start_preserved { 2.0 } else { 8.0 },
+        uplight_pct: if start_preserved { 3.0 } else { 45.0 },
         show_solid: false,
         lights_dirty: false,
         pollution_ldt,
@@ -388,6 +481,14 @@ fn main() {
     .init_resource::<PreviousScene>()
     .init_resource::<SceneLoadState>()
     .init_resource::<PendingCameraReset>()
+    .insert_resource(Drawbridge {
+        up: start_drawbridge_up,
+        angle: if start_drawbridge_up {
+            VISCHERING_DRAWBRIDGE_MAX_DEG
+        } else {
+            0.0
+        },
+    })
     .insert_resource(FrameCounter(0))
     .add_systems(Startup, (setup_scene, setup_stars, setup_lights))
     .add_systems(Update, fix_scene_materials)
@@ -400,9 +501,13 @@ fn main() {
             update_fog,
             update_ambient,
             update_star_visibility,
+            update_moon,
+            animate_drawbridge,
             sync_lights,
             check_loading_progress,
             count_frames,
+            #[cfg(not(target_arch = "wasm32"))]
+            auto_shot,
         ),
     )
     .add_systems(
@@ -419,19 +524,26 @@ fn main() {
 
     #[cfg(feature = "bevy-ui")]
     {
-        app.add_plugins(UiWidgetsPlugins)
-            .add_plugins(InputDispatchPlugin)
-            .add_plugins(TabNavigationPlugin)
-            .add_systems(Startup, setup_ui)
-            .add_systems(
-                Update,
-                (
-                    update_ui_from_state,
-                    update_scene_button_visuals,
-                    update_slider_visuals,
-                    update_loading_overlay,
-                ),
-            );
+        // Bevy 0.19 pulls the widget/focus plugins into DefaultPlugins on some
+        // feature combinations — add only what's missing (as greenhouse_demo).
+        if !app.is_plugin_added::<bevy::ui_widgets::popover::PopoverPlugin>() {
+            app.add_plugins(UiWidgetsPlugins);
+        }
+        if !app.is_plugin_added::<InputDispatchPlugin>() {
+            app.add_plugins(InputDispatchPlugin);
+        }
+        if !app.is_plugin_added::<TabNavigationPlugin>() {
+            app.add_plugins(TabNavigationPlugin);
+        }
+        app.add_systems(Startup, setup_ui).add_systems(
+            Update,
+            (
+                update_ui_from_state,
+                update_scene_button_visuals,
+                update_slider_visuals,
+                update_loading_overlay,
+            ),
+        );
     }
 
     app.run();
@@ -452,6 +564,7 @@ fn setup_scene(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut load_state: ResMut<SceneLoadState>,
     mut cluster_settings: ResMut<bevy::light::cluster::GlobalClusterSettings>,
+    flags: Res<DebugFlags>,
 ) {
     // Pre-allocate GPU cluster buffers for the Bistro scene's ~40 lights
     // to avoid resize flickering in the first few frames.
@@ -469,9 +582,10 @@ fn setup_scene(
     });
 
     commands.spawn((
+        MoonLight,
         DirectionalLight {
             color: Color::srgb(0.7, 0.75, 0.95),
-            illuminance: 15000.0,
+            illuminance: moon_illuminance(state.scene),
             shadow_maps_enabled: true,
             shadow_depth_bias: 0.1,
             shadow_normal_bias: 0.2,
@@ -485,8 +599,10 @@ fn setup_scene(
         )),
     ));
 
-    let cam_transform = Transform::from_translation(state.scene.cam_start())
-        .looking_at(state.scene.cam_look_at(), Vec3::Y);
+    let (cam_start, cam_look) = flags
+        .cam
+        .unwrap_or((state.scene.cam_start(), state.scene.cam_look_at()));
+    let cam_transform = Transform::from_translation(cam_start).looking_at(cam_look, Vec3::Y);
 
     // Camera spawn is split between WebGPU and WebGL2 paths because:
     // - Bloom needs `rgba16float` storage textures (WebGPU only)
@@ -505,11 +621,11 @@ fn setup_scene(
         DistanceFog {
             color: Color::srgb(0.05, 0.04, 0.06),
             falloff: FogFalloff::Exponential {
-                density: state.haze_density,
+                density: state.haze_density * scene_haze_factor(state.scene),
             },
             ..default()
         },
-        FlyCamera::from_look_direction(state.scene.cam_start(), state.scene.cam_look_at()),
+        FlyCamera::from_look_direction(cam_start, cam_look),
         NoIndirectDrawing,
     ));
 
@@ -582,20 +698,43 @@ fn spawn_scene_geometry(
         SceneChoice::Sponza => {
             let h = asset_server.load(sponza_glb);
             load_state.handles.push(h.clone().untyped());
-            commands.spawn((SceneRoot(h), SceneGeometry));
+            commands.spawn((WorldAssetRoot(h), SceneGeometry));
         }
         SceneChoice::BistroExterior => {
             let h = asset_server.load(bistro_glb);
             load_state.handles.push(h.clone().untyped());
-            commands.spawn((SceneRoot(h), SceneGeometry));
+            commands.spawn((WorldAssetRoot(h), SceneGeometry));
 
             let gi = asset_server.load("BistroExteriorFakeGI.gltf#Scene0");
             load_state.handles.push(gi.clone().untyped());
-            commands.spawn((SceneRoot(gi), SceneGeometry));
+            commands.spawn((WorldAssetRoot(gi), SceneGeometry));
         }
         SceneChoice::UrbanStreet => {
             load_state.loaded = true;
             build_urban_street(commands, meshes, materials);
+        }
+        SceneChoice::Vischering => {
+            // Same file natively and on the web: JPEG textures, ~50 MB.
+            let h = asset_server.load("Vischering.glb#Scene0");
+            load_state.handles.push(h.clone().untyped());
+            commands.spawn((WorldAssetRoot(h), SceneGeometry));
+            // The GLB carries the water (Vischering_Water: each body at its
+            // LiDAR level, the moat above the meadows). Below all of it a dark,
+            // glossy catch-all plane fills photogrammetry holes and the land
+            // beyond the mesh.
+            commands.spawn((
+                Mesh3d(meshes.add(Plane3d::default().mesh().size(1200.0, 1200.0))),
+                MeshMaterial3d(materials.add(StandardMaterial {
+                    // A moat, not a lawn: dark green-black and glossy, so the
+                    // floods and lanterns glint in it.
+                    base_color: Color::srgb(0.006, 0.012, 0.012),
+                    perceptual_roughness: 0.06,
+                    reflectance: 0.5,
+                    ..default()
+                })),
+                Transform::from_xyz(0.0, VISCHERING_WATER_Y, 0.0),
+                SceneGeometry,
+            ));
         }
     }
 }
@@ -618,7 +757,8 @@ fn fix_scene_materials(
     let threshold = match state.scene {
         SceneChoice::Sponza => 20,
         SceneChoice::BistroExterior => 50,
-        SceneChoice::UrbanStreet => {
+        // The generated glTF already carries the right materials.
+        SceneChoice::UrbanStreet | SceneChoice::Vischering => {
             fix_state.0 = Some(state.scene);
             return;
         }
@@ -675,7 +815,7 @@ fn fix_scene_materials(
             let _ = transmitted_entities;
             println!("BISTRO FIX: patched {} materials", fixed);
         }
-        SceneChoice::UrbanStreet => unreachable!(),
+        SceneChoice::UrbanStreet | SceneChoice::Vischering => unreachable!(),
     }
     fix_state.0 = Some(state.scene);
 }
@@ -826,7 +966,7 @@ fn lamp_light_positions(scene: SceneChoice) -> Vec<(Vec3, Quat)> {
     match scene {
         SceneChoice::Sponza => lamp_positions_sponza(),
         SceneChoice::UrbanStreet => lamp_positions_urban(),
-        SceneChoice::BistroExterior => Vec::new(),
+        SceneChoice::BistroExterior | SceneChoice::Vischering => Vec::new(),
     }
 }
 
@@ -969,6 +1109,152 @@ fn lamp_placements_bistro() -> Vec<BistroPlacement> {
     }
 
     placements
+}
+
+// ---------------------------------------------------------------------------
+// Burg Vischering (Lüdinghausen)
+// ---------------------------------------------------------------------------
+//
+// Mesh: Geobasis NRW 3D-Mesh 2024 (dl-de/zero-2.0), cut to 320 x 320 m around
+// the castle and written as assets/Vischering.glb by
+// gldf-unreal-demo/Scripts/geodata/nrw_vischering.py, which also derives the
+// sites below from the NRW LiDAR (ground, water) and LoD2 (walls, bridges).
+// glTF frame: Y up, metres, x = east, z = south, origin = castle at ground level.
+
+/// Façade lighting is specified as illuminance on the wall: each flood gets
+/// the power that puts this much on its wall (CIE 94: ~30-100 lx for façades
+/// in dark/medium surroundings; the polluting setup overdoes it and aims past
+/// the walls). In this demo's light units, see `flood_scale`.
+const VISCHERING_WALL_LUX_PRESERVED: f32 = 150.0;
+const VISCHERING_WALL_LUX_POLLUTING: f32 = 600.0;
+/// Drawbridge (glTF node "Vischering_Drawbridge", origin on the hinge):
+/// rotation axis in the scene frame; positive angles lift the free end.
+const VISCHERING_DRAWBRIDGE_AXIS: [f32; 3] = [0.3591, 0.0000, -0.9333];
+const VISCHERING_DRAWBRIDGE_MAX_DEG: f32 = 75.0;
+
+/// Drawbridge state: target up/down and the current angle (degrees).
+#[derive(Resource, Default)]
+struct Drawbridge {
+    up: bool,
+    angle: f32,
+}
+
+/// Z raises / lowers the drawbridge; it swings at 20°/s about its hinge.
+fn animate_drawbridge(
+    keys: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
+    mut bridge: ResMut<Drawbridge>,
+    mut nodes: Query<(&Name, &mut Transform)>,
+) {
+    if keys.just_pressed(KeyCode::KeyZ) {
+        bridge.up = !bridge.up;
+    }
+    let target = if bridge.up {
+        VISCHERING_DRAWBRIDGE_MAX_DEG
+    } else {
+        0.0
+    };
+    let step = 20.0 * time.delta_secs();
+    let before = bridge.angle;
+    bridge.angle += (target - bridge.angle).clamp(-step, step);
+    if (bridge.angle - before).abs() < 1e-4 && !bridge.is_changed() {
+        return;
+    }
+    let axis = Vec3::from(VISCHERING_DRAWBRIDGE_AXIS).normalize_or(Vec3::Z);
+    for (name, mut t) in nodes.iter_mut() {
+        if name.as_str() == "Vischering_Drawbridge" {
+            t.rotation = Quat::from_axis_angle(axis, bridge.angle.to_radians());
+        }
+    }
+}
+
+/// Catch-all water plane, under the lowest water body (written by nrw_vischering.py).
+const VISCHERING_WATER_Y: f32 = -2.14;
+
+/// Façade floodlights on open ground with a clear view of their wall (lawns
+/// and paths across the moat, courtyards): (position, aim point on the wall).
+/// In the photogrammetric mesh trees are solid, so sites under a canopy are
+/// left out by the generator.
+const VISCHERING_FLOODS: &[([f32; 3], [f32; 3])] = &[
+    ([-31.31, 0.90, -42.14], [-35.15, 3.72, -43.28]),
+    ([21.78, 0.23, 37.30], [17.73, 4.91, 15.67]),
+    ([16.91, 1.75, 0.69], [16.76, 4.91, 4.68]),
+    ([54.21, 0.42, 12.44], [27.38, 4.91, 9.43]),
+    ([-6.99, 0.23, 32.33], [2.88, 4.91, 19.74]),
+    ([-51.93, 1.16, -64.40], [-36.49, 3.75, -60.22]),
+    ([-24.77, 1.28, -26.94], [3.77, 4.91, -17.70]),
+    ([-29.60, 1.04, -19.20], [0.11, 4.91, 15.92]),
+    ([-111.59, 0.35, -4.68], [-111.00, 3.63, -8.63]),
+    ([-31.61, 1.01, -12.35], [-5.12, 4.91, -3.27]),
+    ([-30.81, 0.94, -49.13], [-29.01, 3.71, -52.70]),
+    ([-24.21, 1.00, -45.20], [-20.28, 3.67, -48.29]),
+    ([-120.10, 1.33, -12.54], [-116.14, 3.63, -11.94]),
+    ([-43.59, 1.51, -15.27], [-43.86, 2.08, -11.28]),
+    ([9.82, 1.85, -2.13], [9.21, 9.76, 1.83]),
+    ([21.00, 1.67, 1.00], [9.04, 15.81, 3.45]),
+];
+
+/// Lanterns at the bridge ends (ground position; the head sits 4 m up).
+const VISCHERING_LANTERNS: &[[f32; 3]] = &[
+    [13.91, 1.91, -9.66],
+    [-24.64, 1.08, -24.48],
+    [-41.58, 1.33, -20.40],
+];
+
+/// Castle floodlighting, the skyglow way: in the polluting mode wide floods
+/// are aimed past the walls (light spills over the roofs into the sky); in
+/// the preserved mode narrow spots stop at 45 % of the wall height.
+fn spawn_vischering_lamps(commands: &mut Commands, state: &SimulationState) {
+    use eulumdat_bevy::photometric::PhotometricData as _;
+    let polluting = state.mode == Mode::StandardPollution;
+    let flood = if polluting {
+        state.flood_ldt.clone()
+    } else {
+        state.spotlight_ldt.clone()
+    };
+    // eulumdat-bevy's main beam: flux · LOR · 50 · downward · 0.3 · scale, and
+    // Bevy spreads a spot's power like a point light (I = P / 4π), so the
+    // scale for E lux at d metres is E · d² · 4π / (flux · LOR · 15 · down).
+    let (wall_lux, mode_default) = if polluting {
+        (VISCHERING_WALL_LUX_POLLUTING, 2.0)
+    } else {
+        (VISCHERING_WALL_LUX_PRESERVED, 0.5)
+    };
+    let beam =
+        (flood.total_flux() * flood.light_output_ratio() * flood.downward_fraction()) as f32 * 15.0;
+    let per_slider = 1.0 / mode_default; // slider at its mode default → exactly wall_lux
+    for &(p, a) in VISCHERING_FLOODS {
+        let pos = Vec3::from(p) + Vec3::Y * 0.5; // housing on the mesh surface
+        let aim = Vec3::from(a) + if polluting { Vec3::Y * 6.0 } else { Vec3::ZERO };
+        let dir = (aim - pos).normalize_or(Vec3::NEG_Y);
+        let mult = wall_lux * (aim - pos).length_squared() * 4.0 * std::f32::consts::PI
+            / beam.max(1e-3)
+            * per_slider;
+        commands.spawn((
+            LampScale(mult),
+            EulumdatLightBundle::new(flood.clone())
+                .with_transform(
+                    Transform::from_translation(pos)
+                        .with_rotation(Quat::from_rotation_arc(Vec3::NEG_Y, dir)),
+                )
+                .with_intensity_scale(state.intensity_scale * mult)
+                // On the ground: the height-based default reach would be ~1 m.
+                .with_range((aim - pos).length() * 2.0 + 10.0)
+                .with_model(false)
+                .with_solid(state.show_solid),
+            StreetLamp,
+        ));
+    }
+    for &p in VISCHERING_LANTERNS {
+        commands.spawn((
+            EulumdatLightBundle::new(state.active_ldt().clone())
+                .with_transform(Transform::from_translation(Vec3::from(p) + Vec3::Y * 4.0))
+                .with_intensity_scale(state.intensity_scale)
+                .with_model(true)
+                .with_solid(state.show_solid),
+            StreetLamp,
+        ));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1144,6 +1430,7 @@ fn spawn_lamps(commands: &mut Commands, state: &SimulationState) {
     let intensity_scale = state.intensity_scale;
 
     match state.scene {
+        SceneChoice::Vischering => spawn_vischering_lamps(commands, state),
         SceneChoice::BistroExterior => {
             for placement in lamp_placements_bistro() {
                 let ldt = match placement.luminaire {
@@ -1233,14 +1520,14 @@ fn toggle_mode(
 }
 
 /// Keyboard shortcuts for scene switching and slider adjustments.
-///   1 = Sponza, 2 = Urban Street, 3 = Bistro Exterior
+///   1 = Sponza, 2 = Urban Street, 3 = Bistro Exterior, 4 = Burg Vischering
 ///   [ = decrease uplight %, ] = increase uplight %
 ///   - = decrease intensity, = = increase intensity
 ///   9 = decrease haze, 0 = increase haze
 fn keyboard_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<SimulationState>) {
     let mut scene_changed = false;
 
-    // Scene switching: 1, 2, 3
+    // Scene switching: 1, 2, 3, 4
     if keys.just_pressed(KeyCode::Digit1) && state.scene != SceneChoice::Sponza {
         state.scene = SceneChoice::Sponza;
         scene_changed = true;
@@ -1251,6 +1538,10 @@ fn keyboard_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut state: ResMut<Simulat
     }
     if keys.just_pressed(KeyCode::Digit3) && state.scene != SceneChoice::BistroExterior {
         state.scene = SceneChoice::BistroExterior;
+        scene_changed = true;
+    }
+    if keys.just_pressed(KeyCode::Digit4) && state.scene != SceneChoice::Vischering {
+        state.scene = SceneChoice::Vischering;
         scene_changed = true;
     }
 
@@ -1303,7 +1594,7 @@ fn update_fog(state: Res<SimulationState>, mut fog_query: Query<&mut DistanceFog
 
     for mut fog in fog_query.iter_mut() {
         fog.falloff = FogFalloff::Exponential {
-            density: state.haze_density,
+            density: state.haze_density * scene_haze_factor(state.scene),
         };
         fog.color = Color::srgb(0.01 + glow * 0.8, 0.01 + glow * 0.55, 0.03 + glow * 0.4);
     }
@@ -1333,7 +1624,7 @@ fn sync_lights(
     flags: Res<DebugFlags>,
     mut state: ResMut<SimulationState>,
     mut commands: Commands,
-    lights: Query<(&PhotometricLight<Eulumdat>, Entity), With<StreetLamp>>,
+    lights: Query<(&PhotometricLight<Eulumdat>, Entity, Option<&LampScale>), With<StreetLamp>>,
     all_lamps: Query<Entity, With<StreetLamp>>,
     scene_geo: Query<Entity, With<SceneGeometry>>,
     asset_server: Res<AssetServer>,
@@ -1400,9 +1691,9 @@ fn sync_lights(
 
     // Only mutate lights that actually need updating — iter_mut() marks all
     // as Changed which triggers the photometric system to despawn+respawn lights.
-    let target = state.intensity_scale;
-    for (light, entity) in lights.iter() {
-        if (light.intensity_scale - target).abs() > 0.001 {
+    for (light, entity, lamp_scale) in lights.iter() {
+        let target = state.intensity_scale * lamp_scale.map_or(1.0, |s| s.0);
+        if (light.intensity_scale - target).abs() > 0.001 * target.max(1.0) {
             commands
                 .entity(entity)
                 .insert(eulumdat_bevy::photometric::PhotometricLight {
@@ -1416,6 +1707,37 @@ fn sync_lights(
 /// Pending camera reset target, set by sync_lights, consumed by fly_camera_reset.
 #[derive(Resource, Default)]
 struct PendingCameraReset(Option<SceneChoice>);
+
+/// `--shot=<file.png>`: pin the camera, wait until the scene is loaded and
+/// has rendered for ~3 s, save one frame, exit (README / test screenshots).
+#[cfg(not(target_arch = "wasm32"))]
+fn auto_shot(
+    mut commands: Commands,
+    flags: Res<DebugFlags>,
+    load: Res<SceneLoadState>,
+    frames: Res<FrameCounter>,
+    state: Res<SimulationState>,
+    mut pending: ResMut<PendingCameraReset>,
+    mut stage: Local<(u32, u32)>,
+    mut exit: MessageWriter<AppExit>,
+) {
+    use bevy::render::view::screenshot::{save_to_disk, Screenshot};
+    let Some(path) = &flags.shot else { return };
+    pending.0 = Some(state.scene); // the fly camera must not drift
+    if !load.loaded {
+        return;
+    }
+    if stage.0 == 0 {
+        stage.0 = frames.0;
+    } else if stage.1 == 0 && frames.0 > stage.0 + 180 {
+        commands
+            .spawn(Screenshot::primary_window())
+            .observe(save_to_disk(path.clone()));
+        stage.1 = frames.0;
+    } else if stage.1 != 0 && frames.0 > stage.1 + 30 {
+        exit.write(AppExit::Success);
+    }
+}
 
 fn check_loading_progress(asset_server: Res<AssetServer>, mut load_state: ResMut<SceneLoadState>) {
     if load_state.loaded || load_state.handles.is_empty() {
@@ -1545,7 +1867,7 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
     // -- Main dashboard panel --
     let mut mode_text = Entity::PLACEHOLDER;
     let mut hints_text = Entity::PLACEHOLDER;
-    let mut scene_btns = [Entity::PLACEHOLDER; 3];
+    let mut scene_btns = [Entity::PLACEHOLDER; 4];
     let mut ldt_name = Entity::PLACEHOLDER;
     let mut ldt_manufacturer = Entity::PLACEHOLDER;
     let mut ldt_flux = Entity::PLACEHOLDER;
@@ -1602,7 +1924,7 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
             // Hints
             hints_text = panel
                 .spawn((
-                    Text::new("[Space] toggle  [P] solid  [R] reset"),
+                    Text::new("[Space] toggle  [P] solid  [R] reset  [Z] drawbridge"),
                     TextFont {
                         font_size: FontSize::Px(10.0),
                         ..default()
@@ -1641,6 +1963,7 @@ fn setup_ui(mut commands: Commands, state: Res<SimulationState>) {
                         (SceneChoice::Sponza, "Sponza"),
                         (SceneChoice::UrbanStreet, "Urban"),
                         (SceneChoice::BistroExterior, "Bistro"),
+                        (SceneChoice::Vischering, "Vischering"),
                     ];
                     for (i, (choice, label)) in scenes.iter().enumerate() {
                         let is_active = *choice == state.scene;
@@ -2350,14 +2673,16 @@ fn fly_camera_reset(
     keys: Res<ButtonInput<KeyCode>>,
     state: Res<SimulationState>,
     mut pending: ResMut<PendingCameraReset>,
+    flags: Res<DebugFlags>,
 ) {
     let should_reset = keys.just_pressed(KeyCode::KeyR) || pending.0.is_some();
     if !should_reset {
         return;
     }
     pending.0 = None;
-    let start = state.scene.cam_start();
-    let look = state.scene.cam_look_at();
+    let (start, look) = flags
+        .cam
+        .unwrap_or((state.scene.cam_start(), state.scene.cam_look_at()));
     for (mut transform, mut cam) in query.iter_mut() {
         *transform = Transform::from_translation(start).looking_at(look, Vec3::Y);
         let new_cam = FlyCamera::from_look_direction(start, look);

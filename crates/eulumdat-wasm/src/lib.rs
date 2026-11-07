@@ -6,6 +6,7 @@ pub mod benchmark;
 mod components;
 pub mod i18n;
 pub mod library;
+pub mod projects;
 
 #[cfg(feature = "benchmark")]
 pub use benchmark::{

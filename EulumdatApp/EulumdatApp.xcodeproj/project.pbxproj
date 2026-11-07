@@ -27,13 +27,13 @@
 		21C00001C0DEFACE00000001 /* wiki-batwing.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000001 /* wiki-batwing.ldt */; };
 		21C00001C0DEFACE00000002 /* wiki-spotlight.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000002 /* wiki-spotlight.ldt */; };
 		21C00001C0DEFACE00000003 /* wiki-flood.ldt in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000003 /* wiki-flood.ldt */; };
-		21C00001C0DEFACE00000004 /* _atla_grow_light.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000004 /* _atla_grow_light.xml */; };
-		21C00001C0DEFACE00000005 /* _atla_grow_light_rb.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000005 /* _atla_grow_light_rb.xml */; };
-		21C00001C0DEFACE00000006 /* _atla_fluorescent.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000006 /* _atla_fluorescent.xml */; };
-		21C00001C0DEFACE00000007 /* _atla_halogen_lamp.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000007 /* _atla_halogen_lamp.xml */; };
-		21C00001C0DEFACE00000008 /* _atla_incandescent.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000008 /* _atla_incandescent.xml */; };
-		21C00001C0DEFACE00000009 /* _atla_heat_lamp.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */; };
-		21C00001C0DEFACE0000000A /* _atla_uv_blacklight.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */; };
+		21C00001C0DEFACE00000004 /* _atla_tm-33-18_grow_light.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000004 /* _atla_tm-33-18_grow_light.xml */; };
+		21C00001C0DEFACE00000005 /* _atla_tm-33-18_grow_light_rb.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000005 /* _atla_tm-33-18_grow_light_rb.xml */; };
+		21C00001C0DEFACE00000006 /* _atla_tm-33-18_fluorescent.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000006 /* _atla_tm-33-18_fluorescent.xml */; };
+		21C00001C0DEFACE00000007 /* _atla_tm-33-18_halogen_lamp.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000007 /* _atla_tm-33-18_halogen_lamp.xml */; };
+		21C00001C0DEFACE00000008 /* _atla_tm-33-18_incandescent.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000008 /* _atla_tm-33-18_incandescent.xml */; };
+		21C00001C0DEFACE00000009 /* _atla_tm-33-18_heat_lamp.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE00000009 /* _atla_tm-33-18_heat_lamp.xml */; };
+		21C00001C0DEFACE0000000A /* _atla_tm-33-18_uv_blacklight.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000A /* _atla_tm-33-18_uv_blacklight.xml */; };
 		21C00001C0DEFACE0000000B /* tm-33-23_minimal.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000B /* tm-33-23_minimal.xml */; };
 		21C00001C0DEFACE0000000C /* tm-33-23_with_custom_data.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000C /* tm-33-23_with_custom_data.xml */; };
 		21C00001C0DEFACE0000000D /* tm-33-23_horticultural_led.xml in Resources */ = {isa = PBXBuildFile; fileRef = 21C00002C0DEFACE0000000D /* tm-33-23_horticultural_led.xml */; };
@@ -123,13 +123,13 @@
 		21C00002C0DEFACE00000001 /* wiki-batwing.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wiki-batwing.ldt"; sourceTree = "<group>"; };
 		21C00002C0DEFACE00000002 /* wiki-spotlight.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wiki-spotlight.ldt"; sourceTree = "<group>"; };
 		21C00002C0DEFACE00000003 /* wiki-flood.ldt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "wiki-flood.ldt"; sourceTree = "<group>"; };
-		21C00002C0DEFACE00000004 /* _atla_grow_light.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_grow_light.xml; sourceTree = "<group>"; };
-		21C00002C0DEFACE00000005 /* _atla_grow_light_rb.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_grow_light_rb.xml; sourceTree = "<group>"; };
-		21C00002C0DEFACE00000006 /* _atla_fluorescent.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_fluorescent.xml; sourceTree = "<group>"; };
-		21C00002C0DEFACE00000007 /* _atla_halogen_lamp.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_halogen_lamp.xml; sourceTree = "<group>"; };
-		21C00002C0DEFACE00000008 /* _atla_incandescent.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_incandescent.xml; sourceTree = "<group>"; };
-		21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_heat_lamp.xml; sourceTree = "<group>"; };
-		21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_uv_blacklight.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000004 /* _atla_tm-33-18_grow_light.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_tm-33-18_grow_light.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000005 /* _atla_tm-33-18_grow_light_rb.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_tm-33-18_grow_light_rb.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000006 /* _atla_tm-33-18_fluorescent.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_tm-33-18_fluorescent.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000007 /* _atla_tm-33-18_halogen_lamp.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_tm-33-18_halogen_lamp.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000008 /* _atla_tm-33-18_incandescent.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_tm-33-18_incandescent.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE00000009 /* _atla_tm-33-18_heat_lamp.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_tm-33-18_heat_lamp.xml; sourceTree = "<group>"; };
+		21C00002C0DEFACE0000000A /* _atla_tm-33-18_uv_blacklight.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = _atla_tm-33-18_uv_blacklight.xml; sourceTree = "<group>"; };
 		21C00002C0DEFACE0000000B /* tm-33-23_minimal.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_minimal.xml"; sourceTree = "<group>"; };
 		21C00002C0DEFACE0000000C /* tm-33-23_with_custom_data.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_with_custom_data.xml"; sourceTree = "<group>"; };
 		21C00002C0DEFACE0000000D /* tm-33-23_horticultural_led.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "tm-33-23_horticultural_led.xml"; sourceTree = "<group>"; };
@@ -242,13 +242,13 @@
 				21C00002C0DEFACE00000001 /* wiki-batwing.ldt */,
 				21C00002C0DEFACE00000002 /* wiki-spotlight.ldt */,
 				21C00002C0DEFACE00000003 /* wiki-flood.ldt */,
-				21C00002C0DEFACE00000004 /* _atla_grow_light.xml */,
-				21C00002C0DEFACE00000005 /* _atla_grow_light_rb.xml */,
-				21C00002C0DEFACE00000006 /* _atla_fluorescent.xml */,
-				21C00002C0DEFACE00000007 /* _atla_halogen_lamp.xml */,
-				21C00002C0DEFACE00000008 /* _atla_incandescent.xml */,
-				21C00002C0DEFACE00000009 /* _atla_heat_lamp.xml */,
-				21C00002C0DEFACE0000000A /* _atla_uv_blacklight.xml */,
+				21C00002C0DEFACE00000004 /* _atla_tm-33-18_grow_light.xml */,
+				21C00002C0DEFACE00000005 /* _atla_tm-33-18_grow_light_rb.xml */,
+				21C00002C0DEFACE00000006 /* _atla_tm-33-18_fluorescent.xml */,
+				21C00002C0DEFACE00000007 /* _atla_tm-33-18_halogen_lamp.xml */,
+				21C00002C0DEFACE00000008 /* _atla_tm-33-18_incandescent.xml */,
+				21C00002C0DEFACE00000009 /* _atla_tm-33-18_heat_lamp.xml */,
+				21C00002C0DEFACE0000000A /* _atla_tm-33-18_uv_blacklight.xml */,
 				21C00002C0DEFACE0000000B /* tm-33-23_minimal.xml */,
 				21C00002C0DEFACE0000000C /* tm-33-23_with_custom_data.xml */,
 				21C00002C0DEFACE0000000D /* tm-33-23_horticultural_led.xml */,
@@ -475,13 +475,13 @@
 				21C00001C0DEFACE00000001 /* wiki-batwing.ldt in Resources */,
 				21C00001C0DEFACE00000002 /* wiki-spotlight.ldt in Resources */,
 				21C00001C0DEFACE00000003 /* wiki-flood.ldt in Resources */,
-				21C00001C0DEFACE00000004 /* _atla_grow_light.xml in Resources */,
-				21C00001C0DEFACE00000005 /* _atla_grow_light_rb.xml in Resources */,
-				21C00001C0DEFACE00000006 /* _atla_fluorescent.xml in Resources */,
-				21C00001C0DEFACE00000007 /* _atla_halogen_lamp.xml in Resources */,
-				21C00001C0DEFACE00000008 /* _atla_incandescent.xml in Resources */,
-				21C00001C0DEFACE00000009 /* _atla_heat_lamp.xml in Resources */,
-				21C00001C0DEFACE0000000A /* _atla_uv_blacklight.xml in Resources */,
+				21C00001C0DEFACE00000004 /* _atla_tm-33-18_grow_light.xml in Resources */,
+				21C00001C0DEFACE00000005 /* _atla_tm-33-18_grow_light_rb.xml in Resources */,
+				21C00001C0DEFACE00000006 /* _atla_tm-33-18_fluorescent.xml in Resources */,
+				21C00001C0DEFACE00000007 /* _atla_tm-33-18_halogen_lamp.xml in Resources */,
+				21C00001C0DEFACE00000008 /* _atla_tm-33-18_incandescent.xml in Resources */,
+				21C00001C0DEFACE00000009 /* _atla_tm-33-18_heat_lamp.xml in Resources */,
+				21C00001C0DEFACE0000000A /* _atla_tm-33-18_uv_blacklight.xml in Resources */,
 				21C00001C0DEFACE0000000B /* tm-33-23_minimal.xml in Resources */,
 				21C00001C0DEFACE0000000C /* tm-33-23_with_custom_data.xml in Resources */,
 				21C00001C0DEFACE0000000D /* tm-33-23_horticultural_led.xml in Resources */,

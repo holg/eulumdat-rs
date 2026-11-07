@@ -9,9 +9,10 @@
 //! Validated against the Signify lab spectrometer prelude in 6 corpus files —
 //! see `tests::matches_signify_reference` for the parity assertions.
 //!
-//! Where this differs from the older `tm30::xyz_to_cct` helper: that one uses
-//! McCamy's polynomial (good to ±3–10 K only) and a coarse Duv approximation.
-//! Robertson + true 1960 uv Duv get the corpus inside ±5 K and 0.0005 Duv.
+//! CCT / Duv here use Robertson's table (chord distance for Duv, about
+//! 0.0005 off). The colour-rendering metrics (`tm30`, `cri`, the colour
+//! quality card) use the exact locus search `colour_common::cct_duv` on the
+//! chromaticity computed here.
 
 use crate::atla::types::SpectralDistribution;
 

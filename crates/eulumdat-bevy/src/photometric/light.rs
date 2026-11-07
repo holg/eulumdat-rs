@@ -40,6 +40,12 @@ pub struct PhotometricLight<T: PhotometricData> {
     /// SPD (red/blue horticultural spectra are nowhere near the Planckian
     /// locus, so a CCT-derived colour would be wrong).
     pub color_override: Option<Color>,
+    /// Reach of the spawned Bevy lights in metres. `None` keeps the
+    /// street-light heuristic (a few times the height above y = 0, which
+    /// assumes the light hangs above ground level at y = 0). Set it for
+    /// lights whose height says nothing about their throw — floodlights on
+    /// the ground aimed at a façade, projectors across a courtyard.
+    pub range: Option<f32>,
 }
 
 impl<T: PhotometricData> PhotometricLight<T> {
@@ -52,7 +58,14 @@ impl<T: PhotometricData> PhotometricLight<T> {
             show_model: true,
             shadow_maps_enabled: false,
             color_override: None,
+            range: None,
         }
+    }
+
+    /// Set the reach of the spawned lights in metres (see [`Self::range`]).
+    pub fn with_range(mut self, metres: f32) -> Self {
+        self.range = Some(metres);
+        self
     }
 
     /// Override the emitted light colour (see [`Self::color_override`]).
@@ -150,6 +163,12 @@ impl<T: PhotometricData> PhotometricLightBundle<T> {
     /// Override the emitted light colour (see [`PhotometricLight::color_override`]).
     pub fn with_color(mut self, color: Color) -> Self {
         self.light = self.light.with_color(color);
+        self
+    }
+
+    /// Set the reach of the spawned lights in metres (see [`PhotometricLight::range`]).
+    pub fn with_range(mut self, metres: f32) -> Self {
+        self.light = self.light.with_range(metres);
         self
     }
 }

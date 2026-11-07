@@ -13,7 +13,7 @@ except OSError:
 EN = collections.OrderedDict([
 ("title","Candelabra – see any luminaire at work, in your browser"),
 ("meta","Candelabra is a free, open-source photometric workbench. Drop an LDT, IES, ATLA or GLDF file: every diagram, standards checks, a path-traced office, street or greenhouse lit by the real intensity table, spectral and horticultural analysis, area and road design. Nothing leaves your browser."),
-("nav_views","Views"),("nav_formats","Formats"),("nav_for","Who it is for"),("nav_source","Source"),("nav_open","Open the workbench"),
+("nav_views","Views"),("nav_sensors","Sensors"),("nav_colour","Colour quality"),("nav_formats","Formats"),("nav_for","Who it is for"),("nav_source","Source"),("nav_open","Open the workbench"),
 ("h1","See any luminaire at work. In your browser."),
 ("lead","Drop an LDT, IES, ATLA or GLDF file. Candelabra draws every diagram, checks the standards, and lights an office, a street or a greenhouse with a path tracer that samples the real intensity table. Free and open source. Nothing leaves your machine."),
 ("cta_open","Open the workbench"),("cta_street","Try the street with the road sample"),
@@ -31,7 +31,7 @@ EN = collections.OrderedDict([
 ("fmt_h","Three things no other browser tool does"),
 ("fmt_t","Any lighting format in, any other out"),
 ("fmt_p","Every file is parsed into one lossless model, so what you open in one format you can save in another. Convert a manufacturer's IES to EULUMDAT, pack photometry with a spectrum into ATLA, or pull the LDT out of a GLDF container, all without leaving the page. To go the other way, our sister site <a href=\"https://gldf.icu\">gldf.icu</a> builds a complete GLDF container around your photometry, interactively."),
-("fmt_in","Opens"),("fmt_out","Saves"),("fmt_images","chart images"),("fmt_spd","SPD, CSV spectra"),("fmt_ray","TM-25 ray files"),("fmt_gldf_out","GLDF, built interactively at gldf.icu"),("fmt_bim","TM-32 BIM parameters"),
+("fmt_in","Opens"),("fmt_out","Saves"),("fmt_images","chart images"),("fmt_spd","SPD, CSV spectra"),("fmt_ray","TM-25 ray files"),("fmt_gldf_out","GLDF, built interactively at gldf.icu"),("fmt_bim","TM-32 BIM parameters"),("fmt_sensor","sensor LDT, SensXML"),
 ("street_t","Street design with automatic standard checks"),
 ("street_p","Place several luminaires along a road and let Candelabra check the result against the European EN 13201, the American ANSI/IES RP-8, the Chinese CJJ 45 and the dark-sky Model Lighting Ordinance, with the required classes and the pass or fail per criterion."),
 ("street_link","Open the street designer"),
@@ -50,6 +50,52 @@ EN = collections.OrderedDict([
 ("lab_4","What the sky sees"),("lab_4s","Upward light, its colour temperature and blue share, and a dark-sky check against the 3000 K limit."),
 ("lab_note","Sources: measured vendor spectra from Yuji, Luxeon and Signify, or the editor's own luminaire. The sibling Daylight & Sky tab runs the same engine for sun, moon and sky at any place and time."),
 ("lab_link","Open the Spectrum Lab"),
+("cq_h","Colour quality: what the averages hide"),
+("cq_sub","A 3000 K LED with Ra 82 and Rg 98 sounds neutral. The colour vector graphic shows what the averages hide: reds come out 11 % duller, and R9 is only 10. Candelabra computes TM-30 (Rf, Rg and all 16 hue bins) and the CRI (Ra, R1–R15) from any spectrum and draws this card."),
+("cq_1","From any spectrum"),("cq_1s","ATLA / TM-33 files, SPD and CSV spectra, or a spectrum digitized from a datasheet chart."),
+("cq_2","Standard methods"),("cq_2s","ANSI/IES TM-30-20 (CIE 224:2017) and CIE 13.3, checked against an independent implementation and lab measurements."),
+("cq_3","Read the shape"),("cq_3s","Dashed circle = reference. Outside = more saturated, inside = duller; the labels name the largest shifts."),
+("cq_4","In the report"),("cq_4s","The card, R1–R15 and all hue bins become a chapter of the PDF report."),
+("cq_cap","Demo LED 3000 K (synthetic spectrum): the card exactly as the app draws it."),
+("cq_link","Open this card in the app"),("cq_link2","All 16 hue bins"),
+("sens_h","Presence and motion sensors: where does the detector see you?"),
+("sens_sub","Lighting tools show where light goes; hardly any show where a presence detector can see you. Open a GLDF with a sensor, a sensor LDT or a SensXML file, and Candelabra draws the detection areas for walking across, walking towards and sitting still, at any mounting height. Like everything else here, it runs in your browser and nothing is uploaded."),
+("sens_1","Detection areas"),("sens_1s","Plan view for tangential walking, radial walking and seated presence, with range, area and diameter."),
+("sens_2","Any mounting height"),("sens_2s","Set the height above the detection plane. Between measured heights the values are interpolated and marked as such; below the end of the volume it says so."),
+("sens_3","The volume itself"),("sens_3s","Polar, cartesian, heatmap and 3D views of the detection volume, in metres instead of candela."),
+("sens_4","In the PDF report"),("sens_4s","A sensor report on its own, or a sensor chapter after the luminaire's photometric report."),
+("sens_note","A sensor LDT is the same EULUMDAT format as a luminaire file, but its table holds distances in metres. The demo sensors are synthetic examples, not products."),
+("sens_link","Open the demo sensors"),("sens_link3d","Detection volume in 3D"),
+("sens_c1","Ceiling detector"),("sens_c1s","Three detection areas, 2.0 m below the sensor."),
+("sens_c2","Corridor detector"),("sens_c2s","A 24 m × 2.5 m strip along the corridor."),
+("sens_c3","Wall detector (SensXML)"),("sens_c3s","Sees only in front of the wall; mounted at 2.5 m."),
+("sens_ph","Plan them in a room"),
+("sens_psub","In the Interior tab, pick a sensor: Candelabra places the fewest detectors that see the room, shows what they miss and estimates what presence control saves."),
+("sens_p1","Fewest sensors"),("sens_p1s","An automatic grid that detects at least 95 % of the room; corridor sensors are turned along the corridor. Or set the grid yourself, or one per luminaire."),
+("sens_p2","Gaps on the plan"),("sens_p2s","Detection areas on the floor (walking) and on the workplane (seated), spots nobody detects in red, coverage and overlap per motion type."),
+("sens_p3","Energy estimate"),("sens_p3s","EN 15193-1 occupancy factor for the control and space type, kWh per year with and without presence control, and the conditions for the credit."),
+("sens_p4","Report and link"),("sens_p4s","A sensor section in the interior PDF report; the share link keeps every setting."),
+("sens_pcap","Demo classroom, 10 × 8 m: 9 demo ceiling detectors (3 × 3) see 98 % of the workplane; presence control saves about 11 % (EN 15193-1)."),
+("sens_plink","Plan sensors in a classroom"),
+("nav_emergency","Emergency lighting"),
+("em_h","Emergency lighting, checked against EN 1838"),
+("em_sub","Draw the escape routes on the plan, mark the safety equipment and the exits: Candelabra places the emergency luminaires and checks every EN 1838 requirement the way the standard asks, with direct light only, the emergency flux at the end of the rated duration and a maintenance factor."),
+("em_1","Escape routes around corners"),
+("em_1s","Centre line at least 1 lx, central band 0.5 lx, Emax / Emin at most 40, sampled every 10 cm along the route you draw."),
+("em_2","Open areas and safety equipment"),
+("em_2s","Anti-panic lighting above 60 m² (0.5 lx without the 0.5 m border); 5 lx vertical at fire extinguishers, first aid and call points."),
+("em_3","Automatic layout"),
+("em_3s","Luminaires at the route ends and evenly between, an open-area grid tightened until the room passes, one aimed at each piece of equipment, all from the luminaire's own spacing table. Drag any of them."),
+("em_4","Glare, colour, report"),
+("em_4s","Intensity limits between 60° and 90° by mounting height, Ra at least 40, a section in the interior PDF report. GLDF emergency emitters (combined or emergency-only) arrive with their emergency flux."),
+("em_cap","Demo L-shaped office, 225 m², 3 m high: 11 demo emergency luminaires (180 lm each) light the 25 m escape route around the corner to at least 3.6 lx, the open area to at least 1 lx and the fire extinguisher to 8.5 lx vertical. Every EN 1838 requirement is met."),
+("em_link","Open the L-shaped office"),
+("em_link2","Start with an empty plan"),
+("em_note","The demo emergency luminaires are synthetic examples, not products. Spacing tables and plan checks also run on the command line (eulumdat emergency)."),
+("sky_h","Skyglow at Burg Vischering"),
+("sky_sub","A moated castle in Lüdinghausen, rebuilt from the open survey data of Geobasis NRW: the 3D mesh and laser scan for the park and the moat, the building model for the walls, with façades projected from photographs. Floodlights wash the walls, lanterns stand on the bridges. Press Space to switch between lighting that brightens the night sky and lighting that keeps it dark, Z to raise the drawbridge; fly with WASD and the mouse."),
+("sky_cap","Dark-sky mode, seen from the east bank. Survey data © Geobasis NRW (dl-de/zero-2.0); façades from 67 Wikimedia Commons photographs, CC BY-SA. <a href=\"vischering-credits.html\">Photo credits</a>"),
+("sky_link","Open Burg Vischering"),
 ("for_h","Who it is for"),
 ("for_sub","Candelabra is not a replacement for a full project calculation. It is the fastest place to look at, check, understand and show a luminaire, and a growing set of tools around it."),
 ("a1_h","Lighting designers and architects"),("a1_w","Check a luminaire before it goes into a project, or show a client what it does."),
@@ -80,11 +126,26 @@ EN = collections.OrderedDict([
 ("foot_l","Candelabra · built on <a href=\"https://github.com/holg/eulumdat-rs\">eulumdat-rs</a> · sister sites <a href=\"https://gldf.icu\">gldf.icu</a> and <a href=\"https://tm25.eu\">tm25.eu</a>"),
 ("foot_open","Open the workbench"),("foot_quiz","Quiz"),("foot_feedback","Feedback"),
 ])
-HTML_KEYS = {"samples","fmt_p","a4_3s","foot_l","know_p"}
+HTML_KEYS = {"samples","fmt_p","a4_3s","foot_l","know_p","sky_cap"}
 TR = json.load(open("crates/eulumdat-wasm/landing/src/landing_tr.json", encoding="utf-8"))
 for code, d in TR.items():
     missing = [k for k in EN if k not in d]
     assert not missing, (code, missing)
+# Newer sections must be translated, not copies of the English text, and the
+# colour-quality intro quotes the demo LED (pinned in
+# crates/eulumdat/tests/colour_quality_demo.rs) in every language.
+MUST_TRANSLATE = [k for k in EN if k.startswith(("cq_", "sens_", "em_")) or k in ("nav_colour", "nav_sensors", "fmt_sensor", "nav_emergency")]
+for code, d in TR.items():
+    same = [k for k in MUST_TRANSLATE if d[k] == EN[k]]
+    assert not same, (code, "untranslated", same)
+    lost = [n for n in ("3000", "82", "98", "11", "10") if n not in d["cq_sub"]]
+    assert not lost, (code, "cq_sub lost the demo numbers", lost)
+    # sens_pcap quotes tests/sensor_demo.rs::landing_page_classroom_plan.
+    lost = [n for n in ("10 × 8", "9", "3 × 3", "98", "11", "15193") if n not in d["sens_pcap"]]
+    assert not lost, (code, "sens_pcap lost the demo numbers", lost)
+    # em_cap quotes crates/eulumdat/tests/emergency.rs::landing_page_l_office.
+    lost = [n for n in ("225", "11", "180", "25", "1838") if n not in d["em_cap"]]
+    assert not lost, (code, "em_cap lost the demo numbers", lost)
 def t(k): return EN[k]
 page = f'''<!doctype html>
 <html lang="en">
@@ -101,11 +162,18 @@ page = f'''<!doctype html>
 <link rel="canonical" href="{SITE_URL}">
 <script>
   // Links from before the landing page existed point at the root with a
-  // query or a fragment (?wasm=tm25, ?url=…, #ldt=…). Hand them to the app.
+  // query or a fragment (?wasm=tm25, ?url=…, #tab=…, #interior?…). Hand them
+  // to the app. A plain anchor (#sensors, #sensor-planning) stays here when
+  // the page has a section with that id.
   (function () {{
     var q = location.search, h = location.hash;
-    if ((q && q.length > 1) || (h && h.length > 1)) {{
+    var plain = /^#[A-Za-z][\\w-]*$/.test(h);
+    if ((q && q.length > 1) || (h && h.length > 1 && !plain)) {{
       location.replace('app/' + q + h);
+    }} else if (plain) {{
+      document.addEventListener('DOMContentLoaded', function () {{
+        if (!document.getElementById(h.slice(1))) location.replace('app/' + h);
+      }});
     }}
   }})();
 </script>
@@ -156,6 +224,12 @@ page = f'''<!doctype html>
   .views figcaption {{ padding: 10px 12px; font-size: .9rem; }}
   .views figcaption b {{ display: block; }}
   .views figcaption span {{ color: var(--muted); font-size: .82rem; }}
+  .cq {{ display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start; }}
+  .cq figure {{ margin: 0; }}
+  .cq img {{ display: block; width: 100%; border-radius: 12px; border: 1px solid var(--line); background: #fff; }}
+  .cq figcaption {{ color: var(--muted); font-size: .84rem; margin-top: 8px; }}
+  .cq .how {{ grid-template-columns: 1fr; }}
+  .views.plans img {{ aspect-ratio: 1; object-fit: contain; background: #fff; padding: 6px; box-sizing: border-box; }}
   .hl {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }}
   .know {{ margin-top: 18px; background: var(--tint); border-radius: 12px; padding: 14px 18px; }}
   .know b {{ display: block; margin-bottom: 4px; }}
@@ -191,6 +265,9 @@ page = f'''<!doctype html>
   .how div {{ background: var(--tint); border-radius: 12px; padding: 14px 16px; }}
   .how b {{ display: block; margin-bottom: 4px; }}
   .how span {{ color: var(--muted); font-size: .88rem; }}
+  .wide {{ margin: 0 0 16px; }}
+  .wide img {{ display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 14px; box-shadow: var(--shadow); background: #07080a; }}
+  .wide figcaption {{ color: var(--muted); font-size: .84rem; margin-top: 8px; }}
   footer {{ padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }}
   @media (max-width: 860px) {{
     .hero {{ grid-template-columns: 1fr; }}
@@ -200,6 +277,7 @@ page = f'''<!doctype html>
     .fmt {{ grid-template-columns: 1fr; }}
     .fmt .arrow {{ transform: rotate(90deg); }}
     .views {{ grid-template-columns: 1fr; }}
+    .cq {{ grid-template-columns: 1fr; }}
     nav.top a.hide-sm {{ display: none; }}
   }}
 </style>
@@ -215,6 +293,9 @@ page = f'''<!doctype html>
       <a class="hide-sm" href="#views" data-i18n="nav_views">{t("nav_views")}</a>
       <a class="hide-sm" href="#formats" data-i18n="nav_formats">{t("nav_formats")}</a>
       <a class="hide-sm" href="#lab">Spectrum Lab</a>
+      <a class="hide-sm" href="#colour" data-i18n="nav_colour">{t("nav_colour")}</a>
+      <a class="hide-sm" href="#sensors" data-i18n="nav_sensors">{t("nav_sensors")}</a>
+      <a class="hide-sm" href="#emergency" data-i18n="nav_emergency">{t("nav_emergency")}</a>
       <a class="hide-sm" href="#for" data-i18n="nav_for">{t("nav_for")}</a>
       <a class="hide-sm" href="https://github.com/holg/eulumdat-rs" data-i18n="nav_source">{t("nav_source")}</a>
       <select id="lang" aria-label="Language">
@@ -267,7 +348,7 @@ page = f'''<!doctype html>
         <div class="fmt">
           <div>
             <h4 data-i18n="fmt_in">{t("fmt_in")}</h4>
-            <ul><li>EULUMDAT .ldt</li><li>IES LM-63</li><li>ATLA / TM-33 XML, JSON</li><li>GLDF</li><li>OxyTech OXL / OXC</li><li>SPDX TM-27</li><li data-i18n="fmt_spd">{t("fmt_spd")}</li><li data-i18n="fmt_ray">{t("fmt_ray")}</li><li data-i18n="fmt_images">{t("fmt_images")}</li></ul>
+            <ul><li>EULUMDAT .ldt</li><li>IES LM-63</li><li>ATLA / TM-33 XML, JSON</li><li>GLDF</li><li>OxyTech OXL / OXC</li><li>SPDX TM-27</li><li data-i18n="fmt_spd">{t("fmt_spd")}</li><li data-i18n="fmt_ray">{t("fmt_ray")}</li><li data-i18n="fmt_sensor">{t("fmt_sensor")}</li><li data-i18n="fmt_images">{t("fmt_images")}</li></ul>
           </div>
           <div class="arrow">→</div>
           <div>
@@ -309,6 +390,80 @@ page = f'''<!doctype html>
     </div>
     <p class="sub" style="margin-top:14px" data-i18n="lab_note">{t("lab_note")}</p>
     <p style="margin:0"><a class="btn primary" href="app/#tab=spectrum-lab" data-i18n="lab_link">{t("lab_link")}</a> <a class="btn" href="app/#tab=daylight">Daylight &amp; Sky</a></p>
+  </section>
+
+  <section id="colour">
+    <h2 data-i18n="cq_h">{t("cq_h")}</h2>
+    <p class="sub" data-i18n="cq_sub">{t("cq_sub")}</p>
+    <div class="cq">
+      <figure><a href="app/#tab=spectral&amp;sample=demo-led-3000k&amp;spectralview=colour-quality"><img src="img/colour_quality.svg" alt="TM-30 colour vector graphic, Duv and CRI of the demo LED" loading="lazy"></a><figcaption data-i18n="cq_cap">{t("cq_cap")}</figcaption></figure>
+      <div>
+        <div class="how">
+          <div><b data-i18n="cq_1">{t("cq_1")}</b><span data-i18n="cq_1s">{t("cq_1s")}</span></div>
+          <div><b data-i18n="cq_2">{t("cq_2")}</b><span data-i18n="cq_2s">{t("cq_2s")}</span></div>
+          <div><b data-i18n="cq_3">{t("cq_3")}</b><span data-i18n="cq_3s">{t("cq_3s")}</span></div>
+          <div><b data-i18n="cq_4">{t("cq_4")}</b><span data-i18n="cq_4s">{t("cq_4s")}</span></div>
+        </div>
+        <p style="margin:16px 0 0"><a class="btn primary" href="app/#tab=spectral&amp;sample=demo-led-3000k&amp;spectralview=colour-quality" data-i18n="cq_link">{t("cq_link")}</a> <a class="btn" href="app/#tab=spectral&amp;sample=demo-led-3000k&amp;spectralview=tm30-hue" data-i18n="cq_link2">{t("cq_link2")}</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="sensors">
+    <h2 data-i18n="sens_h">{t("sens_h")}</h2>
+    <p class="sub" data-i18n="sens_sub">{t("sens_sub")}</p>
+    <div class="views plans">
+      <figure><a href="app/#tab=sensor&amp;sensor=demo"><img src="img/sensor_ceiling.svg" alt="" loading="lazy"></a><figcaption><b data-i18n="sens_c1">{t("sens_c1")}</b><span data-i18n="sens_c1s">{t("sens_c1s")}</span></figcaption></figure>
+      <figure><a href="app/#tab=sensor&amp;sensor=demo"><img src="img/sensor_corridor.svg" alt="" loading="lazy"></a><figcaption><b data-i18n="sens_c2">{t("sens_c2")}</b><span data-i18n="sens_c2s">{t("sens_c2s")}</span></figcaption></figure>
+      <figure><a href="app/#tab=sensor&amp;sensor=demo"><img src="img/sensor_wall.svg" alt="" loading="lazy"></a><figcaption><b data-i18n="sens_c3">{t("sens_c3")}</b><span data-i18n="sens_c3s">{t("sens_c3s")}</span></figcaption></figure>
+    </div>
+    <div class="how" style="margin-top:14px">
+      <div><b data-i18n="sens_1">{t("sens_1")}</b><span data-i18n="sens_1s">{t("sens_1s")}</span></div>
+      <div><b data-i18n="sens_2">{t("sens_2")}</b><span data-i18n="sens_2s">{t("sens_2s")}</span></div>
+      <div><b data-i18n="sens_3">{t("sens_3")}</b><span data-i18n="sens_3s">{t("sens_3s")}</span></div>
+      <div><b data-i18n="sens_4">{t("sens_4")}</b><span data-i18n="sens_4s">{t("sens_4s")}</span></div>
+    </div>
+    <p class="sub" style="margin-top:14px" data-i18n="sens_note">{t("sens_note")}</p>
+    <p style="margin:0"><a class="btn primary" href="app/#tab=sensor&amp;sensor=demo" data-i18n="sens_link">{t("sens_link")}</a> <a class="btn" href="app/#tab=sensor&amp;sensor=demo&amp;sensorview=3d" data-i18n="sens_link3d">{t("sens_link3d")}</a></p>
+    <h3 id="sensor-planning" style="margin:30px 0 6px" data-i18n="sens_ph">{t("sens_ph")}</h3>
+    <p class="sub" data-i18n="sens_psub">{t("sens_psub")}</p>
+    <div class="cq">
+      <figure><a href="app/#interior?preset=2&amp;sample=demo-led-3000k&amp;sensor=demo0"><img src="img/sensor_planning.svg" alt="Classroom plan with nine demo ceiling detectors, their detection areas and the uncovered spots" loading="lazy"></a><figcaption data-i18n="sens_pcap">{t("sens_pcap")}</figcaption></figure>
+      <div>
+        <div class="how">
+          <div><b data-i18n="sens_p1">{t("sens_p1")}</b><span data-i18n="sens_p1s">{t("sens_p1s")}</span></div>
+          <div><b data-i18n="sens_p2">{t("sens_p2")}</b><span data-i18n="sens_p2s">{t("sens_p2s")}</span></div>
+          <div><b data-i18n="sens_p3">{t("sens_p3")}</b><span data-i18n="sens_p3s">{t("sens_p3s")}</span></div>
+          <div><b data-i18n="sens_p4">{t("sens_p4")}</b><span data-i18n="sens_p4s">{t("sens_p4s")}</span></div>
+        </div>
+        <p style="margin:16px 0 0"><a class="btn primary" href="app/#interior?preset=2&amp;sample=demo-led-3000k&amp;sensor=demo0" data-i18n="sens_plink">{t("sens_plink")}</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="emergency">
+    <h2 data-i18n="em_h">{t("em_h")}</h2>
+    <p class="sub" data-i18n="em_sub">{t("em_sub")}</p>
+    <div class="cq">
+      <figure><a href="app/#interior?preset=0&amp;sample=demo-led-3000k&amp;sensor=none&amp;shape=0,0;1,0;1,0.5;0.5,0.5;0.5,1;0,1&amp;em=1&amp;eml=route&amp;emr=19.5,3.75;5,3.75;5,14.5~2&amp;emp=fe:15,7.4,270_fa:0.1,10,0_ex:20,3.75,180_ex:5,15,270"><img src="img/emergency_plan.svg" alt="L-shaped office plan with an escape route around the corner, emergency luminaires, a fire extinguisher, first aid and two exits" loading="lazy"></a><figcaption data-i18n="em_cap">{t("em_cap")}</figcaption></figure>
+      <div>
+        <div class="how">
+          <div><b data-i18n="em_1">{t("em_1")}</b><span data-i18n="em_1s">{t("em_1s")}</span></div>
+          <div><b data-i18n="em_2">{t("em_2")}</b><span data-i18n="em_2s">{t("em_2s")}</span></div>
+          <div><b data-i18n="em_3">{t("em_3")}</b><span data-i18n="em_3s">{t("em_3s")}</span></div>
+          <div><b data-i18n="em_4">{t("em_4")}</b><span data-i18n="em_4s">{t("em_4s")}</span></div>
+        </div>
+        <p style="margin:16px 0 0"><a class="btn primary" href="app/#interior?preset=0&amp;sample=demo-led-3000k&amp;sensor=none&amp;shape=0,0;1,0;1,0.5;0.5,0.5;0.5,1;0,1&amp;em=1&amp;eml=route&amp;emr=19.5,3.75;5,3.75;5,14.5~2&amp;emp=fe:15,7.4,270_fa:0.1,10,0_ex:20,3.75,180_ex:5,15,270" data-i18n="em_link">{t("em_link")}</a> <a class="btn" href="app/#interior?preset=2&amp;sample=demo-led-3000k&amp;sensor=none&amp;em=1" data-i18n="em_link2">{t("em_link2")}</a></p>
+        <p class="sub" style="margin-top:14px" data-i18n="em_note">{t("em_note")}</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="skyglow">
+    <h2 data-i18n="sky_h">{t("sky_h")}</h2>
+    <p class="sub" data-i18n="sky_sub">{t("sky_sub")}</p>
+    <figure class="wide"><a href="app/?wasm=skyglow_demo&amp;scene=vischering"><img src="img/skyglow_vischering.jpg" alt="Burg Vischering at night in the Skyglow demo" loading="lazy"></a><figcaption data-i18n="sky_cap">{t("sky_cap")}</figcaption></figure>
+    <p style="margin:0"><a class="btn primary" href="app/?wasm=skyglow_demo&amp;scene=vischering" data-i18n="sky_link">{t("sky_link")}</a></p>
   </section>
 
   <section id="for">
@@ -382,6 +537,7 @@ page = f'''<!doctype html>
   var HTML_KEYS = {json.dumps(sorted(HTML_KEYS))};
   var CAPS = {json.dumps([EN["cap_office"],EN["cap_street"],EN["cap_gh"],EN["cap_grid"],EN["cap_iso"]], ensure_ascii=False)};
   var CAP_KEYS = ["cap_office","cap_street","cap_gh","cap_grid","cap_iso"];
+  var CAPS_EN = CAPS.slice();
   var EN_TEXT = {{}};
   document.querySelectorAll('[data-i18n]').forEach(function (el) {{ EN_TEXT[el.getAttribute('data-i18n')] = el.innerHTML; }});
   var META = document.querySelector('[data-i18n-content]');
@@ -408,7 +564,9 @@ page = f'''<!doctype html>
     if (META) META.setAttribute('content', d ? d.meta : EN_META);
     document.title = d ? d.title : EN_TEXT.title;
     var sel = document.getElementById('lang'); if (sel) sel.value = code;
-    CAPS = CAP_KEYS.map(function (k) {{ return d ? d[k] : EN_TEXT[k] || k; }});
+    // English captions are not in the markup (only the first one is), so
+    // fall back to the English list, never to the key.
+    CAPS = CAP_KEYS.map(function (k, i) {{ return (d && d[k]) || CAPS_EN[i]; }});
     document.getElementById('cap').textContent = CAPS[capIndex];
   }}
   var capIndex = 0;

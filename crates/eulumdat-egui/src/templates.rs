@@ -97,7 +97,10 @@ pub static TEMPLATES: &[Template] = &[
         name: "Grow Light (ATLA)",
         description: "LED grow light with red/blue PPF spectrum",
         format: TemplateFormat::AtlaXml,
-        content: include_str!(concat!(env!("OUT_DIR"), "/templates/_atla_grow_light.xml")),
+        content: include_str!(concat!(
+            env!("OUT_DIR"),
+            "/templates/_atla_tm-33-18_grow_light.xml"
+        )),
     },
     Template {
         id: "atla-grow-light-rb",
@@ -106,7 +109,7 @@ pub static TEMPLATES: &[Template] = &[
         format: TemplateFormat::AtlaXml,
         content: include_str!(concat!(
             env!("OUT_DIR"),
-            "/templates/_atla_grow_light_rb.xml"
+            "/templates/_atla_tm-33-18_grow_light_rb.xml"
         )),
     },
     Template {
@@ -114,7 +117,10 @@ pub static TEMPLATES: &[Template] = &[
         name: "Fluorescent (ATLA)",
         description: "Fluorescent lamp with spectral data",
         format: TemplateFormat::AtlaXml,
-        content: include_str!(concat!(env!("OUT_DIR"), "/templates/_atla_fluorescent.xml")),
+        content: include_str!(concat!(
+            env!("OUT_DIR"),
+            "/templates/_atla_tm-33-18_fluorescent.xml"
+        )),
     },
     Template {
         id: "atla-halogen",
@@ -123,7 +129,7 @@ pub static TEMPLATES: &[Template] = &[
         format: TemplateFormat::AtlaXml,
         content: include_str!(concat!(
             env!("OUT_DIR"),
-            "/templates/_atla_halogen_lamp.xml"
+            "/templates/_atla_tm-33-18_halogen_lamp.xml"
         )),
     },
     Template {
@@ -133,7 +139,7 @@ pub static TEMPLATES: &[Template] = &[
         format: TemplateFormat::AtlaXml,
         content: include_str!(concat!(
             env!("OUT_DIR"),
-            "/templates/_atla_incandescent.xml"
+            "/templates/_atla_tm-33-18_incandescent.xml"
         )),
     },
     Template {
@@ -141,7 +147,10 @@ pub static TEMPLATES: &[Template] = &[
         name: "Heat Lamp (ATLA)",
         description: "Infrared heat lamp with IR spectrum",
         format: TemplateFormat::AtlaXml,
-        content: include_str!(concat!(env!("OUT_DIR"), "/templates/_atla_heat_lamp.xml")),
+        content: include_str!(concat!(
+            env!("OUT_DIR"),
+            "/templates/_atla_tm-33-18_heat_lamp.xml"
+        )),
     },
     Template {
         id: "atla-uv-blacklight",
@@ -150,7 +159,7 @@ pub static TEMPLATES: &[Template] = &[
         format: TemplateFormat::AtlaXml,
         content: include_str!(concat!(
             env!("OUT_DIR"),
-            "/templates/_atla_uv_blacklight.xml"
+            "/templates/_atla_tm-33-18_uv_blacklight.xml"
         )),
     },
 ];

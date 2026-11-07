@@ -14,13 +14,13 @@
 
 struct Params {
     inv_view_proj: mat4x4<f32>,
-    cam_pos: vec4<f32>,      // xyz
+    cam_pos: vec4<f32>,      // xyz, w = estimated reflected-light illuminance (lux) added at the first hit when only direct light is traced (0 = off)
     tint: vec4<f32>,         // rgb linear tint, w = luma of the tint
     housing_half: vec4<f32>, // xyz housing half extents, w = round (1) / rect (0)
-    lum: vec4<f32>,          // half_x, half_z of the luminous face, ies scale (dimming), unused
+    lum: vec4<f32>,          // half_x, half_z of the luminous face, ies scale (dimming), lamp sampling (0 all, 1 one on bounces, 2 one everywhere)
     counts: vec4<u32>,       // ies c size, ies g size, lamp count, box count
-    flags: vec4<u32>,        // ground (0 none, 1 concrete, 2 street), grid lines, max bounces, mode
-    frame: vec4<u32>,        // frame index, probe count, probe samples per pass, isolines
+    flags: vec4<u32>,        // ground (0 none, 1 concrete, 2 street), first row of this dispatch, max bounces, mode
+    frame: vec4<u32>,        // frame index, probe count, probe samples per pass, bit 0 isolines / bit 1 denoise
     f0: vec4<f32>,           // blend, probe blend, road half width, outdoor
     f1: vec4<f32>,           // sky scale, ambient, haze, glare
     f2: vec4<f32>,           // firefly clamp, exposure, lux max, iso step
@@ -35,7 +35,7 @@ struct Prim {
     kind: u32,
     material: u32,
     flags: u32,
-    pad: u32,
+    rho: f32, // reflectance overriding the material's brightness, 0 = as is
     p0: vec4<f32>,
     p1: vec4<f32>,
     r0: vec4<f32>,
@@ -45,8 +45,8 @@ struct Prim {
 
 struct Lamp {
     pos: vec4<f32>, // xyz, w = illuminance at the eye (glare)
-    r0: vec4<f32>,  // rotation columns, local → world
-    r1: vec4<f32>,
+    r0: vec4<f32>,  // rotation columns, local → world; r0.w = attenuation (sensor control, 0 = full)
+    r1: vec4<f32>,  // r1.w = photometry table in the stack (several luminaire types)
     r2: vec4<f32>,
 }
 
@@ -161,11 +161,13 @@ fn ies_candela(li: u32, dir: vec3<f32>) -> f32 {
     let ty = clamp(y - yf, 0.0, 1.0);
     let x0 = ((i32(xf) % cs) + cs) % cs;
     let x1 = (x0 + 1) % cs;
-    let y0 = clamp(i32(yf), 0, gs - 1);
-    let y1 = min(y0 + 1, gs - 1);
+    // the lamp's table in the stack: rows table × gs ..
+    let base = i32(max(lamps[li].r1.w, 0.0) + 0.5) * gs;
+    let y0 = clamp(i32(yf), 0, gs - 1) + base;
+    let y1 = min(i32(yf) + 1, gs - 1) + base;
     let a = mix(ies_load(x0, y0), ies_load(x1, y0), tx);
     let b = mix(ies_load(x0, y1), ies_load(x1, y1), tx);
-    return mix(a, b, ty) * P.lum.z;
+    return mix(a, b, ty) * P.lum.z * (1.0 - lamps[li].r0.w);
 }
 
 // Point on the luminous face in the luminaire frame (face in the x–z plane, y = 0).
@@ -209,6 +211,7 @@ struct Hit {
     n: vec3<f32>,
     mat: i32,
     lamp: i32, // lamp whose body or face was hit, else -1
+    rho: f32,  // reflectance override of the hit primitive, 0 = none
 }
 
 // ---------- Luminaire body mesh ----------
@@ -406,6 +409,7 @@ fn trace_scene(ro: vec3<f32>, rd: vec3<f32>, primary: bool) -> Hit {
     h.t = FAR;
     h.mat = -1;
     h.lamp = -1;
+    h.rho = 0.0;
     h.n = vec3<f32>(0.0, 1.0, 0.0);
     let ground = P.flags.x;
     if (ground > 0u && rd.y < 0.0 && ro.y > 0.0) {
@@ -423,6 +427,7 @@ fn trace_scene(ro: vec3<f32>, rd: vec3<f32>, primary: bool) -> Hit {
             h.t = ph.t;
             h.n = ph.n;
             h.mat = i32(pr.material);
+            h.rho = pr.rho;
         }
     }
     if (P.size.w > 0u) {
@@ -436,6 +441,7 @@ fn trace_scene(ro: vec3<f32>, rd: vec3<f32>, primary: bool) -> Hit {
                 h.n = r * mh.n;
                 h.mat = select(MAT_HOUSING, MAT_LUMINOUS, (mh.flags & 1u) != 0u);
                 h.lamp = i32(li);
+                h.rho = 0.0;
             }
         }
     }
@@ -617,6 +623,16 @@ fn material(id: i32, p: vec3<f32>, n_in: vec3<f32>) -> MatN {
 }
 
 // ---------- BSDF ----------
+// A primitive's reflectance override: the material's colour scaled to that
+// luminance.
+fn with_rho(mn: MatN, rho: f32) -> MatN {
+    if (rho <= 0.0) { return mn; }
+    var out = mn;
+    let y = max(dot(mn.m.albedo, LUMA), 1.0e-4);
+    out.m.albedo = min(mn.m.albedo * (rho / y), vec3<f32>(0.98));
+    return out;
+}
+
 fn tangent_frame(n: vec3<f32>) -> mat3x3<f32> {
     let s = select(-1.0, 1.0, n.z >= 0.0);
     let a = -1.0 / (s + n.z);
@@ -736,12 +752,32 @@ struct Direct {
     e: f32,       // illuminance (lux)
 }
 
-fn direct_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, m: Mat) -> Direct {
+// Lamps to sample at a shading point: all of them, or (`one`) a single
+// random lamp weighted by the lamp count (unbiased, far cheaper with many
+// lamps). Returns first, end, weight.
+fn lamp_range(one: bool) -> vec3<f32> {
+    let count = P.counts.z;
+    if (one && count > 1u) {
+        let li = min(u32(rnd() * f32(count)), count - 1u);
+        return vec3<f32>(f32(li), f32(li + 1u), f32(count));
+    }
+    return vec3<f32>(0.0, f32(count), 1.0);
+}
+
+fn one_lamp(primary: bool) -> bool {
+    let mode = P.lum.w;
+    return mode > 1.5 || (mode > 0.5 && !primary);
+}
+
+fn direct_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, m: Mat, one: bool) -> Direct {
     var out: Direct;
     out.e = 0.0;
     var sum = vec3<f32>(0.0);
-    let count = P.counts.z;
-    for (var li = 0u; li < count; li++) {
+    let range = lamp_range(one);
+    let wl = range.z;
+    for (var li = u32(range.x); li < u32(range.y); li++) {
+        // switched off (sensor control, emergency mode): no light
+        if (lamps[li].r0.w >= 0.999) { continue; }
         let sp = lamps[li].pos.xyz + lamp_rot(li) * sample_emitter_local();
         let to_l = sp - p;
         let d2 = dot(to_l, to_l);
@@ -752,7 +788,7 @@ fn direct_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, m: Mat) -> Direct {
         let intensity = ies_candela(li, -wi);
         if (intensity <= 0.0) { continue; }
         if (occluded(p + n * EPS, wi, d - 2.0 * EPS)) { continue; }
-        let en = intensity / max(d2, 1.0e-4);
+        let en = intensity / max(d2, 1.0e-4) * wl;
         out.e += en * ndotl;
         sum += eval_bsdf(n, v, wi, m).f * en;
     }
@@ -811,8 +847,9 @@ fn henyey_greenstein(c: f32, g: f32) -> f32 {
 fn haze_inscatter(ro: vec3<f32>, rd: vec3<f32>, t_max: f32) -> vec3<f32> {
     var sum = vec3<f32>(0.0);
     let haze = P.f1.z;
-    let count = P.counts.z;
-    for (var li = 0u; li < count; li++) {
+    let range = lamp_range(P.lum.w > 0.5);
+    for (var li = u32(range.x); li < u32(range.y); li++) {
+        if (lamps[li].r0.w >= 0.999) { continue; }
         let lp = lamps[li].pos.xyz;
         let delta = dot(lp - ro, rd);
         let dd = max(length(ro + rd * delta - lp), 1.0e-3);
@@ -831,7 +868,7 @@ fn haze_inscatter(ro: vec3<f32>, rd: vec3<f32>, t_max: f32) -> vec3<f32> {
         if (intensity <= 0.0) { continue; }
         if (occluded(x, wi, d - 0.05)) { continue; }
         let tr = exp(-haze * (t + d));
-        sum += intensity / max(d2, 1.0e-3) * henyey_greenstein(dot(wi, rd), 0.35) * haze * tr / pdf;
+        sum += intensity / max(d2, 1.0e-3) * henyey_greenstein(dot(wi, rd), 0.35) * haze * tr / pdf * range.z;
     }
     return sum * P.tint.rgb;
 }
@@ -847,9 +884,11 @@ fn sky(rd: vec3<f32>) -> vec3<f32> {
 
 // ---------- Camera pass ----------
 @compute @workgroup_size(8, 8, 1)
-fn trace(@builtin(global_invocation_id) id: vec3<u32>) {
+fn trace(@builtin(global_invocation_id) gid: vec3<u32>) {
     let w = P.size.x;
     let h = P.size.y;
+    // A frame may be traced in bands of rows, one dispatch each.
+    let id = vec2<u32>(gid.x, gid.y + P.flags.y);
     if (id.x >= w || id.y >= h) { return; }
     g_seed = id.x + id.y * 1973u + P.frame.x * 9277u + 7u;
     rnd();
@@ -874,6 +913,9 @@ fn trace(@builtin(global_invocation_id) id: vec3<u32>) {
     var primary_e = 0.0;
     var coverage = 0.0;
     var primary_t = FAR;
+    // Luminance of the reflected light and haze in `radiance`: the noisy
+    // part, smoothed for display by `present` (acc_lux.w).
+    var ind_y = 0.0;
     let max_bounces = P.flags.z;
     let clamp_v = P.f2.x;
 
@@ -926,7 +968,9 @@ fn trace(@builtin(global_invocation_id) id: vec3<u32>) {
             } else {
                 var fill = vec3<f32>(1.0);
                 if (P.f0.w > 0.5) { fill = vec3<f32>(0.8, 0.88, 1.0); }
-                radiance += throughput * P.f1.y * fill;
+                let f = throughput * P.f1.y * fill;
+                radiance += f;
+                ind_y += dot(f, LUMA);
             }
             break;
         }
@@ -934,23 +978,31 @@ fn trace(@builtin(global_invocation_id) id: vec3<u32>) {
         let p = ro + rd * hit.t;
         var geom_n = hit.n;
         if (dot(geom_n, rd) > 0.0) { geom_n = -geom_n; }
-        let mn = material(hit.mat, p, geom_n);
+        let mn = with_rho(material(hit.mat, p, geom_n), hit.rho);
         var n = mn.n;
         if (dot(n, rd) > 0.0) { n = geom_n; }
         let m = mn.m;
         let v = -rd;
 
-        let dl = direct_light(p, n, v, m);
+        let dl = direct_light(p, n, v, m, one_lamp(primary));
         if (primary) {
             primary_e = dl.e;
             coverage = 1.0;
             primary_t = hit.t;
             radiance += dl.l;
+            // Direct light only: an even estimated fill stands in for the
+            // reflected light (picture only, not the lux values).
+            if (P.cam_pos.w > 0.0 && max_bounces <= 1u) {
+                let amb = m.albedo * (P.cam_pos.w * INV_PI) * P.tint.rgb;
+                radiance += amb;
+                ind_y += dot(amb, LUMA);
+            }
         } else {
             let c = throughput * dl.l;
             let mx = max(c.r, max(c.g, c.b));
             let k = select(1.0, clamp_v / mx, mx > clamp_v);
             radiance += c * k;
+            ind_y += dot(c * k, LUMA);
             indirect_e += dot(irr_weight * dl.l * k, LUMA) / P.tint.w;
         }
 
@@ -975,7 +1027,10 @@ fn trace(@builtin(global_invocation_id) id: vec3<u32>) {
     if (P.f1.z > 0.0) {
         // Misses have no surface, so stop them at a far plane instead of FAR.
         let t_max = select(primary_t, 500.0, primary_t > 1.0e6);
-        radiance = radiance * exp(-P.f1.z * t_max) + haze_inscatter(P.cam_pos.xyz, cam_rd, t_max);
+        let tr = exp(-P.f1.z * t_max);
+        let hz = haze_inscatter(P.cam_pos.xyz, cam_rd, t_max);
+        radiance = radiance * tr + hz;
+        ind_y = ind_y * tr + dot(hz, LUMA);
     }
     if (P.f1.w > 0.0) {
         var veil = 0.0;
@@ -993,7 +1048,8 @@ fn trace(@builtin(global_invocation_id) id: vec3<u32>) {
     if (bad) { radiance = vec3<f32>(0.0); }
     var e = primary_e + indirect_e;
     if (e != e || abs(e) > 1.0e30) { e = primary_e; }
-    let lux_sample = vec4<f32>(e, coverage, min(primary_t, 1.0e4), 1.0);
+    if (bad || ind_y != ind_y || abs(ind_y) > 1.0e30) { ind_y = 0.0; }
+    let lux_sample = vec4<f32>(e, coverage, min(primary_t, 1.0e4), ind_y);
 
     let idx = id.y * w + id.x;
     let blend = P.f0.x;
@@ -1013,7 +1069,10 @@ fn trace(@builtin(global_invocation_id) id: vec3<u32>) {
 // from a point and a normal instead of a camera ray.
 fn probe_irradiance(p: vec3<f32>, n: vec3<f32>) -> f32 {
     let black = make_mat(vec3<f32>(0.0), 1.0, 0.0);
-    var e = direct_light(p, n, n, black).e;
+    // the measured point itself always samples every lamp
+    var e = direct_light(p, n, n, black, false).e;
+    // emergency mode: direct light only, as EN 1838 counts it
+    if ((P.frame.w & 4u) != 0u) { return e; }
     let u1 = rnd();
     let phi = TWO_PI * rnd();
     let r = sqrt(u1);
@@ -1030,11 +1089,11 @@ fn probe_irradiance(p: vec3<f32>, n: vec3<f32>) -> f32 {
         let hp = ro + rd * hit.t;
         var geom_n = hit.n;
         if (dot(geom_n, rd) > 0.0) { geom_n = -geom_n; }
-        let mn = material(hit.mat, hp, geom_n);
+        let mn = with_rho(material(hit.mat, hp, geom_n), hit.rho);
         var nn = mn.n;
         if (dot(nn, rd) > 0.0) { nn = geom_n; }
         let v = -rd;
-        let dl = direct_light(hp, nn, v, mn.m);
+        let dl = direct_light(hp, nn, v, mn.m, one_lamp(false));
         let c = irr_weight * INV_PI * dl.l;
         let mx = max(c.r, max(c.g, c.b));
         let k = select(1.0, clamp_v / mx, mx > clamp_v);
@@ -1077,6 +1136,50 @@ fn probe(@builtin(global_invocation_id) id: vec3<u32>) {
 }
 
 // ---------- Present ----------
+// Edge-aware smoothing of the reflected-light part of the picture (display
+// only): the luminance in acc_lux.w is averaged over a 13 × 13 pixel
+// neighbourhood (every 2nd pixel) of similar depth (tolerance from the local
+// depth gradient), then the pixel is rescaled to direct + smoothed reflected
+// luminance. Direct light, shadow edges and the lux values stay as traced.
+fn depth_at(x: i32, y: i32) -> f32 {
+    let w = i32(P.size.x);
+    let h = i32(P.size.y);
+    return acc_lux[clamp(y, 0, h - 1) * w + clamp(x, 0, w - 1)].z;
+}
+
+fn denoised(px: i32, py: i32) -> vec3<f32> {
+    let w = i32(P.size.x);
+    let h = i32(P.size.y);
+    let idx = py * w + px;
+    let c = acc_color[idx].rgb;
+    let l0 = acc_lux[idx];
+    if ((P.frame.w & 2u) == 0u || l0.y < 0.5) { return c; }
+    let d0 = l0.z;
+    let grad = 0.5 * (abs(depth_at(px + 1, py) - depth_at(px - 1, py))
+        + abs(depth_at(px, py + 1) - depth_at(px, py - 1)));
+    var sum = 0.0;
+    var wsum = 0.0;
+    for (var j = -3; j <= 3; j++) {
+        for (var i = -3; i <= 3; i++) {
+            let qx = clamp(px + 2 * i, 0, w - 1);
+            let qy = clamp(py + 2 * j, 0, h - 1);
+            let lq = acc_lux[qy * w + qx];
+            if (lq.y < 0.5) { continue; }
+            let reach = f32(abs(i) + abs(j)) * 2.0;
+            let tol = grad * reach * 1.5 + d0 * 0.01 + 1.0e-3;
+            let wgt = exp(-abs(lq.z - d0) / tol) * exp(-f32(i * i + j * j) / 8.0);
+            sum += lq.w * wgt;
+            wsum += wgt;
+        }
+    }
+    if (wsum <= 0.0) { return c; }
+    let filt = sum / wsum;
+    let y_tot = dot(c, LUMA);
+    let y_new = max(y_tot - l0.w + filt, 0.0);
+    if (y_tot > 1.0e-6) { return c * (y_new / y_tot); }
+    return c + P.tint.rgb / max(P.tint.w, 1.0e-4) * max(filt - l0.w, 0.0);
+}
+
 // Filmic curve (Hable), softer shoulder than ACES: lamps bloom less abruptly.
 fn hable(x: vec3<f32>) -> vec3<f32> {
     let a = 0.15; let b = 0.50; let c = 0.10; let d = 0.20; let e = 0.02; let f = 0.30;
@@ -1147,7 +1250,7 @@ fn present(@builtin(global_invocation_id) id: vec3<u32>) {
     let h = P.size.y;
     if (id.x >= w || id.y >= h) { return; }
     let idx = id.y * w + id.x;
-    let radiance = acc_color[idx].rgb;
+    let radiance = denoised(i32(id.x), i32(id.y));
     let lux = acc_lux[idx];
     var display = filmic(radiance * P.f2.y);
     let px = i32(id.x);
@@ -1168,7 +1271,7 @@ fn present(@builtin(global_invocation_id) id: vec3<u32>) {
         display *= 0.42;
     }
 
-    if (P.frame.w > 0u && lux.y > 0.5) {
+    if ((P.frame.w & 1u) != 0u && lux.y > 0.5) {
         let iso = P.f2.w;
         // Line width from the smoothed field, like fwidth() in a fragment shader.
         let f = e / iso;

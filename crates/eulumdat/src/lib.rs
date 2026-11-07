@@ -334,8 +334,12 @@ mod calculations;
 #[cfg(feature = "std")]
 pub mod compare;
 pub mod diagram;
+#[cfg(feature = "std")]
+pub mod emergency;
 mod error;
 mod eulumdat;
+#[cfg(all(feature = "std", feature = "xml"))]
+pub mod gldf_product;
 #[cfg(feature = "std")]
 mod ies;
 #[cfg(feature = "std")]
@@ -349,6 +353,9 @@ pub mod radiosity;
 pub mod road_luminance;
 #[cfg(feature = "std")]
 pub mod scene3d;
+
+#[cfg(feature = "std")]
+pub mod sensor;
 #[cfg(feature = "std")]
 pub mod standards;
 #[cfg(feature = "std")]

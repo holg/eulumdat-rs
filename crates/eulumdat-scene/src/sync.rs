@@ -60,6 +60,75 @@ pub struct SyncSettings {
     pub passes: u32,
     /// gpu | cpu — which tracer the host runs (the viewer itself does not care).
     pub compute: String,
+    /// Presence / motion sensors in the scene (0 = none, at most
+    /// `scene::MAX_SENSORS`); where they stand is the viewer's (dragged).
+    #[serde(default)]
+    pub sensors: u32,
+    /// Sensor height (m); 0 = the scene's default.
+    #[serde(default)]
+    pub sensor_height: f32,
+    /// tangential | radial | presence
+    #[serde(default = "default_sensor_motion")]
+    pub sensor_motion: String,
+    /// together | nearest
+    #[serde(default = "default_sensor_control")]
+    pub sensor_control: String,
+    /// Output (0–1) of lamps whose sensor detects nothing.
+    #[serde(default = "default_sensor_idle")]
+    pub sensor_idle: f32,
+    /// quick | balanced | high (`viewer::Quality`); the panel's presets
+    /// also set `bounces` and `samples`.
+    #[serde(default = "default_quality")]
+    pub quality: String,
+    /// Smooth the reflected-light noise of the picture (display only).
+    #[serde(default = "default_true")]
+    pub denoise: bool,
+    /// Quick while the camera or an object moves.
+    #[serde(default = "default_true")]
+    pub auto_quick: bool,
+    /// Draw each sensor's detection volume in 3D over the picture.
+    #[serde(default)]
+    pub sensor_volume: bool,
+    /// Emergency mode (EN 1838): normal lighting off, emergency luminaires on.
+    #[serde(default)]
+    pub emergency_mode: bool,
+    /// Draw the plan's emergency markings (route band, open area,
+    /// equipment) over the picture; off = as a person escaping sees it.
+    #[serde(default = "default_true")]
+    pub emergency_marks: bool,
+    /// Walk an escape route at eye height: position along it (0–1), `None`
+    /// = the orbit camera.
+    #[serde(default)]
+    pub walk: Option<f32>,
+    /// Which route to walk.
+    #[serde(default)]
+    pub walk_route: u32,
+    /// Walk on by itself (at walking pace) from `walk`.
+    #[serde(default)]
+    pub walk_play: bool,
+    /// Bumped to replay the power failure (the eye adapts again).
+    #[serde(default)]
+    pub emergency_replay: u32,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_quality() -> String {
+    "high".into()
+}
+
+fn default_sensor_motion() -> String {
+    "tangential".into()
+}
+
+fn default_sensor_control() -> String {
+    "together".into()
+}
+
+fn default_sensor_idle() -> f32 {
+    0.1
 }
 
 impl SyncSettings {
@@ -134,11 +203,94 @@ impl SyncSettings {
                     self.compute = v.clone();
                     true
                 }
+                "sensors" => v
+                    .parse::<u32>()
+                    .map(|x| self.sensors = x.min(crate::scene::MAX_SENSORS as u32))
+                    .is_ok(),
+                "sensorh" | "sensor_height" => f(v).map(|x| self.sensor_height = x).is_some(),
+                "sensormotion" => {
+                    self.sensor_motion = v.clone();
+                    true
+                }
+                "sensorctl" => {
+                    self.sensor_control = v.clone();
+                    true
+                }
+                "quality" => {
+                    self.quality = v.clone();
+                    true
+                }
+                "denoise" => {
+                    self.denoise = b(v);
+                    true
+                }
+                "autoquick" => {
+                    self.auto_quick = b(v);
+                    true
+                }
+                "sensorvol" => {
+                    self.sensor_volume = b(v);
+                    true
+                }
+                "emergency" => {
+                    self.emergency_mode = b(v);
+                    true
+                }
+                "emmarks" => {
+                    self.emergency_marks = b(v);
+                    true
+                }
+                "walk" => f(v).map(|x| self.walk = Some(x.clamp(0.0, 1.0))).is_some(),
+                "walkroute" => f(v).map(|x| self.walk_route = x.max(0.0) as u32).is_some(),
+                "sensoridle" => f(v).map(|x| self.sensor_idle = x.clamp(0.0, 1.0)).is_some(),
                 _ => false,
             };
             any |= hit;
         }
         any
+    }
+
+    /// Quality preset: `quality` plus the bounces and samples that go with
+    /// it (quick = direct light only, 64 samples; balanced = one bounce of
+    /// reflected light, 256; high = three bounces, 768).
+    pub fn apply_quality(&mut self, id: &str) {
+        let (q, bounces, samples) = match id {
+            "quick" => ("quick", 1, 64),
+            "balanced" => ("balanced", 2, 256),
+            _ => ("high", 3, crate::gpu::MAX_SAMPLES),
+        };
+        self.quality = q.into();
+        self.bounces = bounces;
+        self.samples = samples;
+    }
+
+    /// Another scene with this one's quality, tracer and sensor settings
+    /// (the placement starts from the scene's defaults).
+    pub fn switched_to(&self, kind: SceneKind) -> Self {
+        Self {
+            quality: self.quality.clone(),
+            denoise: self.denoise,
+            auto_quick: self.auto_quick,
+            bounces: self.bounces,
+            samples: self.samples,
+            point_samples: self.point_samples,
+            passes: self.passes,
+            compute: self.compute.clone(),
+            haze: self.haze,
+            glare: self.glare,
+            mode: self.mode.clone(),
+            isolines: self.isolines,
+            sensors: self.sensors,
+            sensor_motion: self.sensor_motion.clone(),
+            sensor_control: self.sensor_control.clone(),
+            sensor_idle: self.sensor_idle,
+            sensor_volume: self.sensor_volume,
+            emergency_mode: self.emergency_mode,
+            emergency_marks: self.emergency_marks,
+            // a counter: kept, so the next bump is a change
+            emergency_replay: self.emergency_replay,
+            ..Self::for_scene(kind)
+        }
     }
 
     pub fn for_scene(kind: SceneKind) -> Self {
@@ -172,6 +324,21 @@ impl SyncSettings {
             point_samples: crate::gpu::PROBE_MAX_SAMPLES,
             passes: 1,
             compute: "gpu".into(),
+            sensors: 0,
+            sensor_height: 0.0,
+            sensor_motion: default_sensor_motion(),
+            sensor_control: default_sensor_control(),
+            sensor_idle: default_sensor_idle(),
+            quality: default_quality(),
+            denoise: true,
+            auto_quick: true,
+            sensor_volume: false,
+            emergency_mode: false,
+            emergency_marks: true,
+            walk: None,
+            walk_route: 0,
+            walk_play: false,
+            emergency_replay: 0,
         }
     }
 }
@@ -189,6 +356,7 @@ pub fn scene_id(kind: SceneKind) -> &'static str {
         SceneKind::Facade => "facade",
         SceneKind::Office => "office",
         SceneKind::Greenhouse => "greenhouse",
+        SceneKind::Planned => "planned",
     }
 }
 
@@ -198,6 +366,7 @@ pub fn scene_from_id(id: &str) -> SceneKind {
         "facade" => SceneKind::Facade,
         "office" => SceneKind::Office,
         "greenhouse" | "grow" => SceneKind::Greenhouse,
+        "planned" => SceneKind::Planned,
         _ => SceneKind::Street,
     }
 }
@@ -209,6 +378,9 @@ pub struct GridStat {
     pub em: f32,
     pub emin: f32,
     pub uo: f32,
+    /// Highest point value (EN 1838 limits Emax / Emin along routes).
+    #[serde(default)]
+    pub emax: f32,
 }
 
 /// What the viewer reports back to a host.
@@ -240,6 +412,30 @@ pub struct Status {
     pub iso_step: f32,
     pub key_lux: f32,
     pub grids: Vec<GridStat>,
+    /// Sensors placed, and which of them detect something.
+    pub sensors: u32,
+    pub sensors_detecting: Vec<bool>,
+    pub person_detected: bool,
+    pub cars_detected: u32,
+    /// Lamps at full output / all lamps.
+    pub lamps_on: u32,
+    pub lamps: u32,
+    /// Ø of one sensor's detection area on the ground (m), `None` without
+    /// a sensor file or when nothing is detected at that height.
+    pub sensor_diameter: Option<f32>,
+    /// Sensor height in use (m).
+    pub sensor_height: f32,
+    /// Objects moved by hand (luminaires, person, cars).
+    pub moved: u32,
+    /// Lamps that light in emergency mode (emergency or combined).
+    pub emergency_lamps: u32,
+    /// Length (m) of each escape route of the plan.
+    pub routes: Vec<f32>,
+    /// Walking a route: position along it (0–1) and whether it walks on.
+    pub walk: Option<f32>,
+    pub walk_playing: bool,
+    /// Eye adaptation in emergency mode (0 = power just failed, 1 = adapted).
+    pub adaptation: f32,
 }
 
 #[cfg(test)]
@@ -259,6 +455,16 @@ mod tests {
         .collect();
         assert!(s.apply_query(&pairs));
         assert_eq!(s.scene, "office");
+        // a scene switch keeps quality and sensors
+        let mut q = super::SyncSettings::default();
+        q.apply_quality("quick");
+        q.sensors = 2;
+        let o = q.switched_to(crate::scene::SceneKind::Office);
+        assert_eq!(
+            (o.quality.as_str(), o.bounces, o.samples, o.sensors),
+            ("quick", 1, 64, 2)
+        );
+        assert_eq!(o.scene, "office");
         assert_eq!(s.mode, "points");
         assert!((s.height - 2.6).abs() < 1e-6);
         assert_eq!(s.count, 4);

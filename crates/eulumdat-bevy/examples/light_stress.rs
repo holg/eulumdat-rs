@@ -145,7 +145,7 @@ fn setup(
     #[cfg(target_arch = "wasm32")]
     let bistro_glb = "BistroExterior_web.glb#Scene0";
 
-    commands.spawn(SceneRoot(asset_server.load(bistro_glb)));
+    commands.spawn(WorldAssetRoot(asset_server.load(bistro_glb)));
 
     // --- Spawn raw Bevy lights at the same Bistro positions as skyglow_demo ---
     // Same light color as road_luminaire.ldt would produce

@@ -7,7 +7,8 @@ use crate::area::{compute_area_illuminance, LuminairePlace};
 use crate::calculations::{CuTable, PhotometricCalculations};
 use crate::Eulumdat;
 
-/// Rectangular room parameters for zonal cavity calculation.
+/// Room parameters for zonal cavity calculation: a rectangle, or any
+/// floor outline inside the `length` × `width` bounds.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Room {
@@ -21,6 +22,10 @@ pub struct Room {
     pub workplane_height: f64,
     /// Suspension length from ceiling in meters
     pub suspension_length: f64,
+    /// Floor outline (x along the length, y along the width, m) inside
+    /// `0..length` × `0..width`; `None` = the full rectangle.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub outline: Option<Vec<(f64, f64)>>,
 }
 
 impl Room {
@@ -37,6 +42,21 @@ impl Room {
             height,
             workplane_height,
             suspension_length,
+            outline: None,
+        }
+    }
+
+    /// The same room with a floor outline (ignored with fewer than 3 points).
+    pub fn with_outline(mut self, outline: Option<Vec<(f64, f64)>>) -> Self {
+        self.outline = outline.filter(|o| o.len() >= 3);
+        self
+    }
+
+    /// The point (x, y) lies on the floor (inside the outline).
+    pub fn contains(&self, x: f64, y: f64) -> bool {
+        match self.outline.as_ref() {
+            Some(o) => crate::area::AreaPolygon::new(o.clone()).contains(x, y),
+            None => (0.0..=self.length).contains(&x) && (0.0..=self.width).contains(&y),
         }
     }
 
@@ -57,12 +77,23 @@ impl Room {
 
     /// Floor area in square meters.
     pub fn area(&self) -> f64 {
-        self.length * self.width
+        match self.outline.as_ref() {
+            Some(o) => crate::area::AreaPolygon::new(o.clone()).area(),
+            None => self.length * self.width,
+        }
     }
 
     /// Perimeter in meters.
     pub fn perimeter(&self) -> f64 {
-        2.0 * (self.length + self.width)
+        match self.outline.as_ref() {
+            Some(o) => (0..o.len())
+                .map(|i| {
+                    let (a, b) = (o[i], o[(i + 1) % o.len()]);
+                    (b.0 - a.0).hypot(b.1 - a.1)
+                })
+                .sum(),
+            None => 2.0 * (self.length + self.width),
+        }
     }
 }
 
@@ -157,6 +188,52 @@ pub struct LuminaireLayout {
     pub s_mh_y: f64,
     /// Whether spacing meets the criterion
     pub spacing_ok: bool,
+    /// Luminaires moved off the grid by hand: (index in `positions()`
+    /// order, x, y) in m. The spacing values describe the grid, not these.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub moved: Vec<(usize, f64, f64)>,
+    /// A room with an outline: the grid points that lie on its floor
+    /// (indices in `grid_positions()` order); `None` = all of them.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub keep: Option<Vec<usize>>,
+}
+
+impl LuminaireLayout {
+    /// Positions on the regular grid (m), row by row: x along the room
+    /// length, y along the width.
+    pub fn grid_positions(&self) -> Vec<(f64, f64)> {
+        let mut v = Vec::with_capacity(self.rows * self.cols);
+        for r in 0..self.rows {
+            for c in 0..self.cols {
+                v.push((
+                    self.offset_x + r as f64 * self.spacing_x,
+                    self.offset_y + c as f64 * self.spacing_y,
+                ));
+            }
+        }
+        v
+    }
+
+    /// Luminaire positions in plan coordinates (m): the grid points on the
+    /// floor, with the moved luminaires at their new places.
+    pub fn positions(&self) -> Vec<(f64, f64)> {
+        let grid = self.grid_positions();
+        let mut v: Vec<(f64, f64)> = match self.keep.as_ref() {
+            Some(keep) => keep.iter().filter_map(|&i| grid.get(i).copied()).collect(),
+            None => grid,
+        };
+        for &(i, x, y) in &self.moved {
+            if let Some(p) = v.get_mut(i) {
+                *p = (x, y);
+            }
+        }
+        v
+    }
+
+    /// Some luminaires are off the grid.
+    pub fn is_moved(&self) -> bool {
+        self.moved.iter().any(|&(i, _, _)| i < self.count)
+    }
 }
 
 /// Solve mode for the zonal calculation.
@@ -176,6 +253,10 @@ pub enum SolveMode {
 pub struct PpbResult {
     /// Illuminance grid (row-major)
     pub lux_grid: Vec<Vec<f64>>,
+    /// Cells on the floor of a room with an outline (`None` = all); the
+    /// statistics count only these.
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub mask: Option<Vec<Vec<bool>>>,
     pub min_lux: f64,
     pub avg_lux: f64,
     pub max_lux: f64,
@@ -216,11 +297,18 @@ pub struct ZonalResult {
 // ─── Cavity ratio computation ───────────────────────────────────────────────
 
 /// Compute cavity ratio: CR = 5·h·(L+W)/(L·W)
+#[cfg(test)]
 fn cavity_ratio(h: f64, length: f64, width: f64) -> f64 {
-    if length * width <= 0.0 {
+    cavity_ratio_general(h, length * width, 2.0 * (length + width))
+}
+
+/// Cavity ratio of any floor shape: CR = 2.5·h·P/A (= 5·h·(L+W)/(L·W)
+/// for a rectangle).
+fn cavity_ratio_general(h: f64, area: f64, perimeter: f64) -> f64 {
+    if area <= 0.0 {
         return 0.0;
     }
-    5.0 * h * (length + width) / (length * width)
+    2.5 * h * perimeter / area
 }
 
 /// Effective cavity reflectance using IES approximation.
@@ -245,9 +333,10 @@ pub fn effective_cavity_reflectance(rho_top: f64, rho_wall: f64, cr: f64) -> f64
 
 /// Compute all cavity ratios and effective reflectances.
 pub fn compute_cavity_ratios(room: &Room, reflectances: &Reflectances) -> CavityResults {
-    let rcr = cavity_ratio(room.hrc(), room.length, room.width);
-    let ccr = cavity_ratio(room.hcc(), room.length, room.width);
-    let fcr = cavity_ratio(room.hfc(), room.length, room.width);
+    let (area, perimeter) = (room.area(), room.perimeter());
+    let rcr = cavity_ratio_general(room.hrc(), area, perimeter);
+    let ccr = cavity_ratio_general(room.hcc(), area, perimeter);
+    let fcr = cavity_ratio_general(room.hfc(), area, perimeter);
 
     let rho_cc_eff = effective_cavity_reflectance(reflectances.ceiling, reflectances.wall, ccr);
     let rho_fc_eff = effective_cavity_reflectance(reflectances.floor, reflectances.wall, fcr);
@@ -341,6 +430,8 @@ pub fn find_best_layout(
             s_mh_x: 0.0,
             s_mh_y: 0.0,
             spacing_ok: true,
+            moved: Vec::new(),
+            keep: None,
         };
     }
 
@@ -423,7 +514,42 @@ pub fn find_best_layout(
         s_mh_x,
         s_mh_y,
         spacing_ok,
+        moved: Vec::new(),
+        keep: None,
     }
+}
+
+/// Layout for a room with an outline: the regular grid over the bounds,
+/// refined until at least `n` of its points lie on the floor (`keep` lists
+/// them; `count` is their number). A rectangle gets `find_best_layout`.
+pub fn find_layout_in_room(n: usize, room: &Room, spacing_criterion: f64) -> LuminaireLayout {
+    let hrc = room.hrc();
+    if room.outline.is_none() || n == 0 {
+        return find_best_layout(n, room.length, room.width, spacing_criterion, hrc);
+    }
+    let fill = (room.area() / (room.length * room.width).max(1e-9)).clamp(0.05, 1.0);
+    let mut candidate = ((n as f64 / fill).ceil() as usize).max(n);
+    let mut best: Option<LuminaireLayout> = None;
+    for _ in 0..60 {
+        let mut layout =
+            find_best_layout(candidate, room.length, room.width, spacing_criterion, hrc);
+        let keep: Vec<usize> = layout
+            .grid_positions()
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| room.contains(p.0, p.1))
+            .map(|(i, _)| i)
+            .collect();
+        layout.count = keep.len();
+        layout.keep = Some(keep);
+        let enough = layout.count >= n;
+        best = Some(layout);
+        if enough {
+            break;
+        }
+        candidate += (candidate / 8).max(1);
+    }
+    best.unwrap_or_else(|| find_best_layout(n, room.length, room.width, spacing_criterion, hrc))
 }
 
 // ─── Main compute function ──────────────────────────────────────────────────
@@ -468,7 +594,6 @@ pub fn compute_zonal(
 
     let llf_total = llf.total();
     let area = room.area();
-    let hrc = room.hrc();
 
     // Compute luminaire count based on mode
     let count = match mode {
@@ -493,8 +618,8 @@ pub fn compute_zonal(
         }
     };
 
-    // Layout
-    let layout = find_best_layout(count, room.length, room.width, spacing_criterion, hrc);
+    // Layout (only grid points on the floor of a room with an outline)
+    let layout = find_layout_in_room(count, room, spacing_criterion);
 
     // Achieved illuminance: E = N × Φ × CU × LLF / A
     let achieved = if area > 0.0 {
@@ -529,7 +654,8 @@ pub fn compute_zonal(
 
 /// Compute point-by-point illuminance overlay on the workplane.
 ///
-/// Constructs `LuminairePlace` instances from the layout grid and calls
+/// Constructs `LuminairePlace` instances from the layout positions (moved
+/// luminaires included) and calls
 /// `compute_area_illuminance()`, then adds a uniform reflected component
 /// to approximate the inter-reflected light from zonal cavity.
 pub fn compute_ppb_overlay(
@@ -543,27 +669,34 @@ pub fn compute_ppb_overlay(
 ) -> PpbResult {
     let hrc = room.hrc();
 
-    // Build placements from layout grid
-    let mut placements = Vec::with_capacity(layout.count);
-    let mut id = 0;
-    for r in 0..layout.rows {
-        for c in 0..layout.cols {
-            let x = layout.offset_x + r as f64 * layout.spacing_x;
-            let y = layout.offset_y + c as f64 * layout.spacing_y;
-            placements.push(LuminairePlace::simple(id, x, y, hrc));
-            id += 1;
-        }
-    }
+    // Build placements from the layout (moved luminaires included)
+    let placements: Vec<LuminairePlace> = layout
+        .positions()
+        .into_iter()
+        .enumerate()
+        .map(|(id, (x, y))| LuminairePlace::simple(id, x, y, hrc))
+        .collect();
 
-    // Compute direct illuminance using area compute engine
-    let area_result = compute_area_illuminance(
-        ldt,
-        &placements,
-        room.length,
-        room.width,
-        grid_resolution,
-        llf_total,
-    );
+    // Compute direct illuminance using area compute engine (cells on the
+    // floor only for a room with an outline)
+    let area_result = match room.outline.as_ref() {
+        Some(o) => crate::area::compute_area_illuminance_polygon(
+            ldt,
+            &placements,
+            &crate::area::AreaPolygon::new(o.clone()),
+            grid_resolution,
+            llf_total,
+        ),
+        None => compute_area_illuminance(
+            ldt,
+            &placements,
+            room.length,
+            room.width,
+            grid_resolution,
+            llf_total,
+        ),
+    };
+    let mask = area_result.mask.clone();
 
     // Add uniform reflected component:
     // The zonal cavity method gives total average E (direct + reflected).
@@ -578,15 +711,21 @@ pub fn compute_ppb_overlay(
     let mut sum = 0.0;
     let mut count = 0;
 
-    for row in lux_grid.iter_mut() {
-        for val in row.iter_mut() {
+    for (r, row) in lux_grid.iter_mut().enumerate() {
+        for (c, val) in row.iter_mut().enumerate() {
             let val: &mut f64 = val;
             *val += reflected;
+            if mask.as_ref().is_some_and(|m| !m[r][c]) {
+                continue;
+            }
             min_lux = min_lux.min(*val);
             max_lux = max_lux.max(*val);
             sum += *val;
             count += 1;
         }
+    }
+    if count == 0 {
+        min_lux = 0.0;
     }
 
     let avg = if count > 0 { sum / count as f64 } else { 0.0 };
@@ -599,6 +738,7 @@ pub fn compute_ppb_overlay(
 
     PpbResult {
         lux_grid,
+        mask,
         min_lux,
         avg_lux: avg,
         max_lux,
@@ -813,5 +953,175 @@ mod tests {
             result.layout.rows,
             result.layout.cols
         );
+    }
+
+    #[test]
+    fn moved_luminaires_change_positions_ppb_and_plan() {
+        let ldt_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../eulumdat-wasm/templates/fluorescent_luminaire.ldt"
+        );
+        let ldt = crate::Eulumdat::from_file(ldt_path).unwrap();
+        let room = Room::new(10.0, 8.0, 3.0, 0.80, 0.0);
+        let mut layout = find_best_layout(9, 10.0, 8.0, 1.5, room.hrc());
+        assert!(!layout.is_moved());
+        let grid = layout.grid_positions();
+        assert_eq!(layout.positions(), grid);
+
+        let ppb = |l: &LuminaireLayout| compute_ppb_overlay(&ldt, l, &room, 30, 0.8, 0.6, 500.0);
+        let before = ppb(&layout);
+        let svg_before = crate::zonal::ZonalSvg::room_plan(
+            &room,
+            &layout,
+            &crate::diagram::SvgTheme::light(),
+            crate::units::UnitSystem::Metric,
+        );
+        assert!(svg_before.contains("Sx="));
+
+        // all luminaires pushed into one corner: much less uniform
+        layout.moved = (0..9).map(|i| (i, 1.0 + 0.1 * i as f64, 1.0)).collect();
+        // an index past the grid is ignored
+        layout.moved.push((99, 5.0, 5.0));
+        assert!(layout.is_moved());
+        let pos = layout.positions();
+        assert_eq!(pos.len(), 9);
+        assert_eq!(pos[4], (1.4, 1.0));
+        let after = ppb(&layout);
+        // the reflected part is uniform (zonal average); the direct part
+        // piles up under the corner
+        assert!(
+            after.max_lux > 2.0 * before.max_lux,
+            "{} vs {}",
+            after.max_lux,
+            before.max_lux
+        );
+        assert!(after.uniformity_min_avg < before.uniformity_min_avg);
+        assert!((after.avg_lux - before.avg_lux).abs() < 1e-6);
+
+        let svg = crate::zonal::ZonalSvg::room_plan(
+            &room,
+            &layout,
+            &crate::diagram::SvgTheme::light(),
+            crate::units::UnitSystem::Metric,
+        );
+        assert!(!svg.contains("Sx="), "a moved layout has no grid spacing");
+        assert!(svg.contains("(moved)"));
+        // the dot of luminaire 4 sits at (1.4 m, 1.0 m)
+        let f = crate::zonal::PlanFrame::for_room(&room);
+        let (x, y) = (f.ox + 1.4 * f.scale, f.oy + 1.0 * f.scale);
+        assert!(svg.contains(&format!(r#"cx="{x}" cy="{y}""#)));
+        let (rx, ry) = f.to_room(x, y);
+        assert!((rx - 1.4).abs() < 1e-9 && (ry - 1.0).abs() < 1e-9);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn layout_without_moved_field_still_deserializes() {
+        let layout = find_best_layout(4, 6.0, 6.0, 1.5, 2.2);
+        let mut v = serde_json::to_value(&layout).unwrap();
+        v.as_object_mut().unwrap().remove("moved");
+        let back: LuminaireLayout = serde_json::from_value(v).unwrap();
+        assert_eq!(back, layout);
+    }
+
+    #[test]
+    fn shaped_room_uses_its_floor() {
+        let ldt_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../eulumdat-wasm/templates/fluorescent_luminaire.ldt"
+        );
+        let ldt = crate::Eulumdat::from_file(ldt_path).unwrap();
+        // an L: 10 × 8 m minus the 6 × 4 m corner
+        let l_shape = vec![
+            (0.0, 0.0),
+            (10.0, 0.0),
+            (10.0, 4.0),
+            (4.0, 4.0),
+            (4.0, 8.0),
+            (0.0, 8.0),
+        ];
+        let rect = Room::new(10.0, 8.0, 3.0, 0.8, 0.0);
+        let room = rect.clone().with_outline(Some(l_shape.clone()));
+        assert!((room.area() - 56.0).abs() < 1e-9);
+        assert!((room.perimeter() - 36.0).abs() < 1e-9);
+        assert!(room.contains(2.0, 6.0) && !room.contains(7.0, 6.0));
+        // CR = 2.5 h P / A; the rectangle keeps 5 h (L + W) / (L W)
+        let refl = Reflectances::new(0.7, 0.5, 0.2);
+        let c_rect = compute_cavity_ratios(&rect, &refl);
+        assert!((c_rect.rcr - cavity_ratio(2.2, 10.0, 8.0)).abs() < 1e-9);
+        let c_l = compute_cavity_ratios(&room, &refl);
+        assert!((c_l.rcr - 2.5 * 2.2 * 36.0 / 56.0).abs() < 1e-9);
+        assert!(c_l.rcr > c_rect.rcr, "an L has more wall per floor area");
+
+        let llf = LightLossFactor::new(0.9, 0.95, 1.0, 0.98);
+        let ct = CuTable::calculate(&ldt);
+        let r = compute_zonal(
+            &ldt,
+            &room,
+            &refl,
+            &llf,
+            500.0,
+            &ct,
+            SolveMode::TargetToCount,
+            None,
+            None,
+        );
+        let pos = r.layout.positions();
+        assert_eq!(pos.len(), r.layout.count);
+        assert!(r.layout.count >= 1);
+        for p in &pos {
+            assert!(room.contains(p.0, p.1), "{p:?} outside the L");
+        }
+        // fewer luminaires than for the whole rectangle at the same target
+        let rr = compute_zonal(
+            &ldt,
+            &rect,
+            &refl,
+            &llf,
+            500.0,
+            &ct,
+            SolveMode::TargetToCount,
+            None,
+            None,
+        );
+        assert!(
+            r.layout.count < rr.layout.count,
+            "{} vs {}",
+            r.layout.count,
+            rr.layout.count
+        );
+        assert!(
+            r.achieved_illuminance >= 450.0,
+            "{}",
+            r.achieved_illuminance
+        );
+        // point by point: only the floor counts
+        let ppb = compute_ppb_overlay(
+            &ldt,
+            &r.layout,
+            &room,
+            20,
+            r.llf_total,
+            r.cu,
+            r.achieved_illuminance,
+        );
+        let mask = ppb.mask.as_ref().expect("mask for a shaped room");
+        let inside = mask.iter().flatten().filter(|&&m| m).count();
+        assert!(inside > 0 && inside < 400);
+        // the plan draws the outline and clips to it
+        let svg = crate::zonal::ZonalSvg::room_plan(
+            &room,
+            &r.layout,
+            &crate::diagram::SvgTheme::light(),
+            crate::units::UnitSystem::Metric,
+        );
+        assert!(svg.contains("<polygon"));
+        assert!(svg.contains("room-floor-clip"));
+        // a rectangle as an outline gives the rectangle's numbers
+        let as_outline =
+            rect.clone()
+                .with_outline(Some(vec![(0.0, 0.0), (10.0, 0.0), (10.0, 8.0), (0.0, 8.0)]));
+        let c_o = compute_cavity_ratios(&as_outline, &refl);
+        assert!((c_o.rcr - c_rect.rcr).abs() < 1e-9);
     }
 }

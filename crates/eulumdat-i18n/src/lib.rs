@@ -589,6 +589,12 @@ pub struct UiLocale {
     pub bim: UiBim,
     #[serde(default)]
     pub light_scene: UiLightScene,
+    #[serde(default)]
+    pub sensor: UiSensor,
+    #[serde(default)]
+    pub colour_quality: UiColourQuality,
+    #[serde(default)]
+    pub sensor_compare: UiSensorCompare,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -640,6 +646,73 @@ pub struct UiHeader {
     pub unit_imp: String,
     #[serde(default)]
     pub loading: String,
+    /// File menu: sections and export names.
+    #[serde(default)]
+    pub file_menu: UiFileMenu,
+}
+
+/// File menu sections and export names (missing keys fall back to English).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiFileMenu {
+    pub section_project: String,
+    pub export_project: String,
+    pub export_project_tooltip: String,
+    pub include_scenes: String,
+    pub project_demo_note: String,
+    pub section_luminaire: String,
+    pub ldt: String,
+    pub ies: String,
+    pub tm33_xml: String,
+    pub tm33_json: String,
+    pub tm32_xml: String,
+    pub tm32_json: String,
+    pub tm33_tooltip: String,
+    pub tm32_tooltip: String,
+    pub has_photometry: String,
+    pub has_spectrum: String,
+    pub has_colour: String,
+    pub has_bim: String,
+    pub has_custom: String,
+    pub atla: String,
+    pub atla_tooltip: String,
+    pub tm27: String,
+    pub tm27_hint: String,
+    pub tm27_tooltip: String,
+    pub section_diagram: String,
+}
+
+impl Default for UiFileMenu {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            section_project: s("Project"),
+            export_project: s("Project file (.candelabra.json)"),
+            export_project_tooltip: s("All files of the project in one file; open it again with File › Open…"),
+            include_scenes: s("with the saved Light scenes ({n})"),
+            project_demo_note: s("The Demo is built in. Open a file to start your own project."),
+            section_luminaire: s("Luminaire"),
+            ldt: s("EULUMDAT (.ldt)"),
+            ies: s("IES LM-63 (.ies)"),
+            tm33_xml: s("IES TM-33-23 (XML)"),
+            tm33_json: s("IES TM-33-23 (JSON)"),
+            tm32_xml: s("IES TM-33-23 / TM-32-24 (XML)"),
+            tm32_json: s("IES TM-33-23 / TM-32-24 (JSON)"),
+            tm33_tooltip: s("The IES format for luminaire optical data: photometry, spectrum and colour values in one file (dimensions in metres, intensities in candela)."),
+            tm32_tooltip: s("TM-33-23 file that also carries the TM-32-24 BIM parameters of this luminaire (electrical, mechanical, mounting …)."),
+            has_photometry: s("photometry"),
+            has_spectrum: s("spectrum"),
+            has_colour: s("colour values"),
+            has_bim: s("TM-32-24 BIM data"),
+            has_custom: s("custom data"),
+            atla: s("ATLA S001 / UNI 11733"),
+            atla_tooltip: s("The same data in the older European layout; most tools that read ATLA also read TM-33-23."),
+            tm27: s("IES TM-27 SPDX (.spdx)"),
+            tm27_hint: s("spectrum only"),
+            tm27_tooltip: s("The luminaire's spectrum alone as an IES TM-27 SPDX document (TM-27-20), for spectral, colour and rendering tools."),
+            section_diagram: s("Diagram and report"),
+        }
+    }
 }
 
 fn default_scene_rt() -> String {
@@ -1280,6 +1353,306 @@ pub struct ZonalDesignerLocale {
     pub cavity_lines: String,
     pub light_cones: String,
     pub options_3d: String,
+    #[serde(default)]
+    pub sensors: ZonalSensors,
+    #[serde(default)]
+    pub emergency: ZonalEmergency,
+}
+
+/// Emergency lighting (EN 1838) in the designers. Missing keys fall back to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ZonalEmergency {
+    pub title: String,
+    pub intro: String,
+    pub enable: String,
+    pub luminaire: String,
+    pub lum_demo_route: String,
+    pub lum_demo_open: String,
+    pub lum_loaded: String,
+    pub lum_room: String,
+    pub flux: String,
+    pub flux_auto: String,
+    pub pct: String,
+    pub height: String,
+    pub mf: String,
+    pub spacing_note: String,
+    pub routes: String,
+    pub draw_route: String,
+    pub route_hint: String,
+    pub finish: String,
+    pub cancel: String,
+    pub width: String,
+    pub route_item: String,
+    pub remove: String,
+    pub open_area: String,
+    pub open_area_hint: String,
+    pub points: String,
+    pub place: String,
+    pub point_hint: String,
+    pub done: String,
+    pub kind_fire: String,
+    pub kind_first_aid: String,
+    pub kind_call: String,
+    pub kind_sign: String,
+    pub kind_exit: String,
+    pub point_item: String,
+    pub results_title: String,
+    pub pass: String,
+    pub fail: String,
+    pub count: String,
+    pub col_what: String,
+    pub col_value: String,
+    pub col_required: String,
+    pub route_centre: String,
+    pub route_band: String,
+    pub route_ratio: String,
+    pub open_min: String,
+    pub open_ratio: String,
+    pub not_required: String,
+    pub point_vertical: String,
+    pub glare: String,
+    pub ra: String,
+    pub ra_unknown: String,
+    pub nothing: String,
+    pub method: String,
+    pub move_label: String,
+    pub view_normal: String,
+    pub view_emergency: String,
+    pub floor_legend: String,
+    pub lum_off: String,
+}
+
+impl Default for ZonalEmergency {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            title: s("Emergency lighting (EN 1838)"),
+            intro: s("Escape routes, open areas and safety equipment, lit by the emergency luminaires alone: direct light, emergency flux, maintenance factor."),
+            enable: s("Plan emergency lighting"),
+            luminaire: s("Emergency luminaire"),
+            lum_demo_route: s("Demo: escape-route optic (180 lm)"),
+            lum_demo_open: s("Demo: anti-panic optic (220 lm)"),
+            lum_loaded: s("Loaded luminaire: {name}"),
+            lum_room: s("The room's luminaires in emergency mode"),
+            flux: s("Emergency flux (lm)"),
+            flux_auto: s("from the file: {lm} lm"),
+            pct: s("Emergency flux (% of normal)"),
+            height: s("Mounting height (m)"),
+            mf: s("Maintenance factor"),
+            spacing_note: s("At {h} m: escape route every {r} m, open area grid {g} m (from the luminaire's photometry)."),
+            routes: s("Escape routes"),
+            draw_route: s("✏️ Draw an escape route"),
+            route_hint: s("Click the points of the route's centre line; double-click or “Finish” ends it."),
+            finish: s("Finish"),
+            cancel: s("Cancel"),
+            width: s("Width (m)"),
+            route_item: s("Route {n}: {len} m, {w} m wide"),
+            remove: s("Remove"),
+            open_area: s("Room as open (anti-panic) area"),
+            open_area_hint: s("Required above 60 m²; the room has {a} m²."),
+            points: s("Points of emphasis"),
+            place: s("Place on the plan:"),
+            point_hint: s("Click on the plan next to the wall the equipment is on (it faces into the room)."),
+            done: s("Done"),
+            kind_fire: s("Fire equipment"),
+            kind_first_aid: s("First aid"),
+            kind_call: s("Call point"),
+            kind_sign: s("Externally lit sign"),
+            kind_exit: s("Exit"),
+            point_item: s("{kind} at ({x}, {y})"),
+            results_title: s("Emergency lighting (EN 1838)"),
+            pass: s("✓ All requirements met"),
+            fail: s("✗ Not all requirements met"),
+            count: s("{n} emergency luminaires, {lm} lm each, at {h} m"),
+            col_what: s("Check"),
+            col_value: s("Value"),
+            col_required: s("Required"),
+            route_centre: s("{name}: centre line min"),
+            route_band: s("{name}: central band min"),
+            route_ratio: s("{name}: Emax / Emin"),
+            open_min: s("Open area min"),
+            open_ratio: s("Open area Emax / Emin"),
+            not_required: s("not required (≤ 60 m²)"),
+            point_vertical: s("{kind}: vertical"),
+            glare: s("Glare 60°–90° (highest)"),
+            ra: s("Colour rendering Ra"),
+            ra_unknown: s("unknown"),
+            nothing: s("Draw an escape route, keep the room as open area, or place safety equipment to check it."),
+            method: s("Direct light only, maintenance factor {mf}; response times and the rated duration are not calculated."),
+            move_label: s("Emergency luminaires"),
+            view_normal: s("💡 Normal lighting"),
+            view_emergency: s("🚨 Emergency mode"),
+            floor_legend: s("Floor in emergency mode: direct light of the emergency luminaires, maintenance factor {mf}; min {min} lx, max {max} lx."),
+            lum_off: s("○ normal luminaires, off"),
+        }
+    }
+}
+
+/// Presence sensors in the interior designer: coverage on the plan and the
+/// EN 15193-1 energy estimate. Missing keys fall back to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ZonalSensors {
+    pub title: String,
+    pub intro: String,
+    pub sensor: String,
+    pub none: String,
+    pub load_demo: String,
+    pub no_files: String,
+    pub placement: String,
+    pub place_auto: String,
+    pub place_grid: String,
+    pub place_luminaires: String,
+    pub along_length: String,
+    pub along_width: String,
+    pub plan_for: String,
+    pub show_all: String,
+    pub orientation: String,
+    pub margin: String,
+    pub mounting: String,
+    pub auto_result: String,
+    pub auto_failed: String,
+    pub col_motion: String,
+    pub col_plane: String,
+    pub col_covered: String,
+    pub col_overlap: String,
+    pub col_diameter: String,
+    pub plane_floor: String,
+    pub plane_workplane: String,
+    pub not_detected: String,
+    pub summary: String,
+    pub legend_gap: String,
+    pub legend_area: String,
+    pub legend_sensor: String,
+    pub energy_title: String,
+    pub control: String,
+    /// Labels of the six control types (EN 15193-1 Annex E, F_OC table order).
+    pub controls: Vec<String>,
+    pub space: String,
+    /// Labels of the nine space types (F_A table order).
+    pub spaces: Vec<String>,
+    pub hold_time: String,
+    pub hours: String,
+    pub hours_note: String,
+    pub power: String,
+    pub manual: String,
+    pub with_sensors: String,
+    pub saving: String,
+    pub energy: String,
+    pub cond_hold: String,
+    pub cond_group: String,
+    pub cond_coverage: String,
+    pub not_credited: String,
+    pub method: String,
+    pub outline_hint: String,
+    pub outline_area: String,
+    pub move_title: String,
+    pub move_luminaires: String,
+    pub move_poles: String,
+    pub move_sensors: String,
+    pub moved: String,
+    pub reset_moved: String,
+    pub drag_hint: String,
+    pub spacing_moved: String,
+    pub outdoor_intro: String,
+    pub on_poles: String,
+    pub sensor_height: String,
+    pub plane_ground: String,
+    pub outdoor_method: String,
+}
+
+impl Default for ZonalSensors {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            title: s("Presence sensors"),
+            intro: s("Place detectors in the room, see what they detect and estimate the energy saved with presence control (EN 15193-1)."),
+            sensor: s("Sensor"),
+            none: s("No sensors"),
+            load_demo: s("Load demo sensors"),
+            no_files: s("Open or drop sensor files (sensor LDT, SensXML, GLDF), or load the demo sensors."),
+            placement: s("Placement"),
+            place_auto: s("Automatic (fewest sensors)"),
+            place_grid: s("Grid"),
+            place_luminaires: s("One per luminaire"),
+            along_length: s("Along the length"),
+            along_width: s("Along the width"),
+            plan_for: s("Plan for"),
+            show_all: s("Show all motion types"),
+            orientation: s("C0 direction"),
+            margin: s("Wall margin"),
+            mounting: s("Sensors in the ceiling at {h} m"),
+            auto_result: s("{n} sensors ({nx} × {ny}) detect ≥ {pct} % of the area"),
+            auto_failed: s("No grid of up to {n} sensors reaches {pct} %; showing {n} sensors."),
+            col_motion: s("Motion"),
+            col_plane: s("Plane"),
+            col_covered: s("Covered"),
+            col_overlap: s("Overlap"),
+            col_diameter: s("Ø per sensor"),
+            plane_floor: s("floor"),
+            plane_workplane: s("workplane"),
+            not_detected: s("not detected"),
+            summary: s("{n} sensors · {a} m² floor area per sensor"),
+            legend_gap: s("not detected"),
+            legend_area: s("evaluated area"),
+            legend_sensor: s("sensor"),
+            energy_title: s("Energy estimate (EN 15193-1)"),
+            control: s("Control"),
+            controls: [
+                "Manual on/off",
+                "Manual on/off + automatic sweep-off",
+                "Auto on / dimmed",
+                "Auto on / auto off",
+                "Manual on / dimmed",
+                "Manual on / auto off",
+            ]
+            .map(String::from)
+            .to_vec(),
+            space: s("Space type"),
+            spaces: [
+                "Office building, overall",
+                "Cellular office, 1 person",
+                "Cellular office, 2–6 persons",
+                "Open-plan office",
+                "Office corridor (dimmed)",
+                "Conference room",
+                "Classroom",
+                "Toilet",
+                "Car park, public",
+            ]
+            .map(String::from)
+            .to_vec(),
+            hold_time: s("Lights off within 15 min of the last presence"),
+            hours: s("Operating hours per year"),
+            hours_note: s("Assumed value; enter the hours of your building."),
+            power: s("Installed power"),
+            manual: s("Manual switching"),
+            with_sensors: s("With presence control"),
+            saving: s("Saving"),
+            energy: s("Energy"),
+            cond_hold: s("Hold time ≤ 15 min"),
+            cond_group: s("Control group ≤ 30 m² ({a} m² per sensor)"),
+            cond_coverage: s("Detection covers ≥ {min} % of the area ({pct} %)"),
+            not_credited: s("Not all conditions are met: counted as manual switching."),
+            method: s("Coverage: the detection area of each sensor at the mounting height, cut at the floor (walking) and at the workplane (seated presence); wall margin excluded, walls stop detection. F_O from EN 15193-1 Annex E (F_OC by control type, F_A by space type; open plan interpolated between 10 and 30 m² per sensor), one control group per sensor, without daylight or constant-illuminance factors."),
+            move_title: s("Move on the plan"),
+            move_luminaires: s("Luminaires"),
+            move_poles: s("Poles"),
+            move_sensors: s("Sensors"),
+            moved: s("{n} moved"),
+            reset_moved: s("Reset positions"),
+            drag_hint: s("Drag a symbol on the plan to move it."),
+            spacing_moved: s("moved by hand"),
+            outdoor_intro: s("Place motion detectors in the area and see what they detect on the ground."),
+            on_poles: s("One per pole"),
+            sensor_height: s("Sensor height"),
+            plane_ground: s("ground"),
+            outdoor_method: s("Coverage: the detection area of each sensor at the sensor height, cut at the ground; one height for all sensors, nothing in the area blocks detection. No energy estimate: EN 15193-1 covers buildings."),
+            outline_hint: s("Click the corners on the plan (snaps to 10 cm and to straight lines); click the first corner again to close the room."),
+            outline_area: s("Room outline: {a} m² floor, {p} m of walls"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -1337,11 +1710,83 @@ pub struct ZonalDesignerResults {
     pub exceeds: String,
 }
 
+/// Projects on the dashboard (named sets of luminaires and sensors).
+/// Missing keys fall back to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DashboardProjects {
+    pub project: String,
+    pub demo: String,
+    pub untitled: String,
+    pub my_files: String,
+    pub new: String,
+    pub save_as: String,
+    pub copy_suffix: String,
+    pub export: String,
+    pub import: String,
+    pub delete: String,
+    pub confirm_delete: String,
+    pub demo_note: String,
+    pub empty: String,
+    pub import_error: String,
+    pub counts: String,
+    pub sensors_title: String,
+    pub luminaires_title: String,
+    #[serde(default = "dp_scenes_title")]
+    pub scenes_title: String,
+    pub sensor_ldt: String,
+    pub sensxml: String,
+    pub range: String,
+    pub remove: String,
+    pub clear_luminaires: String,
+    pub name_hint: String,
+    pub open_sensor: String,
+    pub compare_hint: String,
+    pub compare_selected: String,
+}
+
+impl Default for DashboardProjects {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            project: s("Project"),
+            demo: s("Demo project"),
+            untitled: s("Untitled project"),
+            my_files: s("My files"),
+            new: s("New"),
+            save_as: s("Save as copy"),
+            copy_suffix: s("copy"),
+            export: s("Export"),
+            import: s("Import…"),
+            delete: s("Delete"),
+            confirm_delete: s("Delete “{name}”? Click again."),
+            demo_note: s("The demo project is read-only: opening a file starts a new project."),
+            empty: s("This project is empty: open or drop luminaire and sensor files (LDT, IES, ATLA, GLDF, SensXML)."),
+            import_error: s("{name} is not a project file."),
+            counts: s("{l} luminaires · {s} sensors"),
+            sensors_title: s("Sensors"),
+            luminaires_title: s("Luminaires"),
+            scenes_title: dp_scenes_title(),
+            sensor_ldt: s("sensor LDT"),
+            sensxml: s("SensXML"),
+            range: s("max {r} m at {h} m"),
+            remove: s("Remove"),
+            clear_luminaires: s("Remove all luminaires ({n})"),
+            name_hint: s("Project name"),
+            open_sensor: s("All sensor views"),
+            compare_hint: s("Click a sensor for its diagrams · Ctrl/⌘ + click a second one, then Compare"),
+            compare_selected: s("⇄ Compare {a} with {b}"),
+        }
+    }
+}
+
 /// Dashboard translations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct DashboardLocale {
     #[serde(default)]
     pub guide: DashboardGuide,
+    #[serde(default)]
+    pub projects: DashboardProjects,
     #[serde(default)]
     pub features: DashboardFeatures,
     pub templates: DashboardTemplates,
@@ -2657,6 +3102,333 @@ mod tests {
         }
     }
 
+    /// Raw locale JSON (not the deserialised struct: serde defaults would
+    /// hide a key that is missing and silently show English).
+    fn raw_locale(code: &str) -> serde_json::Value {
+        let text = match code {
+            "en" => include_str!("../locales/en.json"),
+            "de" => include_str!("../locales/de.json"),
+            "fr" => include_str!("../locales/fr.json"),
+            "es" => include_str!("../locales/es.json"),
+            "it" => include_str!("../locales/it.json"),
+            "ru" => include_str!("../locales/ru.json"),
+            "pt-BR" => include_str!("../locales/pt-BR.json"),
+            "zh" => include_str!("../locales/zh.json"),
+            other => panic!("unknown locale {other}"),
+        };
+        serde_json::from_str(text).expect("locale JSON")
+    }
+
+    fn key_paths(v: &serde_json::Value, prefix: &str, out: &mut Vec<String>) {
+        if let serde_json::Value::Object(map) = v {
+            for (k, child) in map {
+                let path = if prefix.is_empty() {
+                    k.clone()
+                } else {
+                    format!("{prefix}.{k}")
+                };
+                key_paths(child, &path, out);
+            }
+        } else {
+            out.push(prefix.to_string());
+        }
+    }
+
+    fn at<'a>(v: &'a serde_json::Value, path: &str) -> Option<&'a serde_json::Value> {
+        path.split('.').try_fold(v, |cur, k| cur.get(k))
+    }
+
+    const OTHER_LOCALES: [&str; 7] = ["de", "fr", "es", "it", "ru", "pt-BR", "zh"];
+
+    /// Every key of en.json exists in every other locale file.
+    #[test]
+    fn every_locale_has_every_key() {
+        let en = raw_locale("en");
+        let mut paths = Vec::new();
+        key_paths(&en, "", &mut paths);
+        assert!(paths.len() > 1000, "{} keys", paths.len());
+        for code in OTHER_LOCALES {
+            let loc = raw_locale(code);
+            let missing: Vec<&String> = paths.iter().filter(|p| at(&loc, p).is_none()).collect();
+            assert!(missing.is_empty(), "{code}: missing {missing:?}");
+        }
+    }
+
+    /// The colour-quality card, the sensor tab and their dashboard tiles:
+    /// present, non-empty, placeholders kept, and the sentences translated.
+    #[test]
+    fn colour_quality_and_sensor_strings_translated() {
+        let en = raw_locale("en");
+        // (block path, keys that must differ from English, (key, placeholder))
+        type Block<'a> = (&'a str, &'a [&'a str], &'a [(&'a str, &'a str)]);
+        let blocks: [Block; 5] = [
+            (
+                "dashboard.projects",
+                &[
+                    "project",
+                    "demo",
+                    "untitled",
+                    "my_files",
+                    "new",
+                    "save_as",
+                    "export",
+                    "delete",
+                    "confirm_delete",
+                    "demo_note",
+                    "empty",
+                    "import_error",
+                    "counts",
+                    "sensors_title",
+                    "remove",
+                    "clear_luminaires",
+                    "name_hint",
+                    "open_sensor",
+                    "compare_hint",
+                    "compare_selected",
+                ],
+                &[
+                    ("confirm_delete", "{name}"),
+                    ("import_error", "{name}"),
+                    ("counts", "{l}"),
+                    ("counts", "{s}"),
+                    ("range", "{r}"),
+                    ("range", "{h}"),
+                    ("clear_luminaires", "{n}"),
+                    ("compare_selected", "{a}"),
+                    ("compare_selected", "{b}"),
+                ],
+            ),
+            (
+                "ui.sensor_compare",
+                &[
+                    "title",
+                    "intro",
+                    "need_two",
+                    "mount",
+                    "workplane",
+                    "view_plan",
+                    "view_height",
+                    "view_room",
+                    "motion",
+                    "plan_note",
+                    "angular_note",
+                    "quality_note",
+                    "height_x",
+                    "height_y",
+                    "measured",
+                    "height_note",
+                    "room_length",
+                    "room_width",
+                    "plan_for",
+                    "price",
+                    "row_covered",
+                    "row_m2",
+                    "row_cost",
+                    "turned",
+                    "not_reached",
+                    "room_note",
+                    "share",
+                    "link_note",
+                    "method",
+                ],
+                &[],
+            ),
+            (
+                "ui.colour_quality",
+                &[
+                    "subtab",
+                    "title",
+                    "cvg_title",
+                    "cvg_text",
+                    "cvg_note",
+                    "duv_title",
+                    "black_body_line",
+                    "measured",
+                    "cct",
+                    "cri_limit",
+                    "method",
+                    "ri_title",
+                    "download",
+                ],
+                &[("cvg_note", "{rg}"), ("cri_limit", "{limit}")],
+            ),
+            (
+                "ui.sensor",
+                &[
+                    "title",
+                    "intro",
+                    "demo",
+                    "demo_note",
+                    "derived",
+                    "height_hint",
+                    "nothing_detected",
+                    "not_detected",
+                    "planning",
+                    "tangential",
+                    "radial",
+                    "presence",
+                    "volume_ends",
+                    "report",
+                    "recognised",
+                    "open_as_luminaire",
+                ],
+                &[
+                    ("volume_ends", "{d}"),
+                    ("derived", "{h}"),
+                    ("recognised", "{name}"),
+                ],
+            ),
+            (
+                "zonal_designer.sensors",
+                &[
+                    "title",
+                    "intro",
+                    "no_files",
+                    "placement",
+                    "place_auto",
+                    "along_length",
+                    "along_width",
+                    "plan_for",
+                    "show_all",
+                    "margin",
+                    "mounting",
+                    "auto_result",
+                    "auto_failed",
+                    "not_detected",
+                    "summary",
+                    "legend_area",
+                    "energy_title",
+                    "controls",
+                    "spaces",
+                    "hold_time",
+                    "hours",
+                    "hours_note",
+                    "power",
+                    "manual",
+                    "with_sensors",
+                    "saving",
+                    "cond_hold",
+                    "cond_group",
+                    "cond_coverage",
+                    "not_credited",
+                    "method",
+                    "move_title",
+                    "move_poles",
+                    "reset_moved",
+                    "drag_hint",
+                    "spacing_moved",
+                    "outdoor_intro",
+                    "on_poles",
+                    "sensor_height",
+                    "plane_ground",
+                    "outdoor_method",
+                    "outline_hint",
+                    "outline_area",
+                ],
+                &[
+                    ("outline_area", "{a}"),
+                    ("outline_area", "{p}"),
+                    ("moved", "{n}"),
+                    ("mounting", "{h}"),
+                    ("auto_result", "{n}"),
+                    ("auto_result", "{nx}"),
+                    ("auto_result", "{ny}"),
+                    ("auto_result", "{pct}"),
+                    ("auto_failed", "{n}"),
+                    ("auto_failed", "{pct}"),
+                    ("summary", "{n}"),
+                    ("summary", "{a}"),
+                    ("cond_group", "{a}"),
+                    ("cond_coverage", "{min}"),
+                    ("cond_coverage", "{pct}"),
+                ],
+            ),
+        ];
+        for code in OTHER_LOCALES {
+            let loc = raw_locale(code);
+            for (block, must_differ, placeholders) in blocks {
+                let en_block = at(&en, block).and_then(|v| v.as_object()).unwrap();
+                let loc_block = at(&loc, block)
+                    .and_then(|v| v.as_object())
+                    .unwrap_or_else(|| panic!("{code}: {block} missing"));
+                for (key, en_val) in en_block {
+                    let val = loc_block
+                        .get(key)
+                        .unwrap_or_else(|| panic!("{code}: {block}.{key} missing"));
+                    match (en_val, val) {
+                        (serde_json::Value::String(_), serde_json::Value::String(s)) => {
+                            assert!(!s.trim().is_empty(), "{code}: {block}.{key} empty")
+                        }
+                        (serde_json::Value::Array(a), serde_json::Value::Array(b)) => {
+                            assert_eq!(a.len(), b.len(), "{code}: {block}.{key} length");
+                            assert!(
+                                b.iter()
+                                    .all(|x| x.as_str().is_some_and(|s| !s.trim().is_empty())),
+                                "{code}: {block}.{key} has empty entries"
+                            );
+                        }
+                        _ => panic!("{code}: {block}.{key} has the wrong type"),
+                    }
+                }
+                for key in must_differ {
+                    assert_ne!(
+                        loc_block[*key], en_block[*key],
+                        "{code}: {block}.{key} not translated (still English)"
+                    );
+                }
+                for (key, ph) in placeholders {
+                    let s = loc_block[*key].as_str().unwrap();
+                    assert!(s.contains(ph), "{code}: {block}.{key} lost {ph}: {s}");
+                }
+            }
+            // 16 hue names for the TM-30 bins, at least half of them translated.
+            let hues = at(&loc, "ui.colour_quality.hues")
+                .unwrap()
+                .as_array()
+                .unwrap();
+            let en_hues = at(&en, "ui.colour_quality.hues")
+                .unwrap()
+                .as_array()
+                .unwrap();
+            assert_eq!(hues.len(), 16, "{code}: hues");
+            let translated = hues.iter().zip(en_hues).filter(|(a, b)| a != b).count();
+            assert!(
+                translated >= 8,
+                "{code}: only {translated}/16 hue names translated"
+            );
+            // Hue-shift legend now says radians, the dashboard tiles exist.
+            for path in [
+                "ui.spectral.hue_legend.rhs",
+                "dashboard.features.colour_quality_title",
+                "dashboard.features.colour_quality_desc",
+                "dashboard.features.sensor_title",
+                "dashboard.features.sensor_desc",
+            ] {
+                let v = at(&loc, path).and_then(|v| v.as_str()).unwrap_or("");
+                assert!(!v.trim().is_empty(), "{code}: {path} empty");
+                assert_ne!(
+                    Some(v),
+                    at(&en, path).and_then(|v| v.as_str()),
+                    "{code}: {path} not translated"
+                );
+            }
+        }
+        // The deserialised struct sees the same values (no silent fallback).
+        let de = Locale::for_code("de");
+        assert_eq!(de.ui.colour_quality.title, "Farbqualität");
+        assert_eq!(de.ui.colour_quality.hues.len(), 16);
+        assert_eq!(de.dashboard.features.colour_quality_title, "Farbqualität");
+        assert_eq!(de.zonal_designer.sensors.title, "Präsenzmelder");
+        assert_eq!(de.zonal_designer.sensors.controls.len(), 6);
+        assert_eq!(de.zonal_designer.sensors.spaces.len(), 9);
+        // English struct defaults equal en.json (the fallback is the same text).
+        let en_loc = Locale::for_code("en");
+        assert_eq!(en_loc.zonal_designer.sensors, ZonalSensors::default());
+        assert_eq!(en_loc.ui.sensor_compare, UiSensorCompare::default());
+        assert_eq!(en_loc.dashboard.projects, DashboardProjects::default());
+        assert_eq!(de.ui.sensor_compare.title, "Sensoren vergleichen");
+    }
+
     #[test]
     fn test_language_from_code() {
         assert_eq!(Language::from_code("de"), Language::German);
@@ -2873,6 +3645,703 @@ pub struct UiLightScene {
     pub hint_ppfd: String,
     #[serde(default = "ls_unit_ppfd")]
     pub unit_ppfd: String,
+    #[serde(default = "ls_step_sensors")]
+    pub step_sensors: String,
+    #[serde(default = "ls_sensors_desc")]
+    pub sensors_desc: String,
+    #[serde(default = "ls_sensor_file")]
+    pub sensor_file: String,
+    #[serde(default = "ls_sensor_none")]
+    pub sensor_none: String,
+    #[serde(default = "ls_sensor_load_demo")]
+    pub sensor_load_demo: String,
+    #[serde(default = "ls_sensor_count")]
+    pub sensor_count: String,
+    #[serde(default = "ls_sensor_height")]
+    pub sensor_height: String,
+    #[serde(default = "ls_sensor_motion")]
+    pub sensor_motion: String,
+    #[serde(default = "ls_control_together")]
+    pub control_together: String,
+    #[serde(default = "ls_control_nearest")]
+    pub control_nearest: String,
+    #[serde(default = "ls_idle_level")]
+    pub idle_level: String,
+    #[serde(default = "ls_idle_off")]
+    pub idle_off: String,
+    #[serde(default = "ls_move_objects")]
+    pub move_objects: String,
+    #[serde(default = "ls_move_hint")]
+    pub move_hint: String,
+    #[serde(default = "ls_reset_moves")]
+    pub reset_moves: String,
+    #[serde(default = "ls_status_detected")]
+    pub status_detected: String,
+    #[serde(default = "ls_status_idle")]
+    pub status_idle: String,
+    #[serde(default = "ls_status_person")]
+    pub status_person: String,
+    #[serde(default = "ls_status_cars")]
+    pub status_cars: String,
+    #[serde(default = "ls_status_no_area")]
+    pub status_no_area: String,
+    #[serde(default = "ls_sensor_area")]
+    pub sensor_area: String,
+    #[serde(default = "ls_quality")]
+    pub quality: String,
+    #[serde(default = "ls_quality_quick")]
+    pub quality_quick: String,
+    #[serde(default = "ls_quality_balanced")]
+    pub quality_balanced: String,
+    #[serde(default = "ls_quality_high")]
+    pub quality_high: String,
+    #[serde(default = "ls_quality_desc_quick")]
+    pub quality_desc_quick: String,
+    #[serde(default = "ls_quality_desc_balanced")]
+    pub quality_desc_balanced: String,
+    #[serde(default = "ls_quality_desc_high")]
+    pub quality_desc_high: String,
+    #[serde(default = "ls_gpu_reset_note")]
+    pub gpu_reset_note: String,
+    #[serde(default = "ls_gpu_gone_note")]
+    pub gpu_gone_note: String,
+    #[serde(default = "ls_auto_quick")]
+    pub auto_quick: String,
+    #[serde(default = "ls_denoise")]
+    pub denoise: String,
+    #[serde(default = "ls_scene_planned")]
+    pub scene_planned: String,
+    #[serde(default = "ls_from_interior")]
+    pub from_interior: String,
+    #[serde(default = "ls_from_outdoor")]
+    pub from_outdoor: String,
+    #[serde(default = "ls_desc_planned")]
+    pub desc_planned: String,
+    #[serde(default = "ls_open_in_light_scene")]
+    pub open_in_light_scene: String,
+    #[serde(default = "ls_open_in_light_scene_tip")]
+    pub open_in_light_scene_tip: String,
+    #[serde(default = "ls_planned_mixed_note")]
+    pub planned_mixed_note: String,
+    #[serde(default = "ls_save_scene")]
+    pub save_scene: String,
+    #[serde(default = "ls_scene_name")]
+    pub scene_name: String,
+    #[serde(default = "ls_scene_saved")]
+    pub scene_saved: String,
+    #[serde(default = "ls_scene_unsaved")]
+    pub scene_unsaved: String,
+    #[serde(default = "ls_sensor_volume_3d")]
+    pub sensor_volume_3d: String,
+    #[serde(default = "ls_em_title")]
+    pub em_title: String,
+    #[serde(default = "ls_em_mode")]
+    pub em_mode: String,
+    #[serde(default = "ls_em_mode_desc")]
+    pub em_mode_desc: String,
+    #[serde(default = "ls_em_marks")]
+    pub em_marks: String,
+    #[serde(default = "ls_em_marks_off")]
+    pub em_marks_off: String,
+    #[serde(default = "ls_em_walk")]
+    pub em_walk: String,
+    #[serde(default = "ls_em_route")]
+    pub em_route: String,
+    #[serde(default = "ls_em_walk_at")]
+    pub em_walk_at: String,
+    #[serde(default = "ls_em_walk_play")]
+    pub em_walk_play: String,
+    #[serde(default = "ls_em_walk_pause")]
+    pub em_walk_pause: String,
+    #[serde(default = "ls_em_walk_exit")]
+    pub em_walk_exit: String,
+    #[serde(default = "ls_em_check_route")]
+    pub em_check_route: String,
+    #[serde(default = "ls_em_check_open")]
+    pub em_check_open: String,
+    #[serde(default = "ls_em_check_points")]
+    pub em_check_points: String,
+    #[serde(default = "ls_em_check_min")]
+    pub em_check_min: String,
+    #[serde(default = "ls_em_check_ratio")]
+    pub em_check_ratio: String,
+    #[serde(default = "ls_em_check_note")]
+    pub em_check_note: String,
+    #[serde(default = "ls_em_off_hint")]
+    pub em_off_hint: String,
+    #[serde(default = "ls_em_measure")]
+    pub em_measure: String,
+    #[serde(default = "ls_em_adapting")]
+    pub em_adapting: String,
+    #[serde(default = "ls_em_adapted")]
+    pub em_adapted: String,
+    #[serde(default = "ls_em_replay")]
+    pub em_replay: String,
+    #[serde(default = "ls_back_to_designer")]
+    pub back_to_designer: String,
+}
+
+/// Colour-quality card (TM-30 vector graphic, Duv, CRI) in the spectral
+/// view. Every field falls back to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UiColourQuality {
+    #[serde(default = "cq_subtab")]
+    pub subtab: String,
+    #[serde(default = "cq_title")]
+    pub title: String,
+    #[serde(default = "cq_cvg_title")]
+    pub cvg_title: String,
+    #[serde(default = "cq_cvg_text")]
+    pub cvg_text: String,
+    #[serde(default = "cq_cvg_note")]
+    pub cvg_note: String,
+    #[serde(default = "cq_duv_title")]
+    pub duv_title: String,
+    #[serde(default = "cq_magenta")]
+    pub magenta: String,
+    #[serde(default = "cq_green")]
+    pub green: String,
+    #[serde(default = "cq_black_body_line")]
+    pub black_body_line: String,
+    #[serde(default = "cq_measured")]
+    pub measured: String,
+    #[serde(default = "cq_cct")]
+    pub cct: String,
+    #[serde(default = "cq_duv")]
+    pub duv: String,
+    #[serde(default = "cq_rf_rg")]
+    pub rf_rg: String,
+    #[serde(default = "cq_ra")]
+    pub ra: String,
+    #[serde(default = "cq_r9")]
+    pub r9: String,
+    #[serde(default = "cq_re")]
+    pub re: String,
+    #[serde(default = "cq_cri_limit")]
+    pub cri_limit: String,
+    #[serde(default = "cq_method")]
+    pub method: String,
+    #[serde(default = "cq_ri_title")]
+    pub ri_title: String,
+    #[serde(default = "cq_download")]
+    pub download: String,
+    /// Names of the 16 TM-30 hue bins.
+    #[serde(default = "cq_hues")]
+    pub hues: Vec<String>,
+}
+
+impl Default for UiColourQuality {
+    fn default() -> Self {
+        Self {
+            subtab: cq_subtab(),
+            title: cq_title(),
+            cvg_title: cq_cvg_title(),
+            cvg_text: cq_cvg_text(),
+            cvg_note: cq_cvg_note(),
+            duv_title: cq_duv_title(),
+            magenta: cq_magenta(),
+            green: cq_green(),
+            black_body_line: cq_black_body_line(),
+            measured: cq_measured(),
+            cct: cq_cct(),
+            duv: cq_duv(),
+            rf_rg: cq_rf_rg(),
+            ra: cq_ra(),
+            r9: cq_r9(),
+            re: cq_re(),
+            cri_limit: cq_cri_limit(),
+            method: cq_method(),
+            ri_title: cq_ri_title(),
+            download: cq_download(),
+            hues: cq_hues(),
+        }
+    }
+}
+
+fn cq_subtab() -> String {
+    "Colour quality".into()
+}
+fn cq_title() -> String {
+    "Colour quality".into()
+}
+fn cq_cvg_title() -> String {
+    "TM-30 colour vector graphic.".into()
+}
+fn cq_cvg_text() -> String {
+    "Dashed circle = reference. Outside = more saturated, inside = duller.".into()
+}
+fn cq_cvg_note() -> String {
+    "Rg {rg} is an average over all hues. The shape shows where colours are pushed and pulled."
+        .into()
+}
+fn cq_duv_title() -> String {
+    "Duv: distance to the black-body line".into()
+}
+fn cq_magenta() -> String {
+    "magenta".into()
+}
+fn cq_green() -> String {
+    "green".into()
+}
+fn cq_black_body_line() -> String {
+    "black-body line".into()
+}
+fn cq_measured() -> String {
+    "measured".into()
+}
+fn cq_cct() -> String {
+    "CCT".into()
+}
+fn cq_duv() -> String {
+    "Duv".into()
+}
+fn cq_rf_rg() -> String {
+    "TM-30 Rf / Rg".into()
+}
+fn cq_ra() -> String {
+    "CRI Ra".into()
+}
+fn cq_r9() -> String {
+    "CRI R9".into()
+}
+fn cq_re() -> String {
+    "CRI Re (R1–R15)".into()
+}
+fn cq_cri_limit() -> String {
+    "* CRI is only defined for |Duv| < {limit}.".into()
+}
+fn cq_method() -> String {
+    "Calculated from the spectrum: ANSI/IES TM-30-20 (CIE 224:2017) and CIE 13.3.".into()
+}
+fn cq_ri_title() -> String {
+    "Special colour rendering indices R1–R15".into()
+}
+fn cq_download() -> String {
+    "Download card (SVG)".into()
+}
+fn cq_hues() -> Vec<String> {
+    [
+        "red",
+        "red-orange",
+        "orange",
+        "yellow-orange",
+        "yellow",
+        "yellow-green",
+        "green",
+        "green",
+        "cyan",
+        "cyan",
+        "blue",
+        "blue",
+        "blue-violet",
+        "violet",
+        "purple",
+        "pink",
+    ]
+    .map(String::from)
+    .to_vec()
+}
+
+/// Sensor comparison (Compare tab, "Sensors" mode). Missing keys fall back
+/// to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiSensorCompare {
+    pub mode_luminaires: String,
+    pub mode_sensors: String,
+    pub title: String,
+    pub intro: String,
+    pub sensor_a: String,
+    pub sensor_b: String,
+    pub swap: String,
+    pub need_two: String,
+    pub drop_hint: String,
+    pub open_files: String,
+    pub mount: String,
+    pub workplane: String,
+    pub view_plan: String,
+    pub view_polar: String,
+    pub view_cartesian: String,
+    pub view_height: String,
+    pub view_room: String,
+    pub motion: String,
+    pub plan_note: String,
+    pub angular_note: String,
+    pub col_motion: String,
+    pub col_plane: String,
+    pub col_range: String,
+    pub col_area: String,
+    pub delta: String,
+    pub not_detected: String,
+    pub no_data: String,
+    pub quality_note: String,
+    pub heights: String,
+    pub height_x: String,
+    pub height_y: String,
+    pub measured: String,
+    pub height_note: String,
+    pub room_length: String,
+    pub room_width: String,
+    pub plan_for: String,
+    pub price: String,
+    pub row_sensors: String,
+    pub row_covered: String,
+    pub row_overlap: String,
+    pub row_m2: String,
+    pub row_fo: String,
+    pub row_cost: String,
+    pub turned: String,
+    pub not_reached: String,
+    pub room_note: String,
+    pub report: String,
+    pub share: String,
+    pub copied: String,
+    pub link_note: String,
+    pub method: String,
+}
+
+impl Default for UiSensorCompare {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            mode_luminaires: s("Luminaires"),
+            mode_sensors: s("Sensors"),
+            title: s("Compare sensors"),
+            intro: s("Two detectors under the same conditions: the same mounting height, walking on the floor, seated presence on the workplane. Sensor LDT and SensXML can be mixed."),
+            sensor_a: s("Sensor A"),
+            sensor_b: s("Sensor B"),
+            swap: s("Swap"),
+            need_two: s("Load at least two sensors: drop sensor files (sensor LDT, SensXML, GLDF) here or anywhere, or load the demo sensors."),
+            drop_hint: s("Drop sensor files here (sensor LDT, SensXML, GLDF) or"),
+            open_files: s("Open files…"),
+            mount: s("Mounting height"),
+            workplane: s("Workplane"),
+            view_plan: s("Detection areas"),
+            view_polar: s("Polar"),
+            view_cartesian: s("Cartesian"),
+            view_height: s("Range over height"),
+            view_room: s("Room check"),
+            motion: s("Motion type"),
+            plan_note: s("A filled, B dashed; dashed line: the C-plane cut with the reach of both sensors."),
+            angular_note: s("Ranges in metres from the sensor to the edge of the detection volume (SensXML: rebuilt from the measured heights)."),
+            col_motion: s("Motion"),
+            col_plane: s("Plane"),
+            col_range: s("Range"),
+            col_area: s("Area"),
+            delta: s("Δ"),
+            not_detected: s("not detected"),
+            no_data: s("no data"),
+            quality_note: s("Δ = (B − A) / A. (i) interpolated, (e) extrapolated between / beyond the measured heights of a SensXML file."),
+            heights: s("Heights"),
+            height_x: s("Mounting height (m)"),
+            height_y: s("Ø detection area (m)"),
+            measured: s("measured height"),
+            height_note: s("Diameter of the circle with the same area. A solid, B dashed; circles: measured heights of a SensXML file; a gap: not detected at that height."),
+            room_length: s("Length"),
+            room_width: s("Width"),
+            plan_for: s("Plan for"),
+            price: s("Price per sensor"),
+            row_sensors: s("Sensors"),
+            row_covered: s("Covered"),
+            row_overlap: s("Overlap"),
+            row_m2: s("Floor area per sensor"),
+            row_fo: s("F_O (EN 15193-1)"),
+            row_cost: s("Cost"),
+            turned: s("turned 90°"),
+            not_reached: s("target not reached"),
+            room_note: s("Fewest sensors on a regular grid that detect ≥ 95 % of the room (wall margin 0.5 m, both orientations tried); EN 15193-1 with one control group per sensor."),
+            report: s("PDF report"),
+            share: s("Copy link"),
+            copied: s("Copied"),
+            link_note: s("Only demo sensors travel in a link; uploaded files stay in your browser."),
+            method: s("Both sensors are read under the same conditions: a sensor LDT is cut at mounting height − plane, a SensXML file is read at the mounting height. Data quality and test conditions of the two sources may differ."),
+        }
+    }
+}
+
+/// Sensors tab (presence / motion detectors). Every field falls back to
+/// English so an older locale file still renders the panel.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UiSensor {
+    #[serde(default = "se_tab")]
+    pub tab: String,
+    #[serde(default = "se_title")]
+    pub title: String,
+    #[serde(default = "se_intro")]
+    pub intro: String,
+    #[serde(default = "se_source")]
+    pub source: String,
+    #[serde(default = "se_none")]
+    pub none: String,
+    #[serde(default = "se_use_loaded")]
+    pub use_loaded: String,
+    #[serde(default = "se_loaded_ldt")]
+    pub loaded_ldt: String,
+    #[serde(default = "se_view")]
+    pub view: String,
+    #[serde(default = "se_view_plan")]
+    pub view_plan: String,
+    #[serde(default = "se_view_polar")]
+    pub view_polar: String,
+    #[serde(default = "se_view_cartesian")]
+    pub view_cartesian: String,
+    #[serde(default = "se_view_heatmap")]
+    pub view_heatmap: String,
+    #[serde(default = "se_view_3d")]
+    pub view_3d: String,
+    #[serde(default = "se_height_ldt")]
+    pub height_ldt: String,
+    #[serde(default = "se_height_xml")]
+    pub height_xml: String,
+    #[serde(default = "se_height_hint")]
+    pub height_hint: String,
+    #[serde(default = "se_planning")]
+    pub planning: String,
+    #[serde(default = "se_motion")]
+    pub motion: String,
+    #[serde(default = "se_tangential")]
+    pub tangential: String,
+    #[serde(default = "se_radial")]
+    pub radial: String,
+    #[serde(default = "se_presence")]
+    pub presence: String,
+    #[serde(default = "se_max_range")]
+    pub max_range: String,
+    #[serde(default = "se_area")]
+    pub area: String,
+    #[serde(default = "se_diameter")]
+    pub diameter: String,
+    #[serde(default = "se_quality")]
+    pub quality: String,
+    #[serde(default = "se_measured")]
+    pub measured: String,
+    #[serde(default = "se_interpolated")]
+    pub interpolated: String,
+    #[serde(default = "se_extrapolated")]
+    pub extrapolated: String,
+    #[serde(default = "se_no_data")]
+    pub no_data: String,
+    #[serde(default = "se_mounting")]
+    pub mounting: String,
+    #[serde(default = "se_wall")]
+    pub wall: String,
+    #[serde(default = "se_ceiling")]
+    pub ceiling: String,
+    #[serde(default = "se_wall_ceiling")]
+    pub wall_ceiling: String,
+    #[serde(default = "se_parameters")]
+    pub parameters: String,
+    #[serde(default = "se_not_applicable")]
+    pub not_applicable: String,
+    #[serde(default = "se_warnings")]
+    pub warnings: String,
+    #[serde(default = "se_demo")]
+    pub demo: String,
+    #[serde(default = "se_demo_note")]
+    pub demo_note: String,
+    #[serde(default = "se_not_detected")]
+    pub not_detected: String,
+    #[serde(default = "se_volume_ends")]
+    pub volume_ends: String,
+    #[serde(default = "se_nothing_detected")]
+    pub nothing_detected: String,
+    #[serde(default = "se_derived")]
+    pub derived: String,
+    #[serde(default = "se_report")]
+    pub report: String,
+    #[serde(default = "se_recognised")]
+    pub recognised: String,
+    #[serde(default = "se_open_as_luminaire")]
+    pub open_as_luminaire: String,
+}
+
+impl Default for UiSensor {
+    fn default() -> Self {
+        Self {
+            tab: se_tab(),
+            title: se_title(),
+            intro: se_intro(),
+            source: se_source(),
+            none: se_none(),
+            use_loaded: se_use_loaded(),
+            loaded_ldt: se_loaded_ldt(),
+            view: se_view(),
+            view_plan: se_view_plan(),
+            view_polar: se_view_polar(),
+            view_cartesian: se_view_cartesian(),
+            view_heatmap: se_view_heatmap(),
+            view_3d: se_view_3d(),
+            height_ldt: se_height_ldt(),
+            height_xml: se_height_xml(),
+            height_hint: se_height_hint(),
+            planning: se_planning(),
+            motion: se_motion(),
+            tangential: se_tangential(),
+            radial: se_radial(),
+            presence: se_presence(),
+            max_range: se_max_range(),
+            area: se_area(),
+            diameter: se_diameter(),
+            quality: se_quality(),
+            measured: se_measured(),
+            interpolated: se_interpolated(),
+            extrapolated: se_extrapolated(),
+            no_data: se_no_data(),
+            mounting: se_mounting(),
+            wall: se_wall(),
+            ceiling: se_ceiling(),
+            wall_ceiling: se_wall_ceiling(),
+            parameters: se_parameters(),
+            not_applicable: se_not_applicable(),
+            warnings: se_warnings(),
+            demo: se_demo(),
+            demo_note: se_demo_note(),
+            not_detected: se_not_detected(),
+            volume_ends: se_volume_ends(),
+            nothing_detected: se_nothing_detected(),
+            derived: se_derived(),
+            report: se_report(),
+            recognised: se_recognised(),
+            open_as_luminaire: se_open_as_luminaire(),
+        }
+    }
+}
+
+fn se_tab() -> String {
+    "Sensors".into()
+}
+fn se_title() -> String {
+    "Presence & motion sensors".into()
+}
+fn se_intro() -> String {
+    "A sensor LDT stores the detection volume in metres; SensXML stores measured detection areas per mounting height. Sensor files are recognised when you open or drop them; your sensors are listed on the dashboard.".into()
+}
+fn se_source() -> String {
+    "Sensor".into()
+}
+fn se_none() -> String {
+    "No sensor loaded yet. Open or drop a sensor file (sensor LDT, SensXML or a GLDF with sensors), load the demo sensors, or view the loaded LDT as a sensor.".into()
+}
+fn se_use_loaded() -> String {
+    "View the loaded LDT as a sensor".into()
+}
+fn se_loaded_ldt() -> String {
+    "Loaded LDT (as sensor)".into()
+}
+fn se_view() -> String {
+    "View".into()
+}
+fn se_view_plan() -> String {
+    "Detection areas".into()
+}
+fn se_view_polar() -> String {
+    "Polar (range)".into()
+}
+fn se_view_cartesian() -> String {
+    "Cartesian (range)".into()
+}
+fn se_view_heatmap() -> String {
+    "Range heatmap".into()
+}
+fn se_view_3d() -> String {
+    "Detection volume (3D)".into()
+}
+fn se_height_ldt() -> String {
+    "Height above the detection plane".into()
+}
+fn se_height_xml() -> String {
+    "Mounting height".into()
+}
+fn se_height_hint() -> String {
+    "Reference height: 2.0 m".into()
+}
+fn se_planning() -> String {
+    "Idealised planning shapes".into()
+}
+fn se_motion() -> String {
+    "Movement".into()
+}
+fn se_tangential() -> String {
+    "Tangential walking".into()
+}
+fn se_radial() -> String {
+    "Radial walking".into()
+}
+fn se_presence() -> String {
+    "Presence (seated)".into()
+}
+fn se_max_range() -> String {
+    "Max range".into()
+}
+fn se_area() -> String {
+    "Area".into()
+}
+fn se_diameter() -> String {
+    "Ø equivalent".into()
+}
+fn se_quality() -> String {
+    "Data".into()
+}
+fn se_measured() -> String {
+    "measured".into()
+}
+fn se_interpolated() -> String {
+    "interpolated".into()
+}
+fn se_extrapolated() -> String {
+    "extrapolated".into()
+}
+fn se_no_data() -> String {
+    "no data".into()
+}
+fn se_mounting() -> String {
+    "Mounting".into()
+}
+fn se_wall() -> String {
+    "wall".into()
+}
+fn se_ceiling() -> String {
+    "ceiling".into()
+}
+fn se_wall_ceiling() -> String {
+    "wall or ceiling".into()
+}
+fn se_parameters() -> String {
+    "Parameter block (lines 33–42)".into()
+}
+fn se_not_applicable() -> String {
+    "Cone, beam angle, isolux and the other light-based views do not apply to sensors.".into()
+}
+fn se_demo() -> String {
+    "Load demo sensors".into()
+}
+fn se_not_detected() -> String {
+    "not detected at this height".into()
+}
+fn se_volume_ends() -> String {
+    "volume ends {d} m below the sensor".into()
+}
+fn se_nothing_detected() -> String {
+    "Nothing is detected at this height. Lower the height or pick another sensor.".into()
+}
+fn se_derived() -> String {
+    "Volume rebuilt from the measured heights ({h}); below the deepest height nothing is known."
+        .into()
+}
+fn se_report() -> String {
+    "PDF report".into()
+}
+fn se_recognised() -> String {
+    "{name} looks like a sensor LDT (ranges in metres, a mounting code in lines 33–42), so it opened here as a sensor.".into()
+}
+fn se_open_as_luminaire() -> String {
+    "Open as luminaire instead".into()
+}
+fn se_demo_note() -> String {
+    "Demo sensors are synthetic data, not products.".into()
+}
+fn se_warnings() -> String {
+    "Notes from the file".into()
 }
 
 impl Default for UiLightScene {
@@ -2967,6 +4436,73 @@ impl Default for UiLightScene {
             dli_explain: ls_dli_explain(),
             hint_ppfd: ls_hint_ppfd(),
             unit_ppfd: ls_unit_ppfd(),
+            step_sensors: ls_step_sensors(),
+            sensors_desc: ls_sensors_desc(),
+            sensor_file: ls_sensor_file(),
+            sensor_none: ls_sensor_none(),
+            sensor_load_demo: ls_sensor_load_demo(),
+            sensor_count: ls_sensor_count(),
+            sensor_height: ls_sensor_height(),
+            sensor_motion: ls_sensor_motion(),
+            control_together: ls_control_together(),
+            control_nearest: ls_control_nearest(),
+            idle_level: ls_idle_level(),
+            idle_off: ls_idle_off(),
+            move_objects: ls_move_objects(),
+            move_hint: ls_move_hint(),
+            reset_moves: ls_reset_moves(),
+            status_detected: ls_status_detected(),
+            status_idle: ls_status_idle(),
+            status_person: ls_status_person(),
+            status_cars: ls_status_cars(),
+            status_no_area: ls_status_no_area(),
+            sensor_area: ls_sensor_area(),
+            quality: ls_quality(),
+            quality_quick: ls_quality_quick(),
+            quality_balanced: ls_quality_balanced(),
+            quality_high: ls_quality_high(),
+            quality_desc_quick: ls_quality_desc_quick(),
+            quality_desc_balanced: ls_quality_desc_balanced(),
+            quality_desc_high: ls_quality_desc_high(),
+            gpu_reset_note: ls_gpu_reset_note(),
+            gpu_gone_note: ls_gpu_gone_note(),
+            auto_quick: ls_auto_quick(),
+            denoise: ls_denoise(),
+            scene_planned: ls_scene_planned(),
+            from_interior: ls_from_interior(),
+            from_outdoor: ls_from_outdoor(),
+            desc_planned: ls_desc_planned(),
+            open_in_light_scene: ls_open_in_light_scene(),
+            open_in_light_scene_tip: ls_open_in_light_scene_tip(),
+            planned_mixed_note: ls_planned_mixed_note(),
+            save_scene: ls_save_scene(),
+            scene_name: ls_scene_name(),
+            scene_saved: ls_scene_saved(),
+            scene_unsaved: ls_scene_unsaved(),
+            sensor_volume_3d: ls_sensor_volume_3d(),
+            em_title: ls_em_title(),
+            em_mode: ls_em_mode(),
+            em_mode_desc: ls_em_mode_desc(),
+            em_marks: ls_em_marks(),
+            em_marks_off: ls_em_marks_off(),
+            em_walk: ls_em_walk(),
+            em_route: ls_em_route(),
+            em_walk_at: ls_em_walk_at(),
+            em_walk_play: ls_em_walk_play(),
+            em_walk_pause: ls_em_walk_pause(),
+            em_walk_exit: ls_em_walk_exit(),
+            em_check_route: ls_em_check_route(),
+            em_check_open: ls_em_check_open(),
+            em_check_points: ls_em_check_points(),
+            em_check_min: ls_em_check_min(),
+            em_check_ratio: ls_em_check_ratio(),
+            em_check_note: ls_em_check_note(),
+            em_off_hint: ls_em_off_hint(),
+            em_measure: ls_em_measure(),
+            em_adapting: ls_em_adapting(),
+            em_adapted: ls_em_adapted(),
+            em_replay: ls_em_replay(),
+            back_to_designer: ls_back_to_designer(),
         }
     }
 }
@@ -3146,8 +4682,212 @@ fn ls_facade_render() -> String {
 fn ls_facade_brick() -> String {
     "Brick facade".into()
 }
+fn dp_scenes_title() -> String {
+    "Scenes".into()
+}
 fn ls_person_for_scale() -> String {
     "Person for scale".into()
+}
+fn ls_sensor_volume_3d() -> String {
+    "Show the detection volume in 3D".into()
+}
+fn ls_em_title() -> String {
+    "🚨 Emergency lighting (EN 1838)".into()
+}
+fn ls_em_mode() -> String {
+    "Emergency mode (mains failure)".into()
+}
+fn ls_em_mode_desc() -> String {
+    "Normal lighting off, emergency luminaires on at their emergency flux × maintenance factor. The picture starts dark, as at the moment the power fails, and adapts like an eye; points take direct light only, as EN 1838 counts it; false colours 0–5 lx.".into()
+}
+fn ls_em_marks() -> String {
+    "Show the plan markings (route, open area, equipment)".into()
+}
+fn ls_em_marks_off() -> String {
+    "As a person escaping sees it: no markings.".into()
+}
+fn ls_em_walk() -> String {
+    "Walk the route at eye height (1.6 m)".into()
+}
+fn ls_em_route() -> String {
+    "Route {n}".into()
+}
+fn ls_em_walk_at() -> String {
+    "{m} of {len} m".into()
+}
+fn ls_em_walk_play() -> String {
+    "▶ Walk".into()
+}
+fn ls_em_walk_pause() -> String {
+    "⏸ Pause".into()
+}
+fn ls_em_walk_exit() -> String {
+    "Back to the overview".into()
+}
+fn ls_em_check_route() -> String {
+    "Escape route (centre line)".into()
+}
+fn ls_em_check_open() -> String {
+    "Open area (without the 0.5 m border)".into()
+}
+fn ls_em_check_points() -> String {
+    "Equipment (vertical)".into()
+}
+fn ls_em_check_min() -> String {
+    "Emin {v} lx (≥ {req})".into()
+}
+fn ls_em_check_ratio() -> String {
+    "Emax / Emin {v} (≤ {req})".into()
+}
+fn ls_em_check_note() -> String {
+    "Check in the Light scene: direct light, points every 0.5 m. The Interior designer’s EN 1838 results are the reference.".into()
+}
+fn ls_em_off_hint() -> String {
+    "Switch emergency mode on to measure the route.".into()
+}
+fn ls_em_measure() -> String {
+    "📍 Measure (Grid view)".into()
+}
+fn ls_em_adapting() -> String {
+    "👁 Eyes adapting to the dark… {pct} %".into()
+}
+fn ls_em_adapted() -> String {
+    "👁 Adapted: {stops} stops brighter than when the power failed. Kept below full adaptation, so emergency light still looks dimmer than normal light.".into()
+}
+fn ls_em_replay() -> String {
+    "⚡ Power failure again".into()
+}
+fn ls_back_to_designer() -> String {
+    "✏️ Back to the {from}".into()
+}
+fn ls_save_scene() -> String {
+    "💾 Save in the project".into()
+}
+fn ls_scene_name() -> String {
+    "Scene name".into()
+}
+fn ls_scene_saved() -> String {
+    "Saved in “{project}”; changes are saved automatically.".into()
+}
+fn ls_scene_unsaved() -> String {
+    "Kept in this browser; save it to put it into the project file.".into()
+}
+fn ls_scene_planned() -> String {
+    "📐 Plan".into()
+}
+fn ls_from_interior() -> String {
+    "Interior designer".into()
+}
+fn ls_from_outdoor() -> String {
+    "Outdoor designer".into()
+}
+fn ls_desc_planned() -> String {
+    "From the {from}: {name}. Move luminaires, sensors and the person here to try alternatives; the plan itself stays as it is.".into()
+}
+fn ls_open_in_light_scene() -> String {
+    "🎬 Open in Light scene".into()
+}
+fn ls_open_in_light_scene_tip() -> String {
+    "Check this plan path traced: the room or area with its luminaires and sensors.".into()
+}
+fn ls_planned_mixed_note() -> String {
+    "Several luminaire types in the plan: all are shown with the main luminaire for now.".into()
+}
+fn ls_auto_quick() -> String {
+    "Quick preview while the camera or an object moves".into()
+}
+fn ls_denoise() -> String {
+    "Smooth the noise of the reflected light (picture only, not the lux values)".into()
+}
+fn ls_quality() -> String {
+    "Quality".into()
+}
+fn ls_quality_quick() -> String {
+    "⚡ Quick".into()
+}
+fn ls_quality_balanced() -> String {
+    "Balanced".into()
+}
+fn ls_quality_high() -> String {
+    "✨ High".into()
+}
+fn ls_quality_desc_quick() -> String {
+    "Approximate preview: direct light plus an estimated even fill for the reflected light, lower resolution, no haze. Fast for moving things around; lux values are direct light only.".into()
+}
+fn ls_quality_desc_balanced() -> String {
+    "One bounce of reflected light, every lamp at the first hit and one random lamp after it, medium resolution.".into()
+}
+fn ls_quality_desc_high() -> String {
+    "Full path tracing at full resolution, every lamp at every bounce: the reference picture, slow on small GPUs.".into()
+}
+fn ls_gpu_reset_note() -> String {
+    "The browser reset the GPU: quality lowered to Quick.".into()
+}
+fn ls_gpu_gone_note() -> String {
+    "No GPU after the reset: tracing on the CPU. Reload the page to use the GPU again.".into()
+}
+fn ls_step_sensors() -> String {
+    "4 · Sensors".into()
+}
+fn ls_sensors_desc() -> String {
+    "Presence / motion detectors switch the luminaires: drag the person or a car into a detection area and the light comes on.".into()
+}
+fn ls_sensor_file() -> String {
+    "Sensor".into()
+}
+fn ls_sensor_none() -> String {
+    "No sensor files in the project".into()
+}
+fn ls_sensor_load_demo() -> String {
+    "Load demo sensors".into()
+}
+fn ls_sensor_count() -> String {
+    "Sensors".into()
+}
+fn ls_sensor_height() -> String {
+    "Sensor height".into()
+}
+fn ls_sensor_motion() -> String {
+    "Detect".into()
+}
+fn ls_control_together() -> String {
+    "All luminaires together".into()
+}
+fn ls_control_nearest() -> String {
+    "Each luminaire with its nearest sensor".into()
+}
+fn ls_idle_level() -> String {
+    "Without detection".into()
+}
+fn ls_idle_off() -> String {
+    "off".into()
+}
+fn ls_move_objects() -> String {
+    "✋ Move objects".into()
+}
+fn ls_move_hint() -> String {
+    "Drag a luminaire, the person, a car or a sensor on the picture.".into()
+}
+fn ls_reset_moves() -> String {
+    "Put objects back".into()
+}
+fn ls_status_detected() -> String {
+    "Detected: {what} · {on} of {n} luminaires on".into()
+}
+fn ls_status_idle() -> String {
+    "Nothing detected · luminaires at {pct} %".into()
+}
+fn ls_status_person() -> String {
+    "person".into()
+}
+fn ls_status_cars() -> String {
+    "{n} car(s)".into()
+}
+fn ls_status_no_area() -> String {
+    "This sensor detects nothing at {h} m.".into()
+}
+fn ls_sensor_area() -> String {
+    "Detection area Ø {d} m at {h} m".into()
 }
 fn ls_cct_from_file() -> String {
     "Colour temperature from the file".into()
@@ -3312,7 +5052,7 @@ fn dg_light_scene_desc() -> String {
     "Path-traced street, parking lot, facade or office with lux values".into()
 }
 fn dg_area_designer() -> String {
-    "Area designer".into()
+    "Outdoor designer".into()
 }
 fn dg_area_designer_desc() -> String {
     "Place several luminaires and check the lux on the ground".into()
@@ -3429,6 +5169,14 @@ pub struct DashboardFeatures {
     pub spectrum_lab_title: String,
     #[serde(default = "df_spectrum_lab_desc")]
     pub spectrum_lab_desc: String,
+    #[serde(default = "df_colour_quality_title")]
+    pub colour_quality_title: String,
+    #[serde(default = "df_colour_quality_desc")]
+    pub colour_quality_desc: String,
+    #[serde(default = "df_sensor_title")]
+    pub sensor_title: String,
+    #[serde(default = "df_sensor_desc")]
+    pub sensor_desc: String,
 }
 
 impl Default for DashboardFeatures {
@@ -3482,6 +5230,10 @@ impl Default for DashboardFeatures {
             quiz_desc: df_quiz_desc(),
             spectrum_lab_title: df_spectrum_lab_title(),
             spectrum_lab_desc: df_spectrum_lab_desc(),
+            colour_quality_title: df_colour_quality_title(),
+            colour_quality_desc: df_colour_quality_desc(),
+            sensor_title: df_sensor_title(),
+            sensor_desc: df_sensor_desc(),
         }
     }
 }
@@ -3523,7 +5275,7 @@ fn df_scene_3d_title() -> String {
     "3D scene".into()
 }
 fn df_area_title() -> String {
-    "Area designer".into()
+    "Outdoor designer".into()
 }
 fn df_interior_title() -> String {
     "Interior designer".into()
@@ -3669,6 +5421,18 @@ fn ls_unit_ppfd() -> String {
 }
 fn dg_about_site() -> String {
     "What is Candelabra?".into()
+}
+fn df_colour_quality_title() -> String {
+    "Colour quality".into()
+}
+fn df_colour_quality_desc() -> String {
+    "TM-30 colour vector graphic, Rf / Rg, CRI Ra, R9 and R1–R15 and Duv from the spectrum, as one card; demo LED included".into()
+}
+fn df_sensor_title() -> String {
+    "Sensors".into()
+}
+fn df_sensor_desc() -> String {
+    "Presence and motion detectors from GLDF, sensor LDT or SensXML: detection areas per motion type and mounting height, range diagrams".into()
 }
 fn df_spectrum_lab_title() -> String {
     "Spectrum Lab".into()

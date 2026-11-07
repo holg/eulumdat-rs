@@ -91,9 +91,35 @@ fn parse_photometric(name: &str, content: &str) -> Option<Eulumdat> {
         eulumdat::atla::xml::parse(content)
             .ok()
             .map(|doc| doc.to_eulumdat())
+    } else if lower.ends_with(".json") {
+        eulumdat::atla::json::parse(content)
+            .ok()
+            .map(|doc| doc.to_eulumdat())
+    } else if lower.ends_with(".oxl") || lower.ends_with(".oxc") {
+        eulumdat::atla::oxl::parse(content)
+            .ok()
+            .and_then(|pkg| pkg.luminaires.into_iter().next())
+            .map(|doc| doc.to_eulumdat())
     } else {
         Eulumdat::parse(content).ok()
     }
+}
+
+/// A bundled template as a luminaire.
+fn template_luminaire(idx: usize) -> Option<(Eulumdat, String)> {
+    let tmpl = ALL_TEMPLATES.get(idx)?;
+    let content = eulumdat_wasm_templates::get_template_content(tmpl.id)?;
+    let parsed = match tmpl.format {
+        TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
+        TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
+        TemplateFormat::AtlaXml => eulumdat::atla::xml::parse(&content)
+            .ok()
+            .map(|doc| doc.to_eulumdat()),
+        TemplateFormat::AtlaJson => eulumdat::atla::json::parse(&content)
+            .ok()
+            .map(|doc| doc.to_eulumdat()),
+    }?;
+    Some((parsed, tmpl.name.to_string()))
 }
 
 // JS binding for typst PDF compilation (same as app.rs)
@@ -365,32 +391,37 @@ pub fn ComparePanel(
         set_label_b.set(None);
     };
 
-    // Handle template selection for File B (async - loads from templates WASM module)
+    // File B from the current project (Demo: the bundled templates). The
+    // option value is the entry's index in `ProjectsCtx::entries()`.
+    let luminaire_entries = Memo::new(move |_| {
+        super::projects_ui::ctx()
+            .map(|p| {
+                p.entries()
+                    .into_iter()
+                    .filter(|e| e.kind == crate::projects::ItemKind::Luminaire)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
+    });
     let on_template_select = move |ev: ev::Event| {
+        use super::projects_ui::EntrySource;
         let select: web_sys::HtmlSelectElement = ev.target().unwrap().unchecked_into();
         let idx: usize = select.value().parse().unwrap_or(usize::MAX);
-        if idx < ALL_TEMPLATES.len() {
-            let tmpl = ALL_TEMPLATES[idx];
-            let id = tmpl.id.to_string();
-            let format = tmpl.format;
-            let name = tmpl.name.to_string();
-
-            if let Some(content) = eulumdat_wasm_templates::get_template_content(&id) {
-                let parsed = match format {
-                    TemplateFormat::Ldt => Eulumdat::parse(&content).ok(),
-                    TemplateFormat::IesLm63 => IesParser::parse(&content).ok(),
-                    TemplateFormat::AtlaXml => eulumdat::atla::xml::parse(&content)
-                        .ok()
-                        .map(|doc| doc.to_eulumdat()),
-                    TemplateFormat::AtlaJson => eulumdat::atla::json::parse(&content)
-                        .ok()
-                        .map(|doc| doc.to_eulumdat()),
-                };
-                if let Some(ldc) = parsed {
-                    set_ldc_b.set(Some(ldc));
-                    set_label_b.set(Some(name));
-                }
-            }
+        let Some(entry) = luminaire_entries.get_untracked().into_iter().nth(idx) else {
+            return;
+        };
+        let loaded = match entry.source {
+            EntrySource::Template(i) => template_luminaire(i),
+            EntrySource::Item(id) => super::projects_ui::ctx()
+                .and_then(|p| p.item(&id))
+                .and_then(|item| {
+                    parse_photometric(&item.name, &item.content).map(|l| (l, item.name))
+                }),
+            EntrySource::DemoSensor => None,
+        };
+        if let Some((ldc, name)) = loaded {
+            set_ldc_b.set(Some(ldc));
+            set_label_b.set(Some(name));
         }
     };
 
@@ -511,8 +542,25 @@ pub fn ComparePanel(
         }
     };
 
+    // Luminaires or sensors (`cmpkind=sensors` in a link).
+    let sensors_mode = use_context::<super::sensor_compare::CompareRequests>()
+        .map(|r| r.sensors_mode)
+        .unwrap_or_else(|| RwSignal::new(super::sensor_compare::link_wants_sensors()));
+    let sensors_on = Memo::new(move |_| sensors_mode.get());
+
     view! {
-        <div class="compare-panel">
+        <div class="compare-kind-toggle compare-diagram-toggle">
+            <button class=move || if sensors_mode.get() { "" } else { "active" }
+                on:click=move |_| sensors_mode.set(false)
+            >{move || locale.get().ui.sensor_compare.mode_luminaires.clone()}</button>
+            <button class=move || if sensors_mode.get() { "active" } else { "" }
+                on:click=move |_| sensors_mode.set(true)
+            >{move || format!("📡 {}", locale.get().ui.sensor_compare.mode_sensors)}</button>
+        </div>
+        // a memo: setting the mode to the value it has must not rebuild
+        // the comparison (and lose its choices)
+        {move || sensors_on.get().then(|| view! { <super::sensor_compare::SensorCompare/> })}
+        <div class="compare-panel" style:display=move || if sensors_mode.get() { "none" } else { "" }>
             // File B selector
             <div class="compare-file-controls">
                 <h4>{move || locale.get().ui.compare.title.clone()}</h4>
@@ -536,14 +584,27 @@ pub fn ComparePanel(
                             />
                         </label>
                         <span class="compare-or">{move || locale.get().ui.compare.or.clone()}</span>
-                        <select class="compare-template-select" on:change=on_template_select>
-                            <option value="" disabled selected>{move || locale.get().ui.compare.select_template.clone()}</option>
-                            {ALL_TEMPLATES.iter().enumerate().map(|(i, t)| {
-                                view! {
-                                    <option value={i.to_string()}>{t.name} " - " {t.description}</option>
-                                }
-                            }).collect::<Vec<_>>()}
-                        </select>
+                        // Rebuilt whole when the project changes (patched
+                        // options can show stale entries).
+                        {move || {
+                            let entries = luminaire_entries.get();
+                            let placeholder = locale.get().ui.compare.select_template.clone();
+                            view! {
+                                <select class="compare-template-select" on:change=on_template_select>
+                                    <option value="" disabled selected>{placeholder}</option>
+                                    {entries.into_iter().enumerate().map(|(i, e)| {
+                                        let label = match e.source {
+                                            super::projects_ui::EntrySource::Template(t) => ALL_TEMPLATES
+                                                .get(t)
+                                                .map(|t| format!("{} - {}", t.name, t.description))
+                                                .unwrap_or(e.name),
+                                            _ => e.name,
+                                        };
+                                        view! { <option value={i.to_string()}>{label}</option> }
+                                    }).collect::<Vec<_>>()}
+                                </select>
+                            }
+                        }}
                     </div>
                 </div>
 

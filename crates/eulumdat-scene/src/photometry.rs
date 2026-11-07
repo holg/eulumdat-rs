@@ -15,6 +15,9 @@ pub struct IesTable {
     pub max_cd: f32,
     /// cd/klm → cd multiplier that was applied (lamp lumens / 1000).
     pub klm_scale: f32,
+    /// Tables stacked in `data` (one block of `g_size` rows each): several
+    /// luminaire types in one scene, picked per lamp.
+    pub tables: u32,
 }
 
 impl IesTable {
@@ -45,11 +48,41 @@ impl IesTable {
             data,
             max_cd,
             klm_scale,
+            tables: 1,
         }
+    }
+
+    /// Several tables (same grid) stacked into one: table `k` is rows
+    /// `k × g_size ..`. `max_cd` and `klm_scale` are the first table's.
+    pub fn stack(tables: &[&IesTable]) -> Self {
+        let first = tables[0];
+        let mut data = Vec::with_capacity(first.data.len() * tables.len());
+        for t in tables {
+            assert_eq!((t.c_size, t.g_size), (first.c_size, first.g_size));
+            data.extend_from_slice(&t.data[..(t.c_size * t.g_size) as usize]);
+        }
+        Self {
+            c_size: first.c_size,
+            g_size: first.g_size,
+            data,
+            max_cd: first.max_cd,
+            klm_scale: first.klm_scale,
+            tables: tables.len() as u32,
+        }
+    }
+
+    /// Rows of the whole stack (the texture height).
+    pub fn rows(&self) -> u32 {
+        self.g_size * self.tables.max(1)
     }
 
     /// Bilinear candela at `(c°, γ°)`, matching the shader's lookup.
     pub fn sample(&self, c_deg: f32, g_deg: f32) -> f32 {
+        self.sample_in(0, c_deg, g_deg)
+    }
+
+    /// [`Self::sample`] in table `table` of a stack.
+    pub fn sample_in(&self, table: u32, c_deg: f32, g_deg: f32) -> f32 {
         let cs = self.c_size as i32;
         let gs = self.g_size as i32;
         let c = c_deg.rem_euclid(360.0);
@@ -64,7 +97,8 @@ impl IesTable {
         let x1 = (x0 + 1) % cs;
         let y0 = (yf as i32).clamp(0, gs - 1);
         let y1 = (y0 + 1).min(gs - 1);
-        let at = |ix: i32, iy: i32| self.data[(iy * cs + ix) as usize];
+        let base = (table.min(self.tables.max(1) - 1) * self.g_size) as i32;
+        let at = |ix: i32, iy: i32| self.data[((base + iy) * cs + ix) as usize];
         let a = at(x0, y0) * (1.0 - tx) + at(x1, y0) * tx;
         let b = at(x0, y1) * (1.0 - tx) + at(x1, y1) * tx;
         a * (1.0 - ty) + b * ty
@@ -73,14 +107,19 @@ impl IesTable {
     /// Candela towards world direction `dir` (unit, from the lamp) for a lamp
     /// with local→world `rotation`.
     pub fn sample_dir(&self, rotation: &Mat3, dir: Vec3) -> f32 {
+        self.sample_dir_in(0, rotation, dir)
+    }
+
+    /// [`Self::sample_dir`] in table `table` of a stack.
+    pub fn sample_dir_in(&self, table: u32, rotation: &Mat3, dir: Vec3) -> f32 {
         let l = rotation.transpose() * dir;
         let g = (-l.y).clamp(-1.0, 1.0).acos().to_degrees();
         let c = l.z.atan2(l.x).to_degrees();
-        self.sample(c, g)
+        self.sample_in(table, c, g)
     }
 
     /// Little-endian f32 bytes, row-major, for an `R32Float` texture of
-    /// `c_size × g_size` texels.
+    /// `c_size × rows()` texels.
     pub fn to_bytes(&self) -> Vec<u8> {
         self.data.iter().flat_map(|v| v.to_le_bytes()).collect()
     }

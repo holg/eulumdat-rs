@@ -131,6 +131,7 @@ bevy = { version = "0.19", default-features = false, features = [
     # Linux
     "zstd_rust",
 ] }
+bytemuck = { version = "1.14", features = ["derive"], optional = true }
 eulumdat = { workspace = true, features = ["serde"] }
 # Daylight (solar position, sky models), spectral (SPD → PPFD/CCT) and the
 # CPU Monte Carlo tracer — used by the greenhouse demo's canopy analysis.
@@ -141,7 +142,6 @@ eulumdat-scene = { workspace = true }
 eulumdat-spectrum = { workspace = true }
 eulumdat-tm25 = { workspace = true, optional = true }
 serde = { workspace = true }
-bytemuck = { version = "1.14", features = ["derive"], optional = true }
 
 # JSON parsing for star catalog + designer data sync
 serde_json = "1"

@@ -51,6 +51,22 @@ fn main() {
     if let Some(t) = arg(&args, "--tilt").and_then(|v| v.parse().ok()) {
         settings.params.tilt = t;
     }
+    // `--quality quick|balanced|high` (default high), `--bounces N`,
+    // `--no-denoise` (the picture as traced).
+    if let Some(q) = arg(&args, "--quality") {
+        settings.quality = eulumdat_scene::viewer::Quality::from_id(&q);
+        if settings.quality == eulumdat_scene::viewer::Quality::Quick {
+            settings.bounces = 1;
+        } else if settings.quality == eulumdat_scene::viewer::Quality::Balanced {
+            settings.bounces = 2;
+        }
+    }
+    if let Some(b) = arg(&args, "--bounces").and_then(|v| v.parse().ok()) {
+        settings.bounces = b;
+    }
+    if args.iter().any(|a| a == "--no-denoise") {
+        settings.denoise = false;
+    }
     let mut viewer = Viewer::new(settings);
     // `--l3d body.l3d` draws the real luminaire body; a `.gldf` as the
     // luminaire file brings its own photometry and (first) L3D geometry.
@@ -62,9 +78,14 @@ fn main() {
             let phot = x.best_photometry().expect("no photometry in gldf");
             let ldt = parse_any(&phot.name, &phot.text).expect("parse photometry");
             println!(
-                "gldf photometry: {} (of {})",
+                "gldf photometry: {} (of {}), sensor files: {}",
                 phot.name,
-                x.photometries.len()
+                x.photometries.len(),
+                x.sensors
+                    .iter()
+                    .map(|s| format!("{} ({})", s.name, s.content_type))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             );
             viewer.load(&path, ldt, None);
             if l3d_bytes.is_none() {
@@ -129,7 +150,7 @@ fn main() {
         loop {
             viewer.update(1.0 / 60.0);
             let input = viewer.frame_input();
-            let table = &viewer.photometry.as_ref().expect("luminaire").table;
+            let table = viewer.ies_table().expect("luminaire");
             tracer.trace_pass(&input, table, per_pass);
             if viewer.settings.mode == ViewMode::Points {
                 tracer.probe_pass(&input, table, 16);
@@ -206,7 +227,7 @@ fn main() {
     let mut frames = 0u32;
     while frames < samples + 40 {
         viewer.update(1.0 / 60.0);
-        let table = viewer.photometry.as_ref().map(|p| &p.table);
+        let table = viewer.ies_table();
         let input = viewer.frame_input();
         renderer.render(&device, &queue, &input, table, &target_view);
         if let Some(values) = renderer.take_probe_values(&device) {

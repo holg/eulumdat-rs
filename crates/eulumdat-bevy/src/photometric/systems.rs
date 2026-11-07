@@ -147,6 +147,16 @@ fn spawn_lights_for_entity<T: PhotometricData>(
     // Get luminaire dimensions
     let (_, _, _height) = data.dimensions();
 
+    // Reach of the spawned lights: explicit, else the street-light heuristic
+    // (a few times the mounting height above y = 0).
+    let reach = |height_factor: f32, default: f32| {
+        light.range.unwrap_or(if height_factor > 0.0 {
+            position.y * height_factor
+        } else {
+            default
+        })
+    };
+
     // Calculate light direction based on luminaire rotation
     // Default up direction is +Y, apply luminaire rotation
     let up_direction = rotation * Vec3::Y;
@@ -157,7 +167,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
             color: light_color,
             intensity: luminaire_flux * intensity_scale * 0.3,
             radius: 0.05,
-            range: 50.0,
+            range: reach(0.0, 50.0),
             shadow_maps_enabled: false,
             ..default()
         },
@@ -187,7 +197,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
             SpotLight {
                 color: light_color,
                 intensity: luminaire_flux * intensity_scale * downward_fraction * 0.3,
-                range: position.y * 3.0,
+                range: reach(3.0, 0.0),
                 radius: 0.05,
                 inner_angle: beam_angle * 0.2,
                 outer_angle: beam_angle * 0.6,
@@ -210,7 +220,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
             SpotLight {
                 color: light_color,
                 intensity: side_intensity,
-                range: position.y * 4.0,
+                range: reach(4.0, 0.0),
                 radius: 0.05,
                 inner_angle: 0.3, // ~17 degrees
                 outer_angle: 0.8, // ~46 degrees
@@ -231,7 +241,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
             SpotLight {
                 color: light_color,
                 intensity: side_intensity * 0.5, // Less light toward sidewalk
-                range: position.y * 3.0,
+                range: reach(3.0, 0.0),
                 radius: 0.05,
                 inner_angle: 0.2,
                 outer_angle: 0.6,
@@ -257,7 +267,7 @@ fn spawn_lights_for_entity<T: PhotometricData>(
             SpotLight {
                 color: light_color,
                 intensity: luminaire_flux * intensity_scale * upward_fraction,
-                range: 20.0,
+                range: reach(0.0, 20.0),
                 radius: 0.05,
                 inner_angle: beam_angle * 0.5,
                 outer_angle: beam_angle * 1.5,

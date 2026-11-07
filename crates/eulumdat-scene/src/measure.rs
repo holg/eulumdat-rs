@@ -25,10 +25,6 @@ pub struct MeasureLayout {
     pub nv: Vec<usize>,
 }
 
-fn inside(p: Vec3, min: Vec3, max: Vec3) -> bool {
-    p.x > min.x && p.x < max.x && p.y > min.y && p.y < max.y && p.z > min.z && p.z < max.z
-}
-
 pub fn measurement_layout(scene: &BuiltScene) -> MeasureLayout {
     let mut points = Vec::new();
     let mut slots = Vec::new();
@@ -41,10 +37,16 @@ pub fn measurement_layout(scene: &BuiltScene) -> MeasureLayout {
                 let t = (j as f32 + 0.5) / g.nv as f32;
                 let r = &g.receiver;
                 let p = r.origin + r.u * s + r.v * t + r.normal * LIFT;
-                if scene.prims.iter().any(|b| {
-                    let (lo, hi) = b.aabb();
-                    inside(p, lo, hi)
-                }) {
+                if let Some(outline) = g.outline.as_ref() {
+                    let q = glam::Vec2::new(p.x, p.z);
+                    if !crate::scene::outline_contains(outline, q)
+                        || (g.border > 0.0
+                            && crate::scene::distance_to_outline(outline, q) < g.border)
+                    {
+                        continue;
+                    }
+                }
+                if scene.prims.iter().any(|b| b.contains(p)) {
                     continue;
                 }
                 slot[i * g.nv + j] = points.len() as i32;

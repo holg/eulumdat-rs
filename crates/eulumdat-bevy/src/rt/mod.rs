@@ -99,7 +99,7 @@ fn ies_image(table: &eulumdat_scene::photometry::IesTable) -> Image {
     Image::new(
         Extent3d {
             width: table.c_size,
-            height: table.g_size,
+            height: table.rows(),
             depth_or_array_layers: 1,
         },
         TextureDimension::D2,
@@ -193,22 +193,16 @@ fn setup(
         );
     }
 
-    let ies = images.add(
-        viewer
-            .photometry
-            .as_ref()
-            .map(|p| ies_image(&p.table))
-            .unwrap_or_else(|| {
-                Image::new_fill(
-                    Extent3d::default(),
-                    TextureDimension::D2,
-                    &0f32.to_le_bytes(),
-                    TextureFormat::R32Float,
-                    RenderAssetUsages::RENDER_WORLD,
-                )
-            }),
-    );
-    let ies_version = viewer.photometry.as_ref().map(|p| p.version).unwrap_or(0);
+    let ies = images.add(viewer.ies_table().map(ies_image).unwrap_or_else(|| {
+        Image::new_fill(
+            Extent3d::default(),
+            TextureDimension::D2,
+            &0f32.to_le_bytes(),
+            TextureFormat::R32Float,
+            RenderAssetUsages::RENDER_WORLD,
+        )
+    }));
+    let ies_version = viewer.ies_version();
     let output = images.add(output_image(UVec2::new(8, 8)));
     let probe_buffer = buffers.add(probe_shader_buffer(viewer.probes.len()));
     let mut assets = RtAssets {
@@ -427,10 +421,12 @@ fn tick(
     }
     v.update(time.delta_secs());
 
-    if let Some(p) = &v.photometry {
-        if p.version != assets.ies_version {
-            assets.ies = images.add(ies_image(&p.table));
-            assets.ies_version = p.version;
+    // the table, or the stack of a scene with several luminaire types
+    let ies_version = v.ies_version();
+    if ies_version != assets.ies_version {
+        if let Some(t) = v.ies_table() {
+            assets.ies = images.add(ies_image(t));
+            assets.ies_version = ies_version;
         }
     }
     if v.probes.len() != assets.probe_len {

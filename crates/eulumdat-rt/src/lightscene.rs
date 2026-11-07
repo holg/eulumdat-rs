@@ -360,7 +360,7 @@ impl SceneRenderer {
         }
         if input.ies_version != self.ies_version {
             if let Some(t) = table {
-                let (tex, view) = Self::ies_texture(device, t.c_size, t.g_size);
+                let (tex, view) = Self::ies_texture(device, t.c_size, t.rows());
                 queue.write_texture(
                     wgpu::TexelCopyTextureInfo {
                         texture: &tex,
@@ -372,11 +372,11 @@ impl SceneRenderer {
                     wgpu::TexelCopyBufferLayout {
                         offset: 0,
                         bytes_per_row: Some(t.c_size * 4),
-                        rows_per_image: Some(t.g_size),
+                        rows_per_image: Some(t.rows()),
                     },
                     wgpu::Extent3d {
                         width: t.c_size,
-                        height: t.g_size,
+                        height: t.rows(),
                         depth_or_array_layers: 1,
                     },
                 );
@@ -538,6 +538,47 @@ impl SceneRenderer {
             }));
         }
 
+        // The trace runs in bands of rows, one submission each: a browser
+        // resets the GPU ("device lost") when one command buffer runs too
+        // long. The band's first row goes to the shader in `flags.y`; the
+        // uniform write before each submission is ordered with it.
+        // Extra passes per frame reuse the frame's blend factor, so passes
+        // beyond the first are weighted like the first. Fine for convergence.
+        if do_trace {
+            let passes = input
+                .passes_per_frame
+                .max(1)
+                .min((input.max_samples - self.samples).max(1));
+            let bands = input.bands.clamp(1, size[1].max(1));
+            let band_rows = size[1].div_ceil(bands).div_ceil(8) * 8;
+            for _ in 0..passes {
+                let mut row0 = 0;
+                while row0 < size[1] {
+                    let rows = band_rows.min(size[1] - row0);
+                    params.flags.y = row0;
+                    queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&params));
+                    let mut encoder =
+                        device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("lightscene trace band"),
+                        });
+                    {
+                        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                            label: Some("lightscene trace"),
+                            timestamp_writes: None,
+                        });
+                        pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
+                        pass.set_pipeline(&self.trace);
+                        pass.dispatch_workgroups(size[0].div_ceil(8), rows.div_ceil(8), 1);
+                    }
+                    queue.submit(Some(encoder.finish()));
+                    row0 += rows;
+                }
+            }
+            self.samples += passes;
+            params.flags.y = 0;
+            queue.write_buffer(&self.params, 0, bytemuck::bytes_of(&params));
+        }
+
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("lightscene frame"),
         });
@@ -547,20 +588,6 @@ impl SceneRenderer {
                 timestamp_writes: None,
             });
             pass.set_bind_group(0, self.bind_group.as_ref().unwrap(), &[]);
-            // Extra passes per frame reuse the frame's blend factor; the
-            // uniform cannot change inside one submission, so passes beyond
-            // the first are weighted like the first. Fine for convergence.
-            if do_trace {
-                pass.set_pipeline(&self.trace);
-                let passes = input
-                    .passes_per_frame
-                    .max(1)
-                    .min((input.max_samples - self.samples).max(1));
-                for _ in 0..passes {
-                    pass.dispatch_workgroups(size[0].div_ceil(8), size[1].div_ceil(8), 1);
-                }
-                self.samples += passes;
-            }
             if do_probe {
                 pass.set_pipeline(&self.probe);
                 pass.dispatch_workgroups((self.probe_count as u32).div_ceil(64), 1, 1);

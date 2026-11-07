@@ -133,7 +133,11 @@ async fn serve_static_file(
     }
 
     // Resolve symlinks for the actual file
-    let canonical = file_path.canonicalize().ok()?;
+    let mut canonical = file_path.canonicalize().ok()?;
+    // A directory (the app lives in dist/app/): its index.html.
+    if canonical.is_dir() {
+        canonical = canonical.join("index.html").canonicalize().ok()?;
+    }
 
     // Check Accept-Encoding header
     let accept_encoding = req
@@ -182,8 +186,13 @@ async fn serve_static_file(
         .first_or_octet_stream()
         .to_string();
 
-    // Open and serve the file
-    let file = NamedFile::open(&serve_path).ok()?;
+    // Open and serve the file. NamedFile derives a Content-Disposition from the
+    // served path; for `index.html.br` that is "attachment", and browsers then
+    // download the page instead of showing it. The type comes from the
+    // original name below, so no disposition at all.
+    let file = NamedFile::open(&serve_path)
+        .ok()?
+        .disable_content_disposition();
     let mut response = file.into_response(req);
 
     // Set correct content type
@@ -198,17 +207,34 @@ async fn serve_static_file(
             .insert(header::CONTENT_ENCODING, enc.parse().unwrap());
     }
 
-    // Cache headers for hashed files (immutable)
-    if path_str.contains('-')
-        && (path_str.ends_with(".wasm") || path_str.ends_with(".js") || path_str.ends_with(".css"))
-    {
-        response.headers_mut().insert(
-            header::CACHE_CONTROL,
-            "public, max-age=31536000, immutable".parse().unwrap(),
-        );
-    }
+    // Content-hashed files never change: cache them for a year. Everything
+    // else (index.html, unhashed loaders, images) is revalidated, otherwise a
+    // browser may keep an old index.html that points at an old build.
+    let cache = if is_content_hashed(path_str) {
+        "public, max-age=31536000, immutable"
+    } else {
+        "no-cache"
+    };
+    response
+        .headers_mut()
+        .insert(header::CACHE_CONTROL, cache.parse().unwrap());
 
     Some(response)
+}
+
+/// `name-<hex hash>[_bg].wasm|js|css` as written by trunk and the split
+/// build (at least 8 hex digits after the last dash).
+fn is_content_hashed(path: &str) -> bool {
+    let file = path.rsplit('/').next().unwrap_or(path);
+    let Some((stem, ext)) = file.rsplit_once('.') else {
+        return false;
+    };
+    if !matches!(ext, "wasm" | "js" | "css") {
+        return false;
+    }
+    let stem = stem.strip_suffix("_bg").unwrap_or(stem);
+    stem.rsplit_once('-')
+        .is_some_and(|(_, hash)| hash.len() >= 8 && hash.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
 /// Serve static files, return 404 page if not found
@@ -219,6 +245,23 @@ async fn serve_static(
     stats: web::Data<Stats>,
 ) -> HttpResponse {
     let path_str = path.into_inner();
+
+    // "/app" → "/app/": the page's relative asset URLs need the trailing slash.
+    if !path_str.is_empty()
+        && !path_str.ends_with('/')
+        && !path_str.contains("..")
+        && dist.join(&path_str).is_dir()
+    {
+        let query = req.query_string();
+        let location = if query.is_empty() {
+            format!("/{path_str}/")
+        } else {
+            format!("/{path_str}/?{query}")
+        };
+        return HttpResponse::MovedPermanently()
+            .insert_header((header::LOCATION, location))
+            .finish();
+    }
 
     if let Some(response) = serve_static_file(&req, &path_str, &dist, &stats).await {
         response
@@ -378,4 +421,31 @@ async fn main() -> std::io::Result<()> {
     .bind((args.host.as_str(), args.port))?
     .run()
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_content_hashed;
+
+    #[test]
+    fn only_hashed_assets_are_immutable() {
+        for p in [
+            "app/eulumdat-wasm-4c2aadae43cd12ef_bg.wasm",
+            "app/eulumdat-wasm-4c2aadae43cd12ef.js",
+            "app/bevy-loader-a32301361d029483.js",
+            "app/bevy/eulumdat-3d-0123456789abcdef.js",
+        ] {
+            assert!(is_content_hashed(p), "{p}");
+        }
+        for p in [
+            "index.html",
+            "app/index.html",
+            "app/bevy-loader.js",
+            "app/tm25-loader.js",
+            "img/sensor_planning.svg",
+            "app/styles-dark.css",
+        ] {
+            assert!(!is_content_hashed(p), "{p}");
+        }
+    }
 }

@@ -10,6 +10,7 @@ pub mod bug_rating;
 pub mod calculations;
 pub mod diagram;
 pub mod error;
+pub mod sensor;
 pub mod types;
 pub mod validation;
 
@@ -22,6 +23,7 @@ use calculations::{
     CieFluxCodes, GldfPhotometricData, PhotometricSummary, UgrParams, ZonalLumens30,
 };
 use diagram::SvgTheme;
+use sensor::{DetectionArea, SensorFile};
 use types::{Eulumdat, LampSet, Symmetry, TypeIndicator};
 use validation::ValidationWarning;
 
@@ -42,6 +44,10 @@ fn eulumdat(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Diagram types
     m.add_class::<SvgTheme>()?;
+
+    // Presence / motion sensors
+    m.add_class::<SensorFile>()?;
+    m.add_class::<DetectionArea>()?;
 
     // Validation types
     m.add_class::<ValidationWarning>()?;

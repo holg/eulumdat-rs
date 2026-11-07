@@ -34,42 +34,42 @@ pub const AEC_MAXWELL_8_T4_LUXEON_5050_SQUARE_WITH_GLASS_MEASURED_IESNA: Templat
 };
 
 pub const ATLA_GROW_LIGHT_RB: Template = Template {
-    name: "_atla_grow_light_rb.xml",
+    name: "_atla_tm-33-18_grow_light_rb.xml",
     description: "",
     format: TemplateFormat::AtlaXml,
     id: "atla-grow-light-rb",
 };
 
 pub const ATLA_GROW_LIGHT: Template = Template {
-    name: "_atla_grow_light.xml",
+    name: "_atla_tm-33-18_grow_light.xml",
     description: "",
     format: TemplateFormat::AtlaXml,
     id: "atla-grow-light",
 };
 
 pub const ATLA_HALOGEN_LAMP: Template = Template {
-    name: "_atla_halogen_lamp.xml",
+    name: "_atla_tm-33-18_halogen_lamp.xml",
     description: "",
     format: TemplateFormat::AtlaXml,
     id: "atla-halogen-lamp",
 };
 
 pub const ATLA_HEAT_LAMP: Template = Template {
-    name: "_atla_heat_lamp.xml",
+    name: "_atla_tm-33-18_heat_lamp.xml",
     description: "",
     format: TemplateFormat::AtlaXml,
     id: "atla-heat-lamp",
 };
 
 pub const ATLA_INCANDESCENT: Template = Template {
-    name: "_atla_incandescent.xml",
+    name: "_atla_tm-33-18_incandescent.xml",
     description: "",
     format: TemplateFormat::AtlaXml,
     id: "atla-incandescent",
 };
 
 pub const ATLA_UV_BLACKLIGHT: Template = Template {
-    name: "_atla_uv_blacklight.xml",
+    name: "_atla_tm-33-18_uv_blacklight.xml",
     description: "",
     format: TemplateFormat::AtlaXml,
     id: "atla-uv-blacklight",
@@ -131,6 +131,13 @@ pub const FLUORESCENT_LUMINAIRE: Template = Template {
     id: "fluorescent-luminaire",
 };
 
+pub const DEMO_LED_3000K: Template = Template {
+    name: "Demo LED 3000 K (with spectrum)",
+    description: "White LED downlight with a spectrum: colour quality (TM-30, CRI)",
+    format: TemplateFormat::AtlaXml,
+    id: "demo-led-3000k",
+};
+
 pub const DEMO_TWO_LAMP_SETS: Template = Template {
     name: "demo_two_lamp_sets.ldt",
     description: "Two lamp sets (LED110 + LED120)",
@@ -146,14 +153,14 @@ pub const TM_32_24_ROAD_LUMINAIRE_BIM: Template = Template {
 };
 
 pub const ATLA_FLUORESCENT_JSON: Template = Template {
-    name: "_atla_fluorescent.json",
+    name: "_atla_tm-33-18_fluorescent.json",
     description: "",
     format: TemplateFormat::AtlaJson,
     id: "atla-fluorescent-json",
 };
 
 pub const ATLA_FLUORESCENT_XML: Template = Template {
-    name: "_atla_fluorescent.xml",
+    name: "_atla_tm-33-18_fluorescent.xml",
     description: "",
     format: TemplateFormat::AtlaXml,
     id: "atla-fluorescent-xml",
@@ -500,6 +507,7 @@ pub const ALL_TEMPLATES: &[&Template] = &[
     &FLOOR_UPLIGHT,
     &FLUORESCENT_LUMINAIRE,
     &DEMO_TWO_LAMP_SETS,
+    &DEMO_LED_3000K,
     &TM_32_24_ROAD_LUMINAIRE_BIM,
     &ATLA_FLUORESCENT_JSON,
     &ATLA_FLUORESCENT_XML,

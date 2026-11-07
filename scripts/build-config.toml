@@ -34,12 +34,10 @@ bevy = true
 typst = true
 gmaps = true
 templates = true
-# Skyglow: disabled since the Bevy 0.19 upgrade — `examples/skyglow_demo.rs`
-# still uses `SceneRoot`, which 0.19 replaced with `WorldAssetRoot`, so the
-# bundle no longer compiles. The previously built, content-hashed bundle in
-# dist/skyglow*/ is kept and index.html keeps pointing at it (see
-# scripts/relink-skyglow-loader.sh). Re-enable once the demo is ported.
-skyglow = false
+# Skyglow: ported to Bevy 0.19 (WorldAssetRoot, guarded UI plugins) and
+# re-enabled 2026-11-01 with the Burg Vischering scene (?scene=vischering;
+# needs crates/eulumdat-bevy/assets/Vischering.glb, see the demo source).
+skyglow = true
 # Street designer — lazy-loaded multi-luminaire compliance app
 street = true
 # Greenhouse demo — "Schweinestall → Gewächshaus" spectral daylight + LED showcase (WebGPU only)

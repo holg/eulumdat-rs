@@ -297,6 +297,11 @@ pub fn update_status(
                 line += &format!("  |  spacing {:.1} m", p.spacing);
             }
         }
+        SceneKind::Planned => {
+            if let Some(plan) = p.plan.as_ref() {
+                line += &format!("  |  {}", plan.name);
+            }
+        }
     }
     line += &format!(
         "\n{:.0} K  |  haze {:.0} %  |  glare {}  |  {:+.1} EV  |  {} bounces  |  key {:.0} lx  |  scale {:.0} lx  |  {}/{} spp  |  {} x {}",

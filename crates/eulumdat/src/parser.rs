@@ -73,55 +73,55 @@ impl Parser {
 
         // Line 13: Length/diameter of luminaire (mm)
         let l_line = idx;
-        ldt.length = Self::parse_float(next_line(&mut idx)?, l_line)?;
+        ldt.length = Self::parse_float_or(next_line(&mut idx)?, l_line, 0.0)?;
 
         // Line 14: Width of luminaire (mm), 0 for circular
         let b_line = idx;
-        ldt.width = Self::parse_float(next_line(&mut idx)?, b_line)?;
+        ldt.width = Self::parse_float_or(next_line(&mut idx)?, b_line, 0.0)?;
 
         // Line 15: Height of luminaire (mm)
         let h_line = idx;
-        ldt.height = Self::parse_float(next_line(&mut idx)?, h_line)?;
+        ldt.height = Self::parse_float_or(next_line(&mut idx)?, h_line, 0.0)?;
 
         // Line 16: Length/diameter of luminous area (mm)
         let la_line = idx;
-        ldt.luminous_area_length = Self::parse_float(next_line(&mut idx)?, la_line)?;
+        ldt.luminous_area_length = Self::parse_float_or(next_line(&mut idx)?, la_line, 0.0)?;
 
         // Line 17: Width of luminous area (mm), 0 for circular
         let b1_line = idx;
-        ldt.luminous_area_width = Self::parse_float(next_line(&mut idx)?, b1_line)?;
+        ldt.luminous_area_width = Self::parse_float_or(next_line(&mut idx)?, b1_line, 0.0)?;
 
         // Line 18: Height of luminous area at C0 plane (mm)
         let hc0_line = idx;
-        ldt.height_c0 = Self::parse_float(next_line(&mut idx)?, hc0_line)?;
+        ldt.height_c0 = Self::parse_float_or(next_line(&mut idx)?, hc0_line, 0.0)?;
 
         // Line 19: Height of luminous area at C90 plane (mm)
         let hc90_line = idx;
-        ldt.height_c90 = Self::parse_float(next_line(&mut idx)?, hc90_line)?;
+        ldt.height_c90 = Self::parse_float_or(next_line(&mut idx)?, hc90_line, 0.0)?;
 
         // Line 20: Height of luminous area at C180 plane (mm)
         let hc180_line = idx;
-        ldt.height_c180 = Self::parse_float(next_line(&mut idx)?, hc180_line)?;
+        ldt.height_c180 = Self::parse_float_or(next_line(&mut idx)?, hc180_line, 0.0)?;
 
         // Line 21: Height of luminous area at C270 plane (mm)
         let hc270_line = idx;
-        ldt.height_c270 = Self::parse_float(next_line(&mut idx)?, hc270_line)?;
+        ldt.height_c270 = Self::parse_float_or(next_line(&mut idx)?, hc270_line, 0.0)?;
 
         // Line 22: Downward flux fraction (DFF) %
         let dff_line = idx;
-        ldt.downward_flux_fraction = Self::parse_float(next_line(&mut idx)?, dff_line)?;
+        ldt.downward_flux_fraction = Self::parse_float_or(next_line(&mut idx)?, dff_line, 0.0)?;
 
         // Line 23: Light output ratio of luminaire (LORL) %
         let lorl_line = idx;
-        ldt.light_output_ratio = Self::parse_float(next_line(&mut idx)?, lorl_line)?;
+        ldt.light_output_ratio = Self::parse_float_or(next_line(&mut idx)?, lorl_line, 0.0)?;
 
         // Line 24: Conversion factor for luminous intensities (CFLI)
         let cfli_line = idx;
-        ldt.conversion_factor = Self::parse_float(next_line(&mut idx)?, cfli_line)?;
+        ldt.conversion_factor = Self::parse_float_or(next_line(&mut idx)?, cfli_line, 1.0)?;
 
         // Line 25: Tilt angle during measurement
         let tilt_line = idx;
-        ldt.tilt_angle = Self::parse_float(next_line(&mut idx)?, tilt_line)?;
+        ldt.tilt_angle = Self::parse_float_or(next_line(&mut idx)?, tilt_line, 0.0)?;
 
         // Line 26: Number of standard lamp sets (n, 1-20)
         let n_line = idx;
@@ -140,7 +140,8 @@ impl Parser {
 
             // 26c: Total luminous flux
             let tlf_line = idx;
-            lamp_set.total_luminous_flux = Self::parse_float(next_line(&mut idx)?, tlf_line)?;
+            lamp_set.total_luminous_flux =
+                Self::parse_float_or(next_line(&mut idx)?, tlf_line, 0.0)?;
 
             // 26d: Color appearance
             lamp_set.color_appearance = next_line(&mut idx)?.to_string();
@@ -150,7 +151,8 @@ impl Parser {
 
             // 26f: Wattage including ballast
             let wb_line = idx;
-            lamp_set.wattage_with_ballast = Self::parse_float(next_line(&mut idx)?, wb_line)?;
+            lamp_set.wattage_with_ballast =
+                Self::parse_float_or(next_line(&mut idx)?, wb_line, 0.0)?;
 
             // Store all lamp sets (some files have more than 20)
             ldt.lamp_sets.push(lamp_set);
@@ -159,7 +161,7 @@ impl Parser {
         // Lines 27a-27j: Direct ratios for 10 room indices
         for i in 0..10 {
             let dr_line = idx;
-            ldt.direct_ratios[i] = Self::parse_float(next_line(&mut idx)?, dr_line)?;
+            ldt.direct_ratios[i] = Self::parse_float_or(next_line(&mut idx)?, dr_line, 0.0)?;
         }
 
         // Lines 28: C-plane angles (Nc values) - read ALL C-plane angles first
@@ -186,12 +188,16 @@ impl Parser {
             let mut row = Vec::with_capacity(ldt.num_g_planes);
             for g in 0..ldt.num_g_planes {
                 let i_line = idx;
-                let intensity = Self::parse_float(next_line(&mut idx)?, i_line).map_err(|_| {
-                    parse_error(
-                        i_line,
-                        format!("error reading intensity at C[{}] G[{}]", c, g),
-                    )
-                })?;
+                // An empty line is a missing value (sensor LDTs from Relux Net
+                // leave gaps in the matrix); the format is line based, so
+                // reading it as 0 keeps every following value aligned.
+                let intensity =
+                    Self::parse_float_or(next_line(&mut idx)?, i_line, 0.0).map_err(|_| {
+                        parse_error(
+                            i_line,
+                            format!("error reading intensity at C[{}] G[{}]", c, g),
+                        )
+                    })?;
                 row.push(intensity);
             }
             ldt.intensities.push(row);
@@ -211,6 +217,18 @@ impl Parser {
     fn parse_float(s: &str, line: usize) -> Result<f64> {
         Self::parse_number(s)
             .map_err(|_| parse_error(line, format!("expected number, got '{}'", s)))
+    }
+
+    /// Parse a float, but read an empty (whitespace-only) field as `default`.
+    ///
+    /// Used for value fields (dimensions, ratios, flux, intensities) that
+    /// some exporters leave blank. Structural fields (type, symmetry, plane
+    /// counts and angles) stay strict.
+    fn parse_float_or(s: &str, line: usize, default: f64) -> Result<f64> {
+        if s.trim().is_empty() {
+            return Ok(default);
+        }
+        Self::parse_float(s, line)
     }
 
     /// Parse a number from string, handling European format (comma as decimal separator).
@@ -233,6 +251,14 @@ mod tests {
         assert!((Parser::parse_number("123,45").unwrap() - 123.45).abs() < 0.001);
         assert!((Parser::parse_number("  123.45  ").unwrap() - 123.45).abs() < 0.001);
         assert!((Parser::parse_number("1_000").unwrap() - 1000.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn empty_value_fields_use_defaults() {
+        assert_eq!(Parser::parse_float_or("", 1, 0.0).unwrap(), 0.0);
+        assert_eq!(Parser::parse_float_or("  \r", 1, 1.0).unwrap(), 1.0);
+        assert!((Parser::parse_float_or(" 2,5 ", 1, 0.0).unwrap() - 2.5).abs() < 1e-12);
+        assert!(Parser::parse_float_or("x", 1, 0.0).is_err());
     }
 
     #[test]

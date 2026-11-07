@@ -1,0 +1,105 @@
+{
+    "EN_1838": {
+        "escape_route": {
+            "min_illuminance_center_lx": 1.0,
+            "min_illuminance_band_lx": 0.5,
+            "max_uniformity_ratio": 40.0,
+            "response_time_50pct_sec": 5.0,
+            "response_time_100pct_sec": 60.0,
+            "min_color_rendering_Ra": 40
+        },
+        "anti_panic": {
+            "min_illuminance_lx": 0.5,
+            "edge_exclusion_m": 0.5,
+            "max_uniformity_ratio": 40.0,
+            "response_time_50pct_sec": 5.0,
+            "response_time_100pct_sec": 60.0,
+            "min_color_rendering_Ra": 40
+        },
+        "high_risk_task": {
+            "min_illuminance_pct_of_normal": 10.0,
+            "absolute_min_illuminance_lx": 15.0,
+            "max_uniformity_ratio": 10.0,
+            "response_time_100pct_sec": 0.5,
+            "min_color_rendering_Ra": 40
+        },
+        "points_of_emphasis": {
+            "min_vertical_illuminance_lx": 5.0
+        },
+        "glare_limits_cd": [
+            {
+                "max_height_m": 2.5,
+                "escape_route_cd": 500,
+                "high_risk_cd": 1000
+            },
+            {
+                "max_height_m": 3.0,
+                "escape_route_cd": 900,
+                "high_risk_cd": 1800
+            },
+            {
+                "max_height_m": 3.5,
+                "escape_route_cd": 1600,
+                "high_risk_cd": 3200
+            },
+            {
+                "max_height_m": 4.0,
+                "escape_route_cd": 2500,
+                "high_risk_cd": 5000
+            },
+            {
+                "max_height_m": 4.5,
+                "escape_route_cd": 3500,
+                "high_risk_cd": 7000
+            },
+            {
+                "max_height_m": 999.0,
+                "escape_route_cd": 5000,
+                "high_risk_cd": 10000
+            }
+        ]
+    },
+    "EN_17037": {
+        "daylight_provision_lx": {
+            "minimum": {
+                "target_50pct": 300,
+                "min_target_95pct": 100
+            },
+            "medium": {
+                "target_50pct": 500,
+                "min_target_95pct": 300
+            },
+            "high": {
+                "target_50pct": 750,
+                "min_target_95pct": 500
+            }
+        },
+        "view_out": {
+            "minimum": {
+                "horizontal_sight_angle_deg": 14,
+                "viewing_dist_m": 10,
+                "layers": 1
+            },
+            "medium": {
+                "horizontal_sight_angle_deg": 28,
+                "viewing_dist_m": 20,
+                "layers": 2
+            },
+            "high": {
+                "horizontal_sight_angle_deg": 54,
+                "viewing_dist_m": 50,
+                "layers": 3
+            }
+        },
+        "sunlight_exposure_hrs": {
+            "minimum": 1.5,
+            "medium": 3.0,
+            "high": 4.0
+        },
+        "glare_protection_DGP_limit": {
+            "minimum": 0.45,
+            "medium": 0.4,
+            "high": 0.35
+        }
+    }
+}

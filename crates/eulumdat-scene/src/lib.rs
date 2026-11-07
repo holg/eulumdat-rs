@@ -28,6 +28,7 @@ pub use glam;
 
 pub mod camera;
 pub mod cpu;
+pub mod doc;
 pub mod gpu;
 #[cfg(feature = "l3d")]
 pub mod l3d;
@@ -35,6 +36,7 @@ pub mod measure;
 pub mod mesh;
 pub mod photometry;
 pub mod scene;
+pub mod sensing;
 pub mod sync;
 pub mod viewer;
 

@@ -4186,8 +4186,10 @@ dependencies = [
  "eulumdat-tm25",
  "eulumdat-typst",
  "image",
+ "serde",
  "serde_json",
  "walkdir",
+ "zip 2.6.1",
 ]
 
 [[package]]
@@ -4371,6 +4373,7 @@ dependencies = [
  "glam 0.32.1",
  "l3d_rs",
  "serde",
+ "serde_json",
  "zip 2.6.1",
 ]
 

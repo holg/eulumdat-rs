@@ -1,34 +1,92 @@
-//! IES TM-30-20 Color Rendition Calculation
+//! ANSI/IES TM-30-20 colour rendition (fidelity Rf = CIE 224:2017).
 //!
-//! Implements the TM-30 method for evaluating color rendition of light sources.
-//! Calculates Rf (Fidelity Index), Rg (Gamut Index), and color vector graphics.
+//! From a spectrum: Rf (fidelity), Rg (gamut), the 16 hue-bin values
+//! Rf,hj / Rcs,hj / Rhs,hj and the normalised colour vector graphic.
 //!
-//! Reference: IES TM-30-20 "IES Method for Evaluating Light Source Color Rendition"
+//! Method (CIE 224:2017, TM-30-20):
+//! - spectrum on 380–780 nm at 5 nm, zero outside the measured range;
+//! - CCT / Duv with the CIE 1931 2° observer (`colour_common::cct_duv`);
+//! - reference: Planckian below 4000 K, CIE daylight above 5000 K, a blend
+//!   of both (each normalised to Y = 1) in between;
+//! - 99 colour evaluation samples, CIE 1964 10° observer, CIECAM02 with
+//!   L_A = 100 cd/m², Y_b = 20, average surround, complete adaptation;
+//!   CAM02-UCS J′a′b′;
+//! - Rf = 10·ln(1 + exp((100 − 6.73·ΔE)/10)) on the mean ΔE (and per sample /
+//!   per bin);
+//! - 16 hue bins of 22.5° from the reference hue angle; Rg from the areas of
+//!   the bin-average polygons; Rcs,hj / Rhs,hj are the radial / tangential
+//!   shift of the bin average (bin-centre direction) over the reference
+//!   chroma.
+//!
+//! The implementation is our own; its results are compared with an
+//! independent implementation (colour-science) in the tests.
 
+use super::cie_tables::N;
+use super::colour_common::{
+    covers_visible, daylight, measured_cct_duv, planck, resample, tristimulus, Grid, OBSERVER_10,
+    OBSERVER_2,
+};
 use crate::atla::types::SpectralDistribution;
 
-/// TM-30 calculation results
-#[derive(Debug, Clone)]
-pub struct Tm30Result {
-    /// Fidelity Index (0-100, similar to CRI Ra)
-    pub rf: f64,
-    /// Gamut Index (typically 60-140, 100 = reference)
-    pub rg: f64,
-    /// Correlated Color Temperature (K)
-    pub cct: f64,
-    /// Duv (distance from Planckian locus)
-    pub duv: f64,
-    /// Per-hue fidelity values (16 hue bins)
-    pub rf_hue: [f64; 16],
-    /// Per-hue chroma shift (16 hue bins, positive = more saturated)
-    pub rcs_hue: [f64; 16],
-    /// Per-hue hue shift in degrees (16 hue bins)
-    pub rhs_hue: [f64; 16],
-    /// Color vector data for graphic (16 bins: test a', b' and ref a', b')
-    pub color_vectors: [(f64, f64, f64, f64); 16],
+/// Number of TM-30 colour evaluation samples.
+pub const NUM_CES: usize = 99;
+/// Number of hue bins.
+pub const NUM_BINS: usize = 16;
+
+/// The standard TM-30 hue-bin colours (bins 1–16), used for the vector
+/// graphic and the per-bin charts.
+pub const TM30_BIN_COLOURS: [&str; NUM_BINS] = [
+    "#E62828", "#E74B4B", "#FB812E", "#FFB529", "#CBCA46", "#7EB94C", "#41C06D", "#009C7C",
+    "#16BCB0", "#00A4BF", "#0085C3", "#3B62AA", "#4568AE", "#6A4E85", "#9D69A1", "#A74F81",
+];
+
+/// Reference illuminant the test source is compared with.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Tm30Reference {
+    /// Planckian radiator (CCT < 4000 K).
+    Planckian,
+    /// CIE daylight (CCT > 5000 K).
+    Daylight,
+    /// Blend for 4000–5000 K; `daylight_share` = (CCT − 4000) / 1000.
+    Blend { daylight_share: f64 },
 }
 
-/// Theme for TM-30 color vector graphic
+/// TM-30 calculation results.
+#[derive(Debug, Clone)]
+pub struct Tm30Result {
+    /// Fidelity index Rf (0–100).
+    pub rf: f64,
+    /// Gamut index Rg (100 = same average saturation as the reference).
+    pub rg: f64,
+    /// Correlated colour temperature (K), CIE 1931 2° observer.
+    pub cct: f64,
+    /// Distance from the Planckian locus in CIE 1960 uv (positive = above).
+    pub duv: f64,
+    /// Local fidelity Rf,hj per hue bin.
+    pub rf_hue: [f64; NUM_BINS],
+    /// Local chroma shift Rcs,hj per hue bin, in percent (+ = more saturated).
+    pub rcs_hue: [f64; NUM_BINS],
+    /// Local hue shift Rhs,hj per hue bin (radians, as in TM-30).
+    pub rhs_hue: [f64; NUM_BINS],
+    /// Bin averages in CAM02-UCS: (test a′, test b′, reference a′, reference b′).
+    pub color_vectors: [(f64, f64, f64, f64); NUM_BINS],
+    /// Mean reference hue angle of the samples in each bin (degrees).
+    pub ref_hue_deg: [f64; NUM_BINS],
+    /// Fidelity of each colour evaluation sample, Rf,CES1…CES99.
+    pub rf_ces: Vec<f64>,
+    /// Reference illuminant used.
+    pub reference: Tm30Reference,
+}
+
+/// One bin of the normalised colour vector graphic: the reference point on
+/// the unit circle and the test point.
+#[derive(Debug, Clone, Copy)]
+pub struct CvgPoint {
+    pub reference: (f64, f64),
+    pub test: (f64, f64),
+}
+
+/// Theme for the TM-30 graphics.
 #[derive(Debug, Clone)]
 pub struct Tm30Theme {
     pub background: String,
@@ -49,439 +107,310 @@ impl Tm30Theme {
     pub fn light() -> Self {
         Self {
             background: "#ffffff".to_string(),
-            foreground: "#333333".to_string(),
-            grid_color: "#e0e0e0".to_string(),
-            reference_color: "#999999".to_string(),
-            test_color: "#e74c3c".to_string(),
-            font_family: "system-ui, sans-serif".to_string(),
+            foreground: "#1f2937".to_string(),
+            grid_color: "#d1d5db".to_string(),
+            reference_color: "#6b7280".to_string(),
+            test_color: "#c2410c".to_string(),
+            font_family: "system-ui, -apple-system, sans-serif".to_string(),
         }
     }
 
     pub fn dark() -> Self {
         Self {
-            background: "#1a1a2e".to_string(),
-            foreground: "#e0e0e0".to_string(),
-            grid_color: "#333355".to_string(),
-            reference_color: "#666666".to_string(),
-            test_color: "#e74c3c".to_string(),
-            font_family: "system-ui, sans-serif".to_string(),
+            background: "#111827".to_string(),
+            foreground: "#e5e7eb".to_string(),
+            grid_color: "#374151".to_string(),
+            reference_color: "#9ca3af".to_string(),
+            test_color: "#fb923c".to_string(),
+            font_family: "system-ui, -apple-system, sans-serif".to_string(),
         }
     }
 }
 
-// ============================================================================
-// CIE 1931 2° Standard Observer Color Matching Functions
-// Wavelength range: 380-780nm at 5nm intervals (81 values)
-// ============================================================================
-
-/// CIE 1931 2° x̄(λ) color matching function
-const CIE_X: [f64; 81] = [
-    0.001368, 0.002236, 0.004243, 0.007650, 0.014310, 0.023190, 0.043510, 0.077630, 0.134380,
-    0.214770, 0.283900, 0.328500, 0.348280, 0.348060, 0.336200, 0.318700, 0.290800, 0.251100,
-    0.195360, 0.142100, 0.095640, 0.058010, 0.032010, 0.014700, 0.004900, 0.002400, 0.009300,
-    0.029100, 0.063270, 0.109600, 0.165500, 0.225750, 0.290400, 0.359700, 0.433450, 0.512050,
-    0.594500, 0.678400, 0.762100, 0.842500, 0.916300, 0.978600, 1.026300, 1.056700, 1.062200,
-    1.045600, 1.002600, 0.938400, 0.854450, 0.751400, 0.642400, 0.541900, 0.447900, 0.360800,
-    0.283500, 0.218700, 0.164900, 0.121200, 0.087400, 0.063600, 0.046770, 0.032900, 0.022700,
-    0.015840, 0.011359, 0.008111, 0.005790, 0.004109, 0.002899, 0.002049, 0.001440, 0.001000,
-    0.000690, 0.000476, 0.000332, 0.000235, 0.000166, 0.000117, 0.000083, 0.000059, 0.000042,
-];
-
-/// CIE 1931 2° ȳ(λ) color matching function
-const CIE_Y: [f64; 81] = [
-    0.000039, 0.000064, 0.000120, 0.000217, 0.000396, 0.000640, 0.001210, 0.002180, 0.004000,
-    0.007300, 0.011600, 0.016840, 0.023000, 0.029800, 0.038000, 0.048000, 0.060000, 0.073900,
-    0.090980, 0.112600, 0.139020, 0.169300, 0.208020, 0.258600, 0.323000, 0.407300, 0.503000,
-    0.608200, 0.710000, 0.793200, 0.862000, 0.914850, 0.954000, 0.980300, 0.994950, 1.000000,
-    0.995000, 0.978600, 0.952000, 0.915400, 0.870000, 0.816300, 0.757000, 0.694900, 0.631000,
-    0.566800, 0.503000, 0.441200, 0.381000, 0.321000, 0.265000, 0.217000, 0.175000, 0.138200,
-    0.107000, 0.081600, 0.061000, 0.044580, 0.032000, 0.023200, 0.017000, 0.011920, 0.008210,
-    0.005723, 0.004102, 0.002929, 0.002091, 0.001484, 0.001047, 0.000740, 0.000520, 0.000361,
-    0.000249, 0.000172, 0.000120, 0.000085, 0.000060, 0.000042, 0.000030, 0.000021, 0.000015,
-];
-
-/// CIE 1931 2° z̄(λ) color matching function
-const CIE_Z: [f64; 81] = [
-    0.006450, 0.010550, 0.020050, 0.036210, 0.067850, 0.110200, 0.207400, 0.371300, 0.645600,
-    1.039050, 1.385600, 1.622960, 1.747060, 1.782600, 1.772110, 1.744100, 1.669200, 1.528100,
-    1.287640, 1.041900, 0.812950, 0.616200, 0.465180, 0.353300, 0.272000, 0.212300, 0.158200,
-    0.111700, 0.078250, 0.057250, 0.042160, 0.029840, 0.020300, 0.013400, 0.008750, 0.005750,
-    0.003900, 0.002750, 0.002100, 0.001800, 0.001650, 0.001400, 0.001100, 0.001000, 0.000800,
-    0.000600, 0.000340, 0.000240, 0.000190, 0.000100, 0.000050, 0.000030, 0.000020, 0.000010,
-    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-    0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
-];
-
-/// Wavelengths for CMF data (380-780nm at 5nm)
-const WAVELENGTHS: [f64; 81] = [
-    380.0, 385.0, 390.0, 395.0, 400.0, 405.0, 410.0, 415.0, 420.0, 425.0, 430.0, 435.0, 440.0,
-    445.0, 450.0, 455.0, 460.0, 465.0, 470.0, 475.0, 480.0, 485.0, 490.0, 495.0, 500.0, 505.0,
-    510.0, 515.0, 520.0, 525.0, 530.0, 535.0, 540.0, 545.0, 550.0, 555.0, 560.0, 565.0, 570.0,
-    575.0, 580.0, 585.0, 590.0, 595.0, 600.0, 605.0, 610.0, 615.0, 620.0, 625.0, 630.0, 635.0,
-    640.0, 645.0, 650.0, 655.0, 660.0, 665.0, 670.0, 675.0, 680.0, 685.0, 690.0, 695.0, 700.0,
-    705.0, 710.0, 715.0, 720.0, 725.0, 730.0, 735.0, 740.0, 745.0, 750.0, 755.0, 760.0, 765.0,
-    770.0, 775.0, 780.0,
-];
-
-// ============================================================================
-// TM-30 Color Evaluation Samples (CES) - Full 99 Samples
-// Data from IES TM-30-20 via colour-science library
-// Wavelength range: 380-780nm at 5nm intervals (81 values per sample)
-// ============================================================================
-
-/// Number of CES samples (full TM-30 set)
-const NUM_CES: usize = 99;
-
-// Include the full CES reflectance data from external file
-// These are measured reflectance values that happen to be close to mathematical constants
+// TM-30 colour evaluation samples (99 reflectances, 380–780 nm at 5 nm).
 #[allow(clippy::approx_constant)]
 mod ces_data {
     include!("tm30_ces_data.rs");
 }
-use ces_data::*;
+use ces_data::CES_REFLECTANCE;
 
 // ============================================================================
-// Core Calculation Functions
+// CIECAM02 → CAM02-UCS (viewing conditions of CIE 224:2017)
 // ============================================================================
 
-/// Calculate XYZ tristimulus values from SPD
-fn spd_to_xyz(spd: &SpectralDistribution) -> (f64, f64, f64) {
-    let mut x = 0.0;
-    let mut y = 0.0;
-    let mut z = 0.0;
+const M_CAT02: [[f64; 3]; 3] = [
+    [0.7328, 0.4296, -0.1624],
+    [-0.7036, 1.6975, 0.0061],
+    [0.0030, 0.0136, 0.9834],
+];
+const M_HPE: [[f64; 3]; 3] = [
+    [0.38971, 0.68898, -0.07868],
+    [-0.22981, 1.18340, 0.04641],
+    [0.0, 0.0, 1.0],
+];
+const L_A: f64 = 100.0;
+const Y_B: f64 = 20.0;
+const SURROUND_C: f64 = 0.69;
+const SURROUND_NC: f64 = 1.0;
 
-    // Interpolate SPD to standard wavelengths
-    for (i, &wl) in WAVELENGTHS.iter().enumerate() {
-        let spd_val = interpolate_spd(spd, wl);
-        x += spd_val * CIE_X[i];
-        y += spd_val * CIE_Y[i];
-        z += spd_val * CIE_Z[i];
-    }
-
-    // Normalize
-    let k = 100.0 / y.max(0.001);
-    (x * k, 100.0, z * k)
+fn mat_vec(m: &[[f64; 3]; 3], v: [f64; 3]) -> [f64; 3] {
+    [
+        m[0][0] * v[0] + m[0][1] * v[1] + m[0][2] * v[2],
+        m[1][0] * v[0] + m[1][1] * v[1] + m[1][2] * v[2],
+        m[2][0] * v[0] + m[2][1] * v[1] + m[2][2] * v[2],
+    ]
 }
 
-/// Interpolate SPD value at given wavelength
-fn interpolate_spd(spd: &SpectralDistribution, wavelength: f64) -> f64 {
-    if spd.wavelengths.is_empty() || spd.values.is_empty() {
+fn mat_mul(a: &[[f64; 3]; 3], b: &[[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    let mut r = [[0.0; 3]; 3];
+    for i in 0..3 {
+        for j in 0..3 {
+            r[i][j] = (0..3).map(|k| a[i][k] * b[k][j]).sum();
+        }
+    }
+    r
+}
+
+fn mat_inv(m: &[[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    let det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+        - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+        + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+    let inv = 1.0 / det;
+    [
+        [
+            (m[1][1] * m[2][2] - m[1][2] * m[2][1]) * inv,
+            (m[0][2] * m[2][1] - m[0][1] * m[2][2]) * inv,
+            (m[0][1] * m[1][2] - m[0][2] * m[1][1]) * inv,
+        ],
+        [
+            (m[1][2] * m[2][0] - m[1][0] * m[2][2]) * inv,
+            (m[0][0] * m[2][2] - m[0][2] * m[2][0]) * inv,
+            (m[0][2] * m[1][0] - m[0][0] * m[1][2]) * inv,
+        ],
+        [
+            (m[1][0] * m[2][1] - m[1][1] * m[2][0]) * inv,
+            (m[0][1] * m[2][0] - m[0][0] * m[2][1]) * inv,
+            (m[0][0] * m[1][1] - m[0][1] * m[1][0]) * inv,
+        ],
+    ]
+}
+
+/// Signed power, as used by CIECAM02 for (rare) negative responses.
+fn spow(x: f64, p: f64) -> f64 {
+    x.signum() * x.abs().powf(p)
+}
+
+/// Viewing-condition dependent quantities for one adopted white.
+struct Cam02 {
+    d_rgb: [f64; 3],
+    to_hpe: [[f64; 3]; 3],
+    f_l: f64,
+    n: f64,
+    z: f64,
+    n_bb: f64,
+    a_w: f64,
+}
+
+impl Cam02 {
+    fn new(xyz_w: [f64; 3]) -> Self {
+        let y_w = xyz_w[1];
+        let k = 1.0 / (5.0 * L_A + 1.0);
+        let k4 = k.powi(4);
+        let f_l = 0.2 * k4 * (5.0 * L_A) + 0.1 * (1.0 - k4).powi(2) * (5.0 * L_A).powf(1.0 / 3.0);
+        let n = Y_B / y_w;
+        let n_bb = 0.725 * (1.0 / n).powf(0.2);
+        let z = 1.48 + n.sqrt();
+        let rgb_w = mat_vec(&M_CAT02, xyz_w);
+        // Complete adaptation (D = 1, "discount the illuminant").
+        let d_rgb = [y_w / rgb_w[0], y_w / rgb_w[1], y_w / rgb_w[2]];
+        let to_hpe = mat_mul(&M_HPE, &mat_inv(&M_CAT02));
+        let mut me = Self {
+            d_rgb,
+            to_hpe,
+            f_l,
+            n,
+            z,
+            n_bb,
+            a_w: 1.0,
+        };
+        let rgb_aw = me.compressed(xyz_w);
+        me.a_w = (2.0 * rgb_aw[0] + rgb_aw[1] + rgb_aw[2] / 20.0 - 0.305) * n_bb;
+        me
+    }
+
+    /// Post-adaptation, compressed cone responses R′a G′a B′a.
+    fn compressed(&self, xyz: [f64; 3]) -> [f64; 3] {
+        let rgb = mat_vec(&M_CAT02, xyz);
+        let rgb_c = [
+            self.d_rgb[0] * rgb[0],
+            self.d_rgb[1] * rgb[1],
+            self.d_rgb[2] * rgb[2],
+        ];
+        let rgb_p = mat_vec(&self.to_hpe, rgb_c);
+        rgb_p.map(|x| {
+            let q = (self.f_l * x.abs() / 100.0).powf(0.42);
+            400.0 * x.signum() * q / (27.13 + q) + 0.1
+        })
+    }
+
+    /// CAM02-UCS J′, a′, b′ and the CIECAM02 hue angle h (degrees).
+    fn ucs(&self, xyz: [f64; 3]) -> (f64, f64, f64, f64) {
+        let [ra, ga, ba] = self.compressed(xyz);
+        let a = ra - 12.0 * ga / 11.0 + ba / 11.0;
+        let b = (ra + ga - 2.0 * ba) / 9.0;
+        let h = b.atan2(a).to_degrees().rem_euclid(360.0);
+        let e_t = 0.25 * ((h.to_radians() + 2.0).cos() + 3.8);
+        let a_resp = (2.0 * ra + ga + ba / 20.0 - 0.305) * self.n_bb;
+        let j = 100.0 * spow(a_resp / self.a_w, SURROUND_C * self.z);
+        let denom = ra + ga + 21.0 * ba / 20.0;
+        let t = if denom.abs() > 1e-30 {
+            (50000.0 / 13.0) * SURROUND_NC * self.n_bb * e_t * (a * a + b * b).sqrt() / denom
+        } else {
+            0.0
+        };
+        let c = spow(t, 0.9) * spow(j / 100.0, 0.5) * (1.64 - 0.29f64.powf(self.n)).powf(0.73);
+        let m = c * self.f_l.powf(0.25);
+        let jp = 1.7 * j / (1.0 + 0.007 * j);
+        let mp = (1.0 + 0.0228 * m).ln() / 0.0228;
+        let hr = h.to_radians();
+        (jp, mp * hr.cos(), mp * hr.sin(), h)
+    }
+}
+
+/// ΔE → fidelity, CIE 224:2017.
+fn delta_e_to_rf(de: f64) -> f64 {
+    10.0 * ((100.0 - 6.73 * de) / 10.0).exp().ln_1p()
+}
+
+/// TM-30 / CIE 224 reference illuminant for a CCT.
+fn reference_illuminant(cct: f64) -> (Grid, Tm30Reference) {
+    let norm_y = |s: Grid| {
+        let y = tristimulus(&s, None, &OBSERVER_2)[1];
+        if y > 0.0 {
+            s.map(|v| v / y)
+        } else {
+            s
+        }
+    };
+    if cct < 4000.0 {
+        (planck(cct), Tm30Reference::Planckian)
+    } else if cct <= 5000.0 {
+        let p = norm_y(planck(cct));
+        let d = norm_y(daylight(cct));
+        let m = (cct - 4000.0) / 1000.0;
+        let mut s = [0.0; N];
+        for i in 0..N {
+            s[i] = (1.0 - m) * p[i] + m * d[i];
+        }
+        (s, Tm30Reference::Blend { daylight_share: m })
+    } else {
+        (daylight(cct), Tm30Reference::Daylight)
+    }
+}
+
+/// J′a′b′ and hue of all 99 samples under an illuminant (10° observer,
+/// illuminant normalised to Y = 100).
+fn sample_colours(s: &Grid) -> Vec<(f64, f64, f64, f64)> {
+    let w = tristimulus(s, None, &OBSERVER_10);
+    let k = 100.0 / w[1];
+    let xyz_w = w.map(|v| v * k);
+    let cam = Cam02::new(xyz_w);
+    CES_REFLECTANCE
+        .iter()
+        .map(|refl| {
+            let xyz = tristimulus(s, Some(*refl), &OBSERVER_10).map(|v| v * k);
+            cam.ucs(xyz)
+        })
+        .collect()
+}
+
+fn polygon_area(points: &[(f64, f64)]) -> f64 {
+    let n = points.len();
+    if n < 3 {
         return 0.0;
     }
-
-    // Find surrounding wavelengths
-    let wls = &spd.wavelengths;
-    let vals = &spd.values;
-
-    if wavelength <= wls[0] {
-        return vals[0];
+    let mut area = 0.0;
+    for i in 0..n {
+        let j = (i + 1) % n;
+        area += points[i].0 * points[j].1 - points[j].0 * points[i].1;
     }
-    if wavelength >= wls[wls.len() - 1] {
-        return vals[vals.len() - 1];
-    }
-
-    // Linear interpolation
-    for i in 0..wls.len() - 1 {
-        if wavelength >= wls[i] && wavelength <= wls[i + 1] {
-            let t = (wavelength - wls[i]) / (wls[i + 1] - wls[i]);
-            return vals[i] + t * (vals[i + 1] - vals[i]);
-        }
-    }
-
-    vals[0]
+    (area / 2.0).abs()
 }
 
-/// Calculate CCT from chromaticity coordinates using McCamy's approximation
-fn xyz_to_cct(x: f64, y: f64, _z: f64) -> (f64, f64) {
-    // Convert to chromaticity coordinates
-    let sum = x + y + _z;
-    let xc = x / sum;
-    let yc = y / sum;
-
-    // McCamy's formula
-    let n = (xc - 0.3320) / (0.1858 - yc);
-    let cct = 449.0 * n.powi(3) + 3525.0 * n.powi(2) + 6823.3 * n + 5520.33;
-
-    // Calculate Duv (distance from Planckian locus)
-    // Simplified approximation
-    let duv = (yc - (-0.0114 * n.powi(3) + 0.0660 * n.powi(2) - 0.1329 * n + 0.3808)) * 1000.0;
-
-    (cct.clamp(1000.0, 20000.0), duv)
-}
-
-/// Generate Planckian (blackbody) radiator SPD at given CCT
-fn planckian_spd(cct: f64) -> SpectralDistribution {
-    let c1 = 3.74183e-16; // W⋅m²
-    let c2 = 1.4388e-2; // m⋅K
-
-    let wavelengths: Vec<f64> = WAVELENGTHS.to_vec();
-    let values: Vec<f64> = wavelengths
-        .iter()
-        .map(|&wl| {
-            let wl_m = wl * 1e-9; // Convert nm to m
-            c1 / (wl_m.powi(5) * ((c2 / (wl_m * cct)).exp() - 1.0))
-        })
-        .collect();
-
-    // Normalize
-    let max_val = values.iter().cloned().fold(0.0_f64, f64::max);
-    let normalized: Vec<f64> = values.iter().map(|v| v / max_val).collect();
-
-    SpectralDistribution {
-        wavelengths,
-        values: normalized,
-        units: crate::atla::types::SpectralUnits::Relative,
-        start_wavelength: None,
-        wavelength_interval: None,
-    }
-}
-
-/// Generate CIE D-series illuminant SPD at given CCT
-fn d_series_spd(cct: f64) -> SpectralDistribution {
-    // D-series chromaticity
-    let xd = if cct <= 7000.0 {
-        -4.6070e9 / cct.powi(3) + 2.9678e6 / cct.powi(2) + 0.09911e3 / cct + 0.244063
-    } else {
-        -2.0064e9 / cct.powi(3) + 1.9018e6 / cct.powi(2) + 0.24748e3 / cct + 0.237040
-    };
-    let _yd = -3.0 * xd.powi(2) + 2.87 * xd - 0.275;
-
-    // Simplified D-series - use Planckian as approximation
-    // (Full D-series requires S0, S1, S2 basis functions)
-    planckian_spd(cct)
-}
-
-/// Calculate color appearance under illuminant for a CES sample
-fn calculate_ces_color(spd: &SpectralDistribution, ces_idx: usize) -> (f64, f64, f64) {
-    let mut x = 0.0;
-    let mut y = 0.0;
-    let mut z = 0.0;
-
-    // Get the reflectance data for this CES sample
-    let ces_refl = CES_REFLECTANCE[ces_idx];
-
-    for (i, &wl) in WAVELENGTHS.iter().enumerate() {
-        let spd_val = interpolate_spd(spd, wl);
-        let refl = ces_refl[i];
-        let stimulus = spd_val * refl;
-
-        x += stimulus * CIE_X[i];
-        y += stimulus * CIE_Y[i];
-        z += stimulus * CIE_Z[i];
-    }
-
-    // Normalize
-    let k = 100.0 / y.max(0.001);
-    (x * k, 100.0, z * k)
-}
-
-/// Convert XYZ to CAM02-UCS (J', a', b')
-/// Simplified version - full CAM02 is complex
-fn xyz_to_cam02_ucs(
-    x: f64,
-    y: f64,
-    z: f64,
-    white_x: f64,
-    white_y: f64,
-    white_z: f64,
-) -> (f64, f64, f64) {
-    // Simplified CIELAB-like transform for TM-30 approximation
-    // Full CAM02 would require viewing conditions
-
-    // Reference white
-    let xn = white_x;
-    let yn = white_y;
-    let zn = white_z;
-
-    // Lab-like calculation
-    let fx = lab_f(x / xn);
-    let fy = lab_f(y / yn);
-    let fz = lab_f(z / zn);
-
-    let l_star = 116.0 * fy - 16.0;
-    let a_star = 500.0 * (fx - fy);
-    let b_star = 200.0 * (fy - fz);
-
-    // Convert to CAM02-UCS-like coordinates
-    // J' ≈ L*, a' ≈ a*, b' ≈ b* (simplified)
-    (l_star, a_star, b_star)
-}
-
-fn lab_f(t: f64) -> f64 {
-    let delta: f64 = 6.0 / 29.0;
-    if t > delta.powi(3) {
-        t.powf(1.0 / 3.0)
-    } else {
-        t / (3.0 * delta.powi(2)) + 4.0 / 29.0
-    }
-}
-
-/// Calculate color difference in CAM02-UCS
-fn color_difference(j1: f64, a1: f64, b1: f64, j2: f64, a2: f64, b2: f64) -> f64 {
-    ((j1 - j2).powi(2) + (a1 - a2).powi(2) + (b1 - b2).powi(2)).sqrt()
-}
-
-// ============================================================================
-// Main TM-30 Calculation
-// ============================================================================
-
-/// Calculate TM-30 metrics from spectral distribution
+/// Calculate the TM-30 metrics of a spectrum.
 ///
-/// Returns None if spectral data is insufficient
+/// Returns `None` when the spectrum does not cover at least 400–700 nm.
 pub fn calculate_tm30(spd: &SpectralDistribution) -> Option<Tm30Result> {
-    // Need at least 380-780nm coverage
-    if spd.wavelengths.is_empty() || spd.values.is_empty() {
+    if !covers_visible(spd) {
         return None;
     }
-
-    let min_wl = spd.wavelengths.iter().cloned().fold(f64::MAX, f64::min);
-    let max_wl = spd.wavelengths.iter().cloned().fold(f64::MIN, f64::max);
-
-    if min_wl > 400.0 || max_wl < 700.0 {
+    let test = resample(spd);
+    let (cct, duv) = measured_cct_duv(spd);
+    if !cct.is_finite() {
         return None;
     }
+    let (reference, ref_kind) = reference_illuminant(cct);
 
-    // Calculate test source XYZ and CCT
-    let (test_x, test_y, test_z) = spd_to_xyz(spd);
-    let (cct, duv) = xyz_to_cct(test_x, test_y, test_z);
+    let t = sample_colours(&test);
+    let r = sample_colours(&reference);
 
-    // Generate reference illuminant
-    let ref_spd = if cct < 5000.0 {
-        planckian_spd(cct)
-    } else {
-        d_series_spd(cct)
-    };
-    let (ref_x, ref_y, ref_z) = spd_to_xyz(&ref_spd);
-
-    // Storage for all 99 CES calculations
-    struct CesResult {
-        #[allow(dead_code)]
-        test_j: f64,
-        test_a: f64,
-        test_b: f64,
-        #[allow(dead_code)]
-        ref_j: f64,
-        ref_a: f64,
-        ref_b: f64,
-        delta_e: f64,
-        ref_hue: f64, // Hue angle under reference (for binning)
-    }
-
-    let mut ces_results: Vec<CesResult> = Vec::with_capacity(NUM_CES);
-    let mut delta_e_sum = 0.0;
-
-    // Calculate colors for all 99 CES samples
+    let mut de = [0.0; NUM_CES];
     for i in 0..NUM_CES {
-        // Test source
-        let (test_ces_x, test_ces_y, test_ces_z) = calculate_ces_color(spd, i);
-        let (test_j, test_a, test_b) =
-            xyz_to_cam02_ucs(test_ces_x, test_ces_y, test_ces_z, test_x, test_y, test_z);
+        de[i] = ((t[i].0 - r[i].0).powi(2) + (t[i].1 - r[i].1).powi(2) + (t[i].2 - r[i].2).powi(2))
+            .sqrt();
+    }
+    let mean_de = de.iter().sum::<f64>() / NUM_CES as f64;
+    let rf = delta_e_to_rf(mean_de);
+    let rf_ces: Vec<f64> = de.iter().map(|&d| delta_e_to_rf(d)).collect();
 
-        // Reference source
-        let (ref_ces_x, ref_ces_y, ref_ces_z) = calculate_ces_color(&ref_spd, i);
-        let (ref_j, ref_a, ref_b) =
-            xyz_to_cam02_ucs(ref_ces_x, ref_ces_y, ref_ces_z, ref_x, ref_y, ref_z);
-
-        // Color difference
-        let de = color_difference(test_j, test_a, test_b, ref_j, ref_a, ref_b);
-        delta_e_sum += de;
-
-        // Hue angle under reference illuminant (for binning)
-        let ref_hue = ref_b.atan2(ref_a).to_degrees();
-
-        ces_results.push(CesResult {
-            test_j,
-            test_a,
-            test_b,
-            ref_j,
-            ref_a,
-            ref_b,
-            delta_e: de,
-            ref_hue,
-        });
+    // Hue bins from the reference hue angle.
+    let mut count = [0usize; NUM_BINS];
+    let mut sum_t = [(0.0, 0.0); NUM_BINS];
+    let mut sum_r = [(0.0, 0.0); NUM_BINS];
+    let mut sum_de = [0.0; NUM_BINS];
+    let mut sum_h = [0.0; NUM_BINS];
+    for i in 0..NUM_CES {
+        let bin = ((r[i].3 / 22.5).floor() as usize).min(NUM_BINS - 1);
+        count[bin] += 1;
+        sum_t[bin].0 += t[i].1;
+        sum_t[bin].1 += t[i].2;
+        sum_r[bin].0 += r[i].1;
+        sum_r[bin].1 += r[i].2;
+        sum_de[bin] += de[i];
+        sum_h[bin] += r[i].3;
     }
 
-    // Bin samples into 16 hue bins (22.5° each, starting at -11.25°)
-    let mut rf_hue = [0.0_f64; 16];
-    let mut rcs_hue = [0.0_f64; 16];
-    let mut rhs_hue = [0.0_f64; 16];
-    let mut color_vectors = [(0.0, 0.0, 0.0, 0.0); 16];
-    let mut bin_counts = [0usize; 16];
-    let mut bin_test_a_sum = [0.0_f64; 16];
-    let mut bin_test_b_sum = [0.0_f64; 16];
-    let mut bin_ref_a_sum = [0.0_f64; 16];
-    let mut bin_ref_b_sum = [0.0_f64; 16];
-
-    for ces in &ces_results {
-        // Determine hue bin (0-15)
-        // Bin 0 covers -11.25° to 11.25°, bin 1 covers 11.25° to 33.75°, etc.
-        let mut hue = ces.ref_hue;
-        if hue < 0.0 {
-            hue += 360.0;
+    let mut rf_hue = [0.0; NUM_BINS];
+    let mut rcs_hue = [0.0; NUM_BINS];
+    let mut rhs_hue = [0.0; NUM_BINS];
+    let mut color_vectors = [(0.0, 0.0, 0.0, 0.0); NUM_BINS];
+    let mut ref_hue_deg = [0.0; NUM_BINS];
+    let mut poly_t = Vec::with_capacity(NUM_BINS);
+    let mut poly_r = Vec::with_capacity(NUM_BINS);
+    for j in 0..NUM_BINS {
+        let centre = (22.5 * j as f64 + 11.25).to_radians();
+        if count[j] == 0 {
+            // Not reachable with the 99 CES; keep the graphic well-defined.
+            ref_hue_deg[j] = centre.to_degrees();
+            rf_hue[j] = 100.0;
+            continue;
         }
-        let bin_idx = (((hue + 11.25) / 22.5) as usize) % 16;
-
-        // Per-sample Rf
-        let sample_rf = (100.0 - 7.54 * ces.delta_e).max(0.0);
-        rf_hue[bin_idx] += sample_rf;
-
-        // Chroma shift
-        let test_c = (ces.test_a.powi(2) + ces.test_b.powi(2)).sqrt();
-        let ref_c = (ces.ref_a.powi(2) + ces.ref_b.powi(2)).sqrt();
-        let rcs = (test_c - ref_c) / ref_c.max(1.0) * 100.0;
-        rcs_hue[bin_idx] += rcs;
-
-        // Hue shift (in degrees)
-        let test_h = ces.test_b.atan2(ces.test_a).to_degrees();
-        let ref_h = ces.ref_b.atan2(ces.ref_a).to_degrees();
-        let mut dh = test_h - ref_h;
-        if dh > 180.0 {
-            dh -= 360.0;
-        }
-        if dh < -180.0 {
-            dh += 360.0;
-        }
-        rhs_hue[bin_idx] += dh;
-
-        // Accumulate for color vector centroid
-        bin_test_a_sum[bin_idx] += ces.test_a;
-        bin_test_b_sum[bin_idx] += ces.test_b;
-        bin_ref_a_sum[bin_idx] += ces.ref_a;
-        bin_ref_b_sum[bin_idx] += ces.ref_b;
-        bin_counts[bin_idx] += 1;
+        let c = count[j] as f64;
+        let (ta, tb) = (sum_t[j].0 / c, sum_t[j].1 / c);
+        let (ra, rb) = (sum_r[j].0 / c, sum_r[j].1 / c);
+        color_vectors[j] = (ta, tb, ra, rb);
+        poly_t.push((ta, tb));
+        poly_r.push((ra, rb));
+        ref_hue_deg[j] = sum_h[j] / c;
+        rf_hue[j] = delta_e_to_rf(sum_de[j] / c);
+        let norm = (ra * ra + rb * rb).sqrt().max(1e-12);
+        let (da, db) = (ta - ra, tb - rb);
+        rcs_hue[j] = 100.0 * (da * centre.cos() + db * centre.sin()) / norm;
+        rhs_hue[j] = (-da * centre.sin() + db * centre.cos()) / norm;
     }
-
-    // Average metrics per bin and compute color vectors
-    let mut test_gamut_points = Vec::with_capacity(16);
-    let mut ref_gamut_points = Vec::with_capacity(16);
-
-    for i in 0..16 {
-        let count = bin_counts[i].max(1) as f64;
-        rf_hue[i] /= count;
-        rcs_hue[i] /= count;
-        rhs_hue[i] /= count;
-
-        // Color vector is the centroid of samples in this bin
-        let test_a = bin_test_a_sum[i] / count;
-        let test_b = bin_test_b_sum[i] / count;
-        let ref_a = bin_ref_a_sum[i] / count;
-        let ref_b = bin_ref_b_sum[i] / count;
-        color_vectors[i] = (test_a, test_b, ref_a, ref_b);
-
-        test_gamut_points.push((test_a, test_b));
-        ref_gamut_points.push((ref_a, ref_b));
-    }
-
-    // Calculate Rf (fidelity index) - based on all 99 samples
-    let mean_de = delta_e_sum / NUM_CES as f64;
-    let rf = (100.0 - 6.73 * mean_de).clamp(0.0, 100.0);
-
-    // Calculate Rg (gamut index) - ratio of test to reference gamut areas
-    let test_area = polygon_area(&test_gamut_points);
-    let ref_area = polygon_area(&ref_gamut_points);
-    let rg = if ref_area > 0.0 {
-        100.0 * test_area / ref_area
+    let area_r = polygon_area(&poly_r);
+    let rg = if area_r > 0.0 {
+        100.0 * polygon_area(&poly_t) / area_r
     } else {
         100.0
     };
@@ -495,389 +424,290 @@ pub fn calculate_tm30(spd: &SpectralDistribution) -> Option<Tm30Result> {
         rcs_hue,
         rhs_hue,
         color_vectors,
+        ref_hue_deg,
+        rf_ces,
+        reference: ref_kind,
     })
 }
 
-/// Calculate polygon area using shoelace formula
-fn polygon_area(points: &[(f64, f64)]) -> f64 {
-    if points.len() < 3 {
-        return 0.0;
-    }
-
-    let mut area = 0.0;
-    let n = points.len();
-
-    for i in 0..n {
-        let j = (i + 1) % n;
-        area += points[i].0 * points[j].1;
-        area -= points[j].0 * points[i].1;
-    }
-
-    (area / 2.0).abs()
-}
-
 // ============================================================================
-// SVG Generation
+// Graphics
 // ============================================================================
 
 impl Tm30Result {
-    /// Generate Color Vector Graphic (CVG) as SVG
+    /// Points of the normalised colour vector graphic (TM-30-20): each
+    /// reference bin average on the unit circle at its mean hue angle, the
+    /// test point displaced by the bin's (test − reference) average over the
+    /// reference chroma. Outside the circle = more saturated.
+    pub fn cvg_points(&self) -> [CvgPoint; NUM_BINS] {
+        let mut out = [CvgPoint {
+            reference: (0.0, 0.0),
+            test: (0.0, 0.0),
+        }; NUM_BINS];
+        for (j, o) in out.iter_mut().enumerate() {
+            let h = self.ref_hue_deg[j].to_radians();
+            let (ta, tb, ra, rb) = self.color_vectors[j];
+            let norm = (ra * ra + rb * rb).sqrt();
+            let rp = (h.cos(), h.sin());
+            let tp = if norm > 1e-12 {
+                (rp.0 + (ta - ra) / norm, rp.1 + (tb - rb) / norm)
+            } else {
+                rp
+            };
+            *o = CvgPoint {
+                reference: rp,
+                test: tp,
+            };
+        }
+        out
+    }
+
+    /// Normalised colour vector graphic as a standalone SVG (square).
     pub fn to_svg(&self, width: f64, height: f64, theme: &Tm30Theme) -> String {
-        let margin = 60.0;
-        let plot_size = (width - 2.0 * margin).min(height - 2.0 * margin);
-        let center_x = width / 2.0;
-        let center_y = height / 2.0;
-        let scale = plot_size / 100.0; // Scale factor for a'/b' coordinates
-
+        let size = width.min(height);
         let mut svg = format!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">
-  <rect width="{width}" height="{height}" fill="{bg}"/>
-  <defs>
-    <clipPath id="cvg-clip">
-      <circle cx="{cx}" cy="{cy}" r="{r}"/>
-    </clipPath>
-  </defs>
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}" font-family="{font}">
+<rect width="{width}" height="{height}" fill="{bg}"/>
 "#,
-            width = width,
-            height = height,
+            font = theme.font_family,
             bg = theme.background,
-            cx = center_x,
-            cy = center_y,
-            r = plot_size / 2.0,
         );
-
-        // Grid circles
-        for r in [20.0, 40.0] {
-            svg.push_str(&format!(
-                r#"  <circle cx="{}" cy="{}" r="{}" fill="none" stroke="{}" stroke-width="1" stroke-dasharray="4,4"/>"#,
-                center_x, center_y, r * scale, theme.grid_color
-            ));
-            svg.push('\n');
-        }
-
-        // Outer circle (reference boundary)
+        let cx = width / 2.0;
+        let cy = height / 2.0;
+        let radius = size * 0.30;
+        svg.push_str(&cvg_body(self, cx, cy, radius, theme, true));
         svg.push_str(&format!(
-            r#"  <circle cx="{}" cy="{}" r="{}" fill="none" stroke="{}" stroke-width="2"/>"#,
-            center_x,
-            center_y,
-            plot_size / 2.0,
-            theme.grid_color
+            r#"<text x="12" y="{y1:.1}" font-size="13" fill="{fg}">Rf {rf:.0}</text>
+<text x="12" y="{y2:.1}" font-size="13" fill="{fg}">Rg {rg:.0}</text>
+<text x="{xr:.1}" y="{y1:.1}" font-size="13" fill="{fg}" text-anchor="end">{cct:.0} K</text>
+<text x="{xr:.1}" y="{y2:.1}" font-size="13" fill="{fg}" text-anchor="end">Duv {duv:+.4}</text>
+</svg>"#,
+            y1 = height - 30.0,
+            y2 = height - 12.0,
+            xr = width - 12.0,
+            fg = theme.foreground,
+            rf = self.rf,
+            rg = self.rg,
+            cct = self.cct,
+            duv = self.duv,
         ));
-        svg.push('\n');
-
-        // Axis lines
-        svg.push_str(&format!(
-            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1"/>"#,
-            center_x - plot_size / 2.0,
-            center_y,
-            center_x + plot_size / 2.0,
-            center_y,
-            theme.grid_color
-        ));
-        svg.push('\n');
-        svg.push_str(&format!(
-            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="1"/>"#,
-            center_x,
-            center_y - plot_size / 2.0,
-            center_x,
-            center_y + plot_size / 2.0,
-            theme.grid_color
-        ));
-        svg.push('\n');
-
-        // Hue bin colors for visualization
-        let hue_colors = [
-            "#e74c3c", "#e67e22", "#f39c12", "#f1c40f", // Red -> Yellow
-            "#2ecc71", "#1abc9c", "#16a085", "#3498db", // Green -> Cyan
-            "#2980b9", "#9b59b6", "#8e44ad", "#c0392b", // Blue -> Purple
-            "#d35400", "#e74c3c", "#c0392b", "#922b21", // Continuation
-        ];
-
-        // Draw reference polygon (gray)
-        let mut ref_path = String::from("M ");
-        for (i, &(_, _, ref_a, ref_b)) in self.color_vectors.iter().enumerate() {
-            let x = center_x + ref_a * scale;
-            let y = center_y - ref_b * scale; // Flip Y
-            if i == 0 {
-                ref_path.push_str(&format!("{:.1} {:.1}", x, y));
-            } else {
-                ref_path.push_str(&format!(" L {:.1} {:.1}", x, y));
-            }
-        }
-        ref_path.push_str(" Z");
-        svg.push_str(&format!(
-            r#"  <path d="{}" fill="none" stroke="{}" stroke-width="2" stroke-dasharray="6,3"/>"#,
-            ref_path, theme.reference_color
-        ));
-        svg.push('\n');
-
-        // Draw test polygon (colored)
-        let mut test_path = String::from("M ");
-        for (i, &(test_a, test_b, _, _)) in self.color_vectors.iter().enumerate() {
-            let x = center_x + test_a * scale;
-            let y = center_y - test_b * scale;
-            if i == 0 {
-                test_path.push_str(&format!("{:.1} {:.1}", x, y));
-            } else {
-                test_path.push_str(&format!(" L {:.1} {:.1}", x, y));
-            }
-        }
-        test_path.push_str(" Z");
-        svg.push_str(&format!(
-            r#"  <path d="{}" fill="{}20" stroke="{}" stroke-width="2"/>"#,
-            test_path, theme.test_color, theme.test_color
-        ));
-        svg.push('\n');
-
-        // Draw color vectors (arrows from reference to test)
-        for (i, &(test_a, test_b, ref_a, ref_b)) in self.color_vectors.iter().enumerate() {
-            let x1 = center_x + ref_a * scale;
-            let y1 = center_y - ref_b * scale;
-            let x2 = center_x + test_a * scale;
-            let y2 = center_y - test_b * scale;
-
-            // Vector line
-            svg.push_str(&format!(
-                r#"  <line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="{}" stroke-width="2"/>"#,
-                x1, y1, x2, y2, hue_colors[i]
-            ));
-            svg.push('\n');
-
-            // Test point
-            svg.push_str(&format!(
-                r#"  <circle cx="{:.1}" cy="{:.1}" r="4" fill="{}" stroke="{}" stroke-width="1"/>"#,
-                x2, y2, hue_colors[i], theme.background
-            ));
-            svg.push('\n');
-        }
-
-        // Title and metrics
-        svg.push_str(&format!(
-            r#"  <text x="{}" y="25" fill="{}" font-size="16" font-family="{}" font-weight="bold" text-anchor="middle">TM-30 Color Vector Graphic</text>"#,
-            center_x, theme.foreground, theme.font_family
-        ));
-        svg.push('\n');
-
-        // Rf and Rg values
-        svg.push_str(&format!(
-            r#"  <text x="20" y="{}" fill="{}" font-size="14" font-family="{}">Rf = {:.0}</text>"#,
-            height - 40.0,
-            theme.foreground,
-            theme.font_family,
-            self.rf
-        ));
-        svg.push('\n');
-        svg.push_str(&format!(
-            r#"  <text x="20" y="{}" fill="{}" font-size="14" font-family="{}">Rg = {:.0}</text>"#,
-            height - 20.0,
-            theme.foreground,
-            theme.font_family,
-            self.rg
-        ));
-        svg.push('\n');
-        svg.push_str(&format!(
-            r#"  <text x="{}" y="{}" fill="{}" font-size="12" font-family="{}" text-anchor="end">CCT = {:.0}K</text>"#,
-            width - 20.0, height - 40.0, theme.foreground, theme.font_family, self.cct
-        ));
-        svg.push('\n');
-        svg.push_str(&format!(
-            r#"  <text x="{}" y="{}" fill="{}" font-size="12" font-family="{}" text-anchor="end">Duv = {:.4}</text>"#,
-            width - 20.0, height - 20.0, theme.foreground, theme.font_family, self.duv
-        ));
-        svg.push('\n');
-
-        // Legend
-        svg.push_str(&format!(
-            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="2" stroke-dasharray="6,3"/>"#,
-            width - 120.0, 20.0, width - 90.0, 20.0, theme.reference_color
-        ));
-        svg.push_str(&format!(
-            r#"  <text x="{}" y="24" fill="{}" font-size="11" font-family="{}">Reference</text>"#,
-            width - 85.0,
-            theme.foreground,
-            theme.font_family
-        ));
-        svg.push('\n');
-        svg.push_str(&format!(
-            r#"  <line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="2"/>"#,
-            width - 120.0,
-            38.0,
-            width - 90.0,
-            38.0,
-            theme.test_color
-        ));
-        svg.push_str(&format!(
-            r#"  <text x="{}" y="42" fill="{}" font-size="11" font-family="{}">Test</text>"#,
-            width - 85.0,
-            theme.foreground,
-            theme.font_family
-        ));
-        svg.push('\n');
-
-        svg.push_str("</svg>");
         svg
     }
 
-    /// Generate Rf hue bar chart as SVG
+    /// Local fidelity Rf,hj as a bar chart (bins in the TM-30 colours).
     pub fn rf_hue_svg(&self, width: f64, height: f64, theme: &Tm30Theme) -> String {
-        let margin_left = 40.0;
-        let margin_right = 20.0;
-        let margin_top = 30.0;
-        let margin_bottom = 40.0;
-
-        let plot_width = width - margin_left - margin_right;
-        let plot_height = height - margin_top - margin_bottom;
-        let bar_width = plot_width / 16.0 - 4.0;
-
-        let hue_colors = [
-            "#e74c3c", "#e67e22", "#f39c12", "#f1c40f", "#2ecc71", "#27ae60", "#1abc9c", "#16a085",
-            "#3498db", "#2980b9", "#9b59b6", "#8e44ad", "#c0392b", "#d35400", "#e74c3c", "#922b21",
-        ];
-
+        let (ml, mr, mt, mb) = (40.0, 50.0, 30.0, 40.0);
+        let pw = width - ml - mr;
+        let ph = height - mt - mb;
+        let slot = pw / NUM_BINS as f64;
+        let bar_w = slot - 4.0;
         let mut svg = format!(
-            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">
-  <rect width="{width}" height="{height}" fill="{bg}"/>
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}" font-family="{font}">
+<rect width="{width}" height="{height}" fill="{bg}"/>
+<text x="{tx:.1}" y="20" fill="{fg}" font-size="14" font-weight="bold" text-anchor="middle">Rf,h</text>
 "#,
-            width = width,
-            height = height,
+            font = theme.font_family,
             bg = theme.background,
+            fg = theme.foreground,
+            tx = width / 2.0,
         );
-
-        // Title
-        svg.push_str(&format!(
-            r#"  <text x="{}" y="20" fill="{}" font-size="14" font-family="{}" font-weight="bold" text-anchor="middle">Rf by Hue Bin</text>"#,
-            width / 2.0, theme.foreground, theme.font_family
-        ));
-        svg.push('\n');
-
-        // Y-axis
-        for y_val in [0, 25, 50, 75, 100] {
-            let y = margin_top + plot_height * (1.0 - y_val as f64 / 100.0);
+        for v in [0, 20, 40, 60, 80, 100] {
+            let y = mt + ph * (1.0 - v as f64 / 100.0);
             svg.push_str(&format!(
-                r#"  <line x1="{}" y1="{:.1}" x2="{}" y2="{:.1}" stroke="{}" stroke-width="1"/>"#,
-                margin_left,
-                y,
-                margin_left + plot_width,
-                y,
-                theme.grid_color
+                r#"<line x1="{ml}" y1="{y:.1}" x2="{x2:.1}" y2="{y:.1}" stroke="{grid}" stroke-width="1"/>
+<text x="{tx:.1}" y="{y:.1}" fill="{fg}" font-size="10" text-anchor="end" dominant-baseline="middle">{v}</text>
+"#,
+                x2 = ml + pw,
+                grid = theme.grid_color,
+                tx = ml - 5.0,
+                fg = theme.foreground,
             ));
-            svg.push('\n');
-            svg.push_str(&format!(
-                r#"  <text x="{}" y="{:.1}" fill="{}" font-size="10" font-family="{}" text-anchor="end" dominant-baseline="middle">{}</text>"#,
-                margin_left - 5.0, y, theme.foreground, theme.font_family, y_val
-            ));
-            svg.push('\n');
         }
-
-        // Bars
         for (i, &rf) in self.rf_hue.iter().enumerate() {
-            let x = margin_left + (i as f64 + 0.5) * (plot_width / 16.0) - bar_width / 2.0;
-            let bar_height = rf / 100.0 * plot_height;
-            let y = margin_top + plot_height - bar_height;
-
+            let x = ml + i as f64 * slot + 2.0;
+            let h = rf.clamp(0.0, 100.0) / 100.0 * ph;
+            let y = mt + ph - h;
             svg.push_str(&format!(
-                r#"  <rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}" rx="2"/>"#,
-                x, y, bar_width, bar_height, hue_colors[i]
+                r#"<rect x="{x:.1}" y="{y:.1}" width="{bar_w:.1}" height="{h:.1}" fill="{c}" rx="2"/>
+<text x="{lx:.1}" y="{ly:.1}" fill="{fg}" font-size="9" text-anchor="middle">{rf:.0}</text>
+<text x="{lx:.1}" y="{by:.1}" fill="{fg}" font-size="9" text-anchor="middle">{n}</text>
+"#,
+                c = TM30_BIN_COLOURS[i],
+                lx = x + bar_w / 2.0,
+                ly = y - 3.0,
+                by = mt + ph + 15.0,
+                fg = theme.foreground,
+                n = i + 1,
             ));
-            svg.push('\n');
-
-            // Bin label
-            svg.push_str(&format!(
-                r#"  <text x="{:.1}" y="{}" fill="{}" font-size="9" font-family="{}" text-anchor="middle">{}</text>"#,
-                x + bar_width / 2.0, margin_top + plot_height + 15.0, theme.foreground, theme.font_family, i + 1
-            ));
-            svg.push('\n');
         }
-
-        // Average Rf line
-        let avg_rf = self.rf_hue.iter().sum::<f64>() / 16.0;
-        let avg_y = margin_top + plot_height * (1.0 - avg_rf / 100.0);
+        let ry = mt + ph * (1.0 - self.rf.clamp(0.0, 100.0) / 100.0);
         svg.push_str(&format!(
-            r#"  <line x1="{}" y1="{:.1}" x2="{}" y2="{:.1}" stroke="{}" stroke-width="2" stroke-dasharray="6,3"/>"#,
-            margin_left, avg_y, margin_left + plot_width, avg_y, theme.test_color
+            r#"<line x1="{ml}" y1="{ry:.1}" x2="{x2:.1}" y2="{ry:.1}" stroke="{c}" stroke-width="2" stroke-dasharray="6,3"/>
+<text x="{tx:.1}" y="{ty:.1}" fill="{c}" font-size="10">Rf {rf:.0}</text>
+</svg>"#,
+            x2 = ml + pw,
+            c = theme.test_color,
+            tx = ml + pw + 5.0,
+            ty = ry + 4.0,
+            rf = self.rf,
         ));
-        svg.push('\n');
-        svg.push_str(&format!(
-            r#"  <text x="{}" y="{:.1}" fill="{}" font-size="10" font-family="{}">Rf = {:.0}</text>"#,
-            margin_left + plot_width + 5.0, avg_y + 4.0, theme.test_color, theme.font_family, self.rf
-        ));
-        svg.push('\n');
-
-        svg.push_str("</svg>");
         svg
     }
+}
+
+/// SVG elements of the normalised vector graphic centred at (cx, cy) with
+/// the reference circle of `radius` (shared by `to_svg` and the colour
+/// quality card).
+pub(crate) fn cvg_body(
+    tm: &Tm30Result,
+    cx: f64,
+    cy: f64,
+    radius: f64,
+    theme: &Tm30Theme,
+    bin_numbers: bool,
+) -> String {
+    let mut s = String::new();
+    let outer = radius * 1.5;
+    // Hue wedges (bin colours, light).
+    for (j, colour) in TM30_BIN_COLOURS.iter().enumerate() {
+        let a0 = (22.5 * j as f64).to_radians();
+        let a1 = (22.5 * (j + 1) as f64).to_radians();
+        // SVG y axis points down: hue angles run counter-clockwise.
+        let (x0, y0) = (cx + outer * a0.cos(), cy - outer * a0.sin());
+        let (x1, y1) = (cx + outer * a1.cos(), cy - outer * a1.sin());
+        s.push_str(&format!(
+            r#"<path d="M{cx:.2},{cy:.2} L{x0:.2},{y0:.2} A{outer:.2},{outer:.2} 0 0 0 {x1:.2},{y1:.2} Z" fill="{c}" fill-opacity="0.16"/>
+"#,
+            c = colour,
+        ));
+    }
+    // ±20 % rings and the reference circle.
+    for (r, dash, w) in [(0.8, "2,3", 0.8), (1.2, "2,3", 0.8)] {
+        s.push_str(&format!(
+            r#"<circle cx="{cx:.2}" cy="{cy:.2}" r="{rr:.2}" fill="none" stroke="{g}" stroke-width="{w}" stroke-dasharray="{dash}"/>
+"#,
+            rr = radius * r,
+            g = theme.grid_color,
+        ));
+    }
+    s.push_str(&format!(
+        r#"<circle cx="{cx:.2}" cy="{cy:.2}" r="{radius:.2}" fill="none" stroke="{c}" stroke-width="1.6" stroke-dasharray="6,5"/>
+"#,
+        c = theme.reference_color,
+    ));
+    if bin_numbers {
+        for j in 0..NUM_BINS {
+            let a = (22.5 * j as f64 + 11.25).to_radians();
+            let rr = outer - 12.0;
+            s.push_str(&format!(
+                r#"<text x="{x:.2}" y="{y:.2}" font-size="10" fill="{c}" text-anchor="middle" dominant-baseline="middle">{n}</text>
+"#,
+                x = cx + rr * a.cos(),
+                y = cy - rr * a.sin(),
+                c = theme.reference_color,
+                n = j + 1,
+            ));
+        }
+    }
+    // Test polygon and points.
+    let pts = tm.cvg_points();
+    let poly: Vec<String> = pts
+        .iter()
+        .map(|p| {
+            format!(
+                "{:.2},{:.2}",
+                cx + radius * p.test.0,
+                cy - radius * p.test.1
+            )
+        })
+        .collect();
+    s.push_str(&format!(
+        r#"<polygon points="{}" fill="{c}" fill-opacity="0.06" stroke="{c}" stroke-width="2.6" stroke-linejoin="round"/>
+"#,
+        poly.join(" "),
+        c = theme.test_color,
+    ));
+    for (j, p) in pts.iter().enumerate() {
+        s.push_str(&format!(
+            r#"<circle cx="{x:.2}" cy="{y:.2}" r="4.6" fill="{c}" stroke="{bg}" stroke-width="1.2"/>
+"#,
+            x = cx + radius * p.test.0,
+            y = cy - radius * p.test.1,
+            c = TM30_BIN_COLOURS[j],
+            bg = theme.background,
+        ));
+    }
+    s
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::atla::colour_common::wavelength;
 
-    #[test]
-    fn test_planckian_spd() {
-        let spd = planckian_spd(3000.0);
-        assert_eq!(spd.wavelengths.len(), 81);
-        assert_eq!(spd.values.len(), 81);
-        // Should be normalized
-        let max_val = spd.values.iter().cloned().fold(0.0_f64, f64::max);
-        assert!((max_val - 1.0).abs() < 0.01);
+    fn spd_from_grid(g: &Grid) -> SpectralDistribution {
+        SpectralDistribution {
+            wavelengths: (0..N).map(wavelength).collect(),
+            values: g.to_vec(),
+            units: crate::atla::types::SpectralUnits::Relative,
+            start_wavelength: None,
+            wavelength_interval: None,
+        }
     }
 
     #[test]
-    fn test_xyz_to_cct() {
-        // Test with D65 white point approximately
-        let (cct, _duv) = xyz_to_cct(95.047, 100.0, 108.883);
-        // D65 is approximately 6500K
-        assert!((cct - 6500.0).abs() < 500.0);
+    fn a_reference_illuminant_renders_itself_perfectly() {
+        for cct in [2700.0, 3500.0, 4500.0, 6500.0] {
+            let (r, _) = reference_illuminant(cct);
+            let tm = calculate_tm30(&spd_from_grid(&r)).unwrap();
+            assert!(tm.rf > 99.9, "{cct}: Rf {}", tm.rf);
+            assert!((tm.rg - 100.0).abs() < 0.1, "{cct}: Rg {}", tm.rg);
+            for p in tm.cvg_points() {
+                let d = ((p.test.0 - p.reference.0).powi(2) + (p.test.1 - p.reference.1).powi(2))
+                    .sqrt();
+                assert!(d < 1e-3, "{cct}: CVG offset {d}");
+            }
+        }
     }
 
     #[test]
-    fn test_tm30_calculation() {
-        // Create a simple test SPD (warm white LED-like)
-        let wavelengths: Vec<f64> = (380..=780).step_by(5).map(|w| w as f64).collect();
-        let values: Vec<f64> = wavelengths
-            .iter()
-            .map(|&wl| {
-                let blue_peak = (-((wl - 450.0) / 20.0).powi(2)).exp() * 0.7;
-                let phosphor = if wl > 480.0 {
-                    (-((wl - 580.0) / 80.0).powi(2)).exp() * 1.0
-                } else {
-                    0.0
-                };
-                blue_peak + phosphor
-            })
-            .collect();
+    fn reference_points_lie_on_the_unit_circle() {
+        let (r, _) = reference_illuminant(3000.0);
+        let mut s = r;
+        // A crude two-band source to get visible shifts.
+        for (i, v) in s.iter_mut().enumerate() {
+            let wl = wavelength(i);
+            *v = (-((wl - 450.0) / 15.0).powi(2)).exp() + (-((wl - 590.0) / 60.0).powi(2)).exp();
+        }
+        let tm = calculate_tm30(&spd_from_grid(&s)).unwrap();
+        for p in tm.cvg_points() {
+            let r = (p.reference.0.powi(2) + p.reference.1.powi(2)).sqrt();
+            assert!((r - 1.0).abs() < 1e-12);
+        }
+        assert!(tm.rf < 95.0, "Rf {}", tm.rf);
+    }
 
+    #[test]
+    fn reference_choice_follows_the_cct() {
+        assert_eq!(reference_illuminant(3000.0).1, Tm30Reference::Planckian);
+        assert_eq!(reference_illuminant(6500.0).1, Tm30Reference::Daylight);
+        match reference_illuminant(4250.0).1 {
+            Tm30Reference::Blend { daylight_share } => {
+                assert!((daylight_share - 0.25).abs() < 1e-12)
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn narrow_spectra_are_refused() {
         let spd = SpectralDistribution {
-            wavelengths,
-            values,
+            wavelengths: vec![500.0, 600.0],
+            values: vec![1.0, 1.0],
             units: crate::atla::types::SpectralUnits::Relative,
             start_wavelength: None,
             wavelength_interval: None,
         };
-
-        let result = calculate_tm30(&spd);
-        assert!(result.is_some());
-
-        let tm30 = result.unwrap();
-        // Basic sanity checks - values should be in valid ranges
-        // (exact values depend on simplified algorithm)
-        assert!(
-            tm30.rf >= 0.0 && tm30.rf <= 100.0,
-            "Rf={} out of range",
-            tm30.rf
-        );
-        assert!(
-            tm30.rg > 0.0 && tm30.rg < 200.0,
-            "Rg={} out of range",
-            tm30.rg
-        );
-        assert!(
-            tm30.cct > 1000.0 && tm30.cct < 20000.0,
-            "CCT={} out of range",
-            tm30.cct
-        );
-        // Per-hue values should exist
-        assert_eq!(tm30.rf_hue.len(), 16);
-        assert_eq!(tm30.color_vectors.len(), 16);
+        assert!(calculate_tm30(&spd).is_none());
     }
 }

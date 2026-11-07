@@ -78,6 +78,19 @@ impl HeatmapDiagram {
     /// * `width` - Total output width in pixels
     /// * `height` - Total output height in pixels
     pub fn from_eulumdat(ldt: &Eulumdat, width: f64, height: f64) -> Self {
+        let scale_factor = ldt.luminous_flux() / 1000.0; // cd/klm to cd
+        Self::from_eulumdat_with_scale(ldt, width, height, scale_factor)
+    }
+
+    /// Like [`Self::from_eulumdat`], with an explicit factor from the stored
+    /// values to the displayed ones. Sensor LDTs store ranges in metres and
+    /// use `1.0` (their lamp flux is meaningless).
+    pub fn from_eulumdat_with_scale(
+        ldt: &Eulumdat,
+        width: f64,
+        height: f64,
+        scale_factor: f64,
+    ) -> Self {
         let margin_left = 60.0;
         let margin_right = 100.0; // Space for color legend
         let margin_top = 50.0;
@@ -96,9 +109,7 @@ impl HeatmapDiagram {
         // Calculate max intensity
         let max_intensity = ldt.max_intensity();
 
-        // Get total flux for candela conversion
         let total_flux: f64 = ldt.luminous_flux();
-        let scale_factor = total_flux / 1000.0; // cd/klm to cd
         let max_candela = max_intensity * scale_factor;
 
         // Cell dimensions

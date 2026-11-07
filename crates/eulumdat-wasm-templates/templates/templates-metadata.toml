@@ -16,49 +16,49 @@ sort = 1
 
 [[template]]
 id = "atla-grow-light-rb"
-name = "_atla_grow_light_rb.xml"
+name = "_atla_tm-33-18_grow_light_rb.xml"
 description = ""
-file = "_atla_grow_light_rb.xml"
+file = "_atla_tm-33-18_grow_light_rb.xml"
 format = "AtlaXml"
 sort = 2
 
 [[template]]
 id = "atla-grow-light"
-name = "_atla_grow_light.xml"
+name = "_atla_tm-33-18_grow_light.xml"
 description = ""
-file = "_atla_grow_light.xml"
+file = "_atla_tm-33-18_grow_light.xml"
 format = "AtlaXml"
 sort = 3
 
 [[template]]
 id = "atla-halogen-lamp"
-name = "_atla_halogen_lamp.xml"
+name = "_atla_tm-33-18_halogen_lamp.xml"
 description = ""
-file = "_atla_halogen_lamp.xml"
+file = "_atla_tm-33-18_halogen_lamp.xml"
 format = "AtlaXml"
 sort = 4
 
 [[template]]
 id = "atla-heat-lamp"
-name = "_atla_heat_lamp.xml"
+name = "_atla_tm-33-18_heat_lamp.xml"
 description = ""
-file = "_atla_heat_lamp.xml"
+file = "_atla_tm-33-18_heat_lamp.xml"
 format = "AtlaXml"
 sort = 5
 
 [[template]]
 id = "atla-incandescent"
-name = "_atla_incandescent.xml"
+name = "_atla_tm-33-18_incandescent.xml"
 description = ""
-file = "_atla_incandescent.xml"
+file = "_atla_tm-33-18_incandescent.xml"
 format = "AtlaXml"
 sort = 6
 
 [[template]]
 id = "atla-uv-blacklight"
-name = "_atla_uv_blacklight.xml"
+name = "_atla_tm-33-18_uv_blacklight.xml"
 description = ""
-file = "_atla_uv_blacklight.xml"
+file = "_atla_tm-33-18_uv_blacklight.xml"
 format = "AtlaXml"
 sort = 7
 
@@ -136,17 +136,17 @@ sort = 16
 
 [[template]]
 id = "atla-fluorescent-json"
-name = "_atla_fluorescent.json"
+name = "_atla_tm-33-18_fluorescent.json"
 description = ""
-file = "_atla_fluorescent.json"
+file = "_atla_tm-33-18_fluorescent.json"
 format = "AtlaJson"
 sort = 17
 
 [[template]]
 id = "atla-fluorescent-xml"
-name = "_atla_fluorescent.xml"
+name = "_atla_tm-33-18_fluorescent.xml"
 description = ""
-file = "_atla_fluorescent.xml"
+file = "_atla_tm-33-18_fluorescent.xml"
 format = "AtlaXml"
 sort = 18
 
@@ -517,3 +517,11 @@ description = ""
 file = "1-4-2.ldt"
 format = "Ldt"
 sort = 64
+
+[[template]]
+id = "demo-led-3000k"
+name = "Demo LED 3000 K (with spectrum)"
+description = "White LED downlight with a spectrum: colour quality (TM-30, CRI)"
+file = "demo_led_3000k.xml"
+format = "AtlaXml"
+sort = 65

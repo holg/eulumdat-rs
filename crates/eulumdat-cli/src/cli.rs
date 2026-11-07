@@ -42,7 +42,8 @@ pub enum Commands {
         /// Input file (.ldt, .ies, .xml, or .json)
         input: PathBuf,
 
-        /// Output file (.ldt, .ies, .xml, or .json)
+        /// Output file (.ldt, .ies, .xml, .json, or .spdx = the spectrum as an
+        /// IES TM-27 SPDX document)
         output: PathBuf,
 
         /// Output compact format (no indentation) for XML/JSON
@@ -56,7 +57,7 @@ pub enum Commands {
         rotate: f64,
 
         /// Attach a spectral power distribution (.spd / .csv / .spdx) to the
-        /// luminaire; requires an ATLA (.xml / .json) output
+        /// luminaire; requires an ATLA (.xml / .json) or SPDX (.spdx) output
         #[arg(long, value_name = "FILE")]
         spd: Option<PathBuf>,
 
@@ -139,6 +140,141 @@ pub enum Commands {
         smooth: usize,
     },
 
+    /// Read a sensor LDT (detection volume in metres) and print / draw the
+    /// tangential, radial and presence footprints
+    Sensor {
+        /// Sensor LDT (GLDF sensor/sensldt) or SensXML file
+        file: PathBuf,
+
+        /// Depth of the plane below the sensor (m). Default 2.0, the common
+        /// reference depth for sensor plan views
+        #[arg(long)]
+        depth: Option<f64>,
+
+        /// Mounting height above the floor (m); with --target gives the depth
+        #[arg(long)]
+        height: Option<f64>,
+
+        /// Height of the person / detection plane above the floor (m)
+        #[arg(long, default_value = "0.0")]
+        target: f64,
+
+        /// Write a plan-view SVG of the footprints
+        #[arg(long)]
+        svg: Option<PathBuf>,
+
+        /// C-plane step for the footprint outline (degrees)
+        #[arg(long, default_value = "1.0")]
+        c_step: f64,
+
+        /// SensXML: draw the idealised planning shapes instead of the measured data
+        #[arg(long)]
+        planning: bool,
+
+        /// Write a sensor report: `.typ` (Typst source) or `.pdf` (writes the
+        /// `.typ` next to it and compiles it with the `typst` CLI)
+        #[arg(long)]
+        report: Option<PathBuf>,
+    },
+
+    /// Compare two sensors (sensor LDT or SensXML) under the same conditions:
+    /// range and area per motion type with Δ %, plan / polar / cartesian
+    /// overlays, range over the mounting height, room check, report
+    #[command(name = "sensor-compare")]
+    SensorCompare {
+        /// Sensor A (sensor LDT or SensXML)
+        a: PathBuf,
+        /// Sensor B (sensor LDT or SensXML)
+        b: PathBuf,
+
+        /// Mounting height of both sensors above the floor (m)
+        #[arg(long, default_value = "3.0")]
+        height: f64,
+
+        /// Plane of seated presence above the floor (m); walking is evaluated
+        /// on the floor
+        #[arg(long, default_value = "0.8")]
+        workplane: f64,
+
+        /// SensXML: idealised planning shapes instead of the measured data
+        #[arg(long)]
+        planning: bool,
+
+        /// C-plane of the polar / cartesian overlay and the cut on the plan (°)
+        #[arg(long, default_value = "0")]
+        c_plane: f64,
+
+        /// Motion type of the polar / cartesian overlay: tangential, radial, presence
+        #[arg(long, default_value = "tangential")]
+        motion: String,
+
+        /// Write the plan overlay (A filled, B dashed) as SVG
+        #[arg(long)]
+        plan: Option<PathBuf>,
+
+        /// Write the polar overlay as SVG
+        #[arg(long)]
+        polar: Option<PathBuf>,
+
+        /// Write the cartesian overlay as SVG
+        #[arg(long)]
+        cartesian: Option<PathBuf>,
+
+        /// Write the range over the mounting height as SVG
+        #[arg(long)]
+        height_chart: Option<PathBuf>,
+
+        /// Mounting heights of the range chart, `min:max` (m)
+        #[arg(long, default_value = "2:15")]
+        heights: String,
+
+        /// Room check: sensors needed for a room `LxW` (m), e.g. `10x8`
+        #[arg(long)]
+        room: Option<String>,
+
+        /// Motion type the room is planned for (default: presence if both
+        /// sensors have it, else tangential)
+        #[arg(long)]
+        room_motion: Option<String>,
+
+        /// EN 15193-1 control type (key, e.g. auto_on_auto_off, manual_on_auto_off)
+        #[arg(long, default_value = "auto_on_auto_off")]
+        control: String,
+
+        /// EN 15193-1 space type (key, e.g. office_overall, classroom, open_plan)
+        #[arg(long, default_value = "office_overall")]
+        space: String,
+
+        /// Price per sensor, for the cost line of the room check
+        #[arg(long)]
+        price: Option<f64>,
+
+        /// Write a comparison report: `.typ` or `.pdf` (needs the `typst` CLI)
+        #[arg(long)]
+        report: Option<PathBuf>,
+    },
+
+    /// Colour quality of a spectrum: CCT, Duv, TM-30 Rf / Rg with the 16 hue
+    /// bins, CIE 13.3 Ra, R1–R15 and Re
+    #[command(alias = "color")]
+    Colour {
+        /// Spectrum (.spd / .csv / .spdx) or ATLA file (.xml / .json) with a
+        /// spectral distribution
+        file: PathBuf,
+
+        /// Write the colour-quality card (vector graphic, Duv bar, key values) as SVG
+        #[arg(long)]
+        svg: Option<PathBuf>,
+
+        /// Dark card
+        #[arg(long)]
+        dark: bool,
+
+        /// Second line of the card (e.g. the lamp name); default: the file name
+        #[arg(long)]
+        name: Option<String>,
+    },
+
     /// Generate SVG diagram
     Diagram {
         /// Input file (.ldt, .ies, .xml, or .json for ATLA)
@@ -185,6 +321,16 @@ pub enum Commands {
         /// Unit system for isolux/cone labels (lx/fc, m/ft)
         #[arg(short = 'U', long, value_enum, default_value = "metric")]
         units: UnitArg,
+
+        /// The input is a sensor LDT (detection volume in metres): ranges in m,
+        /// only polar, cartesian, heatmap, butterfly and sensor-plan apply.
+        /// SensXML input is always treated as a sensor.
+        #[arg(long)]
+        sensor: bool,
+
+        /// SensXML angular views: which motion type's volume to draw
+        #[arg(long, value_enum, default_value = "tangential")]
+        motion: MotionArg,
     },
 
     /// Calculate BUG rating (outdoor luminaires)
@@ -261,6 +407,49 @@ pub enum Commands {
         /// Output to file instead of stdout
         #[arg(short, long)]
         output: Option<PathBuf>,
+    },
+
+    /// EN 1838 emergency lighting: spacing table of an emergency luminaire
+    /// (.ldt / .ies at its emergency flux), the variants and emergency
+    /// emitters of a GLDF, or the check of a plan (--plan plan.json)
+    Emergency {
+        /// Luminaire (.ldt, .ies or .gldf); not needed with --plan
+        file: Option<PathBuf>,
+
+        /// Emergency luminous flux (lm, luminaire output); default: the
+        /// file's own flux, or the GLDF's emergency flux
+        #[arg(long)]
+        flux: Option<f64>,
+
+        /// Mounting heights for the spacing table (m)
+        #[arg(long, value_delimiter = ',', default_value = "2.5,3,4")]
+        heights: Vec<f64>,
+
+        /// Escape route width (m)
+        #[arg(long, default_value_t = 2.0)]
+        width: f64,
+
+        /// Maintenance factor
+        #[arg(long, default_value_t = 0.8)]
+        mf: f64,
+
+        /// GLDF variant: number (1 = first), id or name; default: every
+        /// variant with emergency emitters
+        #[arg(long)]
+        variant: Option<String>,
+
+        /// Rated duration (h) for a GLDF DurationTimeAndFlux table
+        #[arg(long)]
+        duration: Option<u32>,
+
+        /// Check a plan: JSON with luminaires (file, flux_lm, x, y, height,
+        /// rotation, ra), routes, open_areas, high_risk, points
+        #[arg(long)]
+        plan: Option<PathBuf>,
+
+        /// Print JSON
+        #[arg(long)]
+        json: bool,
     },
 
     /// Export GLDF-compatible photometric data
@@ -452,6 +641,24 @@ pub enum CurveStyle {
     Line,
 }
 
+/// Motion type of a sensor detection area (IEC 63180)
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum MotionArg {
+    Tangential,
+    Radial,
+    Presence,
+}
+
+impl MotionArg {
+    pub fn to_motion(self) -> eulumdat::sensor::Motion {
+        match self {
+            MotionArg::Tangential => eulumdat::sensor::Motion::Tangential,
+            MotionArg::Radial => eulumdat::sensor::Motion::Radial,
+            MotionArg::Presence => eulumdat::sensor::Motion::Presence,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
 pub enum DiagramType {
     /// Polar intensity diagram (C0-C180, C90-C270)
@@ -478,6 +685,12 @@ pub enum DiagramType {
     Isolux,
     /// Isocandela contour plot (equal-intensity lines)
     Isocandela,
+    /// Sensor detection areas, plan view (sensor LDT or SensXML; -m = mounting height)
+    SensorPlan,
+    /// Colour-quality card: TM-30 vector graphic, Duv, Rf / Rg, Ra, R9, Re
+    /// (spectrum or ATLA input with spectral data)
+    #[value(name = "colour-quality", alias = "tm30")]
+    ColourQuality,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]

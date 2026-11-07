@@ -1,16 +1,18 @@
-//! Sensor display mode: when an LDT is known to be a sensor (e.g. via a GLDF
-//! container's `contentType=sensor/sensldt`), the angular *shape* diagrams stay
-//! geometrically identical to a luminaire's, but the radial/grid axis is a
-//! **relative detection-sensitivity response**, not a photometric intensity.
+//! Sensor display mode: when an LDT is known to be a sensor (GLDF
+//! `contentType=sensor/sensldt`, a Relux sensor article), its matrix is a
+//! detection volume in metres (see `eulumdat::sensor`). The shape diagrams
+//! stay geometrically identical to a luminaire's; only units and wording
+//! change ("Detection range (m)", "m").
 //!
 //! `SvgLabels::for_sensor()` is the single chokepoint that relabels every
-//! shape diagram (polar, cartesian, butterfly, isocandela, …) at once.
+//! shape diagram (polar, cartesian, butterfly, heatmap) at once.
 //!
-//! Absolute-photometric views (illuminance/lux) are NOT meaningful for a sensor
-//! and must not appear; the Cone geometry SVG already carries no lux, which we
-//! lock in here.
+//! Absolute-photometric views (illuminance/lux) are NOT meaningful for a
+//! sensor and must not appear; the Cone geometry SVG already carries no lux,
+//! which we lock in here.
 //!
-//! Fixture: the real SLV `sensor.ldt` (a detection lobe stored in cd/klm slots).
+//! Fixture: the SLV `sensor.ldt` from the GLDF demo, used here only as an
+//! LDT input (its values are not a confirmed detection volume).
 
 use eulumdat::diagram::{CartesianDiagram, ConeDiagram, PolarDiagram, SvgLabels, SvgTheme};
 use eulumdat::Eulumdat;
@@ -24,9 +26,11 @@ fn sensor_ldt() -> Eulumdat {
 #[test]
 fn for_sensor_labels_replace_photometric_units() {
     let s = SvgLabels::for_sensor();
-    assert_eq!(s.intensity_axis, "Relative sensitivity");
-    assert_eq!(s.intensity_unit, "%");
-    assert_eq!(s.heatmap_title, "Sensor response (relative)");
+    assert_eq!(s.intensity_axis, "Detection range (m)");
+    assert_eq!(s.intensity_unit, "m");
+    assert_eq!(s.unit_short, "m");
+    assert_eq!(s.unit_absolute, "m");
+    assert_eq!(s.heatmap_title, "Detection range (m)");
 
     // It overrides ONLY the intensity/response wording; the rest mirrors English
     // (so axis/plane labels etc. are unchanged).
@@ -48,8 +52,11 @@ fn polar_sensor_mode_relabels_unit_but_keeps_geometry() {
         &SvgTheme::light().with_labels(SvgLabels::for_sensor()),
     );
 
-    // Sensor mode shows the relative-sensitivity unit, not the photometric one.
-    assert!(sensor_svg.contains('%'));
+    // Sensor mode shows the range unit, not the photometric one.
+    assert!(
+        sensor_svg.contains(">m</text>"),
+        "sensor polar must show the unit m"
+    );
     assert!(
         !sensor_svg.contains("cd/1000lm") && !sensor_svg.contains("cd/klm"),
         "sensor polar must not advertise a photometric unit"
@@ -79,8 +86,8 @@ fn cartesian_sensor_mode_relabels_axis() {
     );
 
     assert!(
-        sensor_svg.contains("Relative sensitivity"),
-        "cartesian sensor mode must use the sensitivity axis label"
+        sensor_svg.contains("Detection range (m)"),
+        "cartesian sensor mode must use the range axis label"
     );
     assert!(
         !sensor_svg.contains("Intensity (cd/klm)"),

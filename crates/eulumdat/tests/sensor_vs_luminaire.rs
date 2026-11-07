@@ -1,23 +1,18 @@
-//! Documents that a sensor's detection-pattern LDT is NOT safely distinguishable
-//! from a luminaire's photometric LDT by file content alone.
+//! The SLV "OCULUS CW" pair from the GLDF consortium's old Tria 2 demo:
+//! `sensor.ldt` sat in the container's `sensor/` folder, but it is the
+//! photometry of a luminaire (a copy of `wide_luminaire.ldt`'s product), not a
+//! detection pattern. That is why the two files share their identity and lamp
+//! block, and why they once looked "indistinguishable".
 //!
-//! Background: some products (e.g. SLV) ship a sensor's detection-sensitivity
-//! pattern in the same EULUMDAT/LDT format used for a luminaire's light
-//! distribution. The EULUMDAT format has no "this is a sensor" marker, and at
-//! least one real exporter copies the parent luminaire's entire identity and
-//! lamp block (manufacturer, product name, lamp type, flux, CRI, color
-//! temperature, wattage) verbatim into the sensor file.
+//! Real sensor LDTs (detection volume in metres, sensor parameters in lines
+//! 33–42) are recognisable: `eulumdat::sensor::is_sensor_ldt` finds all
+//! 1 187 sensor LDTs of the Relux Net corpus and none of 34 916 luminaire
+//! LDTs (see `src/sensor/detect.rs`). Both files here are luminaires, and
+//! the check says so. Declared context (GLDF `contentType="sensor/…"`) still
+//! decides first.
 //!
-//! Consequence: eulumdat-rs cannot — and deliberately does not — try to classify
-//! sensor vs. luminaire from the file. That knowledge must come from external
-//! context (e.g. a GLDF container's `contentType=sensor/sensldt`). The intuitive
-//! "a sensor wouldn't carry CRI/CT" rule is a FALSE NEGATIVE on this exact file,
-//! as the assertions below prove.
-//!
-//! `sensor.ldt` and `wide_luminaire.ldt` are the real SLV OCULUS CW pair taken
-//! from gldf-rs `tests/test-create/`. (Note: the separately-named
-//! `fixtures/variant2_sensor_wide.ldt` is a normal wide-beam luminaire, NOT a
-//! sensor — do not confuse them.)
+//! (`fixtures/variant2_sensor_wide.ldt` is a normal wide-beam luminaire whose
+//! name contains "sensor".)
 
 use eulumdat::Eulumdat;
 
@@ -37,14 +32,10 @@ fn both_parse_as_valid_eulumdat() {
     assert_eq!(sensor.g_angles.len(), lum.g_angles.len());
 }
 
-/// The core finding: the sensor and the luminaire are indistinguishable by their
-/// identity and lamp-set blocks. In particular CRI and color temperature — the
-/// fields one would expect a sensor to omit — are present and identical on both.
-///
-/// If this test ever starts FAILING because the two files diverge, that does NOT
-/// mean we gained a reliable classifier; a real sensor that happens to differ
-/// here is still not provably a sensor from content alone. The test exists to
-/// document that the fields are equal on this canonical real-world pair.
+/// The two files share their identity and lamp-set blocks (CRI and colour
+/// temperature included): the "sensor" is a copy of a luminaire file. So
+/// identity / lamp-block rules ("no CRI ⇒ sensor") say nothing; the sensor
+/// fingerprint lives in the table values and lines 33–42.
 #[test]
 fn sensor_and_luminaire_share_identical_identity_and_lamp_block() {
     let sensor = Eulumdat::parse(SENSOR).unwrap();
@@ -79,17 +70,14 @@ fn sensor_and_luminaire_share_identical_identity_and_lamp_block() {
     );
     assert_eq!(s.wattage_with_ballast, l.wattage_with_ballast, "wattage");
 
-    // Concretely: CRI and CT are non-empty on the SENSOR, disproving the
-    // "missing CRI/CT ⇒ sensor" heuristic.
+    // CRI and CT are filled in on the file from the sensor folder, so a
+    // "missing CRI/CT ⇒ sensor" rule would be meaningless.
     assert_eq!(s.color_appearance, "2000K");
     assert_eq!(s.color_rendering_group, "90");
 }
 
-/// What DOES differ is only the measured data (the detection lobe vs. the light
-/// beam). This is captured for documentation, but is NOT a safe classifier — a
-/// narrow-beam luminaire can produce a similar profile. We assert merely that
-/// the intensity payloads are not identical, i.e. the files carry different
-/// measurements behind an identical identity.
+/// The intensity tables differ (two measurements behind one identity), but
+/// both are light distributions in cd/klm, not ranges in metres.
 #[test]
 fn only_the_measured_distribution_differs() {
     let sensor = Eulumdat::parse(SENSOR).unwrap();
@@ -99,4 +87,15 @@ fn only_the_measured_distribution_differs() {
         sensor.intensities, lum.intensities,
         "the detection pattern and the light beam are different measurements"
     );
+}
+
+/// Neither file has the sensor LDT fingerprint: both are luminaires.
+#[test]
+fn neither_file_is_a_sensor_ldt() {
+    for text in [SENSOR, LUMINAIRE] {
+        let l = Eulumdat::parse(text).unwrap();
+        assert!(!eulumdat::sensor::is_sensor_ldt(&l));
+    }
+    let demo = Eulumdat::parse(include_str!("fixtures/sensors/demo_ceiling_360.ldt")).unwrap();
+    assert!(eulumdat::sensor::is_sensor_ldt(&demo));
 }

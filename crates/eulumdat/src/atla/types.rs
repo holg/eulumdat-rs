@@ -63,7 +63,7 @@ pub enum SymmetryType {
 }
 
 impl SymmetryType {
-    /// Parse from TM-33-23 string format (e.g., "Symm _ None")
+    /// Parse from TM-33-23 string format (e.g., "Symm_None")
     pub fn from_tm33_str(s: &str) -> Self {
         let normalized = s.trim().replace(" _ ", "_").replace(" ", "").to_uppercase();
 
@@ -81,12 +81,12 @@ impl SymmetryType {
     /// Convert to TM-33-23 string format
     pub fn to_tm33_str(&self) -> &'static str {
         match self {
-            SymmetryType::None => "Symm _ None",
-            SymmetryType::Bi0 => "Symm _ Bi _ 0",
-            SymmetryType::Bi90 => "Symm _ Bi _90",
-            SymmetryType::Quad => "Symm _ Quad",
-            SymmetryType::Full => "Symm _ Full",
-            SymmetryType::Arbitrary => "Symm _ Arbitrary",
+            SymmetryType::None => "Symm_None",
+            SymmetryType::Bi0 => "Symm_Bi_0",
+            SymmetryType::Bi90 => "Symm_Bi_90",
+            SymmetryType::Quad => "Symm_Quad",
+            SymmetryType::Full => "Symm_Full",
+            SymmetryType::Arbitrary => "Symm_Arbitrary",
         }
     }
 }
@@ -132,12 +132,12 @@ impl GoniometerTypeEnum {
     /// Convert to TM-33-23 string format
     pub fn to_tm33_str(&self) -> &'static str {
         match self {
-            GoniometerTypeEnum::CieA => "CIE _ A",
-            GoniometerTypeEnum::CieB => "CIE _ B",
-            GoniometerTypeEnum::CieC => "CIE _ C",
-            GoniometerTypeEnum::IesA => "IES _ A",
-            GoniometerTypeEnum::IesB => "IES _ B",
-            GoniometerTypeEnum::IesC => "IES _ C",
+            GoniometerTypeEnum::CieA => "CIE_A",
+            GoniometerTypeEnum::CieB => "CIE_B",
+            GoniometerTypeEnum::CieC => "CIE_C",
+            GoniometerTypeEnum::IesA => "IES_A",
+            GoniometerTypeEnum::IesB => "IES_B",
+            GoniometerTypeEnum::IesC => "IES_C",
             GoniometerTypeEnum::Custom => "CUSTOM",
         }
     }

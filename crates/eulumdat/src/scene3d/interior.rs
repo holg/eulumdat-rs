@@ -33,90 +33,142 @@ pub fn build_interior_scene(
     let wall_color = reflectance_to_rgb(reflectances.wall);
     let ceil_color = reflectance_to_rgb(reflectances.ceiling);
 
-    // ─── Floor ──────────────────────────────────────────────────────
-    faces.push(
-        SceneFace::quad(
-            (-hx, -hy, 0.0),
-            (hx, -hy, 0.0),
-            (hx, hy, 0.0),
-            (-hx, hy, 0.0),
-            &floor_color,
-            "#666",
-            0.9,
-        )
-        .with_stroke_width(1.5),
-    );
+    // A shaped room: polygon floor and ceiling, one wall per outline edge
+    // (centred like the rectangle).
+    if let Some(o) = room.outline.as_ref().filter(|o| o.len() >= 3) {
+        let pts: Vec<(f64, f64)> = o.iter().map(|&(x, y)| (x - hx, y - hy)).collect();
+        faces.push(SceneFace {
+            vertices: pts.iter().map(|&(x, y)| (x, y, 0.0)).collect(),
+            fill: floor_color.clone(),
+            stroke: "#666".into(),
+            stroke_width: 1.5,
+            opacity: 0.9,
+            dash: None,
+            label: None,
+        });
+        // winding of the outline, for the outward normal of each wall
+        let signed: f64 = (0..pts.len())
+            .map(|k| {
+                let (a, b) = (pts[k], pts[(k + 1) % pts.len()]);
+                a.0 * b.1 - b.0 * a.1
+            })
+            .sum();
+        for k in 0..pts.len() {
+            let (a, b) = (pts[k], pts[(k + 1) % pts.len()]);
+            let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+            let outward = if signed >= 0.0 { (dy, -dx) } else { (-dy, dx) };
+            // walls facing away from the default camera (front-right, i.e.
+            // towards +x / −y) are drawn more solid, like the rectangle's
+            // back and left walls
+            let back = outward.0 - outward.1 < 0.0;
+            faces.push(
+                SceneFace::quad(
+                    (a.0, a.1, 0.0),
+                    (b.0, b.1, 0.0),
+                    (b.0, b.1, h),
+                    (a.0, a.1, h),
+                    &wall_color,
+                    "#888",
+                    if back { 0.5 } else { 0.15 },
+                )
+                .with_stroke_width(if back { 1.0 } else { 0.5 }),
+            );
+        }
+        faces.push(SceneFace {
+            vertices: pts.iter().map(|&(x, y)| (x, y, h)).collect(),
+            fill: ceil_color.clone(),
+            stroke: "#888".into(),
+            stroke_width: 1.0,
+            opacity: 0.25,
+            dash: None,
+            label: None,
+        });
+    } else {
+        // ─── Floor ──────────────────────────────────────────────────────
+        faces.push(
+            SceneFace::quad(
+                (-hx, -hy, 0.0),
+                (hx, -hy, 0.0),
+                (hx, hy, 0.0),
+                (-hx, hy, 0.0),
+                &floor_color,
+                "#666",
+                0.9,
+            )
+            .with_stroke_width(1.5),
+        );
 
-    // ─── Walls ──────────────────────────────────────────────────────
-    // Back wall (y = hy) — semi-transparent (50–80% per spec)
-    faces.push(
-        SceneFace::quad(
-            (-hx, hy, 0.0),
-            (hx, hy, 0.0),
-            (hx, hy, h),
-            (-hx, hy, h),
-            &wall_color,
-            "#888",
-            0.6,
-        )
-        .with_stroke_width(1.0),
-    );
+        // ─── Walls ──────────────────────────────────────────────────────
+        // Back wall (y = hy) — semi-transparent (50–80% per spec)
+        faces.push(
+            SceneFace::quad(
+                (-hx, hy, 0.0),
+                (hx, hy, 0.0),
+                (hx, hy, h),
+                (-hx, hy, h),
+                &wall_color,
+                "#888",
+                0.6,
+            )
+            .with_stroke_width(1.0),
+        );
 
-    // Left wall (x = -hx) — semi-transparent (50–80% per spec)
-    faces.push(
-        SceneFace::quad(
-            (-hx, -hy, 0.0),
-            (-hx, hy, 0.0),
-            (-hx, hy, h),
-            (-hx, -hy, h),
-            &wall_color,
-            "#888",
-            0.6,
-        )
-        .with_stroke_width(1.0),
-    );
+        // Left wall (x = -hx) — semi-transparent (50–80% per spec)
+        faces.push(
+            SceneFace::quad(
+                (-hx, -hy, 0.0),
+                (-hx, hy, 0.0),
+                (-hx, hy, h),
+                (-hx, -hy, h),
+                &wall_color,
+                "#888",
+                0.6,
+            )
+            .with_stroke_width(1.0),
+        );
 
-    // Right wall (x = hx) — very transparent (interior visible)
-    faces.push(
-        SceneFace::quad(
-            (hx, -hy, 0.0),
-            (hx, hy, 0.0),
-            (hx, hy, h),
-            (hx, -hy, h),
-            &wall_color,
-            "#888",
-            0.15,
-        )
-        .with_stroke_width(0.5),
-    );
+        // Right wall (x = hx) — very transparent (interior visible)
+        faces.push(
+            SceneFace::quad(
+                (hx, -hy, 0.0),
+                (hx, hy, 0.0),
+                (hx, hy, h),
+                (hx, -hy, h),
+                &wall_color,
+                "#888",
+                0.15,
+            )
+            .with_stroke_width(0.5),
+        );
 
-    // Front wall (y = -hy) — very transparent (interior visible)
-    faces.push(
-        SceneFace::quad(
-            (-hx, -hy, 0.0),
-            (hx, -hy, 0.0),
-            (hx, -hy, h),
-            (-hx, -hy, h),
-            &wall_color,
-            "#888",
-            0.15,
-        )
-        .with_stroke_width(0.5),
-    );
+        // Front wall (y = -hy) — very transparent (interior visible)
+        faces.push(
+            SceneFace::quad(
+                (-hx, -hy, 0.0),
+                (hx, -hy, 0.0),
+                (hx, -hy, h),
+                (-hx, -hy, h),
+                &wall_color,
+                "#888",
+                0.15,
+            )
+            .with_stroke_width(0.5),
+        );
 
-    // ─── Ceiling ────────────────────────────────────────────────────
-    faces.push(
-        SceneFace::quad(
-            (-hx, -hy, h),
-            (hx, -hy, h),
-            (hx, hy, h),
-            (-hx, hy, h),
-            &ceil_color,
-            "#888",
-            0.25,
-        )
-        .with_stroke_width(1.0),
-    );
+        // ─── Ceiling ────────────────────────────────────────────────────
+        faces.push(
+            SceneFace::quad(
+                (-hx, -hy, h),
+                (hx, -hy, h),
+                (hx, hy, h),
+                (-hx, hy, h),
+                &ceil_color,
+                "#888",
+                0.25,
+            )
+            .with_stroke_width(1.0),
+        );
+    }
 
     // ─── Workplane ──────────────────────────────────────────────────
     let wp_z = room.workplane_height;
@@ -134,6 +186,9 @@ pub fn build_interior_scene(
             for col in 0..grid_n {
                 let src_row = (row * step).min(n - 1);
                 let src_col = (col * step).min(n - 1);
+                if ppb.mask.as_ref().is_some_and(|m| !m[src_row][src_col]) {
+                    continue;
+                }
                 let lux = ppb.lux_grid[src_row][src_col];
                 let color = heatmap_color(lux / max_lux);
                 let fill = color.to_rgba_string(0.6);
@@ -178,79 +233,77 @@ pub fn build_interior_scene(
     let lum_z = h - room.suspension_length;
     let lum_size = 0.2_f64.max(l / (layout.rows.max(1) as f64 * 6.0)); // adaptive size
 
-    for r in 0..layout.rows {
-        for c in 0..layout.cols {
-            let lx = layout.offset_x + r as f64 * layout.spacing_x - hx;
-            let ly = layout.offset_y + c as f64 * layout.spacing_y - hy;
+    for (px, py) in layout.positions() {
+        let lx = px - hx;
+        let ly = py - hy;
 
-            // Luminaire rectangle
-            faces.push(SceneFace::quad(
-                (lx - lum_size, ly - lum_size, lum_z),
-                (lx + lum_size, ly - lum_size, lum_z),
-                (lx + lum_size, ly + lum_size, lum_z),
-                (lx - lum_size, ly + lum_size, lum_z),
-                "rgba(255,200,50,0.9)",
-                "rgb(200,160,30)",
-                1.0,
-            ));
+        // Luminaire rectangle
+        faces.push(SceneFace::quad(
+            (lx - lum_size, ly - lum_size, lum_z),
+            (lx + lum_size, ly - lum_size, lum_z),
+            (lx + lum_size, ly + lum_size, lum_z),
+            (lx - lum_size, ly + lum_size, lum_z),
+            "rgba(255,200,50,0.9)",
+            "rgb(200,160,30)",
+            1.0,
+        ));
 
-            // Suspension rod (if suspended)
-            if room.suspension_length > 0.05 {
-                let rod_hw = 0.02;
-                faces.push(
-                    SceneFace::quad(
-                        (lx - rod_hw, ly, lum_z),
-                        (lx + rod_hw, ly, lum_z),
-                        (lx + rod_hw, ly, h),
-                        (lx - rod_hw, ly, h),
-                        "#999",
-                        "#777",
-                        0.5,
-                    )
-                    .with_stroke_width(0.3),
-                );
-            }
+        // Suspension rod (if suspended)
+        if room.suspension_length > 0.05 {
+            let rod_hw = 0.02;
+            faces.push(
+                SceneFace::quad(
+                    (lx - rod_hw, ly, lum_z),
+                    (lx + rod_hw, ly, lum_z),
+                    (lx + rod_hw, ly, h),
+                    (lx - rod_hw, ly, h),
+                    "#999",
+                    "#777",
+                    0.5,
+                )
+                .with_stroke_width(0.3),
+            );
+        }
 
-            // Light cone (luminaire → workplane): 4 triangles forming a pyramid
-            if show_cones {
-                let cone_r = (lum_z - wp_z) * 0.45;
-                let cone_faces = [
-                    // Front
-                    [
-                        (lx, ly, lum_z),
-                        (lx - cone_r, ly - cone_r, wp_z),
-                        (lx + cone_r, ly - cone_r, wp_z),
-                    ],
-                    // Back
-                    [
-                        (lx, ly, lum_z),
-                        (lx - cone_r, ly + cone_r, wp_z),
-                        (lx + cone_r, ly + cone_r, wp_z),
-                    ],
-                    // Left
-                    [
-                        (lx, ly, lum_z),
-                        (lx - cone_r, ly - cone_r, wp_z),
-                        (lx - cone_r, ly + cone_r, wp_z),
-                    ],
-                    // Right
-                    [
-                        (lx, ly, lum_z),
-                        (lx + cone_r, ly - cone_r, wp_z),
-                        (lx + cone_r, ly + cone_r, wp_z),
-                    ],
-                ];
-                for tri in &cone_faces {
-                    faces.push(SceneFace {
-                        vertices: vec![tri[0], tri[1], tri[2]],
-                        fill: "rgba(255,220,80,0.15)".to_string(),
-                        stroke: "rgba(255,200,50,0.25)".to_string(),
-                        stroke_width: 0.3,
-                        opacity: 0.3,
-                        dash: None,
-                        label: None,
-                    });
-                }
+        // Light cone (luminaire → workplane): 4 triangles forming a pyramid
+        if show_cones {
+            let cone_r = (lum_z - wp_z) * 0.45;
+            let cone_faces = [
+                // Front
+                [
+                    (lx, ly, lum_z),
+                    (lx - cone_r, ly - cone_r, wp_z),
+                    (lx + cone_r, ly - cone_r, wp_z),
+                ],
+                // Back
+                [
+                    (lx, ly, lum_z),
+                    (lx - cone_r, ly + cone_r, wp_z),
+                    (lx + cone_r, ly + cone_r, wp_z),
+                ],
+                // Left
+                [
+                    (lx, ly, lum_z),
+                    (lx - cone_r, ly - cone_r, wp_z),
+                    (lx - cone_r, ly + cone_r, wp_z),
+                ],
+                // Right
+                [
+                    (lx, ly, lum_z),
+                    (lx + cone_r, ly - cone_r, wp_z),
+                    (lx + cone_r, ly + cone_r, wp_z),
+                ],
+            ];
+            for tri in &cone_faces {
+                faces.push(SceneFace {
+                    vertices: vec![tri[0], tri[1], tri[2]],
+                    fill: "rgba(255,220,80,0.15)".to_string(),
+                    stroke: "rgba(255,200,50,0.25)".to_string(),
+                    stroke_width: 0.3,
+                    opacity: 0.3,
+                    dash: None,
+                    label: None,
+                });
             }
         }
     }

@@ -12,7 +12,10 @@ use eulumdat::Eulumdat;
 use eulumdat_rt::lightscene::SceneRenderer;
 use eulumdat_scene::cpu::CpuTracer;
 use eulumdat_scene::mesh::LuminaireMesh;
-use eulumdat_scene::scene::{suggest_scene, SceneKind};
+use eulumdat_scene::scene::{
+    suggest_scene, ObjectId, SceneKind, ScenePlan, GRID_EMPHASIS, GRID_OPEN_AREA, GRID_ROUTE,
+    MAX_SENSORS,
+};
 use eulumdat_scene::sync::{scene_id, Status, SyncSettings};
 use eulumdat_scene::viewer::{ViewMode, Viewer};
 use leptos::prelude::*;
@@ -60,6 +63,14 @@ struct Shared {
     /// Last noteworthy event, shown in the corner of the picture.
     note: String,
     drag: Option<(f32, f32, bool)>,
+    /// Pointer drags move objects (luminaires, person, cars, sensors).
+    move_mode: bool,
+    /// An object is being dragged.
+    obj_drag: bool,
+    /// GPU resets by the browser ("device lost") so far.
+    gpu_resets: u32,
+    /// No GPU came back after a reset: the CPU traces.
+    gpu_gone: bool,
 }
 
 /// Traced pixels at most in CPU mode (preview size).
@@ -75,6 +86,40 @@ enum LoadState {
     Starting,
     Running,
     Unsupported,
+}
+
+/// localStorage key of the last Light scene (a `SceneDoc` as JSON).
+const LAST_SCENE_KEY: &str = "eulumdat_light_scene";
+
+fn store_last_scene(json: &str) {
+    if let Ok(Some(storage)) = window().local_storage() {
+        let _ = storage.set_item(LAST_SCENE_KEY, json);
+    }
+}
+
+fn load_last_scene() -> Option<eulumdat_scene::doc::SceneDoc> {
+    let json = window()
+        .local_storage()
+        .ok()??
+        .get_item(LAST_SCENE_KEY)
+        .ok()??;
+    serde_json::from_str(&json).ok()
+}
+
+/// Wait `ms` milliseconds (browser timer).
+async fn sleep_ms(ms: i32) {
+    let promise = js_sys::Promise::new(&mut |resolve, _| {
+        let _ = window().set_timeout_with_callback_and_timeout_and_arguments_0(&resolve, ms);
+    });
+    let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+}
+
+/// CSS size of the picture canvas.
+fn canvas_css_size(s: &Shared) -> (f32, f32) {
+    s.canvas
+        .as_ref()
+        .map(|c| (c.client_width() as f32, c.client_height() as f32))
+        .unwrap_or((800.0, 600.0))
 }
 
 fn window() -> web_sys::Window {
@@ -164,8 +209,20 @@ fn reinit_gpu(shared: SharedRef) {
     let Some(canvas) = canvas else {
         return;
     };
+    if let Ok(mut s) = shared.try_borrow_mut() {
+        s.gpu_resets += 1;
+    }
     wasm_bindgen_futures::spawn_local(async move {
-        let result = init_gpu(canvas).await;
+        // A browser may refuse a new adapter right after a reset: try again
+        // a few times before falling back to the CPU.
+        let mut result = Err(String::new());
+        for wait_ms in [300, 1500, 4000] {
+            sleep_ms(wait_ms).await;
+            result = init_gpu(canvas.clone()).await;
+            if result.is_ok() {
+                break;
+            }
+        }
         let mut s = shared.borrow_mut();
         s.reinit_pending = false;
         match result {
@@ -178,7 +235,8 @@ fn reinit_gpu(shared: SharedRef) {
             Err(e) => {
                 web_sys::console::error_1(&format!("light scene: {e}, using the CPU").into());
                 s.cpu_mode = true;
-                s.note = "GPU unavailable, tracing on the CPU".into();
+                s.gpu_gone = true;
+                s.note = String::new();
             }
         }
     });
@@ -229,7 +287,7 @@ fn frame(shared: &SharedRef, now: f64) {
     if s.cpu_mode {
         cpu_frame(&mut s, &input, dt);
         if let Some(overlay) = s.overlay.clone() {
-            draw_overlay(&overlay, &s.viewer, css_w, css_h, dpr);
+            draw_overlay(&overlay, &s.viewer, css_w, css_h, dpr, s.move_mode);
         }
         return;
     }
@@ -256,7 +314,7 @@ fn frame(shared: &SharedRef, now: f64) {
         format: Some(gpu.config.view_formats[0]),
         ..Default::default()
     });
-    let table = viewer.photometry.as_ref().map(|p| &p.table);
+    let table = viewer.ies_table();
     gpu.renderer
         .render(&gpu.device, &gpu.queue, &input, table, &view);
     texture.present();
@@ -266,9 +324,9 @@ fn frame(shared: &SharedRef, now: f64) {
     viewer.samples = gpu.renderer.samples();
     viewer.probe_samples = gpu.renderer.probe_samples();
 
-    // Measurement points on the 2D overlay.
+    // Sensor areas, object handles and measurement points on the 2D overlay.
     if let Some(overlay) = s.overlay.clone() {
-        draw_overlay(&overlay, &s.viewer, css_w, css_h, dpr);
+        draw_overlay(&overlay, &s.viewer, css_w, css_h, dpr, s.move_mode);
     }
 }
 
@@ -282,7 +340,7 @@ fn cpu_frame(s: &mut Shared, input: &eulumdat_scene::viewer::FrameInput, dt: f32
         cpu_canvas,
         ..
     } = s;
-    let Some(table) = viewer.photometry.as_ref().map(|p| &p.table) else {
+    let Some(table) = viewer.ies_table() else {
         return;
     };
     // Aim for about 30 ms of tracing per frame.
@@ -333,6 +391,7 @@ fn draw_overlay(
     css_w: f32,
     css_h: f32,
     dpr: f32,
+    move_mode: bool,
 ) {
     let w = (css_w * dpr) as u32;
     let h = (css_h * dpr) as u32;
@@ -351,6 +410,19 @@ fn draw_overlay(
     ctx.set_transform(dpr as f64, 0.0, 0.0, dpr as f64, 0.0, 0.0)
         .ok();
     ctx.clear_rect(0.0, 0.0, css_w as f64, css_h as f64);
+    draw_emergency(&ctx, viewer, css_w, css_h);
+    draw_sensors(&ctx, viewer, css_w, css_h, move_mode);
+    // The grab points as data (CSS pixels): for automation and tests.
+    if move_mode {
+        let list: Vec<String> = viewer
+            .object_handles(css_w, css_h)
+            .iter()
+            .map(|h| format!("{:?}:{:.0}:{:.0}:{}", h.id, h.x, h.y, h.active as u8))
+            .collect();
+        let _ = canvas.set_attribute("data-handles", &list.join(" "));
+    } else {
+        let _ = canvas.remove_attribute("data-handles");
+    }
     if viewer.settings.mode != ViewMode::Points {
         return;
     }
@@ -400,6 +472,230 @@ fn draw_overlay(
                 ctx.fill_text(text, p.x as f64, p.y as f64 + 0.5).ok();
             }
         }
+    }
+}
+
+/// Trace a list of polygons / polylines into the current path.
+fn trace_paths(ctx: &web_sys::CanvasRenderingContext2d, paths: &[Vec<(f32, f32)>], close: bool) {
+    for path in paths {
+        for (k, (x, y)) in path.iter().enumerate() {
+            if k == 0 {
+                ctx.move_to(*x as f64, *y as f64);
+            } else {
+                ctx.line_to(*x as f64, *y as f64);
+            }
+        }
+        if close {
+            ctx.close_path();
+        }
+    }
+}
+
+/// The plan's emergency markings: escape routes as a safety-green band
+/// with a dashed centre line, the open area's border, and the points of
+/// emphasis with their vertical illuminance (green ≥ 5 lx, red below).
+fn draw_emergency(
+    ctx: &web_sys::CanvasRenderingContext2d,
+    viewer: &Viewer,
+    css_w: f32,
+    css_h: f32,
+) {
+    let Some(m) = viewer.emergency_marks(css_w, css_h) else {
+        return;
+    };
+    // one path: overlapping segments do not stack up
+    ctx.begin_path();
+    trace_paths(ctx, &m.bands, true);
+    ctx.set_fill_style_str("rgba(0,148,68,0.42)");
+    ctx.fill();
+    let dash = |a: f64, b: f64| js_sys::Array::of2(&a.into(), &b.into());
+    ctx.begin_path();
+    trace_paths(ctx, &m.centre_lines, false);
+    ctx.set_stroke_style_str("rgba(255,255,255,0.9)");
+    ctx.set_line_width(1.5);
+    ctx.set_line_dash(&dash(8.0, 6.0)).ok();
+    ctx.stroke();
+    ctx.begin_path();
+    trace_paths(ctx, &m.open_area, false);
+    ctx.set_stroke_style_str("rgba(52,211,153,0.85)");
+    ctx.set_line_width(1.5);
+    ctx.set_line_dash(&dash(3.0, 4.0)).ok();
+    ctx.stroke();
+    ctx.set_line_dash(&js_sys::Array::new()).ok();
+    let need = eulumdat::emergency::Limits::en1838().emphasis_min_vertical_lx as f32;
+    ctx.set_text_align("center");
+    ctx.set_text_baseline("middle");
+    for p in &m.points {
+        let (x, y) = (p.x as f64, p.y as f64);
+        let ring = match p.lux {
+            Some(e) if e >= need => "rgba(74,222,128,0.95)",
+            Some(_) => "rgba(248,113,113,0.95)",
+            None => "rgba(226,232,240,0.9)",
+        };
+        ctx.begin_path();
+        ctx.arc(x, y, 12.0, 0.0, std::f64::consts::TAU).ok();
+        ctx.set_fill_style_str("rgba(10,12,16,0.72)");
+        ctx.fill();
+        ctx.set_stroke_style_str(ring);
+        ctx.set_line_width(2.0);
+        ctx.stroke();
+        ctx.set_font("13px ui-sans-serif, system-ui, sans-serif");
+        ctx.set_fill_style_str("#fff");
+        ctx.fill_text(&p.symbol, x, y + 1.0).ok();
+        if let Some(e) = p.lux {
+            let text = format!("{} lx", fmt_lux(e));
+            ctx.set_font("600 10.5px ui-sans-serif, system-ui, sans-serif");
+            let w = text.len() as f64 * 6.0 + 8.0;
+            ctx.begin_path();
+            ctx.round_rect_with_f64(x - w / 2.0, y + 15.0, w, 15.0, 7.5)
+                .ok();
+            ctx.set_fill_style_str("rgba(10,12,16,0.8)");
+            ctx.fill();
+            ctx.set_fill_style_str(ring);
+            ctx.fill_text(&text, x, y + 23.0).ok();
+        }
+    }
+}
+
+/// Detection areas of the sensors on the ground (green while they detect
+/// something) and, in move mode, the grab points of the movable objects.
+fn draw_sensors(
+    ctx: &web_sys::CanvasRenderingContext2d,
+    viewer: &Viewer,
+    css_w: f32,
+    css_h: f32,
+    move_mode: bool,
+) {
+    // Indoors the walls stop detection: clip the areas to the room.
+    let clip = viewer.room_outline_screen(css_w, css_h);
+    if let Some(room) = clip.as_ref() {
+        ctx.save();
+        ctx.begin_path();
+        for (k, (x, y)) in room.iter().enumerate() {
+            if k == 0 {
+                ctx.move_to(*x as f64, *y as f64);
+            } else {
+                ctx.line_to(*x as f64, *y as f64);
+            }
+        }
+        ctx.close_path();
+        ctx.clip();
+    }
+    // Fill each group (detecting / idle) as one path: overlapping areas do
+    // not stack up to a solid colour.
+    let outlines = viewer.sensor_outlines(css_w, css_h);
+    for detecting in [false, true] {
+        let group: Vec<_> = outlines
+            .iter()
+            .filter(|o| o.detecting == detecting)
+            .collect();
+        if group.is_empty() {
+            continue;
+        }
+        ctx.begin_path();
+        for o in &group {
+            for (k, (x, y)) in o.points.iter().enumerate() {
+                if k == 0 {
+                    ctx.move_to(*x as f64, *y as f64);
+                } else {
+                    ctx.line_to(*x as f64, *y as f64);
+                }
+            }
+            ctx.close_path();
+        }
+        let (fill, stroke) = if detecting {
+            ("rgba(34,197,94,0.20)", "rgba(74,222,128,0.95)")
+        } else {
+            ("rgba(124,58,237,0.10)", "rgba(167,139,250,0.85)")
+        };
+        ctx.set_fill_style_str(fill);
+        ctx.fill();
+        ctx.set_stroke_style_str(stroke);
+        ctx.set_line_width(1.5);
+        ctx.set_line_dash(&js_sys::Array::of2(&6.0.into(), &4.0.into()))
+            .ok();
+        ctx.stroke();
+        ctx.set_line_dash(&js_sys::Array::new()).ok();
+    }
+    if clip.is_some() {
+        ctx.restore();
+    }
+    // The detection volumes in 3D (optional): rings at several heights and
+    // lines from each sensor down to the floor.
+    if viewer.settings.show_sensor_volume {
+        ctx.set_line_width(1.0);
+        for v in viewer.sensor_volume_lines(css_w, css_h) {
+            ctx.set_stroke_style_str(if v.detecting {
+                "rgba(74,222,128,0.75)"
+            } else {
+                "rgba(167,139,250,0.65)"
+            });
+            ctx.begin_path();
+            for line in &v.lines {
+                for (k, (x, y)) in line.iter().enumerate() {
+                    if k == 0 {
+                        ctx.move_to(*x as f64, *y as f64);
+                    } else {
+                        ctx.line_to(*x as f64, *y as f64);
+                    }
+                }
+            }
+            ctx.stroke();
+        }
+    }
+    if !move_mode {
+        return;
+    }
+    let dragging = viewer.dragging();
+    ctx.set_font("13px ui-sans-serif, system-ui, sans-serif");
+    ctx.set_text_align("center");
+    ctx.set_text_baseline("middle");
+    for h in viewer.object_handles(css_w, css_h) {
+        let (icon, ring) = match h.id {
+            ObjectId::Luminaire(_) => (
+                "💡",
+                if h.active {
+                    "rgba(250,204,21,0.95)"
+                } else {
+                    "rgba(148,163,184,0.9)"
+                },
+            ),
+            ObjectId::Person => (
+                "🚶",
+                if h.active {
+                    "rgba(74,222,128,0.95)"
+                } else {
+                    "rgba(226,232,240,0.9)"
+                },
+            ),
+            ObjectId::Car(_) => (
+                "🚗",
+                if h.active {
+                    "rgba(74,222,128,0.95)"
+                } else {
+                    "rgba(226,232,240,0.9)"
+                },
+            ),
+            ObjectId::Sensor(_) => (
+                "📡",
+                if h.active {
+                    "rgba(74,222,128,0.95)"
+                } else {
+                    "rgba(167,139,250,0.95)"
+                },
+            ),
+        };
+        let r = if dragging == Some(h.id) { 15.0 } else { 12.0 };
+        ctx.begin_path();
+        ctx.arc(h.x as f64, h.y as f64, r, 0.0, std::f64::consts::TAU)
+            .ok();
+        ctx.set_fill_style_str("rgba(10,12,16,0.72)");
+        ctx.fill();
+        ctx.set_stroke_style_str(ring);
+        ctx.set_line_width(2.0);
+        ctx.stroke();
+        ctx.set_fill_style_str("#fff");
+        ctx.fill_text(icon, h.x as f64, h.y as f64 + 1.0).ok();
     }
 }
 
@@ -460,6 +756,10 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
         reinit_pending: false,
         note: String::new(),
         drag: None,
+        move_mode: false,
+        obj_drag: false,
+        gpu_resets: 0,
+        gpu_gone: false,
     }));
     let (note, set_note) = signal(String::new());
     let shared_sv = StoredValue::new_local(shared.clone());
@@ -496,7 +796,7 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
     let (load_state, set_load_state) = signal(LoadState::Idle);
     // A deep link (`#tab=light-scene&scene=…&mode=…`) sets the first
     // settings and counts as the visitor's own scene choice.
-    let (link_settings, link_scene) = use_context::<super::app::RtLinkParams>()
+    let (link_settings, link_scene, link_any) = use_context::<super::app::RtLinkParams>()
         .map(|p| {
             let pairs = p.0.get_value();
             let mut s = SyncSettings::default();
@@ -504,10 +804,22 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
             (
                 if any { s } else { SyncSettings::default() },
                 pairs.iter().any(|(k, _)| k == "scene"),
+                any,
             )
         })
-        .unwrap_or((SyncSettings::default(), false));
+        .unwrap_or((SyncSettings::default(), false, false));
+    // The editor starts on Balanced unless a link asks for a quality.
+    let link_settings = {
+        let mut s = link_settings;
+        let asked = use_context::<super::app::RtLinkParams>()
+            .is_some_and(|p| p.0.get_value().iter().any(|(k, _)| k == "quality"));
+        if !asked {
+            s.apply_quality("balanced");
+        }
+        s
+    };
     let (settings, set_settings) = signal(link_settings);
+    let t = Memo::new(move |_| use_locale().get().ui.light_scene.clone());
     let (status, set_status) = signal(Status::default());
     let browser = StoredValue::new(detect_browser());
 
@@ -529,7 +841,7 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
         if !scene_touched.get_value() {
             let kind = suggest_scene(&ldt);
             if settings.get_untracked().scene != scene_id(kind) {
-                set_settings.set(SyncSettings::for_scene(kind));
+                set_settings.update(|s| *s = s.switched_to(kind));
             }
         }
         shared_sv.with_value(|sh| {
@@ -568,6 +880,183 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
                 // A fresh start on the other tracer.
                 sh.viewer.reset_token += 1;
                 sh.viewer.probe_reset_token += 1;
+            }
+        });
+    });
+
+    // A plan from the Interior / Outdoor designer: the "Planned" scene,
+    // applied when it arrives and when the tab mounts with one waiting.
+    let plan_ctx = use_context::<super::app::LightScenePlan>();
+    let doc_ctx = use_context::<super::app::LightSceneDoc>();
+    // The scene being worked on: its document id, name, whether it is in
+    // the project (then changes are saved there automatically), and the
+    // plan of a planned scene (for the panel's "Plan" button).
+    let new_doc_id = || format!("{:x}", js_sys::Date::now() as u64);
+    let scene_doc_id = RwSignal::new(new_doc_id());
+    let scene_name = RwSignal::new(String::new());
+    let scene_saved = RwSignal::new(false);
+    let saved_kind = StoredValue::new(String::new());
+    let current_plan = RwSignal::new(None::<Arc<ScenePlan>>);
+    // A plan from a designer: a new (unsaved) scene. Taken from the app,
+    // so a later visit restores the last scene instead.
+    Effect::new(move |_| {
+        let Some(plan) = plan_ctx.and_then(|c| c.0.get()) else {
+            return;
+        };
+        if let Some(c) = plan_ctx {
+            c.0.set(None);
+        }
+        let n = plan.sensors.len().min(MAX_SENSORS) as u32;
+        let height = plan.sensor_height;
+        shared_sv.with_value(|sh| {
+            if let Ok(mut s) = sh.try_borrow_mut() {
+                s.viewer.set_plan(Some(plan.clone()));
+            }
+        });
+        current_plan.set(Some(plan.clone()));
+        scene_doc_id.set(new_doc_id());
+        scene_saved.set(false);
+        scene_name.set(plan.name.clone());
+        scene_touched.set_value(true);
+        set_settings.update(|s| {
+            *s = s.switched_to(SceneKind::Planned);
+            s.sensors = n;
+            s.sensor_height = height;
+            // the mode the designer showed; arriving in emergency mode
+            // replays the power failure (the eye adapts again)
+            if plan.emergency.is_some() {
+                s.emergency_mode = plan.emergency_mode;
+                if plan.emergency_mode {
+                    s.emergency_replay = s.emergency_replay.wrapping_add(1);
+                }
+            }
+        });
+    });
+    // A saved scene (project menu) or the last scene of this browser.
+    let sensor_choice = RwSignal::new(None::<String>);
+    Effect::new(move |_| {
+        let Some(doc) = doc_ctx.and_then(|c| c.0.get()) else {
+            return;
+        };
+        if let Some(c) = doc_ctx {
+            c.0.set(None);
+        }
+        shared_sv.with_value(|sh| {
+            if let Ok(mut s) = sh.try_borrow_mut() {
+                s.viewer.apply_doc(&doc);
+            }
+        });
+        current_plan.set(doc.plan.clone().map(Arc::new));
+        scene_doc_id.set(doc.id.clone());
+        scene_name.set(doc.name.clone());
+        let saved = super::projects_ui::ctx().is_some_and(|p| p.has_scene(&doc.id));
+        scene_saved.set(saved);
+        saved_kind.set_value(doc.settings.scene.clone());
+        if let Some(f) = doc.sensor_file.clone() {
+            sensor_choice.set(Some(f));
+        }
+        scene_touched.set_value(true);
+        set_settings.set(doc.settings.clone());
+    });
+    // Nothing asked for and no link: the last scene comes back.
+    if !link_any
+        && plan_ctx.is_none_or(|c| c.0.get_untracked().is_none())
+        && doc_ctx.is_some_and(|c| c.0.get_untracked().is_none())
+    {
+        if let Some(doc) = load_last_scene() {
+            if let Some(c) = doc_ctx {
+                c.0.set(Some(Arc::new(doc)));
+            }
+        }
+    }
+    // The scene as a document (for the browser and the project).
+    let build_doc = move || -> Option<(String, String)> {
+        let sync = settings.get_untracked();
+        let id = scene_doc_id.get_untracked();
+        let name = scene_name.get_untracked();
+        let lum = super::projects_ui::ctx()
+            .and_then(|p| p.active_item())
+            .map(|i| i.id);
+        let doc = shared_sv.with_value(|sh| {
+            sh.try_borrow()
+                .ok()
+                .map(|s| s.viewer.scene_doc(&sync, &id, &name, lum.clone()))
+        })?;
+        serde_json::to_string(&doc).ok().map(|j| (name, j))
+    };
+    let default_name = move || {
+        let tt = t.get_untracked();
+        match current_plan.get_untracked() {
+            Some(p) if settings.get_untracked().scene == "planned" => p.name.clone(),
+            _ => match settings.get_untracked().scene.as_str() {
+                "parking" => tt.scene_parking,
+                "facade" => tt.scene_facade,
+                "office" => tt.scene_office,
+                "greenhouse" => tt.scene_greenhouse,
+                _ => tt.scene_street,
+            },
+        }
+    };
+    let on_save_scene = Callback::new(move |_| {
+        if scene_name.get_untracked().trim().is_empty() {
+            scene_name.set(default_name());
+        }
+        scene_saved.set(true);
+        saved_kind.set_value(settings.get_untracked().scene);
+        if let (Some(p), Some((name, json))) = (super::projects_ui::ctx(), build_doc()) {
+            store_last_scene(&json);
+            p.put_scene(&name, json);
+        }
+    });
+
+    // Sensors: the file comes from the app's sensor list (the current
+    // project's sensors, the demos), the first one unless picked.
+    let sensor_files = use_context::<super::sensor_view::SensorFiles>().map(|f| f.0);
+    let sensor_names = Memo::new(move |_| {
+        sensor_files
+            .map(|f| f.with(|v| v.iter().map(|x| x.name.clone()).collect::<Vec<_>>()))
+            .unwrap_or_default()
+    });
+    Effect::new(move |_| {
+        let wanted = settings.with(|s| s.sensors > 0);
+        let choice = sensor_choice.get();
+        let file = if wanted {
+            sensor_files.and_then(|f| {
+                f.with(|v| {
+                    v.iter()
+                        .find(|x| Some(&x.name) == choice.as_ref())
+                        .or_else(|| v.first())
+                        .map(|x| (x.name.clone(), Arc::new(x.data.to_core())))
+                })
+            })
+        } else {
+            None
+        };
+        shared_sv.with_value(|sh| {
+            if let Ok(mut s) = sh.try_borrow_mut() {
+                s.viewer.set_sensor_file(file);
+            }
+        });
+    });
+    let on_load_demo = Callback::new(move |_| {
+        if let Some(f) = sensor_files {
+            super::sensor_view::add_demo(f);
+        }
+    });
+    // Move mode: drags on the picture move objects instead of the camera.
+    let move_mode = RwSignal::new(false);
+    Effect::new(move |_| {
+        let on = move_mode.get();
+        shared_sv.with_value(|sh| {
+            if let Ok(mut s) = sh.try_borrow_mut() {
+                s.move_mode = on;
+            }
+        });
+    });
+    let on_reset_moves = Callback::new(move |_| {
+        shared_sv.with_value(|sh| {
+            if let Ok(mut s) = sh.try_borrow_mut() {
+                s.viewer.reset_moves();
             }
         });
     });
@@ -630,6 +1119,12 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
     });
 
     // Status for the panel, a few times per second while running.
+    let seen_resets = StoredValue::new(0u32);
+    // Autosave: a second after the last change the scene goes to this
+    // browser, and into the project when it was saved there.
+    let last_fp = StoredValue::new(0u64);
+    let changed_at = StoredValue::new(0.0f64);
+    let dirty = StoredValue::new(false);
     Effect::new(move |_| {
         if load_state.get() != LoadState::Running {
             return;
@@ -640,13 +1135,79 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
                     return;
                 }
                 let now = window().performance().map(|p| p.now()).unwrap_or(0.0);
-                let (st, n, stalled) = shared_sv.with_value(|sh| {
+                let (st, n, stalled, resets, gone) = shared_sv.with_value(|sh| {
                     let Ok(s) = sh.try_borrow() else {
-                        return (None, None, false);
+                        return (None, None, false, 0, false);
                     };
                     let stalled = s.last_frame > 0.0 && now - s.last_frame > 1500.0;
-                    (Some(s.viewer.status()), Some(s.note.clone()), stalled)
+                    (
+                        Some(s.viewer.status()),
+                        Some(s.note.clone()),
+                        stalled,
+                        s.gpu_resets,
+                        s.gpu_gone,
+                    )
                 });
+                // After a GPU reset: go down to Quick so it does not happen
+                // again, and say why.
+                if resets > seen_resets.get_value() {
+                    seen_resets.set_value(resets);
+                    set_settings.update(|s| s.apply_quality("quick"));
+                }
+                // Another scene type: a new scene, not yet in the project.
+                let kind_now = settings.get_untracked().scene;
+                if scene_saved.get_untracked() && saved_kind.get_value() != kind_now {
+                    scene_saved.set(false);
+                    scene_doc_id.set(new_doc_id());
+                    scene_name.set(String::new());
+                }
+                // Saved in a project that loaded later (IndexedDB).
+                if !scene_saved.get_untracked()
+                    && super::projects_ui::ctx()
+                        .is_some_and(|p| p.has_scene(&scene_doc_id.get_untracked()))
+                {
+                    scene_saved.set(true);
+                    saved_kind.set_value(kind_now.clone());
+                }
+                let fp = {
+                    use std::hash::{Hash, Hasher};
+                    let mut h = std::collections::hash_map::DefaultHasher::new();
+                    shared_sv.with_value(|sh| {
+                        if let Ok(s) = sh.try_borrow() {
+                            s.viewer.doc_fingerprint().hash(&mut h);
+                        }
+                    });
+                    serde_json::to_string(&settings.get_untracked())
+                        .unwrap_or_default()
+                        .hash(&mut h);
+                    scene_name.get_untracked().hash(&mut h);
+                    h.finish()
+                };
+                if fp != last_fp.get_value() {
+                    last_fp.set_value(fp);
+                    changed_at.set_value(now);
+                    dirty.set_value(true);
+                } else if dirty.get_value() && now - changed_at.get_value() > 1000.0 {
+                    dirty.set_value(false);
+                    if let Some((name, json)) = build_doc() {
+                        store_last_scene(&json);
+                        if scene_saved.get_untracked() {
+                            if let Some(p) = super::projects_ui::ctx() {
+                                p.put_scene(&name, json);
+                            }
+                        }
+                    }
+                }
+                let n = if gone {
+                    Some(t.get_untracked().gpu_gone_note)
+                } else if resets > 0
+                    && n.as_deref()
+                        .is_some_and(|n| n.is_empty() || n == "GPU restarted")
+                {
+                    Some(t.get_untracked().gpu_reset_note)
+                } else {
+                    n
+                };
                 if let Some(st) = st {
                     set_status.set(st);
                 }
@@ -679,6 +1240,17 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
         let pan = ev.button() == 2 || ev.button() == 1 || ev.shift_key();
         shared_sv.with_value(|sh| {
             if let Ok(mut s) = sh.try_borrow_mut() {
+                // Move mode: grab the object under the pointer, if any.
+                if s.move_mode && !pan {
+                    let (w, h) = canvas_css_size(&s);
+                    if s.viewer
+                        .begin_drag(ev.offset_x() as f32, ev.offset_y() as f32, w, h)
+                    {
+                        s.obj_drag = true;
+                        s.drag = None;
+                        return;
+                    }
+                }
                 s.drag = Some((ev.client_x() as f32, ev.client_y() as f32, pan));
             }
         });
@@ -694,6 +1266,12 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
             let Ok(mut s) = sh.try_borrow_mut() else {
                 return;
             };
+            if s.obj_drag {
+                let (w, h) = canvas_css_size(&s);
+                s.viewer
+                    .drag_to(ev.offset_x() as f32, ev.offset_y() as f32, w, h);
+                return;
+            }
             let Some((lx, ly, pan)) = s.drag else {
                 return;
             };
@@ -716,6 +1294,10 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
         shared_sv.with_value(|sh| {
             if let Ok(mut s) = sh.try_borrow_mut() {
                 s.drag = None;
+                if s.obj_drag {
+                    s.obj_drag = false;
+                    s.viewer.end_drag();
+                }
             }
         });
     };
@@ -729,7 +1311,6 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
         });
     };
 
-    let t = Memo::new(move |_| use_locale().get().ui.light_scene.clone());
     let (intro_open, set_intro_open) = signal(!intro_seen());
     let (remember, set_remember) = signal(true);
     let close_intro = move || {
@@ -741,12 +1322,14 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
 
     view! {
         <div class="rt-scene" style="width: 100%; height: 100%; display: flex; min-height: 0;">
-            <RtControlPanel settings=settings set_settings=set_settings status=status webgpu=webgpu scene_touched=scene_touched />
+            <RtControlPanel settings=settings set_settings=set_settings status=status webgpu=webgpu scene_touched=scene_touched
+                sensor_names=sensor_names sensor_choice=sensor_choice on_load_demo=on_load_demo plan=Signal::from(current_plan)
+                scene_name=scene_name scene_saved=scene_saved on_save_scene=on_save_scene />
 
             <div style="flex: 1; position: relative; min-width: 0; background: #07080a; border-radius: 0 8px 8px 0; overflow: hidden;">
                 <canvas
                     node_ref=canvas_ref
-                    style="width: 100%; height: 100%; display: block; touch-action: none; cursor: grab;"
+                    style=move || format!("width: 100%; height: 100%; display: block; touch-action: none; cursor: {};", if move_mode.get() { "move" } else { "grab" })
                     on:pointerdown=on_down
                     on:pointermove=on_move
                     on:pointerup=on_up
@@ -821,11 +1404,68 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
                             style="position: absolute; top: 8px; left: 8px; width: 26px; height: 26px; border-radius: 13px; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.55); color: #fff; font-size: 14px; cursor: pointer;"
                             on:click=move |_| set_intro_open.set(true)
                         >"?"</button>
+                        // Move luminaires, the person, cars and sensors by hand.
+                        <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; align-items: center;">
+                            {move || (status.get().moved > 0).then(|| view! {
+                                <button style="padding: 5px 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.55); color: #fff; font-size: 11.5px; cursor: pointer;"
+                                    on:click=move |_| on_reset_moves.run(())>
+                                    {move || format!("↺ {}", t.get().reset_moves)}
+                                </button>
+                            })}
+                            <button
+                                title=move || t.get().move_hint
+                                style=move || format!(
+                                    "padding: 5px 12px; border-radius: 14px; border: 1px solid {}; background: {}; color: #fff; font-size: 11.5px; cursor: pointer;",
+                                    if move_mode.get() { "var(--primary-color)" } else { "rgba(255,255,255,0.25)" },
+                                    if move_mode.get() { "var(--primary-color)" } else { "rgba(0,0,0,0.55)" }
+                                )
+                                on:click=move |_| move_mode.update(|m| *m = !*m)
+                            >{move || t.get().move_objects}</button>
+                        </div>
+                        // What the sensors see.
+                        {move || {
+                            let st = status.get();
+                            (st.sensors > 0).then(|| {
+                                let tt = t.get();
+                                let any = st.sensors_detecting.iter().any(|d| *d);
+                                // detection is tested in 3D: a sensor with nothing on the
+                                // floor can still see a person at chest height
+                                let text = if !any && st.sensor_diameter.is_none() {
+                                    fill(&tt.status_no_area, &[("{h}", format!("{:.1}", st.sensor_height))])
+                                } else if any {
+                                    let mut what = Vec::new();
+                                    if st.person_detected { what.push(tt.status_person.clone()); }
+                                    if st.cars_detected > 0 { what.push(fill(&tt.status_cars, &[("{n}", st.cars_detected.to_string())])); }
+                                    fill(&tt.status_detected, &[
+                                        ("{what}", what.join(", ")),
+                                        ("{on}", st.lamps_on.to_string()),
+                                        ("{n}", st.lamps.to_string()),
+                                    ])
+                                } else {
+                                    let idle = settings.get_untracked().sensor_idle;
+                                    fill(&tt.status_idle, &[("{pct}", format!("{:.0}", idle * 100.0))])
+                                };
+                                view! {
+                                    <div style=format!(
+                                        "position: absolute; top: 44px; right: 8px; max-width: 60%; background: rgba(0,0,0,0.62); color: {}; font-size: 11.5px; padding: 5px 10px; border-radius: 8px; pointer-events: none; border: 1px solid {};",
+                                        if any { "#bbf7d0" } else { "#e2e8f0" },
+                                        if any { "rgba(74,222,128,0.6)" } else { "rgba(255,255,255,0.15)" }
+                                    )>
+                                        {format!("📡 {text}")}
+                                    </div>
+                                }
+                            })
+                        }}
+                        {move || move_mode.get().then(|| view! {
+                            <div style="position: absolute; top: 40px; left: 8px; max-width: 45%; background: rgba(0,0,0,0.55); color: #d6dbe3; font-size: 11px; padding: 4px 10px; border-radius: 6px; pointer-events: none;">
+                                {move || t.get().move_hint}
+                            </div>
+                        })}
                     }.into_any(),
                     LoadState::Unsupported => render_webgpu_missing(browser.get_value()).into_any(),
                 }}
                 {move || (!webgpu.get() && load_state.get() == LoadState::Running).then(|| view! {
-                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #ccc; font-size: 11px; padding: 4px 8px; border-radius: 6px; pointer-events: none;">
+                    <div style="position: absolute; bottom: 36px; left: 8px; background: rgba(0,0,0,0.6); color: #ccc; font-size: 11px; padding: 4px 8px; border-radius: 6px; pointer-events: none;">
                         {move || t.get().no_webgpu}
                     </div>
                 })}
@@ -934,7 +1574,15 @@ fn RtControlPanel(
     status: ReadSignal<Status>,
     webgpu: ReadSignal<bool>,
     scene_touched: StoredValue<bool>,
+    sensor_names: Memo<Vec<String>>,
+    sensor_choice: RwSignal<Option<String>>,
+    on_load_demo: Callback<()>,
+    plan: Signal<Option<Arc<ScenePlan>>>,
+    scene_name: RwSignal<String>,
+    scene_saved: RwSignal<bool>,
+    on_save_scene: Callback<()>,
 ) -> impl IntoView {
+    let ui_sensor = Memo::new(move |_| use_locale().get().ui.sensor.clone());
     let t = Memo::new(move |_| use_locale().get().ui.light_scene.clone());
     let (open, set_open) = signal(true);
     let upd = move |f: &dyn Fn(&mut SyncSettings)| set_settings.update(|s| f(s));
@@ -946,6 +1594,11 @@ fn RtControlPanel(
         )
     };
     let desc_style = "font-size: 10.5px; color: var(--text-secondary); line-height: 1.4;";
+    // memos: the status changes every few hundred ms
+    let show_emergency = Memo::new(move |_| {
+        let st = status.get();
+        settings.get().scene == "planned" && (st.emergency_lamps > 0 || !st.routes.is_empty())
+    });
 
     view! {
         <div
@@ -982,29 +1635,115 @@ fn RtControlPanel(
                         }}
                     </div>
 
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: var(--text-secondary); width: 70px;">{move || t.get().quality}</span>
+                            <div style="display: flex; gap: 3px; flex: 1;">
+                                {["quick", "balanced", "high"].into_iter().map(|id| view! {
+                                    <button style=move || seg_style(settings.get().quality == id)
+                                        on:click=move |_| upd(&|s| s.apply_quality(id))>
+                                        {move || { let tt = t.get(); match id { "quick" => tt.quality_quick, "high" => tt.quality_high, _ => tt.quality_balanced } }}
+                                    </button>
+                                }).collect_view()}
+                            </div>
+                        </div>
+                        <div style=desc_style>
+                            {move || { let tt = t.get(); match settings.get().quality.as_str() { "quick" => tt.quality_desc_quick, "high" => tt.quality_desc_high, _ => tt.quality_desc_balanced } }}
+                        </div>
+                        {move || (settings.get().quality != "quick").then(|| view! {
+                            <Check label=Signal::derive(move || t.get().auto_quick) checked=Signal::derive(move || settings.get().auto_quick)
+                                on_change=move |v| upd(&|s| s.auto_quick = v) />
+                        })}
+                    </div>
+
                     <Section title=Signal::derive(move || t.get().step_scene)>
-                        <div style="display: flex; gap: 4px;">
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                             {[SceneKind::Street, SceneKind::Parking, SceneKind::Facade, SceneKind::Office, SceneKind::Greenhouse].into_iter().map(|kind| {
                                 let id = scene_id(kind);
                                 let label = move || {
                                     let tt = t.get();
-                                    match kind { SceneKind::Street => tt.scene_street, SceneKind::Parking => tt.scene_parking, SceneKind::Facade => tt.scene_facade, SceneKind::Office => tt.scene_office, SceneKind::Greenhouse => tt.scene_greenhouse }
+                                    match kind { SceneKind::Street => tt.scene_street, SceneKind::Parking => tt.scene_parking, SceneKind::Facade => tt.scene_facade, SceneKind::Office => tt.scene_office, SceneKind::Greenhouse => tt.scene_greenhouse, SceneKind::Planned => tt.scene_planned }
                                 };
                                 view! {
                                     <button style=move || seg_style(settings.get().scene == id)
-                                        on:click=move |_| { scene_touched.set_value(true); upd(&|s| { if s.scene != id { *s = SyncSettings::for_scene(kind); } }) }>
+                                        on:click=move |_| { scene_touched.set_value(true); upd(&|s| { if s.scene != id { *s = s.switched_to(kind); } }) }>
                                         {label}
                                     </button>
                                 }
                             }).collect_view()}
+                            {move || plan.get().map(|pl| {
+                                let n = pl.sensors.len().min(MAX_SENSORS) as u32;
+                                let h = pl.sensor_height;
+                                view! {
+                                    <button style=move || seg_style(settings.get().scene == "planned")
+                                        on:click=move |_| { scene_touched.set_value(true); upd(&|s| { if s.scene != "planned" { *s = s.switched_to(SceneKind::Planned); s.sensors = n; s.sensor_height = h; } }) }>
+                                        {move || t.get().scene_planned}
+                                    </button>
+                                }
+                            })}
                         </div>
                         <div style=desc_style>
                             {move || {
                                 let tt = t.get();
-                                match settings.get().scene.as_str() { "parking" => tt.desc_parking, "facade" => tt.desc_facade, "office" => tt.desc_office, "greenhouse" => tt.desc_greenhouse, _ => tt.desc_street }
+                                match settings.get().scene.as_str() {
+                                    "parking" => tt.desc_parking,
+                                    "facade" => tt.desc_facade,
+                                    "office" => tt.desc_office,
+                                    "greenhouse" => tt.desc_greenhouse,
+                                    "planned" => plan.get().map(|pl| {
+                                        let from = if pl.indoor { tt.from_interior.clone() } else { tt.from_outdoor.clone() };
+                                        let mut d = fill(&tt.desc_planned, &[("{from}", from), ("{name}", pl.name.clone())]);
+                                        if let Some(note) = pl.note.as_ref() {
+                                            d.push(' ');
+                                            d.push_str(note);
+                                        }
+                                        d
+                                    }).unwrap_or_default(),
+                                    _ => tt.desc_street,
+                                }
+                            }}
+                        </div>
+                        // back to the designer the plan came from
+                        {move || {
+                            let pl = plan.get().filter(|_| settings.get().scene == "planned")?;
+                            let back = use_context::<super::app::OpenDesigner>()?;
+                            let indoor = pl.indoor;
+                            Some(view! {
+                                <button style="padding: 5px 8px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text-primary); border-radius: 4px; text-align: left;"
+                                    on:click=move |_| back.0.run(indoor)>
+                                    {move || {
+                                        let tt = t.get();
+                                        let from = if indoor { tt.from_interior.clone() } else { tt.from_outdoor.clone() };
+                                        fill(&tt.back_to_designer, &[("{from}", from)])
+                                    }}
+                                </button>
+                            })
+                        }}
+                                            // The scene: name, save in the project (then autosaved)
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <input type="text" style="flex: 1; min-width: 0; font-size: 11px; padding: 4px 6px;"
+                                placeholder=move || t.get().scene_name
+                                prop:value=move || scene_name.get()
+                                on:change=move |ev| scene_name.set(event_target_value(&ev)) />
+                            {move || (!scene_saved.get()).then(|| view! {
+                                <button style="padding: 5px 8px; background: var(--primary-color); border: none; border-radius: 4px; color: #fff; cursor: pointer; font-size: 11px; white-space: nowrap;"
+                                    on:click=move |_| on_save_scene.run(())>{move || t.get().save_scene}</button>
+                            })}
+                        </div>
+                        <div style=desc_style>
+                            {move || {
+                                let tt = t.get();
+                                if scene_saved.get() {
+                                    let project = super::projects_ui::ctx().and_then(|p| p.current_name()).unwrap_or_default();
+                                    fill(&tt.scene_saved, &[("{project}", project)])
+                                } else {
+                                    tt.scene_unsaved
+                                }
                             }}
                         </div>
                     </Section>
+
+                    {move || show_emergency.get().then(|| view! { <EmergencyPanel settings set_settings status /> })}
 
                     <Section title=Signal::derive(move || t.get().step_view)>
                         <div style="display: flex; gap: 4px;">
@@ -1066,6 +1805,8 @@ fn RtControlPanel(
                     </Section>
 
                     <Section title=Signal::derive(move || t.get().step_placement)>
+                        // A plan brings its own placement.
+                        {move || (settings.get().scene != "planned").then(|| view! {
                         {move || {
                             let s = settings.get();
                             let tt = t.get();
@@ -1127,7 +1868,104 @@ fn RtControlPanel(
                                 }).collect_view()}
                             </div>
                         })}
+                        })}
                         <Check label=Signal::derive(move || t.get().person_for_scale) checked=Signal::derive(move || settings.get().show_figure) on_change=move |v| upd(&|s| s.show_figure = v) />
+                    </Section>
+
+                    <Section title=Signal::derive(move || t.get().step_sensors)>
+                        <div style=desc_style>{move || t.get().sensors_desc}</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: var(--text-secondary); width: 70px;">{move || t.get().sensor_count}</span>
+                            <div style="display: flex; gap: 3px; flex: 1;">
+                                {move || {
+                                    let cur = settings.get().sensors;
+                                    let mut opts = vec![0u32, 1, 2, 3, 4, 6];
+                                    if !opts.contains(&cur) {
+                                        opts.push(cur.min(MAX_SENSORS as u32));
+                                    }
+                                    opts.into_iter().map(|n| view! {
+                                        <button style=move || seg_style(settings.get().sensors == n) on:click=move |_| upd(&|s| s.sensors = n)>{n.to_string()}</button>
+                                    }).collect_view()
+                                }}
+                            </div>
+                        </div>
+                        {move || (settings.get().sensors > 0).then(|| {
+                            let names = sensor_names.get();
+                            let tt = t.get();
+                            if names.is_empty() {
+                                return view! {
+                                    <div style=desc_style>{tt.sensor_none.clone()}</div>
+                                    <button style="padding: 6px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); cursor: pointer;"
+                                        on:click=move |_| on_load_demo.run(())>{tt.sensor_load_demo.clone()}</button>
+                                }.into_any();
+                            }
+                            let current = sensor_choice.get().filter(|c| names.contains(c)).or_else(|| names.first().cloned());
+                            view! {
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="color: var(--text-secondary); width: 70px;">{tt.sensor_file.clone()}</span>
+                                    <select style="flex: 1; min-width: 0; font-size: 11px;"
+                                        on:change=move |ev| sensor_choice.set(Some(event_target_value(&ev)))>
+                                        {names.into_iter().map(|n| {
+                                            let sel = current.as_deref() == Some(n.as_str());
+                                            let value = n.clone();
+                                            view! { <option value=value selected=sel>{n}</option> }
+                                        }).collect_view()}
+                                    </select>
+                                </div>
+                            }.into_any()
+                        })}
+                        {move || {
+                            let s = settings.get();
+                            (s.sensors > 0 && s.scene != "office").then(|| {
+                                let h = if s.sensor_height > 0.0 { s.sensor_height } else { status.get_untracked().sensor_height.max(1.0) };
+                                view! {
+                                    <Range label=t.get().sensor_height unit="m" value=h min=1.0 max=12.0 step=0.1
+                                        on_change=move |v| upd(&|s| s.sensor_height = v) />
+                                }
+                            })
+                        }}
+                        {move || (settings.get().sensors > 0).then(|| view! {
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="color: var(--text-secondary); width: 70px;">{move || t.get().sensor_motion}</span>
+                                <div style="display: flex; gap: 3px; flex: 1;">
+                                    {["tangential", "radial", "presence"].into_iter().map(|id| view! {
+                                        <button style=move || seg_style(settings.get().sensor_motion == id) on:click=move |_| upd(&|s| s.sensor_motion = id.into())>
+                                            {move || { let u = ui_sensor.get(); match id { "radial" => u.radial, "presence" => u.presence, _ => u.tangential } }}
+                                        </button>
+                                    }).collect_view()}
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                                {["together", "nearest"].into_iter().map(|id| view! {
+                                    <button style=move || seg_style(settings.get().sensor_control == id) on:click=move |_| upd(&|s| s.sensor_control = id.into())>
+                                        {move || { let tt = t.get(); if id == "nearest" { tt.control_nearest } else { tt.control_together } }}
+                                    </button>
+                                }).collect_view()}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="color: var(--text-secondary); width: 70px;">{move || t.get().idle_level}</span>
+                                <div style="display: flex; gap: 3px; flex: 1;">
+                                    {[0.0f32, 0.1, 0.3, 0.5].into_iter().map(|lv| view! {
+                                        <button style=move || seg_style((settings.get().sensor_idle - lv).abs() < 1e-3) on:click=move |_| upd(&|s| s.sensor_idle = lv)>
+                                            {move || if lv == 0.0 { t.get().idle_off } else { format!("{:.0} %", lv * 100.0) }}
+                                        </button>
+                                    }).collect_view()}
+                                </div>
+                            </div>
+                            <Check label=Signal::derive(move || t.get().sensor_volume_3d)
+                                checked=Signal::derive(move || settings.get().sensor_volume)
+                                on_change=move |v| upd(&|s| s.sensor_volume = v) />
+                            <div style=desc_style>
+                                {move || {
+                                    let st = status.get();
+                                    let tt = t.get();
+                                    match st.sensor_diameter {
+                                        Some(d) => fill(&tt.sensor_area, &[("{d}", format!("{d:.1}")), ("{h}", format!("{:.1}", st.sensor_height))]),
+                                        None => fill(&tt.status_no_area, &[("{h}", format!("{:.1}", st.sensor_height))]),
+                                    }
+                                }}
+                            </div>
+                        })}
                     </Section>
 
                     <Section title=Signal::derive(move || t.get().light_camera) collapsed=true>
@@ -1140,6 +1978,7 @@ fn RtControlPanel(
                         <Range label=t.get_untracked().haze unit="%" value=settings.get_untracked().haze * 100.0 min=0.0 max=100.0 step=1.0 on_change=move |v| upd(&|s| s.haze = v / 100.0) />
                         <Range label=t.get_untracked().exposure unit="EV" value=settings.get_untracked().exposure_ev min=-4.0 max=4.0 step=0.1 on_change=move |v| upd(&|s| s.exposure_ev = v) />
                         <Check label=Signal::derive(move || t.get().glare) checked=Signal::derive(move || settings.get().glare) on_change=move |v| upd(&|s| s.glare = v) />
+                        <Check label=Signal::derive(move || t.get().denoise) checked=Signal::derive(move || settings.get().denoise) on_change=move |v| upd(&|s| s.denoise = v) />
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="color: var(--text-secondary); width: 70px;">{move || t.get().bounces}</span>
                             <div style="display: flex; gap: 3px; flex: 1;">
@@ -1215,6 +2054,202 @@ fn RtControlPanel(
                 </div>
             })}
         </div>
+    }
+}
+
+/// Emergency lighting of a planned scene: emergency mode, the plan's
+/// markings on / off (off = as a person escaping sees it), walking a route
+/// at eye height, and the EN 1838 check of the measured points.
+#[component]
+fn EmergencyPanel(
+    settings: ReadSignal<SyncSettings>,
+    set_settings: WriteSignal<SyncSettings>,
+    status: ReadSignal<Status>,
+) -> impl IntoView {
+    let t = Memo::new(move |_| use_locale().get().ui.light_scene.clone());
+    let upd = move |f: &dyn Fn(&mut SyncSettings)| set_settings.update(|s| f(s));
+    let desc_style = "font-size: 10.5px; color: var(--text-secondary); line-height: 1.4;";
+    let btn = "padding: 4px 8px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text-primary); border-radius: 4px;";
+    let seg_style = |on: bool| {
+        format!(
+            "flex: 1; padding: 4px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: {}; color: {}; border-radius: 4px;",
+            if on { "var(--primary-color)" } else { "var(--surface-elevated)" },
+            if on { "#fff" } else { "var(--text-primary)" }
+        )
+    };
+    // position along the walked route: the viewer's while it walks on
+    let walk_pos = move || status.get().walk.or(settings.get().walk).unwrap_or(0.0);
+    let routes = Memo::new(move |_| status.get().routes);
+    let playing = Memo::new(move |_| status.get().walk_playing);
+    let walking = Memo::new(move |_| status.get().walk.is_some());
+    // in steps of 1 %: the text changes, the panel does not rebuild per tick
+    let adaptation = Memo::new(move |_| (status.get().adaptation * 100.0).round() / 100.0);
+    let lim = eulumdat::emergency::Limits::en1838();
+    let checks = move || {
+        let tt = t.get();
+        let st = status.get();
+        let s = settings.get();
+        if !s.emergency_mode {
+            return view! { <div style=desc_style>{tt.em_off_hint.clone()}</div> }.into_any();
+        }
+        if s.mode != "points" {
+            return view! {
+                <button style=btn on:click=move |_| upd(&|s| s.mode = "points".into())>{tt.em_measure.clone()}</button>
+            }
+            .into_any();
+        }
+        let find = |name: &str| st.grids.iter().find(|g| g.name == name).cloned();
+        let rows: Vec<(String, bool, String)> = [
+            (
+                GRID_ROUTE,
+                tt.em_check_route.clone(),
+                lim.escape_route.centre_min_lx,
+                Some(lim.escape_route.max_ratio),
+            ),
+            (
+                GRID_OPEN_AREA,
+                tt.em_check_open.clone(),
+                lim.anti_panic.min_lx,
+                Some(lim.anti_panic.max_ratio),
+            ),
+            (
+                GRID_EMPHASIS,
+                tt.em_check_points.clone(),
+                lim.emphasis_min_vertical_lx,
+                None,
+            ),
+        ]
+        .into_iter()
+        .filter_map(|(name, label, min, ratio)| {
+            let g = find(name)?;
+            let mut ok = g.emin as f64 >= min;
+            let mut text = fill(
+                &tt.em_check_min,
+                &[("{v}", fmt_lux(g.emin)), ("{req}", format!("{min}"))],
+            );
+            if let Some(r) = ratio {
+                let v = if g.emin > 0.0 {
+                    g.emax / g.emin
+                } else {
+                    f32::INFINITY
+                };
+                ok &= (v as f64) <= r;
+                let shown = if v.is_finite() {
+                    format!("{v:.1}")
+                } else {
+                    "∞".into()
+                };
+                text.push_str(" · ");
+                text.push_str(&fill(
+                    &tt.em_check_ratio,
+                    &[("{v}", shown), ("{req}", format!("{r}"))],
+                ));
+            }
+            Some((label, ok, text))
+        })
+        .collect();
+        if rows.is_empty() {
+            return view! { <div style=desc_style>{tt.measuring.clone()}</div> }.into_any();
+        }
+        view! {
+            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-variant-numeric: tabular-nums;">
+                {rows.into_iter().map(|(label, ok, text)| view! {
+                    <div>
+                        <span style=if ok { "color: #16a34a; font-weight: 600;" } else { "color: #dc2626; font-weight: 600;" }>{if ok { "✓ " } else { "✗ " }}</span>
+                        <span>{label}</span>
+                        <div style="color: var(--text-secondary); padding-left: 14px;">{text}</div>
+                    </div>
+                }).collect_view()}
+                <div style=desc_style>{tt.em_check_note.clone()}</div>
+            </div>
+        }
+        .into_any()
+    };
+    view! {
+        <Section title=Signal::derive(move || t.get().em_title)>
+            <Check label=Signal::derive(move || t.get().em_mode) checked=Signal::derive(move || settings.get().emergency_mode)
+                on_change=move |v| upd(&|s| s.emergency_mode = v) />
+            <div style=desc_style>{move || t.get().em_mode_desc}</div>
+            {move || settings.get().emergency_mode.then(|| view! {
+                <div style="display: flex; flex-direction: column; gap: 3px;">
+                    <div style="font-size: 11px;">
+                        {move || {
+                            let a = adaptation.get();
+                            let tt = t.get();
+                            if a < 0.98 {
+                                fill(&tt.em_adapting, &[("{pct}", format!("{:.0}", a * 100.0))])
+                            } else {
+                                fill(&tt.em_adapted, &[("{stops}", format!("{:.0}", a * eulumdat_scene::viewer::EMERGENCY_ADAPT_STOPS))])
+                            }
+                        }}
+                    </div>
+                    <button style=btn on:click=move |_| upd(&|s| s.emergency_replay = s.emergency_replay.wrapping_add(1))>
+                        {move || t.get().em_replay}
+                    </button>
+                </div>
+            })}
+            <Check label=Signal::derive(move || t.get().em_marks) checked=Signal::derive(move || settings.get().emergency_marks)
+                on_change=move |v| upd(&|s| s.emergency_marks = v) />
+            {move || (!settings.get().emergency_marks).then(|| view! { <div style=desc_style>{move || t.get().em_marks_off}</div> })}
+            {move || {
+                let n = routes.with(|r| r.len());
+                (n > 0).then(|| {
+                    view! {
+                        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                            <span style="font-size: 11.5px;">{move || t.get().em_walk}</span>
+                            {(n > 1).then(|| view! {
+                                <div style="display: flex; gap: 3px; flex-wrap: wrap;">
+                                    {(0..n).map(|i| view! {
+                                        <button style=move || seg_style(settings.get().walk_route as usize == i)
+                                            on:click=move |_| upd(&|s| { s.walk_route = i as u32; s.walk = Some(0.0); s.walk_play = false; })>
+                                            {move || fill(&t.get().em_route, &[("{n}", (i + 1).to_string())])}
+                                        </button>
+                                    }).collect_view()}
+                                </div>
+                            })}
+                            <input type="range" min="0" max="1" step="0.005" style="width: 100%;"
+                                aria-label=move || t.get().em_walk
+                                prop:value=move || walk_pos().to_string()
+                                on:input=move |ev| {
+                                    if let Ok(v) = event_target_value(&ev).parse::<f32>() {
+                                        upd(&|s| { s.walk = Some(v); s.walk_play = false; });
+                                    }
+                                } />
+                            <div style=desc_style>
+                                {move || {
+                                    let len = routes.with(|r| r.get(settings.get().walk_route as usize).copied().unwrap_or(0.0));
+                                    fill(&t.get().em_walk_at, &[("{m}", format!("{:.1}", walk_pos() * len)), ("{len}", format!("{len:.1}"))])
+                                }}
+                            </div>
+                            <div style="display: flex; gap: 4px;">
+                                {move || {
+                                    let playing = playing.get();
+                                    view! {
+                                        <button style=btn on:click=move |_| {
+                                            let pos = status.get_untracked().walk.or(settings.get_untracked().walk).unwrap_or(0.0);
+                                            if playing {
+                                                upd(&|s| { s.walk = Some(pos); s.walk_play = false; });
+                                            } else {
+                                                let from = if pos >= 0.999 { 0.0 } else { pos };
+                                                upd(&|s| { s.walk = Some(from); s.walk_play = true; });
+                                            }
+                                        }>
+                                            {move || if playing { t.get().em_walk_pause } else { t.get().em_walk_play }}
+                                        </button>
+                                    }
+                                }}
+                                {move || walking.get().then(|| view! {
+                                    <button style=btn on:click=move |_| upd(&|s| { s.walk = None; s.walk_play = false; })>
+                                        {move || t.get().em_walk_exit}
+                                    </button>
+                                })}
+                            </div>
+                        </div>
+                    }
+                })
+            }}
+            {checks}
+        </Section>
     }
 }
 

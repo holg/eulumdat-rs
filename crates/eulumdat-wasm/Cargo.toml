@@ -64,7 +64,6 @@ eulumdat-goniosim = { workspace = true, default-features = false }
 eulumdat-i18n.workspace = true
 eulumdat-rt = { workspace = true, default-features = false }
 eulumdat-scene = { workspace = true, features = ["l3d", "spectrum"] }
-wgpu = { version = "29", default-features = false, features = ["wgsl", "webgpu"] }
 eulumdat-spectrum.workspace = true
 eulumdat-tm25.workspace = true
 eulumdat-typst = { workspace = true, features = ["json"] }
@@ -73,6 +72,7 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 gloo.workspace = true
 gloo-file.workspace = true
 js-sys.workspace = true
+wgpu = { version = "29", default-features = false, features = ["wgsl", "webgpu"] }
 
 # Web framework (Leptos)
 leptos.workspace = true

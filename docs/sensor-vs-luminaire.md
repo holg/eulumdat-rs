@@ -1,9 +1,43 @@
 # Sensors vs. luminaires in EULUMDAT/LDT
 
-**Short version: you cannot tell a sensor's LDT apart from a luminaire's LDT by
-file content. Do not try. The answer must come from external context.**
+**Short version (2026-11-05): a real sensor LDT can be recognised by its
+content.** `eulumdat::sensor::is_sensor_ldt` checks three things:
 
-## What happened
+1. every table value is a range in metres: 0 < max ≤ 60 (luminaire values in
+   cd/klm are far larger);
+2. field 8 of lines 33–42 (a luminaire's "direct ratios") is a mounting code
+   1, 2 or 3 (wall, ceiling, both); a direct ratio is a fraction 0 … 1;
+3. those ten values do not rise with the room index, as a luminaire's direct
+   ratios always do.
+
+Measured: all **1 187** sensor LDTs of the Relux Net corpus (8 manufacturers)
+match; **none of 34 916** luminaire LDTs (6 480 GLDF files, 81 manufacturers)
+and none of the 100 luminaire LDTs of luminaires with a built-in sensor that
+the corpus files under sensors. Field 8 = 2 or 3 alone already matches 93 %
+of the sensors and no luminaire. Corpus test:
+`SENSOR_LDT_CORPUS=<dir> cargo test -p eulumdat sensor::detect`.
+
+Order of evidence: declared context first (GLDF `contentType="sensor/…"`, the
+`sensor/` folder, a "sensor" upload), then the fingerprint. Limits: every
+known sensor LDT uses this one (Relux) layout; a sensor LDT in some other
+layout is not recognised and stays a luminaire. A luminaire LDT read as a
+sensor gets a warning (`SensorWarning::ImplausibleRange` /
+`NoSensorParameters`).
+
+Where it is used: `eulumdat-scene::l3d::gldf_extract` (an unmarked `.ldt`
+with the fingerprint becomes a sensor), the web editor (an opened or dropped
+`.ldt` with the fingerprint opens on the Sensors tab, with "Open as luminaire
+instead").
+
+The rest of this note is the history: why the project first concluded that
+the two cannot be told apart.
+
+## What happened (first analysis)
+
+> Correction (2026-11-04): the SLV "sensor.ldt" below is not a sensor at all
+> but the photometry of a luminaire copied into the container's `sensor/`
+> folder (docs/sensors-plan.md §1). The comparison is right; the conclusion
+> drawn from it is not.
 
 Some products (observed: SLV OCULUS CW / Tria 2) describe a **sensor's
 detection-sensitivity pattern** in the same EULUMDAT/LDT format used for a
@@ -15,7 +49,7 @@ sensor" — neither the parser (`crates/eulumdat/src/parser.rs`) nor the
 [`Eulumdat`](../crates/eulumdat/src/eulumdat.rs) struct carries such a notion,
 because the spec is for luminaire photometry only.
 
-## Why content-based detection is unsafe
+## Why content-based detection looked unsafe
 
 Comparing the real SLV pair (`sensor.ldt` vs. `wide.ldt`, same product), the two
 files are **structurally identical and share an identical identity + lamp block**:

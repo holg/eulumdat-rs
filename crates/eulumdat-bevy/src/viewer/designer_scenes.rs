@@ -372,42 +372,39 @@ pub fn build_designer_interior(
             ..default()
         });
 
-        for row in 0..layout.rows {
-            for col in 0..layout.cols {
-                let lx = layout.offset_x as f32 + row as f32 * layout.spacing_x as f32;
-                let lz = layout.offset_y as f32 + col as f32 * layout.spacing_y as f32;
+        for (px, py) in layout.positions() {
+            let (lx, lz) = (px as f32, py as f32);
 
-                // Luminaire head
+            // Luminaire head
+            commands.spawn((
+                Mesh3d(meshes.add(Cuboid::new(0.6, 0.06, 0.3))),
+                MeshMaterial3d(head_material.clone()),
+                Transform::from_xyz(lx, lum_y, lz),
+                SceneGeometry,
+                NotShadowCaster,
+            ));
+
+            // Suspension rod
+            if sus > 0.01 {
+                let rod_y = h - sus / 2.0;
                 commands.spawn((
-                    Mesh3d(meshes.add(Cuboid::new(0.6, 0.06, 0.3))),
-                    MeshMaterial3d(head_material.clone()),
-                    Transform::from_xyz(lx, lum_y, lz),
+                    Mesh3d(meshes.add(Cylinder::new(0.02, sus))),
+                    MeshMaterial3d(cable_material.clone()),
+                    Transform::from_xyz(lx, rod_y, lz),
                     SceneGeometry,
                     NotShadowCaster,
                 ));
+            }
 
-                // Suspension rod
-                if sus > 0.01 {
-                    let rod_y = h - sus / 2.0;
-                    commands.spawn((
-                        Mesh3d(meshes.add(Cylinder::new(0.02, sus))),
-                        MeshMaterial3d(cable_material.clone()),
-                        Transform::from_xyz(lx, rod_y, lz),
-                        SceneGeometry,
-                        NotShadowCaster,
-                    ));
-                }
-
-                // Light cones
-                if settings.show_light_cones {
-                    spawn_light_cone(
-                        commands,
-                        meshes,
-                        materials,
-                        Vec3::new(lx, lum_y - 0.03, lz),
-                        lum_y,
-                    );
-                }
+            // Light cones
+            if settings.show_light_cones {
+                spawn_light_cone(
+                    commands,
+                    meshes,
+                    materials,
+                    Vec3::new(lx, lum_y - 0.03, lz),
+                    lum_y,
+                );
             }
         }
     }
@@ -672,15 +669,12 @@ pub fn calculate_interior_transforms(
 ) -> Vec<super::controls::LuminaireTransform> {
     let lum_y = (room.height - room.suspension_length) as f32;
     let mut transforms = Vec::with_capacity(layout.count);
-    for row in 0..layout.rows {
-        for col in 0..layout.cols {
-            let lx = layout.offset_x as f32 + row as f32 * layout.spacing_x as f32;
-            let lz = layout.offset_y as f32 + col as f32 * layout.spacing_y as f32;
-            transforms.push(super::controls::LuminaireTransform {
-                position: Vec3::new(lx, lum_y, lz),
-                rotation: Quat::IDENTITY,
-            });
-        }
+    for (px, py) in layout.positions() {
+        let (lx, lz) = (px as f32, py as f32);
+        transforms.push(super::controls::LuminaireTransform {
+            position: Vec3::new(lx, lum_y, lz),
+            rotation: Quat::IDENTITY,
+        });
     }
     transforms
 }

@@ -170,6 +170,19 @@ pub struct SvgLabels {
     pub heatmap_title: String,
     /// No data placeholder
     pub no_data: String,
+    /// Short unit of the stored values, used after numbers (e.g. "cd/klm";
+    /// "m" for sensor detection ranges)
+    #[cfg_attr(feature = "serde", serde(default = "default_unit_short"))]
+    pub unit_short: String,
+    /// Unit of absolute values (e.g. "cd"; "m" for sensors)
+    #[cfg_attr(feature = "serde", serde(default = "default_unit_absolute"))]
+    pub unit_absolute: String,
+    /// Decimals for values printed with [`Self::unit_short`] (0 for cd/klm, 2 for metres)
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub value_decimals: usize,
+    /// Title of the 3D butterfly diagram
+    #[cfg_attr(feature = "serde", serde(default = "default_butterfly_title"))]
+    pub butterfly_title: String,
     // BUG rating labels
     /// Forward light zone label
     pub bug_forward_light: String,
@@ -189,6 +202,32 @@ pub struct SvgLabels {
     pub bug_zone_high: String,
     /// Very high zone label
     pub bug_zone_very_high: String,
+}
+
+/// Tooltip value of a heatmap cell: "12.3 cd (4.5 cd/klm)", or a single
+/// value when both units are the same (sensor ranges in metres).
+fn heatmap_cell_value(labels: &SvgLabels, absolute: f64, stored: f64) -> String {
+    if labels.unit_absolute == labels.unit_short {
+        labels.fmt_value(stored)
+    } else {
+        format!(
+            "{absolute:.1} {} ({stored:.1} {})",
+            labels.unit_absolute, labels.unit_short
+        )
+    }
+}
+
+#[allow(dead_code)]
+fn default_unit_short() -> String {
+    "cd/klm".to_string()
+}
+#[allow(dead_code)]
+fn default_unit_absolute() -> String {
+    "cd".to_string()
+}
+#[allow(dead_code)]
+fn default_butterfly_title() -> String {
+    "3D Butterfly Diagram".to_string()
 }
 
 impl Default for SvgLabels {
@@ -218,6 +257,10 @@ impl SvgLabels {
             gamma_angle_axis: "Gamma Angle (°)".to_string(),
             heatmap_title: "Intensity Heatmap (Candela)".to_string(),
             no_data: "No data".to_string(),
+            unit_short: default_unit_short(),
+            unit_absolute: default_unit_absolute(),
+            value_decimals: 0,
+            butterfly_title: default_butterfly_title(),
             bug_forward_light: "Forward Light".to_string(),
             bug_back_light: "Back Light".to_string(),
             bug_uplight: "Uplight".to_string(),
@@ -230,28 +273,42 @@ impl SvgLabels {
         }
     }
 
-    /// Sensor labels: the same diagram geometry, but the radial/grid axis is a
-    /// **relative detection-sensitivity response**, not a photometric intensity.
+    /// Sensor labels: the same diagram geometry, but the values are a
+    /// **detection range in metres**, not a photometric intensity.
     ///
-    /// A sensor's LDT stores a detection lobe in the cd/klm slots, so the *shape*
-    /// diagrams (polar, cartesian, butterfly, isocandela, floodlight, …) are
-    /// geometrically valid — only the unit/axis wording must change. Use this
-    /// when the file is known to be a sensor (e.g. GLDF `contentType=sensor/sensldt`):
+    /// A sensor LDT stores its detection volume in the intensity slots (the
+    /// distance from the sensor to the volume boundary per C/γ, see
+    /// [`crate::sensor`]), so the *shape* diagrams (polar, cartesian, heatmap,
+    /// butterfly) show the volume itself; only units and wording change. Use
+    /// this when the file is known to be a sensor (GLDF
+    /// `contentType=sensor/sensldt`, a Relux sensor article):
     ///
     /// ```ignore
     /// let theme = SvgTheme::light().with_labels(SvgLabels::for_sensor());
     /// ```
     ///
-    /// Note: absolute-photometric views (heatmap candela layer, cone lux table,
-    /// isolux, BUG) are NOT meaningful for a sensor and should be suppressed by
-    /// the caller, not merely relabeled.
+    /// Build the heatmap with `HeatmapDiagram::from_eulumdat_with_scale(…, 1.0)`
+    /// (the lamp flux of a sensor file is meaningless). Views that rest on
+    /// light thresholds or lux (cone, beam angle, isolux, isocandela, BUG,
+    /// LCS, CU/UGR, the `*_with_summary` variants) do not apply to sensors and
+    /// should not be offered; the sensor's own plan view is
+    /// [`crate::sensor::SensorPlanSvg`].
     pub fn for_sensor() -> Self {
         Self {
-            intensity_unit: "%".to_string(),
-            intensity_axis: "Relative sensitivity".to_string(),
-            heatmap_title: "Sensor response (relative)".to_string(),
+            intensity_unit: "m".to_string(),
+            intensity_axis: "Detection range (m)".to_string(),
+            heatmap_title: "Detection range (m)".to_string(),
+            unit_short: "m".to_string(),
+            unit_absolute: "m".to_string(),
+            value_decimals: 2,
+            butterfly_title: "Detection volume (3D)".to_string(),
             ..Self::english()
         }
+    }
+
+    /// `value` formatted with [`Self::value_decimals`] and [`Self::unit_short`].
+    pub fn fmt_value(&self, value: f64) -> String {
+        format!("{:.*} {}", self.value_decimals, value, self.unit_short)
     }
 
     /// Create labels from eulumdat-i18n Locale
@@ -275,6 +332,10 @@ impl SvgLabels {
             gamma_angle_axis: locale.diagram.axis.gamma_angle.clone(),
             heatmap_title: locale.diagram.title.heatmap.clone(),
             no_data: locale.diagram.placeholder.no_data.clone(),
+            unit_short: default_unit_short(),
+            unit_absolute: default_unit_absolute(),
+            value_decimals: 0,
+            butterfly_title: default_butterfly_title(),
             bug_forward_light: locale.diagram.bug.forward_light.clone(),
             bug_back_light: locale.diagram.bug.back_light.clone(),
             bug_uplight: locale.diagram.bug.uplight.clone(),
@@ -696,6 +757,16 @@ impl Default for IsometricConfig {
 }
 
 impl PolarDiagram {
+    /// Legend of the first curve: the theme's (translated) "C0-C180", or the
+    /// plane pair shown when a single C-plane was chosen (C-plane slider).
+    fn first_curve_legend<'a>(&'a self, theme: &'a SvgTheme) -> &'a str {
+        if self.c0_c180_curve.c_angle != 0.0 && !self.c0_c180_curve.label.is_empty() {
+            &self.c0_c180_curve.label
+        } else {
+            &theme.labels.plane_c0_c180
+        }
+    }
+
     /// Generate complete SVG string for the polar diagram
     pub fn to_svg(&self, width: f64, height: f64, theme: &SvgTheme) -> String {
         let size = width.min(height);
@@ -855,7 +926,9 @@ impl PolarDiagram {
         ));
         svg.push_str(&format!(
             r#"<text x="22" y="12" font-size="12" fill="{}" font-family="{}">{}</text>"#,
-            theme.text, theme.font_family, theme.labels.plane_c0_c180
+            theme.text,
+            theme.font_family,
+            self.first_curve_legend(theme)
         ));
         svg.push_str("</g>");
 
@@ -1109,7 +1182,7 @@ impl PolarDiagram {
                 r#"<text x="22" y="12" font-size="{:.0}" fill="{}">{}</text>"#,
                 12.0 * font_scale,
                 theme.text,
-                theme.labels.plane_c0_c180
+                self.first_curve_legend(theme)
             ));
             svg.push_str("</g>");
 
@@ -1599,7 +1672,9 @@ impl PolarDiagram {
         ));
         svg.push_str(&format!(
             r#"<text x="22" y="12" font-size="12" fill="{}" font-family="{}">{}</text>"#,
-            theme.text, theme.font_family, theme.labels.plane_c0_c180
+            theme.text,
+            theme.font_family,
+            self.first_curve_legend(theme)
         ));
         svg.push_str("</g>");
 
@@ -2074,12 +2149,12 @@ impl CartesianDiagram {
 
         // Max intensity label
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="20" text-anchor="end" font-size="11" fill="{}" font-family="{}">{} {:.0} cd/klm</text>"#,
+            r#"<text x="{:.1}" y="20" text-anchor="end" font-size="11" fill="{}" font-family="{}">{} {}</text>"#,
             width - 15.0,
             theme.text_secondary,
             theme.font_family,
             theme.labels.max_label,
-            self.scale.max_intensity
+            theme.labels.fmt_value(self.scale.max_intensity)
         ));
 
         svg.push_str("</svg>");
@@ -2371,7 +2446,7 @@ impl HeatmapDiagram {
         // Heatmap cells
         for cell in &self.cells {
             svg.push_str(&format!(
-                r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}"><title>C{:.0}° γ{:.0}°: {:.1} cd ({:.1} cd/klm)</title></rect>"#,
+                r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}"><title>C{:.0}° γ{:.0}°: {}</title></rect>"#,
                 cell.x,
                 cell.y,
                 cell.width,
@@ -2379,8 +2454,7 @@ impl HeatmapDiagram {
                 cell.color.to_rgb_string(),
                 cell.c_angle,
                 cell.g_angle,
-                cell.candela,
-                cell.intensity
+                heatmap_cell_value(&theme.labels, cell.candela, cell.intensity)
             ));
         }
 
@@ -2485,29 +2559,34 @@ impl HeatmapDiagram {
                 theme.grid
             ));
             svg.push_str(&format!(
-                r#"<text x="{:.1}" y="{ly:.1}" dominant-baseline="middle" font-size="9" fill="{}" font-family="{}">{value:.0}</text>"#,
+                r#"<text x="{:.1}" y="{ly:.1}" dominant-baseline="middle" font-size="9" fill="{}" font-family="{}">{value:.prec$}</text>"#,
                 legend_x + legend_width + 8.0,
                 theme.text_secondary,
-                theme.font_family
+                theme.font_family,
+                prec = theme.labels.value_decimals.min(1)
             ));
         }
 
         // Legend title
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">cd</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="middle" font-size="10" fill="{}" font-family="{}">{}</text>"#,
             legend_x + legend_width / 2.0,
             self.margin_top - 8.0,
             theme.text,
-            theme.font_family
+            theme.font_family,
+            theme.labels.unit_absolute
         ));
 
         // Max value indicator
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="25" text-anchor="end" font-size="11" fill="{}" font-family="{}">Max: {:.0} cd</text>"#,
+            r#"<text x="{:.1}" y="25" text-anchor="end" font-size="11" fill="{}" font-family="{}">{} {:.*} {}</text>"#,
             width - 15.0,
             theme.text_secondary,
             theme.font_family,
-            self.max_candela
+            theme.labels.max_label,
+            theme.labels.value_decimals,
+            self.max_candela,
+            theme.labels.unit_absolute
         ));
 
         svg.push_str("</svg>");
@@ -2570,7 +2649,7 @@ impl HeatmapDiagram {
 
         for cell in &self.cells {
             svg.push_str(&format!(
-                r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}"><title>C{:.0}° γ{:.0}°: {:.1} cd ({:.1} cd/klm)</title></rect>"#,
+                r#"<rect x="{:.1}" y="{:.1}" width="{:.1}" height="{:.1}" fill="{}"><title>C{:.0}° γ{:.0}°: {}</title></rect>"#,
                 cell.x,
                 cell.y,
                 cell.width,
@@ -2578,8 +2657,7 @@ impl HeatmapDiagram {
                 cell.color.to_rgb_string(),
                 cell.c_angle,
                 cell.g_angle,
-                cell.candela,
-                cell.intensity
+                heatmap_cell_value(&theme.labels, cell.candela, cell.intensity)
             ));
 
             if self.show_values
@@ -2899,17 +2977,19 @@ impl ButterflyDiagram {
         ));
 
         svg.push_str(&format!(
-            r#"<text x="15" y="25" font-size="12" fill="{}" font-weight="500" font-family="{}">3D Butterfly Diagram</text>"#,
+            r#"<text x="15" y="25" font-size="12" fill="{}" font-weight="500" font-family="{}">{}</text>"#,
             theme.text,
-            theme.font_family
+            theme.font_family,
+            theme.labels.butterfly_title
         ));
 
         svg.push_str(&format!(
-            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="11" fill="{}" font-family="{}">cd/klm</text>"#,
+            r#"<text x="{:.1}" y="{:.1}" text-anchor="end" font-size="11" fill="{}" font-family="{}">{}</text>"#,
             width - 15.0,
             height - 12.0,
             theme.text_secondary,
-            theme.font_family
+            theme.font_family,
+            theme.labels.unit_short
         ));
 
         svg.push_str(&format!(
@@ -5261,8 +5341,23 @@ impl CartesianDiagram {
             theme.surface, theme.axis
         ));
 
-        // Y-axis grid lines (use the larger scale)
-        let unified_y = DiagramScale::from_max_intensity(y_max, 5);
+        // Y-axis grid lines: the ticks of whichever diagram reaches higher
+        // (nice steps; the top tick is at or above both maxima).
+        let ticks = if a.scale.scale_max >= b.scale.scale_max {
+            &a.y_ticks
+        } else {
+            &b.y_ticks
+        };
+        let unified_y = DiagramScale {
+            max_intensity: a.scale.max_intensity.max(b.scale.max_intensity),
+            scale_max: y_max,
+            grid_values: ticks.iter().copied().filter(|v| *v > 0.0).collect(),
+        };
+        let decimals = if ticks.iter().any(|v| v.fract().abs() > 1e-9) {
+            1
+        } else {
+            0
+        };
         for &v in &unified_y.grid_values {
             let y = margin_top + plot_height * (1.0 - v / unified_y.scale_max);
             svg.push_str(&format!(
@@ -5270,7 +5365,7 @@ impl CartesianDiagram {
                 margin_left + plot_width, theme.grid
             ));
             svg.push_str(&format!(
-                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="11" fill="{}" font-family="{}">{v:.0}</text>"#,
+                r#"<text x="{:.1}" y="{y:.1}" text-anchor="end" dominant-baseline="middle" font-size="11" fill="{}" font-family="{}">{v:.decimals$}</text>"#,
                 margin_left - 8.0, theme.text_secondary, theme.font_family
             ));
         }

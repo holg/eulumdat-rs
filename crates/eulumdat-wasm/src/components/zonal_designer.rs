@@ -4,7 +4,7 @@ use eulumdat::diagram::SvgTheme;
 use eulumdat::scene3d::{build_interior_scene, fit_scale, render_scene_svg, CameraPreset};
 use eulumdat::zonal::{
     compute_cavity_ratios, compute_ppb_overlay, compute_zonal, LightLossFactor, LlfPreset,
-    ReflectancePreset, Reflectances, Room, RoomPreset, SolveMode, ZonalSvg,
+    PlanFrame, ReflectancePreset, Reflectances, Room, RoomPreset, SolveMode, ZonalSvg,
 };
 use eulumdat::CuTable;
 use eulumdat::Eulumdat;
@@ -14,6 +14,42 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 use crate::i18n::use_locale;
+use eulumdat::sensor::coverage::CoverageRoom;
+
+use super::plan_drag::{self, MoveWhat, Moves};
+use super::zonal_emergency::{
+    self, EmTool, EmergencyResults, EmergencySidebar, EmergencyState, PointDraft,
+};
+use super::zonal_sensors::{
+    self, fill, motion_for_preset, space_for_preset, CoreSensor, SensorPlanState, SensorResults,
+    SensorSidebar,
+};
+
+/// Key of the luminaire grid the hand moves belong to.
+fn grid_key(layout: &eulumdat::zonal::LuminaireLayout) -> String {
+    format!("{}x{}:{}", layout.rows, layout.cols, layout.count)
+}
+
+/// Room outline from the link (`u,v;u,v;…`, corners relative to the
+/// room's bounds 0..1).
+fn parse_shape(s: &str) -> Option<Vec<(f64, f64)>> {
+    let v: Vec<(f64, f64)> = s
+        .split(';')
+        .filter_map(|p| {
+            let (a, b) = p.split_once(',')?;
+            Some((a.parse().ok()?, b.parse().ok()?))
+        })
+        .filter(|(u, v): &(f64, f64)| u.is_finite() && v.is_finite())
+        .collect();
+    (v.len() >= 3).then_some(v)
+}
+
+fn encode_shape(v: &[(f64, f64)]) -> String {
+    v.iter()
+        .map(|(u, w)| format!("{u:.3},{w:.3}"))
+        .collect::<Vec<_>>()
+        .join(";")
+}
 
 // ── URL state serialization ──────────────────────────────────────────────────
 
@@ -123,6 +159,18 @@ async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
     }
 }
 
+/// The room's floor outline (the drawn shape, else the rectangle).
+fn room_polygon(room: &Room) -> Vec<(f64, f64)> {
+    room.outline.clone().unwrap_or_else(|| {
+        vec![
+            (0.0, 0.0),
+            (room.length, 0.0),
+            (room.length, room.width),
+            (0.0, room.width),
+        ]
+    })
+}
+
 /// Zonal Cavity Interior Lighting Designer component.
 #[component]
 pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
@@ -159,6 +207,38 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
         signal(url_f64("sus", default_room.suspension_length));
     let (target_illuminance, set_target_illuminance) =
         signal(url_f64("target", init_room_preset.target_lux()));
+    // Presence sensors (share-link keys s*).
+    let sensors = SensorPlanState::from_link(url_get, init_room_preset);
+    // Emergency lighting, EN 1838 (share-link keys em*).
+    let emergency = EmergencyState::from_link(url_get);
+    // Luminaires moved by hand on the plan (link key `lmove`), for the grid
+    // they were moved in ("3x3").
+    let lum_moves = RwSignal::new(
+        url_get("lmove")
+            .map(|v| Moves::decode(&v))
+            .unwrap_or_default(),
+    );
+    // What a drag on the plan moves, and what is being dragged.
+    let move_what = RwSignal::new(MoveWhat::Luminaires);
+    let dragging = RwSignal::new(None::<(MoveWhat, usize)>);
+    // Room outline (link key `shape`): corners relative to the room's
+    // bounds (0..1), so the length / width sliders stretch it. Drawn by
+    // clicking the corners on the plan.
+    let room_shape = RwSignal::new(url_get("shape").and_then(|v| parse_shape(&v)));
+    let drawing_shape = RwSignal::new(false);
+    let shape_wip = RwSignal::new(Vec::<(f64, f64)>::new());
+    let shape_m = move || {
+        room_shape.get().map(|n| {
+            let (l, w) = (room_length.get(), room_width.get());
+            n.iter().map(|&(u, v)| (u * l, v * w)).collect::<Vec<_>>()
+        })
+    };
+    let shape_m_untracked = move || {
+        room_shape.get_untracked().map(|n| {
+            let (l, w) = (room_length.get_untracked(), room_width.get_untracked());
+            n.iter().map(|&(u, v)| (u * l, v * w)).collect::<Vec<_>>()
+        })
+    };
 
     // ─── Reflectances ───────────────────────────────────────────────────
     let url_refl_idx = url_get("refl").and_then(|v| v.parse::<usize>().ok());
@@ -268,12 +348,26 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             target_lpd.get(),
             &view_tab.get(),
         );
+        let mut hash = match sensors.link_query() {
+            Some(q) => format!("{hash}&{q}"),
+            None => hash,
+        };
+        if let Some(q) = emergency.link_query() {
+            hash.push_str(&format!("&{q}"));
+        }
+        if let Some(m) = lum_moves.with(|m| m.encode()) {
+            hash.push_str(&format!("&lmove={m}"));
+        }
+        if let Some(sh) = room_shape.get() {
+            hash.push_str(&format!("&shape={}", encode_shape(&sh)));
+        }
         set_interior_url_hash(&hash);
     });
 
     // ─── Apply room preset ──────────────────────────────────────────────
     let apply_room_preset = move |preset: RoomPreset| {
         set_room_preset.set(preset);
+        room_shape.set(None);
         let room = preset.to_room();
         set_room_length.set(room.length);
         set_room_width.set(room.width);
@@ -281,6 +375,8 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
         set_workplane_height.set(room.workplane_height);
         set_suspension_length.set(room.suspension_length);
         set_target_illuminance.set(preset.target_lux());
+        sensors.space.set(space_for_preset(preset));
+        sensors.motion.set(motion_for_preset(preset));
     };
 
     // ─── Apply reflectance preset ───────────────────────────────────────
@@ -313,7 +409,8 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             room_height.get(),
             workplane_height.get(),
             suspension_length.get(),
-        );
+        )
+        .with_outline(shape_m());
         let reflectances = Reflectances::new(rho_ceiling.get(), rho_wall.get(), rho_floor.get());
         let llf = LightLossFactor::new(lld.get(), ldd.get(), bf.get(), rsdd.get());
         let ct = cu_table.get();
@@ -329,6 +426,14 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             Some(fixed_count.get()),
             Some(target_lpd.get()),
         );
+        // Luminaires moved by hand (only for the grid they were moved in).
+        let key = grid_key(&zr.layout);
+        zr.layout.moved = lum_moves.with(|m| {
+            m.for_key(&key)
+                .iter()
+                .map(|&(i, x, y)| (i, x.clamp(0.0, room.length), y.clamp(0.0, room.width)))
+                .collect()
+        });
 
         // PPB overlay (for heatmap view or 3D scene lighting)
         if (show_ppb.get() || show_3d.get()) && zr.layout.count > 0 {
@@ -367,6 +472,449 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
         (name, flux, watts, dff)
     });
 
+    // ─── Presence sensors: layout, coverage, EN 15193-1 ─────────────────
+    let sensor_core = Memo::new(move |_| {
+        zonal_sensors::chosen_data(&sensors)
+            .map(|(name, d)| (name, CoreSensor(std::sync::Arc::new(d.to_core()))))
+    });
+    let sensor_cut = Memo::new(move |_| {
+        let (name, core) = sensor_core.get()?;
+        let cut = zonal_sensors::cut(&sensors, &core, room_height.get(), workplane_height.get());
+        Some((name, core, cut))
+    });
+    let sensor_room = Memo::new(move |_| CoverageRoom {
+        length: room_length.get(),
+        width: room_width.get(),
+        mount_height: room_height.get(),
+        walk_plane: 0.0,
+        presence_plane: workplane_height.get(),
+        margin: sensors.margin.get(),
+    });
+    // Placement apart from the hand moves: dragging a sensor does not
+    // rerun the automatic placement.
+    // the floor of a shaped room (always true for a rectangle)
+    let floor = Memo::new(move |_| {
+        Room::new(room_length.get(), room_width.get(), 3.0, 0.8, 0.0).with_outline(shape_m())
+    });
+    let sensor_placed = Memo::new(move |_| {
+        let (_, _, cut) = sensor_cut.get()?;
+        let f = floor.get();
+        Some(zonal_sensors::place(
+            &sensors,
+            &cut.0,
+            &sensor_room.get(),
+            &|x, y| f.contains(x, y),
+            || result.with(|r| r.layout.positions()),
+        ))
+    });
+    let sensor_plan = Memo::new(move |_| {
+        let (name, core, cut) = sensor_cut.get()?;
+        let placed = sensor_placed.get()?;
+        let f = floor.get();
+        Some(zonal_sensors::finish(
+            &sensors,
+            &placed,
+            &core,
+            &cut.0,
+            &sensor_room.get(),
+            &|x, y| f.contains(x, y),
+            name,
+        ))
+    });
+    // Emergency lighting: the luminaire and its spacing (the search runs
+    // only when they change), then the check of routes / areas / points.
+    let em_source =
+        Memo::new(move |_| zonal_emergency::source(&emergency, &ldc.get(), room_height.get()));
+    let em_result = Memo::new(move |_| {
+        let src = em_source.get()?;
+        let f = floor.get();
+        let poly = room_polygon(&f);
+        let positions = result.with(|r| r.layout.positions());
+        Some(zonal_emergency::compute(
+            &emergency, &src, &poly, &positions,
+        ))
+    });
+    // The floor in emergency mode (only while the plan shows it)
+    let em_floor = Memo::new(move |_| {
+        if !emergency.show.get() {
+            return None;
+        }
+        let poly = room_polygon(&floor.get());
+        em_result.with(|r| r.as_ref().map(|r| zonal_emergency::floor(r, &poly)))
+    });
+    let em_points = move || -> Vec<(f64, f64)> {
+        em_result.with_untracked(|r| {
+            r.as_ref()
+                .filter(|r| r.source.which != zonal_emergency::EmLuminaire::Room)
+                .map(|r| r.positions.iter().map(|p| (p.0, p.1)).collect())
+                .unwrap_or_default()
+        })
+    };
+    // Moves made for another layout (another count or placement) are not
+    // applied; they are kept, so a link opened before its luminaire has
+    // loaded (another grid at first) still shows them.
+
+    // ─── Dragging on the plan ───────────────────────────────────────────
+    let plan_ref = NodeRef::<leptos::html::Div>::new();
+    // Room point under the pointer, and pixels per metre of the drawing.
+    let pointer_in_room = move |ev: &web_sys::PointerEvent| -> Option<(f64, f64, f64)> {
+        let el = plan_ref.get_untracked()?;
+        let room = Room::new(
+            room_length.get_untracked(),
+            room_width.get_untracked(),
+            room_height.get_untracked(),
+            workplane_height.get_untracked(),
+            suspension_length.get_untracked(),
+        );
+        let f = PlanFrame::for_room(&room);
+        let (vx, vy) = plan_drag::viewbox_point(
+            &el,
+            ev.client_x() as f64,
+            ev.client_y() as f64,
+            f.width,
+            f.height,
+        )?;
+        let (x, y) = f.to_room(vx, vy);
+        Some((x, y, f.scale))
+    };
+    let sensor_points = move || -> Vec<(f64, f64)> {
+        sensor_plan.with_untracked(|p| {
+            p.as_ref()
+                .map(|p| p.cov.positions.iter().map(|s| (s.x, s.y)).collect())
+                .unwrap_or_default()
+        })
+    };
+    let on_plan_pointerdown = move |ev: web_sys::PointerEvent| {
+        let Some((x, y, scale)) = pointer_in_room(&ev) else {
+            return;
+        };
+        // Emergency lighting: drawing a route / placing safety equipment
+        // (clicks off the room are ignored, near it they land on the wall)
+        let tool = emergency.tool.get_untracked();
+        if tool != EmTool::Off {
+            let (l, w) = (room_length.get_untracked(), room_width.get_untracked());
+            if x < -0.3 || y < -0.3 || x > l + 0.3 || y > w + 0.3 {
+                return;
+            }
+        }
+        let (x, y) = (
+            x.clamp(0.0, room_length.get_untracked()),
+            y.clamp(0.0, room_width.get_untracked()),
+        );
+        match tool {
+            EmTool::Route => {
+                ev.prevent_default();
+                let (l, w) = (room_length.get_untracked(), room_width.get_untracked());
+                let p = (
+                    (x.clamp(0.0, l) * 10.0).round() / 10.0,
+                    (y.clamp(0.0, w) * 10.0).round() / 10.0,
+                );
+                // a double click lands twice on the same point
+                let last = emergency.wip.with_untracked(|v| v.last().copied());
+                if last.is_none_or(|q| (q.0 - p.0).hypot(q.1 - p.1) > 0.05) {
+                    emergency.wip.update(|v| v.push(p));
+                }
+                return;
+            }
+            EmTool::Point(kind) => {
+                ev.prevent_default();
+                let poly = room_polygon(&floor.get_untracked());
+                let facing = zonal_emergency::facing_from_walls(&poly, x, y);
+                emergency.points.update(|v| {
+                    v.push(PointDraft {
+                        kind,
+                        x: (x * 100.0).round() / 100.0,
+                        y: (y * 100.0).round() / 100.0,
+                        facing,
+                    })
+                });
+                return;
+            }
+            EmTool::Off => {}
+        }
+        // Drawing the room outline: each click adds a corner (10 cm grid,
+        // straight to the previous corner and to the bounds when close);
+        // the first corner closes it.
+        if drawing_shape.get_untracked() {
+            ev.prevent_default();
+            let (l, w) = (room_length.get_untracked(), room_width.get_untracked());
+            let snap = |v: f64, max: f64| {
+                let v = (v.clamp(0.0, max) * 10.0).round() / 10.0;
+                if v < 0.3 {
+                    0.0
+                } else if max - v < 0.3 {
+                    max
+                } else {
+                    v
+                }
+            };
+            let (mut px, mut py) = (snap(x, l), snap(y, w));
+            let wip = shape_wip.get_untracked();
+            if let Some(&(lx, ly)) = wip.last() {
+                if (px - lx).abs() < 0.3 {
+                    px = lx;
+                }
+                if (py - ly).abs() < 0.3 {
+                    py = ly;
+                }
+            }
+            if wip.len() >= 3 {
+                let (fx, fy) = wip[0];
+                if (x - fx).hypot(y - fy) < (14.0 / scale.max(1e-6)).max(0.3) {
+                    // close: the outline's own bounds become the room
+                    let (x0, x1) = wip
+                        .iter()
+                        .fold((f64::MAX, f64::MIN), |a, p| (a.0.min(p.0), a.1.max(p.0)));
+                    let (y0, y1) = wip
+                        .iter()
+                        .fold((f64::MAX, f64::MIN), |a, p| (a.0.min(p.1), a.1.max(p.1)));
+                    let (bw, bd) = ((x1 - x0).max(0.5), (y1 - y0).max(0.5));
+                    let norm: Vec<(f64, f64)> = wip
+                        .iter()
+                        .map(|&(px, py)| ((px - x0) / bw, (py - y0) / bd))
+                        .collect();
+                    set_room_length.set(bw);
+                    set_room_width.set(bd);
+                    room_shape.set(Some(norm));
+                    shape_wip.set(Vec::new());
+                    drawing_shape.set(false);
+                    return;
+                }
+            }
+            shape_wip.update(|v| v.push((px, py)));
+            return;
+        }
+        // within 14 px of the drawing
+        let reach = 14.0 / scale.max(1e-6);
+        let what = match move_what.get_untracked() {
+            MoveWhat::Sensors if sensor_plan.with_untracked(|p| p.is_some()) => MoveWhat::Sensors,
+            MoveWhat::Emergency if !em_points().is_empty() => MoveWhat::Emergency,
+            _ => MoveWhat::Luminaires,
+        };
+        let hit = match what {
+            MoveWhat::Luminaires => plan_drag::nearest(
+                &result.with_untracked(|r| r.layout.positions()),
+                (x, y),
+                reach,
+            ),
+            MoveWhat::Sensors => plan_drag::nearest(&sensor_points(), (x, y), reach),
+            MoveWhat::Emergency => plan_drag::nearest(&em_points(), (x, y), reach),
+        };
+        if let Some(i) = hit {
+            dragging.set(Some((what, i)));
+            if let Some(el) = ev
+                .current_target()
+                .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+            {
+                let _ = el.set_pointer_capture(ev.pointer_id());
+            }
+            ev.prevent_default();
+        }
+    };
+    let on_plan_pointermove = move |ev: web_sys::PointerEvent| {
+        let Some((what, i)) = dragging.get_untracked() else {
+            return;
+        };
+        let Some((x, y, _)) = pointer_in_room(&ev) else {
+            return;
+        };
+        let x = x.clamp(0.0, room_length.get_untracked());
+        let y = y.clamp(0.0, room_width.get_untracked());
+        match what {
+            MoveWhat::Luminaires => {
+                let key = result.with_untracked(|r| grid_key(&r.layout));
+                lum_moves.update(|m| m.set(&key, i, x, y));
+            }
+            MoveWhat::Sensors => {
+                if let Some(key) =
+                    sensor_plan.with_untracked(|p| p.as_ref().map(|p| p.move_key.clone()))
+                {
+                    sensors.moves.update(|m| m.set(&key, i, x, y));
+                }
+            }
+            MoveWhat::Emergency => {
+                if let Some(key) =
+                    em_result.with_untracked(|r| r.as_ref().map(|r| r.move_key.clone()))
+                {
+                    emergency.moves.update(|m| m.set(&key, i, x, y));
+                }
+            }
+        }
+    };
+    let on_plan_pointerup = move |_: web_sys::PointerEvent| dragging.set(None);
+    // How many luminaires / sensors are off their computed places.
+    let moved_count = Memo::new(move |_| {
+        result.with(|r| {
+            r.layout
+                .moved
+                .iter()
+                .filter(|e| e.0 < r.layout.count)
+                .count()
+        }) + sensor_plan.with(|p| p.as_ref().map(|p| p.moved).unwrap_or(0))
+            + em_result.with(|r| r.as_ref().map(|r| r.moved).unwrap_or(0))
+    });
+    let sensor_energy = Memo::new(move |_| {
+        let power = luminaire_info.with(|i| i.2) * result.with(|r| r.layout.count as f64);
+        sensor_plan.with(|p| {
+            p.as_ref()
+                .map(|p| zonal_sensors::compute_energy(&sensors, p, power))
+        })
+    });
+
+    // ─── Open the plan in the Light scene ─────────────────────────────────
+    let open_light_scene = use_context::<super::app::OpenLightScene>();
+    let make_plan = move || {
+        use eulumdat_scene::glam::{Vec2, Vec3};
+        use eulumdat_scene::scene::{
+            LampRole, PlanEmergency, PlanLuminaire, PlanPhotometry, PlanPoint, ScenePlan,
+        };
+        let l = room_length.get_untracked() as f32;
+        let w = room_width.get_untracked() as f32;
+        let h = room_height.get_untracked() as f32;
+        let sus = suspension_length.get_untracked() as f32;
+        // luminous face below the ceiling (clear of it when surface mounted)
+        let y = (h - sus).min(h - 0.12);
+        // emergency lighting: in emergency mode the normal luminaires go
+        // off, the emergency ones (type 1) light; the room's own luminaires
+        // as "combined" at their emergency share
+        let em = em_result.get_untracked();
+        let room_mode = em
+            .as_ref()
+            .is_some_and(|r| r.source.which == zonal_emergency::EmLuminaire::Room);
+        // the scene shows the emergency light with the plan's maintenance
+        // factor, like the EN 1838 check
+        let mf = em
+            .as_ref()
+            .map_or(1.0, |r| r.report.settings.maintenance_factor);
+        let normal_role = match em.as_ref() {
+            Some(r) if room_mode => LampRole::Combined {
+                emergency: (mf * r.source.flux / r.source.own_flux.max(1e-9)) as f32,
+            },
+            _ => LampRole::Normal,
+        };
+        let mut luminaires: Vec<PlanLuminaire> = result
+            .with_untracked(|r| r.layout.positions())
+            .into_iter()
+            .map(|(x, z)| PlanLuminaire {
+                position: Vec3::new(x as f32, y, z as f32),
+                rotation_deg: 0.0,
+                tilt_deg: 0.0,
+                pole: None,
+                pendant: sus > 0.02,
+                photometry: 0,
+                role: normal_role,
+            })
+            .collect();
+        let mut photometries = Vec::new();
+        if let Some(r) = em.as_ref().filter(|_| !room_mode) {
+            let ldt = eulumdat::emergency::at_flux(&r.source.ldt, mf * r.source.flux);
+            photometries.push(PlanPhotometry {
+                name: format!(
+                    "{} (emergency, {:.0} lm × MF {mf:.2})",
+                    r.source.name, r.source.flux
+                ),
+                ldt: ldt.to_ldt(),
+            });
+            // emergency luminaires sit at their mounting height (surface)
+            let ey = (r.source.height as f32 - 0.05).min(h - 0.05);
+            luminaires.extend(r.positions.iter().map(|&(x, z, rot)| PlanLuminaire {
+                position: Vec3::new(x as f32, ey, z as f32),
+                rotation_deg: rot as f32,
+                tilt_deg: 0.0,
+                pole: None,
+                pendant: false,
+                photometry: 1,
+                role: LampRole::Emergency,
+            }));
+        }
+        let emergency_mode = em.is_some() && emergency.show.get_untracked();
+        let emergency = em.as_ref().map(|r| PlanEmergency {
+            routes: emergency
+                .routes
+                .get_untracked()
+                .iter()
+                .map(|rt| {
+                    (
+                        rt.path
+                            .iter()
+                            .map(|&(x, y)| Vec2::new(x as f32, y as f32))
+                            .collect(),
+                        rt.width as f32,
+                    )
+                })
+                .collect(),
+            open_area: emergency.open_area.get_untracked().then(|| {
+                room_polygon(&floor.get_untracked())
+                    .iter()
+                    .map(|&(x, y)| Vec2::new(x as f32, y as f32))
+                    .collect()
+            }),
+            points: emergency
+                .points
+                .get_untracked()
+                .iter()
+                .zip(r.report.points.iter())
+                .map(|(p, res)| PlanPoint {
+                    position: Vec2::new(p.x as f32, p.y as f32),
+                    height: r.report.settings.emphasis_height_m as f32,
+                    facing_deg: p.facing as f32,
+                    symbol: zonal_emergency::kind_icon(p.kind).to_string(),
+                    vertical: res.vertical_lx.is_some(),
+                })
+                .collect(),
+        });
+        let sensors = sensor_plan.with_untracked(|p| {
+            p.as_ref()
+                .map(|p| {
+                    p.cov
+                        .positions
+                        .iter()
+                        .map(|s| Vec2::new(s.x as f32, s.y as f32))
+                        .collect()
+                })
+                .unwrap_or_default()
+        });
+        let name = match shape_m_untracked() {
+            Some(o) => {
+                let a = Room::new(l as f64, w as f64, 3.0, 0.8, 0.0)
+                    .with_outline(Some(o))
+                    .area();
+                format!("{} {a:.1} m²", room_preset.get_untracked().label())
+            }
+            None => format!("{} {l:.1} × {w:.1} m", room_preset.get_untracked().label()),
+        };
+        ScenePlan {
+            name,
+            indoor: true,
+            outline: match shape_m_untracked() {
+                Some(o) => o
+                    .iter()
+                    .map(|&(x, y)| Vec2::new(x as f32, y as f32))
+                    .collect(),
+                None => vec![
+                    Vec2::new(0.0, 0.0),
+                    Vec2::new(l, 0.0),
+                    Vec2::new(l, w),
+                    Vec2::new(0.0, w),
+                ],
+            },
+            height: h,
+            reflectances: [
+                rho_ceiling.get_untracked() as f32,
+                rho_wall.get_untracked() as f32,
+                rho_floor.get_untracked() as f32,
+            ],
+            plane: workplane_height.get_untracked() as f32,
+            luminaires,
+            sensors,
+            sensor_height: h,
+            note: None,
+            photometries,
+            emergency,
+            emergency_mode,
+        }
+    };
+
     // ─── Zonal lumen summary ────────────────────────────────────────────
     let zonal_lumens = Memo::new(move |_| PhotometricCalculations::zonal_lumens_30deg(&ldc.get()));
 
@@ -390,6 +938,32 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                             }
                         }).collect::<Vec<_>>()}
                     </select>
+                    // Room outline: draw / cancel / back to the rectangle
+                    {move || {
+                        let l = locale.get();
+                        if drawing_shape.get() {
+                            let n = shape_wip.with(|v| v.len());
+                            view! {
+                                <button class="zonal-move-btn" on:click=move |_| {
+                                    drawing_shape.set(false);
+                                    shape_wip.set(Vec::new());
+                                }>{format!("{} ({n})", l.area_designer.polygon.cancel)}</button>
+                            }.into_any()
+                        } else if room_shape.get().is_some() {
+                            view! {
+                                <button class="zonal-move-btn" on:click=move |_| room_shape.set(None)>
+                                    {format!("▭ {}", l.area_designer.polygon.clear)}
+                                </button>
+                            }.into_any()
+                        } else {
+                            view! {
+                                <button class="zonal-move-btn" on:click=move |_| {
+                                    shape_wip.set(Vec::new());
+                                    drawing_shape.set(true);
+                                }>{format!("✏️ {}", l.area_designer.polygon.draw)}</button>
+                            }.into_any()
+                        }
+                    }}
 
                     // Length
                     <span class="zonal-toolbar-label">{move || locale.get().designer.length.clone()}</span>
@@ -758,6 +1332,17 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                         </div>
                     </div>
 
+                    // Presence sensors
+                    <SensorSidebar state=sensors plan=sensor_plan/>
+
+                    // Emergency lighting (EN 1838)
+                    <EmergencySidebar
+                        state=emergency
+                        source=em_source
+                        room_area=Signal::derive(move || floor.get().area())
+                        loaded_name=Signal::derive(move || ldc.with(|l| l.luminaire_name.clone()))
+                    />
+
                     // 3D view options (visible when 3D tab is active)
                     {move || (view_tab.get() == "3d").then(|| view! {
                         <div class="zonal-sidebar-section">
@@ -804,6 +1389,12 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                     // Export
                     <div class="zonal-sidebar-section">
                         <h4>{move || locale.get().ui.tabs.export.clone()}</h4>
+                        {open_light_scene.map(|open| view! {
+                            <button class="zonal-share-btn zonal-light-scene-btn"
+                                title=move || locale.get().ui.light_scene.open_in_light_scene_tip.clone()
+                                on:click=move |_| open.0.run(make_plan())
+                            >{move || locale.get().ui.light_scene.open_in_light_scene.clone()}</button>
+                        })}
                         <button class="zonal-share-btn"
                             on:click=move |_| {
                                 copy_interior_url_to_clipboard();
@@ -832,7 +1423,7 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 let room = Room::new(
                                     room_length.get(), room_width.get(), room_height.get(),
                                     workplane_height.get(), suspension_length.get(),
-                                );
+                                ).with_outline(shape_m());
 
                                 let theme = SvgTheme::light();
 
@@ -869,6 +1460,13 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                     "  [Workplane], [*{:.2} m*], [Suspension], [*{:.2} m*], [Area], [*{:.1} m#super[2]*],\n)\n\n",
                                     room.workplane_height, room.suspension_length, room.area()
                                 ));
+                                if let Some(o) = room.outline.as_ref() {
+                                    typ.push_str(&format!(
+                                        "Room outline with {} corners, {:.1} m of walls; length and width are its bounds.\n\n",
+                                        o.len(),
+                                        room.perimeter()
+                                    ));
+                                }
 
                                 typ.push_str("#table(\n  columns: 6,\n  align: center,\n");
                                 typ.push_str(&format!(
@@ -893,11 +1491,22 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
 
                                 typ.push_str("== Results\n\n");
                                 typ.push_str("#table(\n  columns: 6,\n  align: center,\n");
+                                let arrangement = if r.layout.is_moved() {
+                                    "moved by hand".to_string()
+                                } else {
+                                    format!("{}×{}", r.layout.rows, r.layout.cols)
+                                };
                                 typ.push_str(&format!(
-                                    "  [Luminaires], [*{} ({}×{})*], [Target], [*{:.0} lux*], [Achieved], [*{:.0} lux*],\n",
-                                    r.layout.count, r.layout.rows, r.layout.cols, r.target_illuminance, r.achieved_illuminance
+                                    "  [Luminaires], [*{} ({})*], [Target], [*{:.0} lux*], [Achieved], [*{:.0} lux*],\n",
+                                    r.layout.count, arrangement, r.target_illuminance, r.achieved_illuminance
                                 ));
-                                let spacing_status = if r.layout.spacing_ok { "OK" } else { "EXCEEDS" };
+                                let spacing_status = if r.layout.is_moved() {
+                                    "grid moved by hand"
+                                } else if r.layout.spacing_ok {
+                                    "OK"
+                                } else {
+                                    "EXCEEDS"
+                                };
                                 typ.push_str(&format!(
                                     "  [LPD], [*{:.1} W/m#super[2]*], [S/MH], [*{:.2} × {:.2}*], [Spacing], [*{}*],\n)\n\n",
                                     r.lpd, r.layout.s_mh_x, r.layout.s_mh_y, spacing_status
@@ -932,6 +1541,35 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                         "#align(center)[#image(bytes(\"{}\"), width: 95%)]\n\n",
                                         escape(&heatmap_svg)
                                     ));
+                                }
+
+                                if let Some(p) = sensor_plan.get_untracked() {
+                                    let svg = ZonalSvg::room_plan_with_overlay(
+                                        &room, &r.layout, &theme, u,
+                                        &|ox, oy, s| p.overlay(ox, oy, s, sensors.show_all.get_untracked()),
+                                    );
+                                    let e = sensor_energy.get_untracked();
+                                    typ.push_str(&zonal_sensors::typst_section(&p, e.as_ref(), &svg));
+                                }
+                                if let Some(er) = em_result.get_untracked() {
+                                    let routes = emergency.routes.get_untracked();
+                                    let svg = ZonalSvg::room_plan_with_overlay(
+                                        &room, &r.layout, &theme, u,
+                                        &|ox, oy, s| zonal_emergency::overlay(Some(&er), &routes, &[], ox, oy, s, false),
+                                    );
+                                    // the floor in emergency mode, normal lighting off
+                                    let g = zonal_emergency::floor(&er, &room_polygon(&floor.get_untracked()));
+                                    let floor_svg = ZonalSvg::room_plan_styled(
+                                        &room, &r.layout, &theme, u,
+                                        &|ox, oy, s| {
+                                            let mut o = zonal_emergency::floor_svg(&g, ox, oy, s);
+                                            o.push_str(&zonal_emergency::overlay(Some(&er), &routes, &[], ox, oy, s, false));
+                                            o
+                                        },
+                                        None,
+                                        er.source.which != zonal_emergency::EmLuminaire::Room,
+                                    );
+                                    typ.push_str(&zonal_emergency::typst_section(&er, &svg, Some((&floor_svg, &g))));
                                 }
 
                                 typ.push_str("#pagebreak()\n\n");
@@ -973,23 +1611,146 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                 <div class="zonal-views">
                     // Results summary + plan view
                     <div class="zonal-panel">
-                        <h3>{move || locale.get().designer.plan_view.clone()}</h3>
+                        <div class="zonal-plan-head">
+                            <h3>{move || locale.get().designer.plan_view.clone()}</h3>
+                            // normal lighting / emergency conditions
+                            {move || em_result.with(|r| r.is_some()).then(|| view! {
+                                <div class="zonal-em-switch">
+                                    <button class:active=move || !emergency.show.get()
+                                        on:click=move |_| emergency.show.set(false)
+                                    >{move || locale.get().zonal_designer.emergency.view_normal.clone()}</button>
+                                    <button class:active=move || emergency.show.get()
+                                        on:click=move |_| emergency.show.set(true)
+                                    >{move || locale.get().zonal_designer.emergency.view_emergency.clone()}</button>
+                                </div>
+                            })}
+                        </div>
                         // Room plan SVG
-                        <div class="zonal-plan-svg" inner_html=move || {
+                        <div class="zonal-plan-svg zonal-plan-drag" node_ref=plan_ref
+                            class:dragging=move || dragging.get().is_some()
+                            on:pointerdown=on_plan_pointerdown
+                            on:pointermove=on_plan_pointermove
+                            on:pointerup=on_plan_pointerup
+                            on:pointercancel=on_plan_pointerup
+                            on:dblclick=move |_| {
+                                if emergency.tool.get_untracked() == EmTool::Route {
+                                    emergency.finish_route();
+                                }
+                            }
+                            class:zonal-plan-tool=move || emergency.tool.get() != EmTool::Off
+                            inner_html=move || {
                             let r = result.get();
                             let room = Room::new(
                                 room_length.get(), room_width.get(), room_height.get(),
                                 workplane_height.get(), suspension_length.get(),
-                            );
-                            ZonalSvg::room_plan(&room, &r.layout, &SvgTheme::light(), units.get())
+                            ).with_outline(shape_m());
+                            let highlight = match dragging.get() {
+                                Some((MoveWhat::Luminaires, i)) => Some(i),
+                                _ => None,
+                            };
+                            let em = em_result.get();
+                            let em_routes = emergency.routes.get();
+                            let em_wip = emergency.wip.get();
+                            let em_floor_map = em_floor.get();
+                            // emergency conditions: the normal luminaires are
+                            // off (unless they are the emergency lighting)
+                            let lums_off = em_floor_map.is_some()
+                                && em.as_ref().is_some_and(|er| er.source.which != zonal_emergency::EmLuminaire::Room);
+                            let mut svg = sensor_plan.with(|p| {
+                                let overlay = |ox, oy, s| {
+                                    let mut o = String::new();
+                                    // emergency conditions: the floor in the emergency light
+                                    if let Some(g) = em_floor_map.as_ref() {
+                                        o.push_str(&zonal_emergency::floor_svg(g, ox, oy, s));
+                                    }
+                                    o.push_str(&p.as_ref().map(|p| p.overlay(ox, oy, s, sensors.show_all.get())).unwrap_or_default());
+                                    o.push_str(&zonal_emergency::overlay(em.as_ref(), &em_routes, &em_wip, ox, oy, s, true));
+                                    o
+                                };
+                                ZonalSvg::room_plan_styled(
+                                    &room, &r.layout, &SvgTheme::light(), units.get(), &overlay, highlight, lums_off,
+                                )
+                            });
+                            // the outline being drawn
+                            let wip = shape_wip.get();
+                            if drawing_shape.get() && !wip.is_empty() && svg.ends_with("</svg>") {
+                                let f = PlanFrame::for_room(&room);
+                                let px = |x: f64| f.ox + x * f.scale;
+                                let py = |y: f64| f.oy + y * f.scale;
+                                svg.truncate(svg.len() - 6);
+                                let pts: Vec<String> = wip.iter().map(|&(x, y)| format!("{:.1},{:.1}", px(x), py(y))).collect();
+                                svg.push_str(&format!(
+                                    r##"<polyline points="{}" fill="none" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,3"/>"##,
+                                    pts.join(" ")
+                                ));
+                                for (k, &(x, y)) in wip.iter().enumerate() {
+                                    svg.push_str(&format!(
+                                        r##"<circle cx="{:.1}" cy="{:.1}" r="{}" fill="rgba(220,38,38,0.75)" stroke="#991b1b"/>"##,
+                                        px(x), py(y), if k == 0 { 6 } else { 4 }
+                                    ));
+                                }
+                                svg.push_str("</svg>");
+                            }
+                            svg
                         }></div>
+                        <zonal_emergency::FloorLegend grid=em_floor result=em_result/>
+                        // Room outline: how to draw it / what it is
+                        {move || {
+                            let s = locale.get().zonal_designer.sensors.clone();
+                            if drawing_shape.get() {
+                                Some(view! { <p class="zonal-sensors-hint">{s.outline_hint.clone()}</p> }.into_any())
+                            } else {
+                                shape_m().map(|o| {
+                                    let room = Room::new(room_length.get(), room_width.get(), 3.0, 0.8, 0.0).with_outline(Some(o));
+                                    view! {
+                                        <p class="zonal-sensors-hint">{fill(&s.outline_area, &[
+                                            ("a", format!("{:.1}", room.area())),
+                                            ("p", format!("{:.1}", room.perimeter())),
+                                        ])}</p>
+                                    }.into_any()
+                                })
+                            }
+                        }}
+                        // Moving luminaires / sensors on the plan
+                        <div class="zonal-move-bar">
+                            <span class="zonal-move-label">{move || locale.get().zonal_designer.sensors.move_title.clone()}</span>
+                            <button class="zonal-move-btn" class:active=move || move_what.get() == MoveWhat::Luminaires || sensor_plan.with(|p| p.is_none())
+                                on:click=move |_| move_what.set(MoveWhat::Luminaires)
+                            >{move || format!("💡 {}", locale.get().zonal_designer.sensors.move_luminaires)}</button>
+                            {move || sensor_plan.with(|p| p.is_some()).then(|| view! {
+                                <button class="zonal-move-btn" class:active=move || move_what.get() == MoveWhat::Sensors
+                                    on:click=move |_| move_what.set(MoveWhat::Sensors)
+                                >{move || format!("📡 {}", locale.get().zonal_designer.sensors.move_sensors)}</button>
+                            })}
+                            {move || em_result.with(|r| r.as_ref().is_some_and(|r| r.source.which != zonal_emergency::EmLuminaire::Room && !r.positions.is_empty())).then(|| view! {
+                                <button class="zonal-move-btn" class:active=move || move_what.get() == MoveWhat::Emergency
+                                    on:click=move |_| move_what.set(MoveWhat::Emergency)
+                                >{move || format!("🚨 {}", locale.get().zonal_designer.emergency.move_label)}</button>
+                            })}
+                            {move || {
+                                let n = moved_count.get();
+                                (n > 0).then(|| view! {
+                                    <span class="zonal-move-count">{move || fill(&locale.get().zonal_designer.sensors.moved, &[("n", n.to_string())])}</span>
+                                    <button class="zonal-move-btn" on:click=move |_| {
+                                        lum_moves.set(Moves::default());
+                                        sensors.moves.set(Moves::default());
+                                        emergency.moves.set(Moves::default());
+                                    }>{move || format!("↺ {}", locale.get().zonal_designer.sensors.reset_moved)}</button>
+                                })
+                            }}
+                            <span class="zonal-move-hint">{move || locale.get().zonal_designer.sensors.drag_hint.clone()}</span>
+                        </div>
                         // Results summary table
                         <table class="zonal-stats-table">
                             <tr>
                                 <td>{move || locale.get().zonal_designer.results.luminaires.clone()}</td>
                                 <td class="val">{move || {
                                     let r = result.get();
-                                    format!("{} ({}×{})", r.layout.count, r.layout.rows, r.layout.cols)
+                                    if r.layout.is_moved() {
+                                        format!("{} ({})", r.layout.count, locale.get().zonal_designer.sensors.spacing_moved)
+                                    } else {
+                                        format!("{} ({}×{})", r.layout.count, r.layout.rows, r.layout.cols)
+                                    }
                                 }}</td>
                                 <td>{move || locale.get().zonal_designer.results.achieved.clone()}</td>
                                 <td class="val">{move || format!("{:.0} lux", result.get().achieved_illuminance)}</td>
@@ -1005,6 +1766,9 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 <td class=move || if result.get().layout.spacing_ok { "val zonal-spacing-ok" } else { "val zonal-spacing-warn" }>
                                     {move || {
                                         let r = result.get();
+                                        if r.layout.is_moved() {
+                                            return locale.get().zonal_designer.sensors.spacing_moved.clone();
+                                        }
                                         let icon = if r.layout.spacing_ok { "\u{2713}" } else { "\u{26A0}" };
                                         format!("{icon} {:.2}×{:.2}", r.layout.s_mh_x, r.layout.s_mh_y)
                                     }}
@@ -1031,6 +1795,8 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 </tr>
                             </table>
                         })}
+                        <SensorResults plan=sensor_plan energy=sensor_energy show_all=sensors.show_all/>
+                        <EmergencyResults result=em_result/>
                     </div>
 
                     // Tab-driven view panel
@@ -1040,7 +1806,7 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                         let room = Room::new(
                             room_length.get(), room_width.get(), room_height.get(),
                             workplane_height.get(), suspension_length.get(),
-                        );
+                        ).with_outline(shape_m());
 
                         match tab.as_str() {
                             "heatmap" => {
@@ -1367,6 +2133,42 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     width: 100%;
     height: auto;
     max-height: 420px;
+}
+.zonal-plan-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.zonal-em-switch {
+    display: flex;
+    gap: 3px;
+}
+.zonal-em-switch button {
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface-elevated, transparent);
+    color: var(--text-primary);
+    border-radius: 4px;
+}
+.zonal-em-switch button.active {
+    background: var(--primary-color);
+    color: #fff;
+}
+.zonal-em-legend-bands {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-top: 4px;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+.zonal-em-legend-bands span {
+    padding: 1px 5px;
+    border-radius: 2px;
 }
 .zonal-cu-table-scroll {
     overflow-x: auto;

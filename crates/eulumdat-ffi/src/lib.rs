@@ -27,6 +27,7 @@ pub mod compare;
 pub mod diagram;
 pub mod error;
 pub mod schema_validation;
+pub mod sensor;
 pub mod types;
 pub mod validation;
 
@@ -73,6 +74,9 @@ pub use error::EulumdatError;
 pub use schema_validation::{
     validate_schema_s001, validate_schema_tm32, validate_schema_tm33, SchemaValidationMessage,
     SchemaValidationResult,
+};
+pub use sensor::{
+    SensorDataQuality, SensorDetectionArea, SensorFile, SensorMotion, SensorPoint, SensorSummary,
 };
 pub use types::{
     export_ies, export_ldt, parse_ies, parse_ldt, Eulumdat, LampSet, Symmetry, TypeIndicator,

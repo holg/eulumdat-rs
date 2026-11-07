@@ -76,7 +76,11 @@
 //! - `eulumdat` - Conversion to/from EULUMDAT format
 
 pub mod bim;
+pub(crate) mod cie_tables;
 pub mod colorimetry;
+pub(crate) mod colour_common;
+pub mod colour_quality;
+pub mod cri;
 pub mod error;
 pub mod greenhouse;
 pub mod labels;
@@ -92,6 +96,9 @@ pub mod xml;
 #[cfg(feature = "xml")]
 pub mod spdx;
 
+#[cfg(feature = "xml")]
+pub mod tm33;
+
 #[cfg(feature = "json")]
 pub mod json;
 
@@ -105,13 +112,16 @@ pub use bim::{
     BimParameters, ElectricalPhase, EmergencyType, HousingShape, LedDriveType, MountingType,
     VoltageType,
 };
+pub use colour_common::cct_duv;
+pub use colour_quality::{ColourQuality, ColourQualityLabels};
+pub use cri::{calculate_cri, CriResult};
 pub use error::{AtlaError, Result};
 pub use greenhouse::{GreenhouseDiagram, GreenhouseLabels, GreenhouseTheme};
 pub use labels::SpectralLabels;
 pub use spectral::{
     synthesize_spectrum, SpectralDiagram, SpectralMetrics, SpectralSvgLabels, SpectralTheme,
 };
-pub use tm30::{calculate_tm30, Tm30Result, Tm30Theme};
+pub use tm30::{calculate_tm30, CvgPoint, Tm30Reference, Tm30Result, Tm30Theme};
 pub use types::*;
 pub use validate::{
     validate, validate_with_schema, ValidationMessage, ValidationResult, ValidationSchema,
@@ -137,7 +147,10 @@ pub fn detect_schema_version(content: &str) -> SchemaVersion {
     let trimmed = content.trim();
 
     // Check for TM-33-23 root element
-    if trimmed.contains("<IESTM33-22") || trimmed.contains("<IESTM33-22>") {
+    if trimmed.contains("<IESTM33-22")
+        || trimmed.contains("<IESTM33>")
+        || trimmed.contains("<IESTM33 ")
+    {
         return SchemaVersion::Tm3323;
     }
 

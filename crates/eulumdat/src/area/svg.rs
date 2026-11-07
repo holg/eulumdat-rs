@@ -32,6 +32,39 @@ impl AreaSvg {
         luminaires_per_pole: usize,
         units: UnitSystem,
     ) -> String {
+        Self::plan_view_with_poles_overlay(
+            pole_positions,
+            placements,
+            area_width,
+            area_depth,
+            svg_width,
+            svg_height,
+            theme,
+            selected_pole,
+            luminaires_per_pole,
+            units,
+            &|_, _, _, _| String::new(),
+        )
+    }
+
+    /// [`Self::plan_view_with_poles`] with extra SVG drawn under the poles.
+    /// `overlay` gets the pixel position of the area corner (x = 0, y = 0)
+    /// and pixels per metre along x and y (the plan fills its frame, so
+    /// they differ), e.g. `sensor::coverage::overlay_svg_xy`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn plan_view_with_poles_overlay(
+        pole_positions: &[(usize, f64, f64)],
+        placements: &[LuminairePlace],
+        area_width: f64,
+        area_depth: f64,
+        svg_width: f64,
+        svg_height: f64,
+        theme: &SvgTheme,
+        selected_pole: Option<usize>,
+        luminaires_per_pole: usize,
+        units: UnitSystem,
+        overlay: &dyn Fn(f64, f64, f64, f64) -> String,
+    ) -> String {
         let margin = 40.0;
         let plot_w = svg_width - 2.0 * margin;
         let plot_h = svg_height - 2.0 * margin;
@@ -94,6 +127,8 @@ impl AreaSvg {
             margin + plot_h / 2.0,
             margin + plot_h / 2.0,
         ));
+
+        svg.push_str(&overlay(margin, margin, scale_x, scale_y));
 
         // Draw luminaire positions (small dots + rotation arrows)
         let lpp = luminaires_per_pole.max(1);
@@ -170,6 +205,36 @@ impl AreaSvg {
         luminaires_per_pole: usize,
         units: UnitSystem,
     ) -> String {
+        Self::plan_view_with_polygon_overlay(
+            pole_positions,
+            placements,
+            polygon,
+            svg_width,
+            svg_height,
+            theme,
+            selected_pole,
+            luminaires_per_pole,
+            units,
+            &|_, _, _, _| String::new(),
+        )
+    }
+
+    /// [`Self::plan_view_with_polygon`] with extra SVG drawn under the
+    /// poles; `overlay` as in [`Self::plan_view_with_poles_overlay`] (the
+    /// corner passed is world (0, 0), which may lie outside the frame).
+    #[allow(clippy::too_many_arguments)]
+    pub fn plan_view_with_polygon_overlay(
+        pole_positions: &[(usize, f64, f64)],
+        placements: &[LuminairePlace],
+        polygon: &super::polygon::AreaPolygon,
+        svg_width: f64,
+        svg_height: f64,
+        theme: &SvgTheme,
+        selected_pole: Option<usize>,
+        luminaires_per_pole: usize,
+        units: UnitSystem,
+        overlay: &dyn Fn(f64, f64, f64, f64) -> String,
+    ) -> String {
         let (bx0, by0, bx1, by1) = polygon.bounding_box();
         let bbox_w = bx1 - bx0;
         let bbox_h = by1 - by0;
@@ -234,6 +299,13 @@ impl AreaSvg {
             r#"<text x="12" y="{}" text-anchor="middle" fill="{text_color}" font-size="10" transform="rotate(-90, 12, {})">{d_display:.0} {dl}</text>"#,
             margin + plot_h / 2.0,
             margin + plot_h / 2.0,
+        ));
+
+        svg.push_str(&overlay(
+            margin - bx0 * scale_x,
+            margin - by0 * scale_y,
+            scale_x,
+            scale_y,
         ));
 
         // Luminaire positions

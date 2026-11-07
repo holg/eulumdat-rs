@@ -16,7 +16,12 @@ required-features = ["native"]
 
 [features]
 default = ["native"]
-native = ["dep:pollster", "dep:env_logger", "eulumdat-scene/l3d", "eulumdat-scene/spectrum"]
+native = [
+    "dep:pollster",
+    "dep:env_logger",
+    "eulumdat-scene/l3d",
+    "eulumdat-scene/spectrum",
+]
 
 [dependencies]
 bytemuck = { version = "1.14", features = ["derive"] }

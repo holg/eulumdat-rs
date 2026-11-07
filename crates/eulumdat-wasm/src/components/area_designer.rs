@@ -8,11 +8,14 @@ use eulumdat::area::{
 };
 use eulumdat::diagram::SvgTheme;
 use eulumdat::scene3d::{build_exterior_scene, fit_scale, render_scene_svg, CameraPreset};
+use eulumdat::sensor::coverage::{overlay_svg_xy, CoverageRoom};
 use eulumdat::Eulumdat;
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
+use super::plan_drag::{self, MoveWhat, Moves};
+use super::zonal_sensors::{self, fill, CoreSensor, SensorPlanState, SensorResults, SensorSidebar};
 use crate::i18n::use_locale;
 
 #[wasm_bindgen]
@@ -450,6 +453,64 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
         }
     };
 
+    // --- Motion detectors (link keys s*, `sh` = sensor height) ---
+    let sensors = SensorPlanState::outdoor_from_link(url_get);
+    let sensor_height =
+        RwSignal::new(url_f64("sh", defaults.mounting_height.min(6.0)).clamp(1.0, 30.0));
+    // What a drag on the plan moves (poles or sensors), the sensor dragged.
+    let move_what = RwSignal::new(MoveWhat::Luminaires);
+    let sensor_drag = RwSignal::new(None::<usize>);
+    let sensor_core = Memo::new(move |_| {
+        zonal_sensors::chosen_data(&sensors)
+            .map(|(name, d)| (name, CoreSensor(std::sync::Arc::new(d.to_core()))))
+    });
+    let sensor_cut = Memo::new(move |_| {
+        let (name, core) = sensor_core.get()?;
+        let cut = zonal_sensors::cut(&sensors, &core, sensor_height.get(), 0.0);
+        Some((name, core, cut))
+    });
+    // Everything at the ground; the area's bounding rectangle from (0, 0).
+    let sensor_room = Memo::new(move |_| CoverageRoom {
+        length: area_width.get(),
+        width: area_depth.get(),
+        mount_height: sensor_height.get(),
+        walk_plane: 0.0,
+        presence_plane: 0.0,
+        margin: 0.0,
+    });
+    let sensor_placed = Memo::new(move |_| {
+        let (_, _, cut) = sensor_cut.get()?;
+        let poly = custom_polygon.get();
+        let inside = |x: f64, y: f64| poly.as_ref().is_none_or(|p| p.contains(x, y));
+        Some(zonal_sensors::place(
+            &sensors,
+            &cut.0,
+            &sensor_room.get(),
+            &inside,
+            || poles.with(|v| v.iter().map(|p| (p.x, p.y)).collect()),
+        ))
+    });
+    let sensor_plan = Memo::new(move |_| {
+        let (name, core, cut) = sensor_cut.get()?;
+        let placed = sensor_placed.get()?;
+        let poly = custom_polygon.get();
+        let inside = |x: f64, y: f64| poly.as_ref().is_none_or(|p| p.contains(x, y));
+        Some(zonal_sensors::finish(
+            &sensors,
+            &placed,
+            &core,
+            &cut.0,
+            &sensor_room.get(),
+            &inside,
+            name,
+        ))
+    });
+    // No energy estimate outdoors.
+    let no_energy = Memo::new(|_| None);
+    // Moves made for another layout (another count or placement) are not
+    // applied; they are kept, so a link opened before its luminaire has
+    // loaded (another grid at first) still shows them.
+
     // --- Extra LDT files for mixed luminaire types ---
     let (extra_ldts, set_extra_ldts) = signal(Vec::<ExtraLdt>::new());
     let extra_ldts_ref = NodeRef::<leptos::html::Input>::new();
@@ -537,6 +598,10 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             poles: poles.get(),
             polygon: custom_polygon.get(),
         });
+        let hash = match sensors.link_query() {
+            Some(q) => format!("{hash}&{q}&sh={:.1}", sensor_height.get()),
+            None => hash,
+        };
         set_url_hash(&hash);
     };
 
@@ -582,6 +647,88 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
         (placements, ldt_indices)
     };
 
+    // The area for the Light scene ("Open in Light scene").
+    let open_light_scene = use_context::<super::app::OpenLightScene>();
+    let make_plan = move || {
+        use eulumdat_scene::glam::{Vec2, Vec3};
+        use eulumdat_scene::scene::{PlanLuminaire, ScenePlan};
+        let (placements, ldt_idx) = make_placements();
+        let wall = arrangement.get_untracked() == ArrangementType::WallMounted;
+        let luminaires = placements
+            .iter()
+            .map(|lum| {
+                let (ex, ey) = lum.effective_position();
+                PlanLuminaire {
+                    position: Vec3::new(ex as f32, lum.mounting_height as f32, ey as f32),
+                    rotation_deg: lum.rotation as f32,
+                    tilt_deg: lum.tilt_angle as f32,
+                    pole: (!wall).then(|| Vec2::new(lum.x as f32, lum.y as f32)),
+                    pendant: false,
+                    photometry: 0,
+                    role: Default::default(),
+                }
+            })
+            .collect();
+        let (outline, name) = match custom_polygon.get_untracked() {
+            Some(poly) => (
+                poly.vertices
+                    .iter()
+                    .map(|&(x, y)| Vec2::new(x as f32, y as f32))
+                    .collect(),
+                format!("{:.0} m²", poly.area()),
+            ),
+            None => {
+                let (w, d) = (
+                    area_width.get_untracked() as f32,
+                    area_depth.get_untracked() as f32,
+                );
+                (
+                    vec![
+                        Vec2::new(0.0, 0.0),
+                        Vec2::new(w, 0.0),
+                        Vec2::new(w, d),
+                        Vec2::new(0.0, d),
+                    ],
+                    format!("{w:.0} × {d:.0} m"),
+                )
+            }
+        };
+        let sensors = sensor_plan.with_untracked(|p| {
+            p.as_ref()
+                .map(|p| {
+                    p.cov
+                        .positions
+                        .iter()
+                        .map(|s| Vec2::new(s.x as f32, s.y as f32))
+                        .collect()
+                })
+                .unwrap_or_default()
+        });
+        let mixed = ldt_idx.iter().any(|&i| i > 0);
+        ScenePlan {
+            name,
+            indoor: false,
+            outline,
+            height: 0.0,
+            reflectances: [0.0, 0.0, 0.1],
+            plane: 0.0,
+            luminaires,
+            sensors,
+            sensor_height: sensor_height.get_untracked() as f32,
+            note: mixed.then(|| {
+                locale
+                    .get_untracked()
+                    .ui
+                    .light_scene
+                    .planned_mixed_note
+                    .clone()
+            }),
+            photometries: Vec::new(),
+            emergency: None,
+            emergency_mode: false,
+        }
+    };
+
     // Plan view SVG
     let plan_svg = move || {
         let (placements, _ldt_idx) = make_placements();
@@ -595,8 +742,28 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
         let pole_positions: Vec<(usize, f64, f64)> =
             pole_list.iter().map(|p| (p.id, p.x, p.y)).collect();
 
+        // Detection areas of the motion detectors, under the poles.
+        let show_all = sensors.show_all.get();
+        let overlay = |ox: f64, oy: f64, sx: f64, sy: f64| {
+            sensor_plan.with(|p| {
+                p.as_ref()
+                    .map(|p| {
+                        overlay_svg_xy(
+                            &p.cov,
+                            ox,
+                            oy,
+                            sx,
+                            sy,
+                            &p.shown(show_all),
+                            Some(p.motion),
+                            false,
+                        )
+                    })
+                    .unwrap_or_default()
+            })
+        };
         let mut svg = if let Some(ref poly) = custom_polygon.get() {
-            AreaSvg::plan_view_with_polygon(
+            AreaSvg::plan_view_with_polygon_overlay(
                 &pole_positions,
                 &placements,
                 poly,
@@ -606,9 +773,10 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                 sel,
                 lpp,
                 units.get(),
+                &overlay,
             )
         } else {
-            AreaSvg::plan_view_with_poles(
+            AreaSvg::plan_view_with_poles_overlay(
                 &pole_positions,
                 &placements,
                 aw,
@@ -619,6 +787,7 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                 sel,
                 lpp,
                 units.get(),
+                &overlay,
             )
         };
 
@@ -736,6 +905,23 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             return;
         }
 
+        // Sensor mode: pick the nearest sensor instead of a pole.
+        if move_what.get_untracked() == MoveWhat::Sensors {
+            let pts: Vec<(f64, f64)> = sensor_plan.with_untracked(|p| {
+                p.as_ref()
+                    .map(|p| p.cov.positions.iter().map(|s| (s.x, s.y)).collect())
+                    .unwrap_or_default()
+            });
+            if !pts.is_empty() {
+                let reach = area_width.get().max(area_depth.get()) * 0.04;
+                if let Some(i) = plan_drag::nearest(&pts, (wx, wy), reach) {
+                    sensor_drag.set(Some(i));
+                    ev.prevent_default();
+                }
+                return;
+            }
+        }
+
         // Find closest pole
         let pole_list = poles.get();
         let mut closest: Option<(usize, f64)> = None;
@@ -765,6 +951,17 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     };
 
     let on_plan_mousemove = move |ev: web_sys::MouseEvent| {
+        if let Some(i) = sensor_drag.get_untracked() {
+            let Some((wx, wy)) = screen_to_world_from_event(&ev) else {
+                return;
+            };
+            if let Some(key) =
+                sensor_plan.with_untracked(|p| p.as_ref().map(|p| p.move_key.clone()))
+            {
+                sensors.moves.update(|m| m.set(&key, i, wx, wy));
+            }
+            return;
+        }
         if !dragging.get() {
             return;
         }
@@ -783,10 +980,12 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
 
     let on_plan_mouseup = move |_ev: web_sys::MouseEvent| {
         set_dragging.set(false);
+        sensor_drag.set(None);
     };
 
     let on_plan_mouseleave = move |_ev: web_sys::MouseEvent| {
         set_dragging.set(false);
+        sensor_drag.set(None);
     };
 
     // --- Quick position presets ---
@@ -1335,6 +1534,12 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                         }
                     }}
 
+                    {open_light_scene.map(|open| view! {
+                        <button class="area-share-btn"
+                            title=move || locale.get().ui.light_scene.open_in_light_scene_tip.clone()
+                            on:click=move |_| open.0.run(make_plan())
+                        >{move || locale.get().ui.light_scene.open_in_light_scene.clone()}</button>
+                    })}
                     <button
                         class="area-share-btn"
                         title="Copy shareable link to clipboard"
@@ -2004,6 +2209,8 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                             }.into_any()
                         }}
                     </div>
+                    // Motion detectors
+                    <SensorSidebar state=sensors plan=sensor_plan height=sensor_height/>
                 </div>
 
                 // Center: views
@@ -2030,6 +2237,28 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 format!("{n_poles} poles × {lpp} luminaires/pole = {total} total")
                             }}
                         </div>
+                        // Poles or motion detectors under the mouse
+                        {move || sensor_plan.with(|p| p.is_some()).then(|| view! {
+                            <div class="zonal-move-bar">
+                                <span class="zonal-move-label">{move || locale.get().zonal_designer.sensors.move_title.clone()}</span>
+                                <button class="zonal-move-btn" class:active=move || move_what.get() == MoveWhat::Luminaires
+                                    on:click=move |_| move_what.set(MoveWhat::Luminaires)
+                                >{move || format!("💡 {}", locale.get().zonal_designer.sensors.move_poles)}</button>
+                                <button class="zonal-move-btn" class:active=move || move_what.get() == MoveWhat::Sensors
+                                    on:click=move |_| move_what.set(MoveWhat::Sensors)
+                                >{move || format!("📡 {}", locale.get().zonal_designer.sensors.move_sensors)}</button>
+                                {move || {
+                                    let n = sensor_plan.with(|p| p.as_ref().map(|p| p.moved).unwrap_or(0));
+                                    (n > 0).then(|| view! {
+                                        <span class="zonal-move-count">{move || fill(&locale.get().zonal_designer.sensors.moved, &[("n", n.to_string())])}</span>
+                                        <button class="zonal-move-btn" on:click=move |_| sensors.moves.set(Moves::default())>
+                                            {move || format!("↺ {}", locale.get().zonal_designer.sensors.reset_moved)}
+                                        </button>
+                                    })
+                                }}
+                            </div>
+                        })}
+                        <SensorResults plan=sensor_plan energy=no_energy show_all=sensors.show_all outdoor=true/>
                     </div>
 
                     // ISO view + stats + export

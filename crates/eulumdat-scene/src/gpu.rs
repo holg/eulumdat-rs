@@ -77,7 +77,8 @@ pub struct GpuPrim {
     pub kind: u32,
     pub material: u32,
     pub flags: u32,
-    pub _pad: u32,
+    /// Reflectance overriding the material's brightness, 0 = as is.
+    pub reflectance: f32,
     pub p0: [f32; 4],
     pub p1: [f32; 4],
     pub r0: [f32; 4],

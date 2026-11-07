@@ -217,6 +217,18 @@ calculate_source_hash() {
     } | if command -v md5sum &> /dev/null; then md5sum | cut -c1-16; else md5 -q | cut -c1-16; fi
 }
 
+# Hash of the editor's non-Rust inputs: trunk copies index.html and
+# src/static (styles, loaders), and the locale JSON is compiled in. The
+# source hash above only covers .rs / Cargo files, so a styles-only or
+# translation-only change used to be skipped as "unchanged".
+leptos_assets_hash() {
+    {
+        cat "$WASM_DIR/index.html" "$WASM_DIR/Trunk.toml" 2>/dev/null
+        find "$WASM_DIR/src/static" -type f 2>/dev/null | sort | xargs cat 2>/dev/null
+        find "$ROOT_DIR/crates/eulumdat-i18n/locales" -type f -name "*.json" 2>/dev/null | sort | xargs cat 2>/dev/null
+    } | if command -v md5sum &> /dev/null; then md5sum | cut -c1-16; else md5 -q | cut -c1-16; fi
+}
+
 # Get cached hash for a component
 # Usage: get_cached_hash <component_name>
 get_cached_hash() {
@@ -413,6 +425,19 @@ fi
 # =============================================================================
 # Build Process
 # =============================================================================
+
+# Landing page: index.html is generated from the English key table and the
+# translations (gen_landing.py). Regenerate it first, so a deploy never ships
+# a page that lags behind its sources, and a missing translation stops the
+# build before the long WASM steps.
+LANDING_GEN="$ROOT_DIR/crates/eulumdat-wasm/landing/src/gen_landing.py"
+if [[ -f "$LANDING_GEN" ]]; then
+    if command -v python3 &> /dev/null; then
+        (cd "$ROOT_DIR" && python3 "$LANDING_GEN")
+    else
+        echo "WARNING: python3 not found, landing page not regenerated"
+    fi
+fi
 
 echo "=== Building $PROJECT_DISPLAY Split WASM ==="
 echo ""
@@ -820,6 +845,27 @@ if [[ "$BUILD_RTV" == "true" ]]; then
     fi
 fi
 
+# Undo the site layout of the previous run. The steps from here on build and
+# patch the app at the dist root; the "Site layout" step at the end moves it
+# into app/ and puts the landing page at the root. Without moving it back, the
+# incremental checks (e.g. "is there a Leptos .wasm in dist/?") never find the
+# previous build and every run rebuilds the editor. After a layout the root
+# only holds landing files, which the layout step copies again.
+# Done here and not at the start: the bundle builds above work in target/,
+# so a server on dist/ keeps showing the complete site while they run.
+if [[ -n "$DIST_DIR" && -f "$DIST_DIR/app/index.html" ]]; then
+    for entry in "$DIST_DIR"/* "$DIST_DIR"/.[!.]*; do
+        [[ -e "$entry" ]] || continue
+        [[ "$(basename "$entry")" == "app" ]] && continue
+        rm -rf "$entry"
+    done
+    for entry in "$DIST_DIR/app"/* "$DIST_DIR/app"/.[!.]*; do
+        [[ -e "$entry" ]] || continue
+        mv "$entry" "$DIST_DIR/"
+    done
+    rmdir "$DIST_DIR/app"
+fi
+
 # -----------------------------------------------------------------------------
 # Step 2: Build Leptos editor
 # -----------------------------------------------------------------------------
@@ -828,6 +874,8 @@ if [[ "$BUILD_LEPTOS" == "true" ]]; then
     if needs_rebuild "leptos" "$WASM_DIR"; then
         LEPTOS_NEEDS_BUILD=true
     elif needs_rebuild "eulumdat-core" "$ROOT_DIR/crates/eulumdat"; then
+        LEPTOS_NEEDS_BUILD=true
+    elif [[ "$(leptos_assets_hash)" != "$(get_cached_hash "leptos-assets")" ]]; then
         LEPTOS_NEEDS_BUILD=true
     elif [[ ! -d "$DIST_DIR" ]] || [[ -z "$(ls -A "$DIST_DIR"/*.wasm 2>/dev/null)" ]]; then
         LEPTOS_NEEDS_BUILD=true
@@ -843,6 +891,7 @@ if [[ "$BUILD_LEPTOS" == "true" ]]; then
 
         # Save hash after successful build
         save_hash "leptos" "$(calculate_source_hash "$WASM_DIR")"
+        save_hash "leptos-assets" "$(leptos_assets_hash)"
         LEPTOS_BUILT=true
         echo ""
     else
@@ -2213,6 +2262,8 @@ if [[ "$BUILD_SKYGLOW" == "true" ]]; then
     cp -f "$BEVY_DIR/assets/Sponza_web.glb" "$DIST_DIR/assets/" 2>/dev/null || true
     cp -f "$BEVY_DIR/assets/BistroExterior_web.glb" "$DIST_DIR/assets/" 2>/dev/null || true
     cp -f "$BEVY_DIR/assets/BistroExteriorFakeGI.gltf" "$DIST_DIR/assets/" 2>/dev/null || true
+    # Burg Vischering (skyglow ?scene=vischering): Geobasis NRW 3D-Mesh, ~48 MB
+    cp -f "$BEVY_DIR/assets/Vischering.glb" "$DIST_DIR/assets/" 2>/dev/null || true
     # Copy environment maps (required for IBL lighting)
     cp -f "$BEVY_DIR/assets/environment_maps/"*.ktx2 "$DIST_DIR/assets/environment_maps/" 2>/dev/null || true
     echo "[6.9/$TOTAL_STEPS] Copied packed GLB scenes + env maps into dist/assets/"
@@ -2507,8 +2558,10 @@ if [[ -d "$LANDING_DIR" ]]; then
     # Kept lazy bundles (disabled in build-config, still served): restore the
     # hashed loaders and point the app's index.html at them, so a plain
     # `build-wasm-split.sh deploy` needs no manual copy from the server.
+    # Only while the bundle is disabled: a freshly built skyglow bundle has its
+    # own hashed loader in index.html, which the kept one must not replace.
     KEEP_DIR="$ROOT_DIR/crates/eulumdat-wasm/keep"
-    if [[ -d "$KEEP_DIR" ]]; then
+    if [[ -d "$KEEP_DIR" && "$BUILD_SKYGLOW" != "true" ]]; then
         for f in "$KEEP_DIR"/*.js "$KEEP_DIR"/*.js.br; do
             [[ -f "$f" ]] && cp "$f" "$DIST_DIR/app/"
         done
@@ -2521,6 +2574,10 @@ if [[ -d "$LANDING_DIR" ]]; then
     [[ -f "$DIST_DIR/app/404.html" ]] && cp "$DIST_DIR/app/404.html" "$DIST_DIR/404.html"
     if [[ "$SKIP_BROTLI" != "true" && "$HAVE_BROTLI" == "true" ]]; then
         brotli -f -q 11 "$DIST_DIR/index.html"
+        # Always: nginx serves index.html.br to every browser, and the deploy
+        # never deletes, so a stale one on the server (2026-10-29: the old
+        # skyglow loader) wins over the fresh index.html.
+        brotli -f -q 11 "$DIST_DIR/app/index.html"
         for f in "$DIST_DIR/img/"*.svg; do [[ -f "$f" ]] && brotli -f -q 11 "$f"; done
     fi
     echo "Site layout: landing page at / , app at /app/"

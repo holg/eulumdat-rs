@@ -527,11 +527,17 @@ pub fn Dashboard(
     /// Persistent library of opened files (drag-drop, file picker,
     /// `?url=…`). Rendered as rows alongside the templates so the user
     /// can flip back to any previously-loaded fixture without re-uploading.
-    library: ReadSignal<crate::library::Library>,
+    library: Signal<crate::library::Library>,
     /// Remove a single library entry by content-id.
     on_library_remove: Callback<String>,
     /// Wipe the whole library.
     on_library_clear: Callback<()>,
+    /// Show the bundled templates (the Demo project).
+    show_templates: Signal<bool>,
+    /// A sensor row was clicked (index in the app's sensor list).
+    on_open_sensor: Callback<usize>,
+    /// Two sensors were picked for comparison (names: A, B).
+    on_compare_sensors: Callback<(String, String)>,
 ) -> impl IntoView {
     let locale = use_locale();
 
@@ -578,10 +584,9 @@ pub fn Dashboard(
     let (library_count, set_library_count) = signal(0_usize);
     // Library row index → content-id, used by the remove × button.
     let (library_ids, set_library_ids) = signal(Vec::<String>::new());
-    // Content-id of the most recently auto-expanded library entry.
-    // Lets us tell "a brand-new file just landed" from "the library
-    // signal fired but the top entry hasn't changed" so we don't keep
-    // re-expanding the same row the user already collapsed manually.
+    // "<project>/<item id>" of the row selected for the project's open
+    // luminaire last: a row the user collapsed is not folded out again
+    // until another luminaire opens.
     let (last_auto_expanded, set_last_auto_expanded) = signal(String::new());
 
     // Combine library entries (newest-first) with bundled templates.
@@ -611,8 +616,13 @@ pub fn Dashboard(
         }
         let lib_n = combined.len();
 
-        // 2. Then the bundled templates.
-        for tpl in ALL_TEMPLATES.iter() {
+        // 2. Then the bundled templates (Demo project only).
+        let templates: &[&super::templates::Template] = if show_templates.get() {
+            ALL_TEMPLATES
+        } else {
+            &[]
+        };
+        for tpl in templates.iter() {
             match tpl.format {
                 TemplateFormat::Ldt | TemplateFormat::IesLm63 => {}
                 _ => continue,
@@ -632,34 +642,60 @@ pub fn Dashboard(
             }
         }
 
-        // Auto-expand the freshly-loaded file. Fires only when the
-        // top library id has changed since the last auto-expand —
-        // re-saving a file (which bumps timestamps without reordering)
-        // or pushing the same content twice won't re-expand a row the
-        // user just collapsed. Also drives `on_select` so the rest of
-        // the app (compare panel, storage sync) gets the new fixture
-        // as the active one.
-        let top_id = ids.first().cloned();
-        if let Some(id) = top_id {
-            if id != last_auto_expanded.get_untracked() {
-                if let Some(entry) = combined.first().cloned() {
-                    set_selected_idx.set(Some(0));
-                    set_expanded_idx.set(Some(0));
-                    on_select.run((entry.ldc.clone(), entry.name.clone()));
-                    set_last_auto_expanded.set(id);
-                }
-            }
-        }
-
         set_library_count.set(lib_n);
         set_library_ids.set(ids);
         set_entries.set(combined);
         set_loading.set(false);
     });
 
+    // The row of the luminaire the editor shows (the project remembers it:
+    // a file just opened, a reload, a project picked) is selected and
+    // folded out. Only when that luminaire changes, so a row the user
+    // collapsed stays collapsed. The editor has loaded it already.
+    let active_id = Memo::new(move |_| {
+        super::projects_ui::ctx().and_then(|p| p.active_id().map(|id| (p.current_id.get(), id)))
+    });
+    let current_project = Memo::new(move |_| {
+        super::projects_ui::ctx()
+            .map(|p| p.current_id.get())
+            .unwrap_or_default()
+    });
+    let shown_project = StoredValue::new(String::new());
+    Effect::new(move |_| {
+        let ids = library_ids.get();
+        let project = current_project.get();
+        // Another project: its rows are other rows.
+        if shown_project.get_value() != project {
+            shown_project.set_value(project.clone());
+            set_selected_idx.set(None);
+            set_expanded_idx.set(None);
+            set_compare_idx.set(None);
+            set_last_auto_expanded.set(String::new());
+        }
+        let Some((_, id)) = active_id.get() else {
+            return;
+        };
+        let Some(row) = ids.iter().position(|x| *x == id) else {
+            return;
+        };
+        let key = format!("{project}/{id}");
+        if key == last_auto_expanded.get_untracked() && selected_idx.get_untracked() == Some(row) {
+            return;
+        }
+        set_selected_idx.set(Some(row));
+        set_expanded_idx.set(Some(row));
+        set_last_auto_expanded.set(key);
+    });
+
+    // Sensor rows' selection (shared with the sidebar's compare button) and
+    // which list was used last (luminaires or sensors).
+    let sensor_sel = super::projects_ui::SensorSelection::new();
+    let (sensors_last, set_sensors_last) = signal(false);
+
     // ── Row click handler ───────────────────────────────────────
     let make_row_handler = move |row_id: RowId, entry_ldc: Eulumdat, label: String| {
         Callback::new(move |ctrl: bool| {
+            set_sensors_last.set(false);
             if ctrl {
                 let current = compare_idx.get_untracked();
                 if current == Some(row_id) {
@@ -681,7 +717,27 @@ pub fn Dashboard(
                 } else {
                     set_selected_idx.set(Some(row_id));
                     set_expanded_idx.set(Some(row_id));
-                    on_select.run((entry_ldc.clone(), label.clone()));
+                    // The row of the opened file is the luminaire already in
+                    // the editor: selecting it must not rename the file.
+                    if row_id != USER_FILE_ROW {
+                        on_select.run((entry_ldc.clone(), label.clone()));
+                    }
+                    // Remember it: the project's luminaire (or the Demo's
+                    // template) opens again after a reload.
+                    if row_id < library_count.get_untracked() {
+                        if let (Some(p), Some(id)) = (
+                            super::projects_ui::ctx(),
+                            library_ids.with_untracked(|v| v.get(row_id).cloned()),
+                        ) {
+                            p.set_active(&id);
+                        }
+                    } else if super::projects_ui::ctx()
+                        .is_some_and(|p| p.current_id.get_untracked() == crate::projects::DEMO_ID)
+                    {
+                        if let Some(t) = ALL_TEMPLATES.iter().find(|t| t.name == label) {
+                            crate::projects::save_demo_luminaire(t.id);
+                        }
+                    }
                 }
             }
         })
@@ -693,7 +749,20 @@ pub fn Dashboard(
 
     Effect::new(move |_| {
         set_has_selection.set(selected_idx.get().is_some());
-        set_has_compare_pair.set(selected_idx.get().is_some() && compare_idx.get().is_some());
+        let luminaire_pair = selected_idx.get().is_some() && compare_idx.get().is_some();
+        set_has_compare_pair.set(luminaire_pair || sensor_sel.pair().is_some());
+    });
+    // Names of the luminaire pair (for the compare button above the table).
+    let row_name = move |row: RowId| -> String {
+        if row == USER_FILE_ROW {
+            loaded_label(&ldc.get(), &locale.get().dashboard.loaded_file)
+        } else {
+            entries.with(|v| v.get(row).map(|e| e.name.clone()).unwrap_or_default())
+        }
+    };
+    let luminaire_pair = Memo::new(move |_| match (selected_idx.get(), compare_idx.get()) {
+        (Some(a), Some(b)) if a != b => Some((row_name(a), row_name(b))),
+        _ => None,
     });
 
     // Zoom: open overlay with the first diagram of the active mode for the selected row
@@ -719,9 +788,15 @@ pub fn Dashboard(
         }
     };
 
+    // The sidebar's compare: the pair of the list used last (luminaires or
+    // sensors), else whichever pair there is.
     let on_compare_btn = move || {
-        if selected_idx.get_untracked().is_some() && compare_idx.get_untracked().is_some() {
-            on_compare_view.run(());
+        let lum = selected_idx.get_untracked().is_some() && compare_idx.get_untracked().is_some();
+        let sens = untrack(|| sensor_sel.pair());
+        match (sensors_last.get_untracked(), lum, sens) {
+            (true, _, Some(p)) | (false, false, Some(p)) => on_compare_sensors.run(p),
+            (_, true, _) => on_compare_view.run(()),
+            _ => {}
         }
     };
 
@@ -834,8 +909,21 @@ pub fn Dashboard(
                     if f == Feature::Report { on_print() } else { on_feature.run(f) }
                 }) />
 
-                // Template switcher
+                // Project: what the table shows
+                <super::projects_ui::ProjectBar/>
+
+                // Template switcher (+ compare button for a luminaire pair)
                 <div class="dashboard-toolbar">
+                    {move || luminaire_pair.get().map(|(a, b)| {
+                        let label = locale.get().dashboard.projects.compare_selected
+                            .replace("{a}", &a)
+                            .replace("{b}", &b);
+                        view! {
+                            <button class="project-btn sensor-compare-btn"
+                                on:click=move |_| on_compare_view.run(())
+                            >{label}</button>
+                        }
+                    })}
                     <select
                         class="template-select"
                         on:change=move |ev| {
@@ -887,7 +975,7 @@ pub fn Dashboard(
                         let is_selected = selected_idx.get() == Some(USER_FILE_ROW);
                         let is_compare = compare_idx.get() == Some(USER_FILE_ROW);
                         let user_ldt = ldc.get();
-                        let label = locale.get().dashboard.loaded_file.clone();
+                        let label = loaded_label(&user_ldt, &locale.get().dashboard.loaded_file);
                         let cfg = config.get();
                         let mut cells: Vec<String> = cfg.columns.iter()
                             .map(|c| (c.extract)(&user_ldt))
@@ -1005,9 +1093,8 @@ pub fn Dashboard(
                                 {(lib_n > 0).then(|| view! {
                                     <button
                                         class="library-clear-btn"
-                                        title="Remove all loaded files from the library"
                                         on:click=move |_| on_library_clear.run(())
-                                    >{format!("Clear library ({lib_n})")}</button>
+                                    >{move || locale.get().dashboard.projects.clear_luminaires.replace("{n}", &lib_n.to_string())}</button>
                                 })}
                             </div>
                         })
@@ -1015,6 +1102,14 @@ pub fn Dashboard(
                         None
                     }
                 }}
+
+                // Sensors of the project
+                <super::projects_ui::SensorRows
+                    on_open=on_open_sensor
+                    on_compare=on_compare_sensors
+                    sel=sensor_sel
+                    on_touch=Callback::new(move |_| set_sensors_last.set(true))
+                />
             </div>
 
             // Zoom overlay
@@ -1058,6 +1153,7 @@ pub enum Feature {
     Maps,
     Street,
     Spectral,
+    ColourQuality,
     SpectrumLab,
     Greenhouse,
     Daylight,
@@ -1066,11 +1162,12 @@ pub enum Feature {
     Tm25,
     Digitizer,
     Gldf,
+    Sensor,
     Quiz,
 }
 
 impl Feature {
-    pub const ALL: [Feature; 22] = [
+    pub const ALL: [Feature; 24] = [
         Feature::Editor,
         Feature::Validation,
         Feature::Bug,
@@ -1084,6 +1181,7 @@ impl Feature {
         Feature::Maps,
         Feature::Street,
         Feature::Spectral,
+        Feature::ColourQuality,
         Feature::SpectrumLab,
         Feature::Greenhouse,
         Feature::Daylight,
@@ -1092,6 +1190,7 @@ impl Feature {
         Feature::Tm25,
         Feature::Digitizer,
         Feature::Gldf,
+        Feature::Sensor,
         Feature::Quiz,
     ];
 
@@ -1110,6 +1209,7 @@ impl Feature {
             Feature::Maps => "\u{1F5FA}\u{FE0F}",
             Feature::Street => "\u{1F6E3}\u{FE0F}",
             Feature::Spectral => "\u{1F308}",
+            Feature::ColourQuality => "\u{1F3A8}",
             Feature::SpectrumLab => "\u{1F52D}",
             Feature::Greenhouse => "\u{1F331}",
             Feature::Daylight => "\u{2600}\u{FE0F}",
@@ -1118,6 +1218,7 @@ impl Feature {
             Feature::Tm25 => "\u{2728}",
             Feature::Digitizer => "\u{1F4C8}",
             Feature::Gldf => "\u{1F5C3}\u{FE0F}",
+            Feature::Sensor => "\u{1F4E1}",
             Feature::Quiz => "\u{1F393}",
         }
     }
@@ -1149,6 +1250,7 @@ impl Feature {
             Feature::Maps => t(&f.maps_title, &f.maps_desc),
             Feature::Street => t(&f.street_title, &f.street_desc),
             Feature::Spectral => t(&f.spectral_title, &f.spectral_desc),
+            Feature::ColourQuality => t(&f.colour_quality_title, &f.colour_quality_desc),
             Feature::SpectrumLab => t(&f.spectrum_lab_title, &f.spectrum_lab_desc),
             Feature::Greenhouse => t(&f.greenhouse_title, &f.greenhouse_desc),
             Feature::Daylight => t(&f.daylight_title, &f.daylight_desc),
@@ -1157,6 +1259,7 @@ impl Feature {
             Feature::Tm25 => t(&f.tm25_title, &f.tm25_desc),
             Feature::Digitizer => t(&f.digitizer_title, &f.digitizer_desc),
             Feature::Gldf => t(&f.gldf_title, &f.gldf_desc),
+            Feature::Sensor => t(&f.sensor_title, &f.sensor_desc),
             Feature::Quiz => t(&f.quiz_title, &f.quiz_desc),
         }
     }
@@ -1523,4 +1626,14 @@ fn LuminaireDetailStatic(ldc: Eulumdat, diagrams: Vec<DiagramSlot>) -> impl Into
             }).collect_view()}
         </div>
     }
+}
+
+/// Name of the opened luminaire for its dashboard row: luminaire name,
+/// else number, else the generic "(loaded file)".
+fn loaded_label(l: &Eulumdat, fallback: &str) -> String {
+    [l.luminaire_name.trim(), l.luminaire_number.trim()]
+        .into_iter()
+        .find(|s| !s.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| fallback.to_string())
 }

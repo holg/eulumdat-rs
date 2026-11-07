@@ -28,14 +28,24 @@
 //! std::fs::write("report.pdf", pdf_bytes)?;
 //! ```
 
+pub mod colour_report;
 mod error;
 mod generator;
+pub mod sensor_compare_report;
+pub mod sensor_report;
 pub mod template;
 pub mod tm25_report;
 #[cfg(feature = "compile")]
 mod world;
 
+pub use colour_report::{append_colour_quality_chapter, colour_quality_chapter};
 pub use error::{ReportError, Result};
 pub use generator::{PaperSize, ReportGenerator, ReportOptions, ReportSection};
+pub use sensor_compare_report::{
+    generate_sensor_comparison_report, CompareRoom, SensorCompareOptions,
+};
+pub use sensor_report::{
+    append_sensor_chapter, generate_sensor_report, SensorReportOptions, SensorSource,
+};
 pub use template::{generate_comparison_report, generate_typst_with_files};
 pub use tm25_report::{generate_tm25_report, Tm25ReportData};

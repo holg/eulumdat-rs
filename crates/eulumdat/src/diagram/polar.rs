@@ -540,4 +540,16 @@ mod tests {
         // Should not show C90-C270 for vertical axis symmetry
         assert!(!polar.show_c90_c270());
     }
+
+    /// The C-plane slider view names the plane pair it shows in the legend
+    /// (it used to say "C0-C180" for every plane).
+    #[test]
+    fn plane_view_legend_names_the_plane() {
+        let ldt = create_test_ldt();
+        let theme = crate::diagram::SvgTheme::light();
+        let c60 = PolarDiagram::render_svg(&ldt, Some(60.0), 400.0, 400.0, &theme);
+        assert!(c60.contains("C60-C240"), "legend");
+        let overview = PolarDiagram::render_svg(&ldt, None, 400.0, 400.0, &theme);
+        assert!(overview.contains("C0-C180") && !overview.contains("C60-C240"));
+    }
 }

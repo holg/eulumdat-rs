@@ -13,6 +13,49 @@ use super::compute::{CavityResults, LuminaireLayout, PpbResult, Room};
 /// SVG generator for zonal cavity results.
 pub struct ZonalSvg;
 
+/// `points` of a room outline drawn with the corner at (`ox`, `oy`) and
+/// `scale` pixels per metre.
+fn outline_points(outline: &[(f64, f64)], ox: f64, oy: f64, scale: f64) -> String {
+    outline
+        .iter()
+        .map(|(x, y)| format!("{:.1},{:.1}", ox + x * scale, oy + y * scale))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Where the room sits in the plan SVG ([`ZonalSvg::room_plan`]): the
+/// viewBox size, the pixel position of the room corner (x = 0, y = 0) and
+/// pixels per metre. For mapping pointer positions back to the room.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PlanFrame {
+    pub width: f64,
+    pub height: f64,
+    pub ox: f64,
+    pub oy: f64,
+    pub scale: f64,
+}
+
+impl PlanFrame {
+    pub fn for_room(room: &Room) -> Self {
+        let (width, height, margin) = (500.0_f64, 400.0_f64, 50.0);
+        let plot_w = width - 2.0 * margin;
+        let plot_h = height - 2.0 * margin;
+        let scale = (plot_w / room.length).min(plot_h / room.width);
+        Self {
+            width,
+            height,
+            ox: margin + (plot_w - room.length * scale) / 2.0,
+            oy: margin + (plot_h - room.width * scale) / 2.0,
+            scale,
+        }
+    }
+
+    /// Room coordinates (m) of a viewBox point.
+    pub fn to_room(&self, x: f64, y: f64) -> (f64, f64) {
+        ((x - self.ox) / self.scale, (y - self.oy) / self.scale)
+    }
+}
+
 impl ZonalSvg {
     /// Room plan view: top-down rectangle with luminaire grid dots.
     pub fn room_plan(
@@ -21,21 +64,57 @@ impl ZonalSvg {
         theme: &SvgTheme,
         units: UnitSystem,
     ) -> String {
-        let svg_w = 500.0_f64;
-        let svg_h = 400.0_f64;
-        let margin = 50.0;
+        Self::room_plan_with_overlay(room, layout, theme, units, &|_, _, _| String::new())
+    }
 
-        let plot_w = svg_w - 2.0 * margin;
-        let plot_h = svg_h - 2.0 * margin;
+    /// Room plan with extra SVG drawn under the luminaire dots. `overlay`
+    /// gets the pixel position of the room corner (x = 0, y = 0) and the
+    /// scale in pixels per metre (x along the length, y along the width),
+    /// e.g. `sensor::coverage::overlay_svg`.
+    pub fn room_plan_with_overlay(
+        room: &Room,
+        layout: &LuminaireLayout,
+        theme: &SvgTheme,
+        units: UnitSystem,
+        overlay: &dyn Fn(f64, f64, f64) -> String,
+    ) -> String {
+        Self::room_plan_highlighted(room, layout, theme, units, overlay, None)
+    }
 
-        // Scale room to fit
-        let scale_x = plot_w / room.length;
-        let scale_y = plot_h / room.width;
-        let scale = scale_x.min(scale_y);
+    /// [`Self::room_plan_with_overlay`] with luminaire `highlight` (index
+    /// in [`LuminaireLayout::positions`]) marked, e.g. while it is dragged.
+    pub fn room_plan_highlighted(
+        room: &Room,
+        layout: &LuminaireLayout,
+        theme: &SvgTheme,
+        units: UnitSystem,
+        overlay: &dyn Fn(f64, f64, f64) -> String,
+        highlight: Option<usize>,
+    ) -> String {
+        Self::room_plan_styled(room, layout, theme, units, overlay, highlight, false)
+    }
+
+    /// [`Self::room_plan_highlighted`]; `luminaires_off` draws the
+    /// luminaires as grey rings (switched off, e.g. in emergency mode).
+    pub fn room_plan_styled(
+        room: &Room,
+        layout: &LuminaireLayout,
+        theme: &SvgTheme,
+        units: UnitSystem,
+        overlay: &dyn Fn(f64, f64, f64) -> String,
+        highlight: Option<usize>,
+        luminaires_off: bool,
+    ) -> String {
+        let PlanFrame {
+            width: svg_w,
+            height: svg_h,
+            ox,
+            oy,
+            scale,
+        } = PlanFrame::for_room(room);
         let room_w = room.length * scale;
         let room_h = room.width * scale;
-        let ox = margin + (plot_w - room_w) / 2.0;
-        let oy = margin + (plot_h - room_h) / 2.0;
+        let moved = layout.is_moved();
 
         let bg = &theme.background;
         let fg = &theme.text;
@@ -53,13 +132,20 @@ impl ZonalSvg {
             r#"<rect width="{svg_w}" height="{svg_h}" fill="{bg}"/>"#
         ));
 
-        // Room outline
-        svg.push_str(&format!(
-            r#"<rect x="{ox}" y="{oy}" width="{room_w}" height="{room_h}" fill="none" stroke="{fg}" stroke-width="2"/>"#
-        ));
+        // Room outline (the floor polygon, else the rectangle)
+        let shaped = room.outline.as_ref();
+        match shaped {
+            Some(o) => svg.push_str(&format!(
+                r#"<defs><clipPath id="room-floor-clip"><polygon points="{pts}"/></clipPath></defs><rect x="{ox}" y="{oy}" width="{room_w}" height="{room_h}" fill="none" stroke="{grid_color}" stroke-width="0.5" stroke-dasharray="3,3"/><polygon points="{pts}" fill="none" stroke="{fg}" stroke-width="2"/>"#,
+                pts = outline_points(o, ox, oy, scale)
+            )),
+            None => svg.push_str(&format!(
+                r#"<rect x="{ox}" y="{oy}" width="{room_w}" height="{room_h}" fill="none" stroke="{fg}" stroke-width="2"/>"#
+            )),
+        }
 
-        // Grid lines (spacing)
-        if layout.rows > 0 && layout.cols > 0 {
+        // Grid lines (spacing; not for a layout moved by hand or a shaped room)
+        if layout.rows > 0 && layout.cols > 0 && !moved && shaped.is_none() {
             for r in 1..layout.rows {
                 let x = ox + (layout.offset_x + r as f64 * layout.spacing_x) * scale
                     - layout.spacing_x * scale / 2.0;
@@ -78,11 +164,30 @@ impl ZonalSvg {
             }
         }
 
+        // Detection areas etc. end at the walls of a shaped room.
+        let over = overlay(ox, oy, scale);
+        if shaped.is_some() && !over.is_empty() {
+            svg.push_str(&format!(
+                r#"<g clip-path="url(#room-floor-clip)">{over}</g>"#
+            ));
+        } else {
+            svg.push_str(&over);
+        }
+
         // Luminaire dots
-        for r in 0..layout.rows {
-            for c in 0..layout.cols {
-                let x = ox + (layout.offset_x + r as f64 * layout.spacing_x) * scale;
-                let y = oy + (layout.offset_y + c as f64 * layout.spacing_y) * scale;
+        for (i, (lx, ly)) in layout.positions().into_iter().enumerate() {
+            let x = ox + lx * scale;
+            let y = oy + ly * scale;
+            if highlight == Some(i) {
+                svg.push_str(&format!(
+                    r##"<circle cx="{x}" cy="{y}" r="9" fill="none" stroke="#f59e0b" stroke-width="2"/>"##
+                ));
+            }
+            if luminaires_off {
+                svg.push_str(&format!(
+                    r##"<circle cx="{x}" cy="{y}" r="4.5" fill="none" stroke="#cbd5e1" stroke-width="1.3"/>"##
+                ));
+            } else {
                 svg.push_str(&format!(
                     r#"<circle cx="{x}" cy="{y}" r="4" fill="{accent}" stroke="{fg}" stroke-width="1"/>"#
                 ));
@@ -111,8 +216,8 @@ impl ZonalSvg {
             w_disp
         ));
 
-        // Spacing labels
-        if layout.rows > 0 && layout.cols > 0 {
+        // Spacing labels (the grid's; a moved layout has none)
+        if layout.rows > 0 && layout.cols > 0 && !moved {
             let sx_disp = units.convert_meters(layout.spacing_x);
             let sy_disp = units.convert_meters(layout.spacing_y);
             svg.push_str(&format!(
@@ -134,13 +239,16 @@ impl ZonalSvg {
         }
 
         // Count label
+        let arrangement = if moved {
+            "moved".to_string()
+        } else {
+            format!("{}×{}", layout.rows, layout.cols)
+        };
         svg.push_str(&format!(
-            r#"<text x="{}" y="{}" fill="{fg}" font-size="10" text-anchor="end">{} luminaires ({}×{})</text>"#,
+            r#"<text x="{}" y="{}" fill="{fg}" font-size="10" text-anchor="end">{} luminaires ({arrangement})</text>"#,
             svg_w - 10.0,
             svg_h - 8.0,
             layout.count,
-            layout.rows,
-            layout.cols
         ));
 
         svg.push_str("</svg>");
@@ -429,9 +537,17 @@ impl ZonalSvg {
             .min(cell_h * label_step as f64 * 0.4)
             .clamp(5.0, 11.0);
 
-        // Heatmap cells
+        // Heatmap cells (only those on the floor of a shaped room)
+        let on_floor = |row: usize, col: usize| {
+            ppb.mask
+                .as_ref()
+                .is_none_or(|m| m.get(row).and_then(|r| r.get(col)).copied().unwrap_or(true))
+        };
         for (row, grid_row) in ppb.lux_grid.iter().enumerate() {
             for (col, &lux) in grid_row.iter().enumerate() {
+                if !on_floor(row, col) {
+                    continue;
+                }
                 let normalized = lux / max_lux;
                 let color = heatmap_color(normalized);
                 let sx = ox + col as f64 * cell_w;
@@ -484,9 +600,15 @@ impl ZonalSvg {
         }
 
         // Room outline
-        svg.push_str(&format!(
-            r#"<rect x="{ox}" y="{oy}" width="{room_px_w}" height="{room_px_h}" fill="none" stroke="{fg}" stroke-width="1.5"/>"#
-        ));
+        match room.outline.as_ref() {
+            Some(o) => svg.push_str(&format!(
+                r#"<polygon points="{}" fill="none" stroke="{fg}" stroke-width="1.5"/>"#,
+                outline_points(o, ox, oy, scale)
+            )),
+            None => svg.push_str(&format!(
+                r#"<rect x="{ox}" y="{oy}" width="{room_px_w}" height="{room_px_h}" fill="none" stroke="{fg}" stroke-width="1.5"/>"#
+            )),
+        }
 
         // Value labels (rendered on top of contours and outline)
         if show_values {

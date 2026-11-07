@@ -104,14 +104,11 @@ impl CartesianDiagram {
 
         // Calculate nice Y-axis ticks
         let y_ticks = if max_intensity > 0.0 {
+            // 0, step, …, up to the first tick at or above the maximum, so
+            // the curve never runs above the plot.
             let step = DiagramScale::nice_step(max_intensity, 5);
-            let mut ticks = Vec::new();
-            let mut v = 0.0;
-            while v <= max_intensity * 1.05 {
-                ticks.push(v);
-                v += step;
-            }
-            ticks
+            let n = (max_intensity / step - 1e-9).ceil().max(1.0) as usize;
+            (0..=n).map(|i| i as f64 * step).collect::<Vec<f64>>()
         } else {
             vec![0.0, 25.0, 50.0, 75.0, 100.0]
         };
@@ -186,14 +183,11 @@ impl CartesianDiagram {
         let max_intensity = sampled.iter().copied().fold(0.0_f64, f64::max);
 
         let y_ticks = if max_intensity > 0.0 {
+            // 0, step, …, up to the first tick at or above the maximum, so
+            // the curve never runs above the plot.
             let step = DiagramScale::nice_step(max_intensity, 5);
-            let mut ticks = Vec::new();
-            let mut v = 0.0;
-            while v <= max_intensity * 1.05 {
-                ticks.push(v);
-                v += step;
-            }
-            ticks
+            let n = (max_intensity / step - 1e-9).ceil().max(1.0) as usize;
+            (0..=n).map(|i| i as f64 * step).collect::<Vec<f64>>()
         } else {
             vec![0.0, 25.0, 50.0, 75.0, 100.0]
         };
@@ -296,12 +290,8 @@ impl CartesianDiagram {
         if let Some(forced) = forced_max {
             if forced > diagram.scale.max_intensity {
                 let step = DiagramScale::nice_step(forced, 5);
-                let mut ticks = Vec::new();
-                let mut v = 0.0;
-                while v <= forced * 1.05 {
-                    ticks.push(v);
-                    v += step;
-                }
+                let n = (forced / step - 1e-9).ceil().max(1.0) as usize;
+                let ticks: Vec<f64> = (0..=n).map(|i| i as f64 * step).collect();
                 let y_max = ticks.last().copied().unwrap_or(100.0);
                 diagram.y_ticks = ticks.clone();
                 diagram.scale = DiagramScale {
@@ -443,5 +433,18 @@ mod tests {
         assert!((DiagramScale::nice_step(100.0, 5) - 20.0).abs() < 0.01);
         assert!((DiagramScale::nice_step(47.0, 5) - 10.0).abs() < 0.01);
         assert!((DiagramScale::nice_step(1000.0, 5) - 200.0).abs() < 0.01);
+    }
+
+    /// The top tick is at or above the peak, so no curve runs above the plot.
+    #[test]
+    fn top_tick_covers_the_peak() {
+        let mut ldt = Eulumdat::new();
+        ldt.symmetry = crate::Symmetry::VerticalAxis;
+        ldt.c_angles = vec![0.0];
+        ldt.g_angles = vec![0.0, 30.0, 60.0, 90.0];
+        ldt.intensities = vec![vec![8.25, 8.25, 8.0, 0.0]];
+        let d = CartesianDiagram::from_eulumdat(&ldt, 500.0, 380.0, 8);
+        assert!(*d.y_ticks.last().unwrap() >= 8.25, "{:?}", d.y_ticks);
+        assert_eq!(d.y_ticks, vec![0.0, 2.0, 4.0, 6.0, 8.0, 10.0]);
     }
 }

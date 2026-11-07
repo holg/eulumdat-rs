@@ -1,13 +1,18 @@
-//! SPDX (IES TM-27-14) file parser
+//! SPDX (IES TM-27) reader and writer
 //!
-//! Parses spectral power distribution files in the IES TM-27-14 format (.spdx).
+//! Spectral data documents in the IES TM-27 format (.spdx, "IES TM-27 SPDX
+//! document"; TM-27-20 keeps the TM-27-14 layout: root `IESTM2714`,
+//! namespace `http://www.ies.org/iestm2714`, and adds the optional
+//! `MeasurementEquipment` header element). [`write()`] exports the spectrum
+//! of a luminaire.
 //! These files contain only spectral data, no photometric distribution.
 //!
 //! When loaded, creates a partial LuminaireOpticalData with spectral information
 //! but missing intensity distribution data.
 
 use crate::atla::types::{
-    Emitter, Header, LuminaireOpticalData, SpectralDistribution, SpectralUnits,
+    Emitter, Equipment, Header, LuminaireOpticalData, SpectralDistribution, SpectralUnits,
+    SpectroradiometerInfo,
 };
 use anyhow::{anyhow, Result};
 use quick_xml::events::Event;
@@ -26,6 +31,8 @@ pub struct SpdxHeader {
     pub report_date: Option<String>,
     pub document_creation_date: Option<String>,
     pub comments: Option<String>,
+    /// TM-27-20: the equipment used to measure the spectrum.
+    pub measurement_equipment: Option<String>,
 }
 
 /// Spectral data from SPDX file
@@ -100,6 +107,7 @@ pub fn parse(content: &str) -> Result<SpdxData> {
                         "ReportDate" => spdx.header.report_date = Some(text),
                         "DocumentCreationDate" => spdx.header.document_creation_date = Some(text),
                         "Comments" => spdx.header.comments = Some(text),
+                        "MeasurementEquipment" => spdx.header.measurement_equipment = Some(text),
                         _ => {}
                     }
                 } else if in_spectral {
@@ -177,8 +185,18 @@ pub fn to_atla(spdx: &SpdxData) -> LuminaireOpticalData {
             report_number: spdx.header.report_number.clone(),
             report_date: spdx.header.report_date.clone(),
             document_creation_date: spdx.header.document_creation_date.clone(),
+            comments_list: spdx.header.comments.iter().cloned().collect(),
             ..Default::default()
         },
+        equipment: (spdx.header.measurement_equipment.is_some() || spdx.bandwidth_fwhm.is_some())
+            .then(|| Equipment {
+                spectroradiometer: Some(SpectroradiometerInfo {
+                    model: spdx.header.measurement_equipment.clone(),
+                    resolution: spdx.bandwidth_fwhm,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
         ..Default::default()
     };
 
@@ -194,6 +212,133 @@ pub fn to_atla(spdx: &SpdxData) -> LuminaireOpticalData {
     doc.emitters = vec![emitter];
 
     doc
+}
+
+/// Options for [`write()`].
+#[derive(Debug, Clone, Default)]
+pub struct WriteOptions {
+    /// Today's date (`YYYY-MM-DD`): the required `DocumentCreationDate`
+    /// (else the source's creation date, when it is a date).
+    pub today: Option<String>,
+}
+
+/// The spectrum of emitter `emitter` of `doc` as an IES TM-27-20 SPDX
+/// document ("IES-TM-27", `.spdx`), `None` when it has no spectrum.
+///
+/// Relative spectra are scaled to a peak of 1 (`relative`: TM-27-20 asks for
+/// 0 to 1.0), absolute ones are written as `flux` (W/nm). Required header
+/// fields the source lacks: `Description` = the emitter or "Spectral power
+/// distribution", `DocumentCreator` = laboratory or manufacturer, else
+/// "Not specified".
+pub fn write(doc: &LuminaireOpticalData, emitter: usize, opts: &WriteOptions) -> Option<String> {
+    use crate::atla::tm33::{esc, iso_date, sig, spectrum_points, NOT_SPECIFIED};
+    let em = doc.emitters.get(emitter)?;
+    let spd = em.spectral_distribution.as_ref()?;
+    let (w, v) = spectrum_points(spd);
+    if w.is_empty() {
+        return None;
+    }
+    let h = &doc.header;
+    let ne = |v: &Option<String>| {
+        v.as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+    };
+    let spectro = doc
+        .equipment
+        .as_ref()
+        .and_then(|e| e.spectroradiometer.as_ref());
+    let mut x = String::from(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<IESTM2714 xmlns=\"http://www.ies.org/iestm2714\" version=\"1.0\">\n  <Header>\n",
+    );
+    let mut el = |name: &str, value: Option<String>| {
+        if let Some(v) = value {
+            x.push_str(&format!("    <{name}>{}</{name}>\n", esc(&v, false)));
+        }
+    };
+    el("Manufacturer", ne(&h.manufacturer));
+    el("CatalogNumber", ne(&h.catalog_number));
+    el(
+        "Description",
+        Some(
+            ne(&h.description)
+                .or_else(|| ne(&em.description))
+                .unwrap_or_else(|| "Spectral power distribution".to_string()),
+        ),
+    );
+    el(
+        "DocumentCreator",
+        Some(
+            ne(&h.document_creator)
+                .or_else(|| ne(&h.laboratory))
+                .or_else(|| ne(&h.manufacturer))
+                .unwrap_or_else(|| NOT_SPECIFIED.to_string()),
+        ),
+    );
+    el(
+        "UniqueIdentifier",
+        ne(&h.unique_identifier).or_else(|| ne(&h.uuid)),
+    );
+    el(
+        "MeasurementEquipment",
+        spectro.and_then(|s| ne(&s.model).or_else(|| ne(&s.manufacturer))),
+    );
+    el("Laboratory", ne(&h.laboratory));
+    el("ReportNumber", ne(&h.report_number));
+    el(
+        "ReportDate",
+        [&h.report_date, &h.test_date, &h.issue_date]
+            .into_iter()
+            .find_map(|d| ne(d).as_deref().and_then(iso_date)),
+    );
+    el(
+        "DocumentCreationDate",
+        opts.today
+            .clone()
+            .or_else(|| ne(&h.document_creation_date).as_deref().and_then(iso_date)),
+    );
+    let comments: Vec<String> = h
+        .comments_list
+        .iter()
+        .map(|c| c.trim().to_string())
+        .filter(|c| !c.is_empty())
+        .collect();
+    el(
+        "Comments",
+        if comments.is_empty() {
+            ne(&h.comments)
+        } else {
+            Some(comments.join("; "))
+        },
+    );
+    let relative = spd.units == SpectralUnits::Relative;
+    let peak = v.iter().cloned().fold(0.0f64, f64::max);
+    x.push_str("  </Header>\n  <SpectralDistribution>\n");
+    x.push_str(&format!(
+        "    <SpectralQuantity>{}</SpectralQuantity>\n",
+        if relative { "relative" } else { "flux" }
+    ));
+    if let Some(r) = spectro.and_then(|s| s.resolution).filter(|r| *r > 0.0) {
+        x.push_str(&format!(
+            "    <BandwidthFWHM>{}</BandwidthFWHM>\n",
+            sig(r, 9)
+        ));
+    }
+    for (wl, val) in w.iter().zip(&v) {
+        let val = if relative && peak > 0.0 {
+            val / peak
+        } else {
+            *val
+        };
+        x.push_str(&format!(
+            "    <SpectralData wavelength=\"{}\">{}</SpectralData>\n",
+            sig(*wl, 9),
+            sig(val, 6)
+        ));
+    }
+    x.push_str("  </SpectralDistribution>\n</IESTM2714>\n");
+    Some(x)
 }
 
 /// Check if content looks like SPDX format

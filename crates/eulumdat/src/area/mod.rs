@@ -9,6 +9,7 @@ mod optimize;
 mod polygon;
 mod svg;
 
+pub(crate) use compute::compute_illuminance_at_point;
 pub use compute::{
     compute_area_illuminance, compute_area_illuminance_mixed, compute_area_illuminance_polygon,
     compute_wall_illuminance, AreaResult, LuminairePlace,

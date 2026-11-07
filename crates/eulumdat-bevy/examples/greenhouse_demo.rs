@@ -102,7 +102,8 @@ use eulumdat_spectrum::Spd;
 
 const LAMP_FULL_SPECTRUM: &str =
     include_str!("../../eulumdat-wasm/templates/tm-33-23_horticultural_led.xml");
-const LAMP_RED_BLUE: &str = include_str!("../../eulumdat-wasm/templates/_atla_grow_light_rb.xml");
+const LAMP_RED_BLUE: &str =
+    include_str!("../../eulumdat-wasm/templates/_atla_tm-33-18_grow_light_rb.xml");
 const LAMP_SEEDLING: &str =
     include_str!("../../eulumdat-wasm/templates/tm-33-23_seedling_propagation.xml");
 const LAMP_FAR_RED: &str =

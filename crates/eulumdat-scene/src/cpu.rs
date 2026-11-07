@@ -130,6 +130,18 @@ struct Material {
     metal: f32,
 }
 
+/// A primitive's reflectance override (as `with_rho` in the WGSL).
+fn with_rho(m: Material, rho: f32) -> Material {
+    if rho <= 0.0 {
+        return m;
+    }
+    let y = m.albedo.dot(LUMA).max(1e-4);
+    Material {
+        albedo: (m.albedo * (rho / y)).min(Vec3::splat(0.98)),
+        ..m
+    }
+}
+
 fn mk(a: Vec3, r: f32, m: f32) -> Material {
     Material {
         albedo: a,
@@ -142,6 +154,10 @@ struct Lamp {
     pos: Vec3,
     glare: f32,
     rot: Mat3,
+    /// Output 0–1 under sensor control (`1 − r0.w`).
+    level: f32,
+    /// Photometry table in the stack (`r1.w`).
+    table: u32,
 }
 
 enum ShapeP {
@@ -155,6 +171,8 @@ struct Prim {
     shape: ShapeP,
     material: i32,
     flags: u32,
+    /// Reflectance override, 0 = the material as is.
+    rho: f32,
 }
 
 /// Nearest hit of one primitive in (EPS, t_max).
@@ -287,6 +305,7 @@ impl<'a> Scene<'a> {
                     shape,
                     material: g.material as i32,
                     flags: g.flags,
+                    rho: g.reflectance,
                 }
             })
             .collect();
@@ -301,6 +320,8 @@ impl<'a> Scene<'a> {
                     Vec3::new(l.r1[0], l.r1[1], l.r1[2]),
                     Vec3::new(l.r2[0], l.r2[1], l.r2[2]),
                 ),
+                level: 1.0 - l.r0[3],
+                table: l.r1[3].max(0.0).round() as u32,
             })
             .collect();
         Self {
@@ -313,7 +334,10 @@ impl<'a> Scene<'a> {
     }
 
     fn ies_candela(&self, li: usize, dir: Vec3) -> f32 {
-        self.table.sample_dir(&self.lamps[li].rot, dir) * self.p.lum.z
+        self.table
+            .sample_dir_in(self.lamps[li].table, &self.lamps[li].rot, dir)
+            * self.p.lum.z
+            * self.lamps[li].level
     }
 
     fn sample_emitter_local(&self, rng: &mut Rng) -> Vec3 {
@@ -338,6 +362,7 @@ impl<'a> Scene<'a> {
             n: Vec3::Y,
             mat: -1,
             lamp: -1,
+            rho: 0.0,
         };
         let ground = self.p.flags.x;
         if ground > 0 && rd.y < 0.0 && ro.y > 0.0 {
@@ -356,6 +381,7 @@ impl<'a> Scene<'a> {
                 h.t = t;
                 h.n = n;
                 h.mat = pr.material;
+                h.rho = pr.rho;
             }
         }
         if let Some(mesh) = self.mesh {
@@ -372,6 +398,7 @@ impl<'a> Scene<'a> {
                         mat::HOUSING
                     };
                     h.lamp = li as i32;
+                    h.rho = 0.0;
                 }
             }
         }
@@ -543,11 +570,44 @@ impl<'a> Scene<'a> {
         (m, n)
     }
 
+    /// Lamps to sample at a shading point (as `lamp_range` in the WGSL):
+    /// all, or one random lamp weighted by the lamp count.
+    fn lamp_range(&self, rng: &mut Rng, one: bool) -> (std::ops::Range<usize>, f32) {
+        let n = self.lamps.len();
+        if one && n > 1 {
+            let li = ((rng.next() * n as f32) as usize).min(n - 1);
+            (li..li + 1, n as f32)
+        } else {
+            (0..n, 1.0)
+        }
+    }
+
+    /// Sample one lamp at this point (`Params::lum.w`: 0 all lamps, 1 one
+    /// lamp on bounces, 2 one lamp everywhere).
+    fn one_lamp(&self, primary: bool) -> bool {
+        let mode = self.p.lum.w;
+        mode > 1.5 || (mode > 0.5 && !primary)
+    }
+
     /// Reflected radiance and illuminance at `p` from direct light.
-    fn direct_light(&self, rng: &mut Rng, p: Vec3, n: Vec3, v: Vec3, m: &Material) -> (Vec3, f32) {
+    fn direct_light(
+        &self,
+        rng: &mut Rng,
+        p: Vec3,
+        n: Vec3,
+        v: Vec3,
+        m: &Material,
+        one: bool,
+    ) -> (Vec3, f32) {
         let mut e = 0.0;
         let mut sum = Vec3::ZERO;
-        for (li, lamp) in self.lamps.iter().enumerate() {
+        let (range, wl) = self.lamp_range(rng, one);
+        for li in range {
+            let lamp = &self.lamps[li];
+            // switched off (sensor control, emergency mode): no light
+            if lamp.level <= 1e-3 {
+                continue;
+            }
             let sp = lamp.pos + lamp.rot * self.sample_emitter_local(rng);
             let to_l = sp - p;
             let d2 = to_l.length_squared();
@@ -564,7 +624,7 @@ impl<'a> Scene<'a> {
             if self.occluded(p + n * EPS, wi, d - 2.0 * EPS) {
                 continue;
             }
-            let en = intensity / d2.max(1e-4);
+            let en = intensity / d2.max(1e-4) * wl;
             e += en * ndotl;
             sum += eval_bsdf(n, v, wi, m).0 * en;
         }
@@ -604,7 +664,12 @@ impl<'a> Scene<'a> {
     fn haze_inscatter(&self, rng: &mut Rng, ro: Vec3, rd: Vec3, t_max: f32) -> Vec3 {
         let haze = self.p.f1.z;
         let mut sum = Vec3::ZERO;
-        for (li, l) in self.lamps.iter().enumerate() {
+        let (range, wl) = self.lamp_range(rng, self.p.lum.w > 0.5);
+        for li in range {
+            let l = &self.lamps[li];
+            if l.level <= 1e-3 {
+                continue;
+            }
             let delta = (l.pos - ro).dot(rd);
             let dd = (ro + rd * delta - l.pos).length().max(1e-3);
             let th_a = (-delta).atan2(dd);
@@ -626,7 +691,8 @@ impl<'a> Scene<'a> {
             }
             let tr = (-haze * (t + d)).exp();
             sum += Vec3::splat(
-                intensity / d2.max(1e-3) * henyey_greenstein(wi.dot(rd), 0.35) * haze * tr / pdf,
+                intensity / d2.max(1e-3) * henyey_greenstein(wi.dot(rd), 0.35) * haze * tr / pdf
+                    * wl,
             );
         }
         sum * self.p.tint.truncate()
@@ -660,6 +726,9 @@ impl<'a> Scene<'a> {
         let mut primary_e = 0.0;
         let mut coverage = 0.0;
         let mut primary_t = FAR;
+        // Luminance of the reflected light and haze (the noisy part), for
+        // the display smoothing (`lux.w`), as in the WGSL.
+        let mut ind_y = 0.0;
         let max_bounces = self.p.flags.z;
         let clamp_v = self.p.f2.x;
 
@@ -717,7 +786,9 @@ impl<'a> Scene<'a> {
                     } else {
                         Vec3::ONE
                     };
-                    radiance += throughput * self.p.f1.y * fill;
+                    let f = throughput * self.p.f1.y * fill;
+                    radiance += f;
+                    ind_y += f.dot(LUMA);
                 }
                 break;
             }
@@ -727,21 +798,29 @@ impl<'a> Scene<'a> {
                 geom_n = -geom_n;
             }
             let (m, mut n) = self.material(hit.mat, p, geom_n);
+            let m = with_rho(m, hit.rho);
             if n.dot(rd) > 0.0 {
                 n = geom_n;
             }
             let v = -rd;
-            let (ld, e) = self.direct_light(rng, p, n, v, &m);
+            let (ld, e) = self.direct_light(rng, p, n, v, &m, self.one_lamp(primary));
             if primary {
                 primary_e = e;
                 coverage = 1.0;
                 primary_t = hit.t;
                 radiance += ld;
+                // Direct light only: the estimated even fill.
+                if self.p.cam_pos.w > 0.0 && max_bounces <= 1 {
+                    let amb = m.albedo * (self.p.cam_pos.w / PI) * self.p.tint.truncate();
+                    radiance += amb;
+                    ind_y += amb.dot(LUMA);
+                }
             } else {
                 let c = throughput * ld;
                 let mx = c.max_element();
                 let k = if mx > clamp_v { clamp_v / mx } else { 1.0 };
                 radiance += c * k;
+                ind_y += (c * k).dot(LUMA);
                 indirect_e += (irr_weight * ld * k).dot(LUMA) / self.p.tint.w;
             }
             let Some((l, weight, pdf)) = sample_bsdf(rng, n, v, &m) else {
@@ -766,8 +845,10 @@ impl<'a> Scene<'a> {
         }
         if self.p.f1.z > 0.0 {
             let t_max = if primary_t > 1.0e6 { 500.0 } else { primary_t };
-            radiance = radiance * (-self.p.f1.z * t_max).exp()
-                + self.haze_inscatter(rng, cam_pos, cam_rd, t_max);
+            let tr = (-self.p.f1.z * t_max).exp();
+            let hz = self.haze_inscatter(rng, cam_pos, cam_rd, t_max);
+            radiance = radiance * tr + hz;
+            ind_y = ind_y * tr + hz.dot(LUMA);
         }
         if self.p.f1.w > 0.0 {
             let mut veil = 0.0;
@@ -780,18 +861,29 @@ impl<'a> Scene<'a> {
         }
         if !radiance.is_finite() {
             radiance = Vec3::ZERO;
+            ind_y = 0.0;
         }
         let mut e = primary_e + indirect_e;
         if !e.is_finite() {
             e = primary_e;
         }
-        (radiance, Vec4::new(e, coverage, primary_t.min(1.0e4), 1.0))
+        if !ind_y.is_finite() {
+            ind_y = 0.0;
+        }
+        (
+            radiance,
+            Vec4::new(e, coverage, primary_t.min(1.0e4), ind_y),
+        )
     }
 
     /// Illuminance at a measurement point, one sample.
     fn probe_irradiance(&self, rng: &mut Rng, p: Vec3, n: Vec3) -> f32 {
         let black = mk(Vec3::ZERO, 1.0, 0.0);
-        let mut e = self.direct_light(rng, p, n, n, &black).1;
+        let mut e = self.direct_light(rng, p, n, n, &black, false).1;
+        // emergency mode: direct light only, as EN 1838 counts it
+        if self.p.frame.w & 4 != 0 {
+            return e;
+        }
         let u1 = rng.next();
         let phi = TWO_PI * rng.next();
         let r = u1.sqrt();
@@ -815,11 +907,12 @@ impl<'a> Scene<'a> {
                 geom_n = -geom_n;
             }
             let (m, mut nn) = self.material(hit.mat, hp, geom_n);
+            let m = with_rho(m, hit.rho);
             if nn.dot(rd) > 0.0 {
                 nn = geom_n;
             }
             let v = -rd;
-            let (ld, _) = self.direct_light(rng, hp, nn, v, &m);
+            let (ld, _) = self.direct_light(rng, hp, nn, v, &m, self.one_lamp(false));
             let c = irr_weight * INV_PI * ld;
             let mx = c.max_element();
             let k = if mx > clamp_v { clamp_v / mx } else { 1.0 };
@@ -848,6 +941,8 @@ struct Hit {
     mat: i32,
     /// Lamp whose body or face was hit, else −1.
     lamp: i32,
+    /// Reflectance override of the hit primitive, 0 = none.
+    rho: f32,
 }
 
 fn safe_inv(d: Vec3) -> Vec3 {
@@ -1023,7 +1118,7 @@ pub struct CpuTracer {
     size: UVec2,
     /// Running mean radiance and sample count per pixel.
     color: Vec<Vec4>,
-    /// Running mean of (E, coverage, depth) per pixel.
+    /// Running mean of (E, coverage, depth, reflected-light luminance) per pixel.
     lux: Vec<Vec4>,
     cursor: usize,
     frame: u32,
@@ -1210,11 +1305,53 @@ impl CpuTracer {
             }
         };
         let mode = params.flags.w;
-        let isolines = params.frame.w > 0;
+        let isolines = params.frame.w & 1 != 0;
+        let denoise = params.frame.w & 2 != 0;
+        let depth_at = |x: i32, y: i32| lux_at(x, y).z;
+        // Edge-aware smoothing of the reflected-light part (as `denoised` in
+        // the WGSL).
+        let denoised = |px: i32, py: i32| -> Vec3 {
+            let i = (py * w + px) as usize;
+            let c = self.color[i].truncate();
+            let l0 = self.lux[i];
+            if !denoise || l0.y < 0.5 {
+                return c;
+            }
+            let d0 = l0.z;
+            let grad = 0.5
+                * ((depth_at(px + 1, py) - depth_at(px - 1, py)).abs()
+                    + (depth_at(px, py + 1) - depth_at(px, py - 1)).abs());
+            let (mut sum, mut wsum) = (0.0, 0.0);
+            for j in -3i32..=3 {
+                for k in -3i32..=3 {
+                    let lq = lux_at(px + 2 * k, py + 2 * j);
+                    if lq.y < 0.5 {
+                        continue;
+                    }
+                    let reach = (k.abs() + j.abs()) as f32 * 2.0;
+                    let tol = grad * reach * 1.5 + d0 * 0.01 + 1e-3;
+                    let wgt =
+                        (-(lq.z - d0).abs() / tol).exp() * (-((k * k + j * j) as f32) / 8.0).exp();
+                    sum += lq.w * wgt;
+                    wsum += wgt;
+                }
+            }
+            if wsum <= 0.0 {
+                return c;
+            }
+            let filt = sum / wsum;
+            let y_tot = c.dot(LUMA);
+            let y_new = (y_tot - l0.w + filt).max(0.0);
+            if y_tot > 1e-6 {
+                c * (y_new / y_tot)
+            } else {
+                c + params.tint.truncate() / params.tint.w.max(1e-4) * (filt - l0.w).max(0.0)
+            }
+        };
         for py in 0..h {
             for px in 0..w {
                 let i = (py * w + px) as usize;
-                let radiance = self.color[i].truncate();
+                let radiance = denoised(px, py);
                 let lux = self.lux[i];
                 let mut display = filmic(radiance * params.f2.y);
                 let e = smooth_e(px, py);
@@ -1289,5 +1426,112 @@ mod tests {
         let img = cpu.present(&input.params);
         assert_eq!(img.len(), 64 * 40 * 4);
         assert!(img.iter().step_by(4).any(|&r| r > 0));
+    }
+
+    #[test]
+    fn lamp_attenuation_scales_the_light() {
+        let mut v = Viewer::default();
+        v.load_sample(3);
+        v.edit(|s| s.mode = crate::viewer::ViewMode::Points);
+        v.resize(64.0, 40.0, 1.0);
+        v.update(0.016);
+        let table = v.photometry.as_ref().unwrap().table.clone();
+        let em = |input: &crate::viewer::FrameInput| {
+            let mut cpu = CpuTracer::new();
+            cpu.probe_pass(input, &table, 8);
+            cpu.probe_values().iter().sum::<f32>()
+        };
+        let full = v.frame_input();
+        let mut half = full.clone();
+        for l in &mut half.lamps {
+            l.r0[3] = 0.5;
+        }
+        let (a, b) = (em(&full), em(&half));
+        assert!(a > 0.0);
+        assert!((b / a - 0.5).abs() < 0.02, "{b} / {a}");
+    }
+
+    #[test]
+    fn one_random_lamp_gives_the_same_light_on_average() {
+        let mut v = Viewer::default();
+        v.load_sample(3); // office, 4 lamps
+        v.edit(|s| {
+            s.mode = crate::viewer::ViewMode::Points;
+            s.params.count = 4;
+            s.bounces = 3;
+        });
+        v.resize(64.0, 40.0, 1.0);
+        v.update(0.016);
+        let table = v.photometry.as_ref().unwrap().table.clone();
+        let total = |mode: f32| {
+            let mut input = v.frame_input();
+            input.params.lum.w = mode;
+            let mut cpu = CpuTracer::new();
+            for _ in 0..12 {
+                cpu.probe_pass(&input, &table, 16);
+            }
+            cpu.probe_values().iter().sum::<f32>()
+        };
+        let (all, one) = (total(0.0), total(2.0));
+        assert!(all > 0.0);
+        assert!((one / all - 1.0).abs() < 0.05, "{one} vs {all}");
+    }
+
+    #[test]
+    fn denoise_smooths_the_reflected_part_only() {
+        let (w, h) = (48u32, 32u32);
+        let mut cpu = CpuTracer::new();
+        cpu.size = UVec2::new(w, h);
+        let n = (w * h) as usize;
+        // a flat wall at 5 m: direct 0.5 everywhere, reflected light noisy
+        // around 0.2 (luminance), plus a sharp edge in depth at x = 24
+        let mut rng = Rng::seed(1, 2, 3, 4);
+        cpu.color = vec![Vec4::ZERO; n];
+        cpu.lux = vec![Vec4::ZERO; n];
+        for y in 0..h {
+            for x in 0..w {
+                let i = (y * w + x) as usize;
+                let ind = 0.2 * (0.2 + 1.6 * rng.next());
+                let depth = if x < 24 { 5.0 } else { 9.0 };
+                cpu.color[i] = Vec3::splat(0.5 + ind).extend(1.0);
+                cpu.lux[i] = Vec4::new(100.0, 1.0, depth, ind);
+            }
+        }
+        let mut params = Params::default();
+        params.f2.y = 1.0;
+        let spread = |img: &[u8]| {
+            let vals: Vec<f32> = (0..n)
+                .filter(|i| (i % w as usize) < 20)
+                .map(|i| img[i * 4] as f32)
+                .collect();
+            let m = vals.iter().sum::<f32>() / vals.len() as f32;
+            (vals.iter().map(|v| (v - m) * (v - m)).sum::<f32>() / vals.len() as f32).sqrt()
+        };
+        params.frame.w = 0;
+        let raw = cpu.present(&params);
+        params.frame.w = 2;
+        let smooth = cpu.present(&params);
+        assert!(
+            spread(&smooth) < 0.35 * spread(&raw),
+            "{} vs {}",
+            spread(&smooth),
+            spread(&raw)
+        );
+        // a picture without noise stays as it is
+        for i in 0..n {
+            cpu.color[i] = Vec3::splat(0.7).extend(1.0);
+            cpu.lux[i].w = 0.2;
+        }
+        params.frame.w = 0;
+        let a = cpu.present(&params);
+        params.frame.w = 2;
+        let b = cpu.present(&params);
+        let diff = a
+            .iter()
+            .zip(&b)
+            .map(|(x, y)| (*x as i32 - *y as i32).abs())
+            .max()
+            .unwrap();
+        assert!(diff <= 1, "{diff}");
     }
 }

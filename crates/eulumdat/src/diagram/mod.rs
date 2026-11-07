@@ -109,12 +109,20 @@ impl DiagramScale {
     /// Create a scale with nice round numbers
     pub fn from_max_intensity(max_intensity: f64, num_divisions: usize) -> Self {
         let scale_max = if max_intensity > 0.0 {
+            // Finer steps below 20 only matter for sensor ranges in metres
+            // (a luminaire never peaks that low in cd/klm).
             let step = if max_intensity > 1000.0 {
                 500.0
             } else if max_intensity > 100.0 {
                 50.0
-            } else {
+            } else if max_intensity > 20.0 {
                 20.0
+            } else if max_intensity > 10.0 {
+                5.0
+            } else if max_intensity > 2.0 {
+                2.0
+            } else {
+                0.5
             };
             step * (max_intensity / step).ceil()
         } else {
