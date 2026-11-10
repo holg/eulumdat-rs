@@ -32,7 +32,9 @@ features = ["standalone"]
 leptos = true
 bevy = true
 typst = true
-gmaps = true
+# Google Maps designer: replaced by the OpenStreetMap site map of the Outdoor
+# designer (2026-11-08)
+gmaps = false
 templates = true
 # Skyglow: ported to Bevy 0.19 (WorldAssetRoot, guarded UI plugins) and
 # re-enabled 2026-11-01 with the Burg Vischering scene (?scene=vischering;
@@ -47,6 +49,13 @@ tm25 = true
 # Bevy build of the light scene (?wasm=rt_viewer) — on demand only; the editor's
 # Light scene tab runs the same tracer on plain wgpu inside the Leptos bundle.
 rt_viewer = false
+
+[globe]
+# The geodb-rs globe as the location picker (Daylight & Sky "Pick on the
+# globe"): the WebGPU "mini" build of geodb-globe from the sibling
+# repository, copied to app/globe/. Relative to the repository root; empty
+# = not included (the build says so).
+crate = "../geodb-rs/crates/geodb-globe"
 
 [bundles.leptos]
 description = "Leptos editor"

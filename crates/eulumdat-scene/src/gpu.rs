@@ -46,6 +46,12 @@ pub struct Params {
     pub f2: Vec4,
     /// width, height, unused, unused.
     pub size: UVec4,
+    /// xyz unit vector toward the moon, w = its illuminance normal to the
+    /// beam (lx; 0 = no moon).
+    pub moon: Vec4,
+    /// rgb moonlight colour (luma = the tint's luma), w = radiance of the
+    /// moonlit sky (cd/m², uniform).
+    pub moon_sky: Vec4,
 }
 
 impl Default for Params {
@@ -63,6 +69,8 @@ impl Default for Params {
             f1: Vec4::new(0.25, 0.01, 0.0, 0.0),
             f2: Vec4::new(100.0, 1.0, 100.0, 10.0),
             size: UVec4::new(1, 1, 0, 0),
+            moon: Vec4::ZERO,
+            moon_sky: Vec4::ZERO,
         }
     }
 }
@@ -108,7 +116,8 @@ mod tests {
 
     #[test]
     fn struct_sizes_match_wgsl() {
-        assert_eq!(std::mem::size_of::<Params>(), 64 + 11 * 16);
+        // mat4 + 13 vec4 (the last two: moon, moon_sky)
+        assert_eq!(std::mem::size_of::<Params>(), 64 + 13 * 16);
         assert_eq!(std::mem::size_of::<GpuPrim>(), 96);
         assert_eq!(std::mem::size_of::<GpuLamp>(), 64);
     }

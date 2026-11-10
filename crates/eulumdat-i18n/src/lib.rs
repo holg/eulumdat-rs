@@ -130,8 +130,6 @@ pub struct Locale {
     #[serde(default)]
     pub dashboard: DashboardLocale,
     #[serde(default)]
-    pub maps_designer: MapsDesignerLocale,
-    #[serde(default)]
     pub goniosim: GoniosimLocale,
     #[serde(default)]
     pub spectrum_lab: SpectrumLabLocale,
@@ -760,8 +758,6 @@ pub struct UiTabs {
     #[serde(default)]
     pub zonal_designer: String,
     #[serde(default)]
-    pub maps_designer: String,
-    #[serde(default)]
     pub beam_angle: String,
     #[serde(default)]
     pub iso_view: String,
@@ -1225,6 +1221,78 @@ pub struct AreaDesignerLocale {
     pub export_room_svg: String,
     pub export_3d_svg: String,
     pub export_optimizer: String,
+    /// Moonlight over the area (English when a locale lacks it).
+    #[serde(default)]
+    pub moon: AreaDesignerMoon,
+    /// The OpenStreetMap site map under the plan.
+    #[serde(default)]
+    pub sitemap: AreaDesignerSiteMap,
+}
+
+/// The site map (OpenStreetMap) in the Outdoor designer.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AreaDesignerSiteMap {
+    pub title: String,
+    pub show: String,
+    pub desc: String,
+    pub pick: String,
+    pub site: String,
+    pub lat: String,
+    pub lon: String,
+    pub opacity: String,
+    pub move_map: String,
+    pub move_hint: String,
+    pub done: String,
+    pub no_site: String,
+    pub style: String,
+}
+
+impl Default for AreaDesignerSiteMap {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            title: s("🗺 Site map"),
+            show: s("Show the OpenStreetMap map under the plan"),
+            desc: s("Find the site on the globe (zoom in until streets and buildings show, then “Use this place”), draw the area on the map and place the poles. North is up; the site is the middle of the area."),
+            pick: s("🌍 Find the site on the globe"),
+            site: s("Site: {place}"),
+            lat: s("Latitude"),
+            lon: s("Longitude"),
+            opacity: s("Map opacity"),
+            move_map: s("✋ Move the map"),
+            move_hint: s("Drag on the plan to move the map under the area."),
+            done: s("Done"),
+            no_site: s("No site yet: find it on the globe or enter its coordinates."),
+            style: s("Map style"),
+        }
+    }
+}
+
+/// Moonlight in the Outdoor designer.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct AreaDesignerMoon {
+    pub desc: String,
+    pub with_moon: String,
+    pub dim: String,
+    pub dim_none: String,
+    pub alone: String,
+    pub not_needed: String,
+}
+
+impl Default for AreaDesignerMoon {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            desc: s("Natural light on open ground under a clear sky at the chosen date and time (the sun by day, the twilight sky at dusk, the moon at night), the same everywhere. The illuminance results stay the luminaires' own (codes do not count natural light); it is shown next to them."),
+            with_moon: s("With the natural light then (+{lx} lx)"),
+            dim: s("To keep the {target} lx minimum (optimizer target), the luminaires could run at {pct} % tonight."),
+            dim_none: s("The luminaires alone stay below the {target} lx minimum; the natural light adds {lx} lx."),
+            alone: s("The natural light alone gives {pct} % of the {target} lx minimum."),
+            not_needed: s("The luminaires are not needed then: the natural light alone gives {lx} lx (minimum {target} lx)."),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -1407,9 +1475,6 @@ pub struct ZonalEmergency {
     pub route_centre: String,
     pub route_band: String,
     pub route_ratio: String,
-    pub open_min: String,
-    pub open_ratio: String,
-    pub not_required: String,
     pub point_vertical: String,
     pub glare: String,
     pub ra: String,
@@ -1417,17 +1482,156 @@ pub struct ZonalEmergency {
     pub nothing: String,
     pub method: String,
     pub move_label: String,
+    pub standard: String,
+    pub place_corridor: String,
+    pub place_stairs: String,
+    pub place_crowded: String,
+    pub place_other: String,
+    pub room_place: String,
+    pub no_requirement: String,
     pub view_normal: String,
     pub view_emergency: String,
     pub floor_legend: String,
     pub lum_off: String,
+    pub band_half: String,
+    pub band_full: String,
+    pub band_pct: String,
+    pub route_name: String,
+    pub route_band_min: String,
+    pub route_avg: String,
+    pub route_ratio_band: String,
+    pub route_width: String,
+    pub route_width_req: String,
+    pub room_place_name: String,
+    pub open_name: String,
+    pub room_name: String,
+    pub area_min_of: String,
+    pub area_avg_of: String,
+    pub area_ratio_of: String,
+    pub end_avg: String,
+    pub end_min: String,
+    pub not_required_above: String,
+    pub end_output: String,
+    pub end_output_hint: String,
+    pub room_floor_hint: String,
+    pub report_pdf: String,
+    pub point_horizontal: String,
+    pub exit_floor: String,
+    pub lum_flux_min: String,
+    pub count_of: String,
+    pub route_gap: String,
+    pub area_flux: String,
+    pub area_spacing: String,
+    pub for_information: String,
+    pub kind_door_release: String,
+    pub kind_escape_plan: String,
+    pub kind_evac_aid: String,
+    pub group_europe: String,
+    pub group_americas: String,
+    pub group_asia: String,
+    /// Profile names and notes by profile id ([`EmergencyStandardText`]);
+    /// ids missing in a locale fall back to English.
+    pub standards: std::collections::BTreeMap<String, EmergencyStandardText>,
+}
+
+/// Name and note of one emergency-lighting standard in the picker.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct EmergencyStandardText {
+    /// Shown in the picker, e.g. "EN 1838 (Europe)".
+    pub label: String,
+    /// One paragraph under the picker: what it checks.
+    pub note: String,
+    /// The standard's own words for kinds of place, by place key
+    /// (`corridor`, `stairs`, `crowded`, `other`); missing = the general
+    /// labels.
+    #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub places: std::collections::BTreeMap<String, String>,
+}
+
+impl ZonalEmergency {
+    /// Name of a standard in the picker (English when this locale lacks it).
+    pub fn std_label(&self, id: &str) -> String {
+        self.std_text(id).label
+    }
+
+    /// Note of a standard (English when this locale lacks it).
+    pub fn std_note(&self, id: &str) -> String {
+        self.std_text(id).note
+    }
+
+    /// A standard's own word for a kind of place (English when this
+    /// locale lacks it; `None` = use the general label).
+    pub fn std_place(&self, id: &str, place: &str) -> Option<String> {
+        self.standards
+            .get(id)
+            .and_then(|t| t.places.get(place).cloned())
+            .or_else(|| {
+                default_emergency_standards()
+                    .remove(id)
+                    .and_then(|t| t.places.get(place).cloned())
+            })
+    }
+
+    fn std_text(&self, id: &str) -> EmergencyStandardText {
+        let own = self.standards.get(id).cloned().unwrap_or_default();
+        let en = default_emergency_standards().remove(id).unwrap_or_default();
+        EmergencyStandardText {
+            label: if own.label.is_empty() {
+                en.label
+            } else {
+                own.label
+            },
+            note: if own.note.is_empty() {
+                en.note
+            } else {
+                own.note
+            },
+            places: if own.places.is_empty() {
+                en.places
+            } else {
+                own.places
+            },
+        }
+    }
+}
+
+/// English names and notes of the emergency-lighting standards.
+fn default_emergency_standards() -> std::collections::BTreeMap<String, EmergencyStandardText> {
+    let t = |label: &str, note: &str, places: &[(&str, &str)]| EmergencyStandardText {
+        label: label.into(),
+        note: note.into(),
+        places: places
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect(),
+    };
+    [
+        ("en1838", t("EN 1838:2013 (Europe)", "Escape routes up to 2 m wide: at least 1 lx on the centre line and 0.5 lx over the central half, Emax / Emin ≤ 40. Open areas over 60 m²: 0.5 lx without a 0.5 m border, ≤ 40. 5 lx vertical at fire equipment, first aid and call points; glare limits; Ra ≥ 40. Valid until 18 June 2027.", &[])),
+        ("en1838-2024", t("EN 1838:2024 (Europe)", "Escape routes: at least 1 lx over the width less a strip of min(W / 4, 0.5 m) along each side (up to 2 m: the central half), Emax / Emin ≤ 40, at least two luminaires per route and open area. Open areas over 60 m² as before; 5 lx vertical also at door releases, escape plans and evacuation aids; glare limits; Ra ≥ 40.", &[])),
+        ("bs5266", t("BS 5266-1:2025 (United Kingdom)", "The values of BS EN 1838:2024 (1 lx over the route less the edge strips, open areas 0.5 lx, 5 lx at equipment). Duration 3 h for sleeping accommodation, entertainment venues, phased evacuation or early re-occupation; 1 h only with immediate evacuation.", &[])),
+        ("cte-sua4", t("CTE DB SUA 4 / REBT (Spain)", "Escape routes up to 2 m: 1 lx on the axis, 0.5 lx over the central half, Emax / Emin ≤ 40. Safety equipment and distribution boards: 5 lx horizontal. Anti-panic (REBT ITC-BT-28): 0.5 lx in the whole space up to 1 m, any size, no border. Zero reflectance, Ra ≥ 40, 1 h.", &[])),
+        ("fr-erp", t("ERP, arrêté du 25 juin 1980 (France)", "No lux values: evacuation luminaires at most 15 m apart along circulation routes, 45 lm or more each, two or more on routes over 15 m; ambient lighting in rooms for 100 people or more: 5 lm per m², neighbours at most 4 mounting heights apart, two or more per room. Illuminance is shown for information.", &[])),
+        ("sp52", t("SP 52.13330.2016 (Russia)", "Escape routes up to 2 m: 1 lx on the axis, 0.5 lx over half the width, Emin / Emax ≥ 1 : 40. 5 lx on the floor in front of every exit and at equipment and evacuation plans. Anti-panic over 60 m² (and 30 people or more): 0.5 lx without a 0.5 m border. Glare limits, Ra ≥ 40; 100 % within 10 s, 1 h.", &[])),
+        ("nfpa101", t("NFPA 101 / IBC (United States)", "Along the path of egress at floor level: average at least 1 fc (10.8 lx), at any point at least 0.1 fc (1.1 lx), max / min ≤ 40, over the route width and the room's floor. After 1.5 h the values may fall to 6.5 lx average and 0.65 lx minimum: enter the output then. Externally lit exit signs 5 fc (54 lx).", &[])),
+        ("nbcc", t("NBC Canada 2020", "At floor or tread level: an average of at least 10 lx and a minimum of 1 lx over exits, public corridors, principal routes and the listed rooms; no uniformity ratio. Duration 30 min, 1 h (care, treatment, detention) or 2 h (high buildings).", &[])),
+        ("nbr10898", t("ABNT NBR 10898 (Brazil)", "Horizontal on the floor: at least 3 lx on flat areas, 5 lx where the level changes (stairs, ramps, obstacles), max / min ≤ 20 along the route. Duration at least 1 h.", &[("corridor", "Flat area (corridor, hall, refuge)"), ("crowded", "Flat area (room)"), ("stairs", "Level change (stairs, ramp, obstacle)")])),
+        ("gb55037", t("GB 55037-2022 (China)", "Minimum horizontal illuminance on the floor by place (GB 55037-2022 §10.1.10): stairs, front rooms and refuge spaces 10 lx, evacuation corridors and crowded places 3 lx, other places 1 lx; routes over the central half of their width, rooms over the whole floor, no uniformity ratio. Durations and switch-over times (GB 51309-2018) are not calculated.", &[])),
+        ("jp-bsl", t("Building Standard Law (Japan)", "Direct light only: at least 2 lx on the floor at every point of the room and its escape corridors and stairs, corners included (fluorescent and LED sources; 1 lx for incandescent lamps). 30 min.", &[])),
+        ("nbc-in", t("NBC India 2016", "Escape routes up to 2 m: at least 10 lx on the centre line and 5 lx over half the width, no uniformity ratio; rooms checked at 5 lx. Duration 1.5 h, on within 5 s.", &[])),
+        ("as2293", t("AS/NZS 2293.1:2018 (Australia)", "Escape routes: at least 0.2 lx and an average of 0.5 lx on the floor, stairs 1 lx; measured away from the walls. From public summaries of the 2018 edition (the 2026 edition is not yet checked). 90 min in service.", &[])),
+        ("nz-f6", t("NZBC F6/AS1 (New Zealand)", "Direct illuminance on the floor: 1 lx in exitways and at changes of level, 0.2 lx everywhere else; points within 0.5 m of walls left out. 90 min.", &[("corridor", "Exitway"), ("stairs", "Change of level"), ("other", "Elsewhere on the escape route")])),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_string(), v))
+    .collect()
 }
 
 impl Default for ZonalEmergency {
     fn default() -> Self {
         let s = |v: &str| v.to_string();
         Self {
-            title: s("Emergency lighting (EN 1838)"),
+            title: s("Emergency lighting"),
             intro: s("Escape routes, open areas and safety equipment, lit by the emergency luminaires alone: direct light, emergency flux, maintenance factor."),
             enable: s("Plan emergency lighting"),
             luminaire: s("Emergency luminaire"),
@@ -1450,7 +1654,7 @@ impl Default for ZonalEmergency {
             route_item: s("Route {n}: {len} m, {w} m wide"),
             remove: s("Remove"),
             open_area: s("Room as open (anti-panic) area"),
-            open_area_hint: s("Required above 60 m²; the room has {a} m²."),
+            open_area_hint: s("Required above {limit} m²; the room has {a} m²."),
             points: s("Points of emphasis"),
             place: s("Place on the plan:"),
             point_hint: s("Click on the plan next to the wall the equipment is on (it faces into the room)."),
@@ -1461,7 +1665,7 @@ impl Default for ZonalEmergency {
             kind_sign: s("Externally lit sign"),
             kind_exit: s("Exit"),
             point_item: s("{kind} at ({x}, {y})"),
-            results_title: s("Emergency lighting (EN 1838)"),
+            results_title: s("Emergency lighting"),
             pass: s("✓ All requirements met"),
             fail: s("✗ Not all requirements met"),
             count: s("{n} emergency luminaires, {lm} lm each, at {h} m"),
@@ -1471,9 +1675,6 @@ impl Default for ZonalEmergency {
             route_centre: s("{name}: centre line min"),
             route_band: s("{name}: central band min"),
             route_ratio: s("{name}: Emax / Emin"),
-            open_min: s("Open area min"),
-            open_ratio: s("Open area Emax / Emin"),
-            not_required: s("not required (≤ 60 m²)"),
             point_vertical: s("{kind}: vertical"),
             glare: s("Glare 60°–90° (highest)"),
             ra: s("Colour rendering Ra"),
@@ -1481,10 +1682,54 @@ impl Default for ZonalEmergency {
             nothing: s("Draw an escape route, keep the room as open area, or place safety equipment to check it."),
             method: s("Direct light only, maintenance factor {mf}; response times and the rated duration are not calculated."),
             move_label: s("Emergency luminaires"),
+            standard: s("Standard"),
+            place_corridor: s("Evacuation corridor"),
+            place_stairs: s("Stairs, front room, refuge"),
+            place_crowded: s("Crowded place"),
+            place_other: s("Other place"),
+            room_place: s("The room is"),
+            no_requirement: s("no requirement"),
             view_normal: s("💡 Normal lighting"),
             view_emergency: s("🚨 Emergency mode"),
             floor_legend: s("Floor in emergency mode: direct light of the emergency luminaires, maintenance factor {mf}; min {min} lx, max {max} lx."),
             lum_off: s("○ normal luminaires, off"),
+            band_half: s("central half"),
+            band_full: s("full width"),
+            band_pct: s("central {pct} %"),
+            route_name: s("Route {n}"),
+            route_band_min: s("{name}: floor min ({band})"),
+            route_avg: s("{name}: average ({band})"),
+            route_ratio_band: s("{name}: Emax / Emin ({band})"),
+            route_width: s("{name}: width"),
+            route_width_req: s("≤ {w} m: split into strips or check as an open area"),
+            room_place_name: s("Room ({place})"),
+            open_name: s("Open area"),
+            room_name: s("Room"),
+            area_min_of: s("{name}: floor min"),
+            area_avg_of: s("{name}: average"),
+            area_ratio_of: s("{name}: Emax / Emin"),
+            end_avg: s("{name}: average after {h} h ({pct} % output)"),
+            end_min: s("{name}: min after {h} h ({pct} % output)"),
+            not_required_above: s("not required (≤ {a} m²)"),
+            end_output: s("Output at the end of the duration (%)"),
+            end_output_hint: s("{std} allows lower values after {h} h: average {avg} lx, minimum {min} lx. Enter the output the luminaires still give then; constant-output LED emergency luminaires keep 100 %."),
+            room_floor_hint: s("Checked over the whole floor; the room has {a} m²."),
+            report_pdf: s("🚨 Emergency lighting report (PDF) · {std}"),
+            point_horizontal: s("{kind}: horizontal"),
+            exit_floor: s("{name}: floor 0.5 m in front"),
+            lum_flux_min: s("Emergency flux per luminaire (lowest)"),
+            count_of: s("{name}: luminaires"),
+            route_gap: s("{name}: largest gap between luminaires"),
+            area_flux: s("{name}: luminaire flux per m²"),
+            area_spacing: s("{name}: nearest luminaire ÷ mounting height"),
+            for_information: s("for information"),
+            kind_door_release: s("Door release"),
+            kind_escape_plan: s("Escape plan"),
+            kind_evac_aid: s("Evacuation aid"),
+            group_europe: s("Europe"),
+            group_americas: s("Americas"),
+            group_asia: s("Asia and Pacific"),
+            standards: default_emergency_standards(),
         }
     }
 }
@@ -1856,41 +2101,6 @@ pub struct DashboardOptics {
     pub very_wide: String,
 }
 
-/// Maps designer translations
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct MapsDesignerLocale {
-    pub title: String,
-    pub instructions_title: String,
-    pub instruction_polygon: String,
-    pub instruction_luminaires: String,
-    pub instruction_calculate: String,
-    pub area_defined: String,
-    pub luminaires_count: String,
-    pub calculate: String,
-    pub my_location: String,
-    pub export_csv: String,
-    pub show_values: String,
-    pub hide_values: String,
-    pub clear_all: String,
-    pub results_title: String,
-    pub min: String,
-    pub max: String,
-    pub average: String,
-    pub uniformity: String,
-    pub good_uniformity: String,
-    pub acceptable_uniformity: String,
-    pub poor_uniformity: String,
-    pub legend_title: String,
-    pub legend_low: String,
-    pub legend_high: String,
-    pub loading_description: String,
-    pub load_maps: String,
-    pub loading_maps: String,
-    pub toolbar_hint: String,
-    pub load_failed: String,
-    pub try_again: String,
-}
-
 /// Report translations
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReportLocale {
@@ -2213,6 +2423,42 @@ pub struct SpectrumLabLocale {
     pub sky_tab_intro: String,
     #[serde(default = "default_slab_sky_empty_hint")]
     pub sky_empty_hint: String,
+    #[serde(default = "default_slab_globe_pick")]
+    pub globe_pick: String,
+    #[serde(default = "default_slab_globe_title")]
+    pub globe_title: String,
+    #[serde(default = "default_slab_globe_hint")]
+    pub globe_hint: String,
+    #[serde(default = "default_slab_globe_close")]
+    pub globe_close: String,
+    #[serde(default = "default_slab_moon_card_title")]
+    pub moon_card_title: String,
+    #[serde(default = "default_slab_moonlight_now")]
+    pub moonlight_now: String,
+    #[serde(default = "default_slab_moonlight_day")]
+    pub moonlight_day: String,
+    #[serde(default = "default_slab_moon_summary")]
+    pub moon_summary: String,
+    #[serde(default = "default_slab_moon_dist_close")]
+    pub moon_dist_close: String,
+    #[serde(default = "default_slab_moon_dist_far")]
+    pub moon_dist_far: String,
+    #[serde(default = "default_slab_moon_times")]
+    pub moon_times: String,
+    #[serde(default = "default_slab_moon_hours")]
+    pub moon_hours: String,
+    #[serde(default = "default_slab_moon_dark")]
+    pub moon_dark: String,
+    #[serde(default = "default_slab_moon_ref_note")]
+    pub moon_ref_note: String,
+    #[serde(default = "default_slab_moon_legend_total")]
+    pub moon_legend_total: String,
+    #[serde(default = "default_slab_moon_legend_moon")]
+    pub moon_legend_moon: String,
+    #[serde(default = "default_slab_moon_month_title")]
+    pub moon_month_title: String,
+    #[serde(default = "default_slab_moon_month_hint")]
+    pub moon_month_hint: String,
     #[serde(default = "default_slab_scene_road")]
     pub scene_road: String,
     #[serde(default = "default_slab_scene_room")]
@@ -2395,6 +2641,60 @@ fn default_slab_sky_tab_intro() -> String {
 fn default_slab_sky_empty_hint() -> String {
     "Adjust the location and time, then press Trace to compute the sky's illuminance and colour."
         .into()
+}
+fn default_slab_moon_card_title() -> String {
+    "🌙 Moonlight tonight".into()
+}
+fn default_slab_moonlight_now() -> String {
+    "Moonlight {lx} lx".into()
+}
+fn default_slab_moonlight_day() -> String {
+    "Moon up · daylight dominates".into()
+}
+fn default_slab_moon_summary() -> String {
+    "{phase} {pct} % · {km} km ({dist})".into()
+}
+fn default_slab_moon_dist_close() -> String {
+    "close: {pct} % brighter than at mean distance".into()
+}
+fn default_slab_moon_dist_far() -> String {
+    "far: {pct} % dimmer than at mean distance".into()
+}
+fn default_slab_moon_times() -> String {
+    "Moonrise {rise} · moonset {set} · up to {max} lx at {at}".into()
+}
+fn default_slab_moon_hours() -> String {
+    "The moon alone gives 0.2 lx or more for {h2} h and 0.1 lx or more for {h1} h of the dark hours.".into()
+}
+fn default_slab_moon_dark() -> String {
+    "The moon stays below the horizon while it is dark.".into()
+}
+fn default_slab_moon_ref_note() -> String {
+    "Horizontal illuminance on open ground, clear sky. Reference lines: 0.2 lx = escape-route minimum of AS/NZS 2293 and NZBC F6 · 0.5 lx = EN 1838 open areas · 1 lx = EN 1838 escape routes · 2 lx = EN 13201 P6 average. Clouds, trees and buildings take much of it away.".into()
+}
+fn default_slab_moon_legend_total() -> String {
+    "all natural light".into()
+}
+fn default_slab_moon_legend_moon() -> String {
+    "moon alone".into()
+}
+fn default_slab_moon_month_title() -> String {
+    "Moonlight over the next 30 nights (the most per night)".into()
+}
+fn default_slab_moon_month_hint() -> String {
+    "Click a night to show it above.".into()
+}
+fn default_slab_globe_pick() -> String {
+    "🌍 Pick on the globe".into()
+}
+fn default_slab_globe_title() -> String {
+    "Pick a place".into()
+}
+fn default_slab_globe_hint() -> String {
+    "Search a city or click the globe, then “Use this place”: its latitude, longitude and time zone are taken over.".into()
+}
+fn default_slab_globe_close() -> String {
+    "Close".into()
 }
 fn default_slab_scene_road() -> String {
     "Road".into()
@@ -3078,6 +3378,24 @@ mod tests {
                 ("sky_tab_title", &sl.sky_tab_title),
                 ("sky_tab_intro", &sl.sky_tab_intro),
                 ("sky_empty_hint", &sl.sky_empty_hint),
+                ("globe_pick", &sl.globe_pick),
+                ("globe_title", &sl.globe_title),
+                ("globe_hint", &sl.globe_hint),
+                ("globe_close", &sl.globe_close),
+                ("moon_card_title", &sl.moon_card_title),
+                ("moonlight_now", &sl.moonlight_now),
+                ("moonlight_day", &sl.moonlight_day),
+                ("moon_summary", &sl.moon_summary),
+                ("moon_dist_close", &sl.moon_dist_close),
+                ("moon_dist_far", &sl.moon_dist_far),
+                ("moon_times", &sl.moon_times),
+                ("moon_hours", &sl.moon_hours),
+                ("moon_dark", &sl.moon_dark),
+                ("moon_ref_note", &sl.moon_ref_note),
+                ("moon_legend_total", &sl.moon_legend_total),
+                ("moon_legend_moon", &sl.moon_legend_moon),
+                ("moon_month_title", &sl.moon_month_title),
+                ("moon_month_hint", &sl.moon_month_hint),
                 ("scene_road", &sl.scene_road),
                 ("scene_room", &sl.scene_room),
                 ("scene_plaza", &sl.scene_plaza),
@@ -3679,6 +3997,15 @@ pub struct UiLightScene {
     pub status_detected: String,
     #[serde(default = "ls_status_idle")]
     pub status_idle: String,
+    /// Checkbox: the sensors switch the luminaires.
+    #[serde(default = "ls_sensor_dim")]
+    pub sensor_dim: String,
+    /// Under it, while off.
+    #[serde(default = "ls_sensor_dim_off_note")]
+    pub sensor_dim_off_note: String,
+    /// Detection pill while the sensors only detect.
+    #[serde(default = "ls_status_dim_off")]
+    pub status_dim_off: String,
     #[serde(default = "ls_status_person")]
     pub status_person: String,
     #[serde(default = "ls_status_cars")]
@@ -3765,12 +4092,52 @@ pub struct UiLightScene {
     pub em_check_min: String,
     #[serde(default = "ls_em_check_ratio")]
     pub em_check_ratio: String,
+    #[serde(default = "ls_em_check_avg")]
+    pub em_check_avg: String,
+    #[serde(default = "ls_moon_title")]
+    pub moon_title: String,
+    #[serde(default = "ls_moon_on")]
+    pub moon_on: String,
+    #[serde(default = "ls_moon_desc")]
+    pub moon_desc: String,
+    #[serde(default = "ls_moon_date")]
+    pub moon_date: String,
+    #[serde(default = "ls_moon_time")]
+    pub moon_time: String,
+    #[serde(default = "ls_moon_full")]
+    pub moon_full: String,
+    #[serde(default = "ls_moon_place")]
+    pub moon_place: String,
+    #[serde(default = "ls_moon_pick")]
+    pub moon_pick: String,
+    #[serde(default = "ls_moon_north")]
+    pub moon_north: String,
+    #[serde(default = "ls_moon_lamps_off")]
+    pub moon_lamps_off: String,
+    #[serde(default = "ls_moon_readout")]
+    pub moon_readout: String,
+    #[serde(default = "ls_moon_below")]
+    pub moon_below: String,
+    #[serde(default = "ls_moon_indoor")]
+    pub moon_indoor: String,
+    #[serde(default = "ls_sun_readout")]
+    pub sun_readout: String,
+    #[serde(default = "ls_twilight_readout")]
+    pub twilight_readout: String,
+    #[serde(default = "ls_night_readout")]
+    pub night_readout: String,
     #[serde(default = "ls_em_check_note")]
     pub em_check_note: String,
     #[serde(default = "ls_em_off_hint")]
     pub em_off_hint: String,
     #[serde(default = "ls_em_measure")]
     pub em_measure: String,
+    #[serde(default = "ls_em_check_band")]
+    pub em_check_band: String,
+    #[serde(default = "ls_em_check_stairs")]
+    pub em_check_stairs: String,
+    #[serde(default = "ls_em_check_room")]
+    pub em_check_room: String,
     #[serde(default = "ls_em_adapting")]
     pub em_adapting: String,
     #[serde(default = "ls_em_adapted")]
@@ -4453,6 +4820,9 @@ impl Default for UiLightScene {
             reset_moves: ls_reset_moves(),
             status_detected: ls_status_detected(),
             status_idle: ls_status_idle(),
+            sensor_dim: ls_sensor_dim(),
+            sensor_dim_off_note: ls_sensor_dim_off_note(),
+            status_dim_off: ls_status_dim_off(),
             status_person: ls_status_person(),
             status_cars: ls_status_cars(),
             status_no_area: ls_status_no_area(),
@@ -4496,9 +4866,29 @@ impl Default for UiLightScene {
             em_check_points: ls_em_check_points(),
             em_check_min: ls_em_check_min(),
             em_check_ratio: ls_em_check_ratio(),
+            em_check_avg: ls_em_check_avg(),
+            moon_title: ls_moon_title(),
+            moon_on: ls_moon_on(),
+            moon_desc: ls_moon_desc(),
+            moon_date: ls_moon_date(),
+            moon_time: ls_moon_time(),
+            moon_full: ls_moon_full(),
+            moon_place: ls_moon_place(),
+            moon_pick: ls_moon_pick(),
+            moon_north: ls_moon_north(),
+            moon_lamps_off: ls_moon_lamps_off(),
+            moon_readout: ls_moon_readout(),
+            moon_below: ls_moon_below(),
+            moon_indoor: ls_moon_indoor(),
+            sun_readout: ls_sun_readout(),
+            twilight_readout: ls_twilight_readout(),
+            night_readout: ls_night_readout(),
             em_check_note: ls_em_check_note(),
             em_off_hint: ls_em_off_hint(),
             em_measure: ls_em_measure(),
+            em_check_band: ls_em_check_band(),
+            em_check_stairs: ls_em_check_stairs(),
+            em_check_room: ls_em_check_room(),
             em_adapting: ls_em_adapting(),
             em_adapted: ls_em_adapted(),
             em_replay: ls_em_replay(),
@@ -4692,13 +5082,13 @@ fn ls_sensor_volume_3d() -> String {
     "Show the detection volume in 3D".into()
 }
 fn ls_em_title() -> String {
-    "🚨 Emergency lighting (EN 1838)".into()
+    "🚨 Emergency lighting".into()
 }
 fn ls_em_mode() -> String {
     "Emergency mode (mains failure)".into()
 }
 fn ls_em_mode_desc() -> String {
-    "Normal lighting off, emergency luminaires on at their emergency flux × maintenance factor. The picture starts dark, as at the moment the power fails, and adapts like an eye; points take direct light only, as EN 1838 counts it; false colours 0–5 lx.".into()
+    "Normal lighting off, emergency luminaires on at their emergency flux × maintenance factor. The picture starts dark, as at the moment the power fails, and adapts like an eye; points take direct light only, as the emergency lighting standards count it.".into()
 }
 fn ls_em_marks() -> String {
     "Show the plan markings (route, open area, equipment)".into()
@@ -4739,14 +5129,74 @@ fn ls_em_check_min() -> String {
 fn ls_em_check_ratio() -> String {
     "Emax / Emin {v} (≤ {req})".into()
 }
+fn ls_moon_title() -> String {
+    "☀️🌙 Sun & moon".into()
+}
+fn ls_moon_on() -> String {
+    "Daylight and moonlight".into()
+}
+fn ls_moon_desc() -> String {
+    "Natural light for a date, time and place under a clear sky: by day the sun with its shadows and the daylit sky, at dusk the twilight sky, at night the moon and the stars; in the picture and in the lux values. Codes do not count it, emergency mode leaves it out.".into()
+}
+fn ls_moon_date() -> String {
+    "Date".into()
+}
+fn ls_moon_time() -> String {
+    "Local time".into()
+}
+fn ls_moon_full() -> String {
+    "→ Next full moon".into()
+}
+fn ls_moon_place() -> String {
+    "Place: {place}".into()
+}
+fn ls_moon_pick() -> String {
+    "🌍 Pick on the globe".into()
+}
+fn ls_moon_north() -> String {
+    "North in the scene".into()
+}
+fn ls_moon_lamps_off() -> String {
+    "Luminaires off (natural light alone)".into()
+}
+fn ls_moon_readout() -> String {
+    "{phase} {pct} % · {alt}° up · {lx} lx on open ground (beam {beam} lx, sky {sky} lx)".into()
+}
+fn ls_moon_below() -> String {
+    "The moon is below the horizon at this time.".into()
+}
+fn ls_sun_readout() -> String {
+    "☀️ Sun {alt}° up · {lx} lx on open ground (beam {beam} lx, sky {sky} lx)".into()
+}
+fn ls_twilight_readout() -> String {
+    "🌆 Twilight (sun {alt}°) · {lx} lx on open ground".into()
+}
+fn ls_night_readout() -> String {
+    "✨ Starlight · {lx} lx".into()
+}
+fn ls_moon_indoor() -> String {
+    "The moon lights outdoor scenes.".into()
+}
+fn ls_em_check_avg() -> String {
+    "Eavg {v} lx (≥ {req})".into()
+}
 fn ls_em_check_note() -> String {
-    "Check in the Light scene: direct light, points every 0.5 m. The Interior designer’s EN 1838 results are the reference.".into()
+    "Check in the Light scene: direct light, points every 0.5 m. The Interior designer’s results are the reference.".into()
 }
 fn ls_em_off_hint() -> String {
     "Switch emergency mode on to measure the route.".into()
 }
 fn ls_em_measure() -> String {
     "📍 Measure (Grid view)".into()
+}
+fn ls_em_check_band() -> String {
+    "Escape route (central half)".into()
+}
+fn ls_em_check_stairs() -> String {
+    "Stairs / refuge (central half)".into()
+}
+fn ls_em_check_room() -> String {
+    "Room (whole floor)".into()
 }
 fn ls_em_adapting() -> String {
     "👁 Eyes adapting to the dark… {pct} %".into()
@@ -4876,6 +5326,15 @@ fn ls_status_detected() -> String {
 }
 fn ls_status_idle() -> String {
     "Nothing detected · luminaires at {pct} %".into()
+}
+fn ls_sensor_dim() -> String {
+    "Sensors switch the luminaires".into()
+}
+fn ls_sensor_dim_off_note() -> String {
+    "Off: the sensors only detect, the luminaires stay at full output (as in the designer). Turn it on and move the person or a car to try the control.".into()
+}
+fn ls_status_dim_off() -> String {
+    "Sensor control off · luminaires at full output".into()
 }
 fn ls_status_person() -> String {
     "person".into()
@@ -5281,7 +5740,7 @@ fn df_interior_title() -> String {
     "Interior designer".into()
 }
 fn df_maps_title() -> String {
-    "Maps designer".into()
+    "Site map".into()
 }
 fn df_street_title() -> String {
     "Street design".into()
@@ -5344,7 +5803,8 @@ fn df_interior_desc() -> String {
     "Rooms with zones, workplanes and uniformity per EN 12464-1".into()
 }
 fn df_maps_desc() -> String {
-    "Plan luminaires on a real map and check the lighting of streets and places".into()
+    "Plan on an OpenStreetMap map of the site: find it on the globe, draw the area, place the poles"
+        .into()
 }
 fn df_street_desc() -> String {
     "Multi-luminaire road lighting against EN 13201, RP-8, CJJ 45 and MLO".into()

@@ -18,6 +18,9 @@ const TWO_PI: f32 = 2.0 * PI;
 const INV_PI: f32 = 1.0 / PI;
 const EPS: f32 = 1.0e-3;
 const FAR: f32 = 1.0e20;
+/// Moonlight scattered by the air is blue like the day sky (luma 1), as in
+/// the WGSL.
+const MOON_SKY_TINT: Vec3 = Vec3::new(0.84, 1.0, 1.4);
 /// Just inside ±π/2, as the shader clamps the equiangular sample.
 const HALF_PI_IN: f32 = std::f32::consts::FRAC_PI_2 - 1.0e-4;
 const LUMA: Vec3 = Vec3::new(0.2126, 0.7152, 0.0722);
@@ -628,7 +631,46 @@ impl<'a> Scene<'a> {
             e += en * ndotl;
             sum += eval_bsdf(n, v, wi, m).0 * en;
         }
-        (sum * self.p.tint.truncate(), e)
+        let mut l = sum * self.p.tint.truncate();
+        // the moon, as in the WGSL: its beam and one moonlit-sky sample
+        let colour = self.p.moon_sky.truncate();
+        if self.p.moon.w > 0.0 {
+            let wm = self.p.moon.truncate();
+            let c = n.dot(wm);
+            if c > 0.0 && !self.occluded(p + n * EPS, wm, FAR) {
+                e += self.p.moon.w * c;
+                l += eval_bsdf(n, v, wm, m).0 * self.p.moon.w * colour;
+            }
+        }
+        if self.p.moon_sky.w > 0.0 {
+            let u1 = rng.next();
+            let phi = TWO_PI * rng.next();
+            let r = u1.sqrt();
+            let d = tangent_frame(n)
+                * Vec3::new(r * phi.cos(), r * phi.sin(), (1.0 - u1).max(0.0).sqrt());
+            if d.y > 0.0 && !self.occluded(p + n * EPS, d, FAR) {
+                e += PI * self.p.moon_sky.w;
+                let cd = n.dot(d).max(1e-4);
+                l += eval_bsdf(n, v, d, m).0
+                    * (self.p.moon_sky.w * PI / cd)
+                    * colour
+                    * MOON_SKY_TINT;
+            }
+        }
+        (l, e)
+    }
+
+    /// The moonlit sky seen from the camera, with the moon's disc.
+    fn moon_sky_seen(&self, rd: Vec3) -> Vec3 {
+        let colour = self.p.moon_sky.truncate();
+        let mut c = Vec3::ZERO;
+        if self.p.moon_sky.w > 0.0 && rd.y > 0.0 {
+            c += colour * MOON_SKY_TINT * self.p.moon_sky.w;
+        }
+        if self.p.moon.w > 0.0 && rd.dot(self.p.moon.truncate()) > 0.99978 {
+            c += colour * (self.p.moon.w / 1.377e-3);
+        }
+        c
     }
 
     fn hit_luminaires(&self, ro: Vec3, rd: Vec3, t_max: f32) -> (f32, Option<usize>, i32, Vec3) {
@@ -779,7 +821,7 @@ impl<'a> Scene<'a> {
             }
             if hit.mat < 0 {
                 if primary {
-                    radiance += self.sky(rd);
+                    radiance += self.sky(rd) + self.moon_sky_seen(rd);
                 } else {
                     let fill = if self.p.f0.w > 0.5 {
                         Vec3::new(0.8, 0.88, 1.0)
@@ -1399,6 +1441,75 @@ impl CpuTracer {
 mod tests {
     use super::*;
     use crate::viewer::Viewer;
+
+    #[test]
+    fn the_full_moon_lights_the_street_with_the_lamps_off() {
+        // Berlin, 2026-01-03 00:30: full moon high in the south (+Z)
+        let mut v = Viewer::default();
+        v.load_sample(0);
+        let mut sync = crate::sync::SyncSettings::for_scene(crate::scene::SceneKind::Street);
+        sync.moon = true;
+        sync.moon_date = "2026-01-03".into();
+        sync.moon_hour = 0.5;
+        sync.lamps_off = true;
+        sync.mode = "points".into();
+        sync.haze = 0.0;
+        v.apply_sync(&sync);
+        v.edit(|s| s.mode = crate::viewer::ViewMode::Points);
+        v.resize(64.0, 40.0, 1.0);
+        v.update(0.016);
+        let sky = v.status().sky.expect("natural light on");
+        assert_eq!(sky.kind, crate::moon::SkyKind::Moon);
+        let moon = sky.moon;
+        let input = v.frame_input();
+        assert!(input.params.moon.w > 0.0 && input.params.moon_sky.w > 0.0);
+        assert!(input.lamps.iter().all(|l| l.r0[3] >= 0.999), "lamps off");
+        let table = &v.photometry.as_ref().unwrap().table;
+        let mut cpu = CpuTracer::new();
+        for _ in 0..4 {
+            cpu.probe_pass(&input, table, 16);
+        }
+        v.probe_values = cpu.probe_values().to_vec();
+        let stats = v.grid_statistics();
+        let road = stats.iter().max_by_key(|g| g.name.len()).unwrap();
+        // the beam on open ground plus most of the moonlit sky
+        let direct = moon.horizontal_lux - moon.sky_lux;
+        eprintln!(
+            "moon {moon:?} | {} Em {:.3} Emin {:.3}",
+            road.name, road.em, road.emin
+        );
+        assert!(road.em > direct * 0.9, "Em {} vs beam {direct}", road.em);
+        assert!(
+            road.em < moon.horizontal_lux * 1.1,
+            "Em {} vs {}",
+            road.em,
+            moon.horizontal_lux
+        );
+        // the moon on, the lamps on: more light than the lamps alone
+        let mut lit = sync.clone();
+        lit.lamps_off = false;
+        v.apply_sync(&lit);
+        v.update(0.016);
+        let with = v.frame_input();
+        assert!(with.lamps.iter().any(|l| l.r0[3] < 0.5));
+        // natural light off: "luminaires off" no longer applies
+        let mut dark = sync.clone();
+        dark.moon = false;
+        v.apply_sync(&dark);
+        v.update(0.016);
+        assert!(
+            v.frame_input().lamps.iter().any(|l| l.r0[3] < 0.5),
+            "lamps on without natural light"
+        );
+        // a scene switch turns them back on too
+        assert!(!sync.switched_to(crate::scene::SceneKind::Parking).lamps_off);
+        // the moon off: no moon in the shader
+        lit.moon = false;
+        v.apply_sync(&lit);
+        v.update(0.016);
+        assert_eq!(v.frame_input().params.moon.w, 0.0);
+        assert!(v.status().sky.is_none());
+    }
 
     #[test]
     fn cpu_grid_values_are_physically_plausible() {

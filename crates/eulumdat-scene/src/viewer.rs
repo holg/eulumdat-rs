@@ -289,6 +289,12 @@ pub struct Settings {
     /// The host draws the plan's emergency markings
     /// ([`Viewer::emergency_marks`]); off = as a person escaping sees it.
     pub show_emergency_marks: bool,
+    /// Natural light over outdoor scenes for a date, time and place (the
+    /// sun's or moon's beam with shadows and the sky, in the picture and in
+    /// the lux values).
+    pub sky: Option<crate::moon::SkyLight>,
+    /// All luminaires off (the scene in natural light alone).
+    pub lamps_off: bool,
 }
 
 impl Default for Settings {
@@ -318,6 +324,8 @@ impl Default for Settings {
             show_sensor_volume: false,
             emergency_mode: false,
             show_emergency_marks: true,
+            sky: None,
+            lamps_off: false,
         }
     }
 }
@@ -329,13 +337,12 @@ pub struct Sample {
     pub scene: SceneKind,
 }
 
+/// A sample LDT from `samples/` (copies of the editor's templates in
+/// `eulumdat-wasm/templates/`: a published crate can only embed its own
+/// files).
 macro_rules! template {
     ($f:literal) => {
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/../eulumdat-wasm/templates/",
-            $f
-        ))
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/samples/", $f))
     };
 }
 
@@ -804,9 +811,49 @@ impl Viewer {
         })
     }
 
-    /// Exposure key (lx): a few lux in emergency mode.
+    /// The natural light on the scene now: on, outdoors, not in emergency
+    /// mode (codes do not count it).
+    pub fn sky_light(&self) -> Option<crate::moon::SkyLight> {
+        self.settings
+            .sky
+            .filter(|_| self.scene.outdoor && !self.settings.emergency_mode)
+    }
+
+    /// The natural light decides exposure and false colours: by day, at
+    /// dusk brighter than the lamps' own range, or with the lamps off.
+    fn natural_dominates(&self) -> Option<crate::moon::SkyLight> {
+        self.sky_light()
+            .filter(|s| self.settings.lamps_off || s.horizontal_lux > 0.5 * self.lux_max)
+    }
+
+    /// False-colour range and isoline step: the lamps' own, or the natural
+    /// light's when it dominates.
+    pub fn shown_lux_range(&self) -> (f32, f32) {
+        match self.natural_dominates() {
+            Some(s) => {
+                let max = crate::photometry::nice_ceil((s.horizontal_lux * 1.3).max(0.01));
+                (max, max / 10.0)
+            }
+            None => (self.lux_max, self.iso_step),
+        }
+    }
+
+    /// Exposure key (lx): a few lux in emergency mode; daylight and
+    /// twilight as they are when they outshine the lamps; with the lamps
+    /// off at night, six times the moonlight (a night picture, not a
+    /// camera's daylight-bright long exposure).
     fn key_lux(&self) -> f32 {
         let normal = camera_key_lux(&self.scene);
+        if let Some(s) = self.natural_dominates() {
+            use crate::moon::SkyKind;
+            return match s.kind {
+                SkyKind::Sun | SkyKind::Twilight => s.horizontal_lux,
+                SkyKind::Moon | SkyKind::Night => (s.horizontal_lux * 6.0).max(0.05),
+            };
+        }
+        if self.settings.lamps_off && !self.settings.emergency_mode {
+            return 0.05;
+        }
         if self.settings.emergency_mode {
             normal / 2f32.powf(EMERGENCY_ADAPT_STOPS * self.adaptation())
         } else {
@@ -858,6 +905,11 @@ impl Viewer {
             self.reset_token += 1;
         }
         if s.bounces != old.bounces {
+            self.probe_reset_token += 1;
+        }
+        if s.sky != old.sky || s.lamps_off != old.lamps_off {
+            // other light everywhere: the picture and the points start over
+            self.reset_token += 1;
             self.probe_reset_token += 1;
         }
         if s.glare != old.glare {
@@ -1367,9 +1419,15 @@ impl Viewer {
         self.peak_lux = max.max(anchor_lux).max(1e-3);
         let f = self.display_factor();
         if self.settings.emergency_mode {
-            // EN 1838 lives between 0.5 and a few lux
-            self.lux_max = EMERGENCY_LUX_MAX;
-            self.iso_step = 0.5;
+            // EN 1838 lives between 0.5 and a few lux, China up to 10
+            self.lux_max = self
+                .settings
+                .params
+                .plan
+                .as_ref()
+                .and_then(|p| p.emergency.as_ref())
+                .map_or(EMERGENCY_LUX_MAX, |e| e.standard.lux_max.max(1.0));
+            self.iso_step = self.lux_max / 10.0;
         } else if f > 0.0 {
             self.lux_max = nice_ceil(max.max(1e-3) * 1.02 * f) / f;
             self.iso_step = nice_ceil(self.lux_max * f / 10.0) / f;
@@ -1578,6 +1636,9 @@ impl Viewer {
             .get(i)
             .map(|l| l.role.level(self.settings.emergency_mode))
             .unwrap_or(1.0);
+        if self.settings.lamps_off && !self.settings.emergency_mode {
+            return 0.0;
+        }
         self.sensing.lamp_level.get(i).copied().unwrap_or(1.0) * role
     }
 
@@ -2134,7 +2195,23 @@ impl Viewer {
                 self.mesh.as_ref().map_or(0, |m| m.nodes.len() as u32),
                 self.mesh.as_ref().map_or(0, |m| m.tris.len() as u32),
             ),
+            moon: Vec4::ZERO,
+            moon_sky: Vec4::ZERO,
         };
+        let mut params = params;
+        if let Some(sky) = self.sky_light() {
+            // the beam's colour with the lamps' luma, so the lux of
+            // reflected natural light come out right (`/ tint.w`); the sky
+            // is uniform: radiance = horizontal illuminance / π
+            let c = kelvin_to_linear_rgb(sky.beam_cct);
+            let luma = (0.2126 * c.x + 0.7152 * c.y + 0.0722 * c.z).max(1e-4);
+            let beam = if sky.dir.y > 0.0 { sky.beam_lux } else { 0.0 };
+            params.moon = sky.dir.extend(beam);
+            params.moon_sky = (c / luma * tint_luma).extend(sky.sky_lux / std::f32::consts::PI);
+        }
+        let (lux_max, iso_step) = self.shown_lux_range();
+        params.f2.z = lux_max;
+        params.f2.w = iso_step;
 
         FrameInput {
             params,
@@ -2202,6 +2279,15 @@ impl Viewer {
     }
 
     pub fn status(&self) -> Status {
+        let mut st = self.status_without_moon();
+        st.sky = self.settings.sky.filter(|_| self.scene.outdoor);
+        st.outdoor = self.scene.outdoor;
+        let (lux_max, _) = self.shown_lux_range();
+        st.lux_max = lux_max;
+        st
+    }
+
+    fn status_without_moon(&self) -> Status {
         let (name, lumens, peak_cd, throw_c, asymmetry, cct_file) = self
             .photometry
             .as_ref()
@@ -2217,6 +2303,8 @@ impl Viewer {
             })
             .unwrap_or_default();
         Status {
+            sky: None,
+            outdoor: false,
             name,
             lumens,
             peak_cd,
@@ -2342,6 +2430,7 @@ impl Viewer {
                 "presence" => Motion::Presence,
                 _ => Motion::Tangential,
             },
+            dims: sync.sensor_dim,
         };
         match sync.rotation {
             Some(r) => {
@@ -2415,6 +2504,10 @@ impl Viewer {
             self.camera_mode = CameraMode::Animate;
             self.scene_dirty = true;
         }
+        self.settings.sky = sync.moon_time().and_then(|t| t.sky());
+        // "luminaires off" belongs to the natural light: without it, the
+        // lamps stay on (it used to darken every later scene, hidden)
+        self.settings.lamps_off = sync.lamps_off && sync.moon;
         self.after_edit(&old);
     }
 
@@ -2943,6 +3036,7 @@ mod tests {
             routes: vec![(vec![Vec2::new(0.5, 2.5), Vec2::new(5.5, 2.5)], 2.0)],
             open_area: None,
             points: vec![],
+            ..Default::default()
         });
         Arc::new(plan)
     }
@@ -2986,8 +3080,12 @@ mod tests {
         }
         v.probe_values = cpu.probe_values().to_vec();
         let stats = v.grid_statistics();
-        assert_eq!(stats.len(), 1, "route segments count as one grid");
-        let route = &stats[0];
+        // the segments count as one grid, the band's edges as another
+        assert_eq!(stats.len(), 2, "{stats:?}");
+        let route = stats
+            .iter()
+            .find(|g| g.name == crate::scene::GRID_ROUTE)
+            .unwrap();
         // 180 lm emergency optic at 2.95 m: a few lux on the floor below
         // it, far below the normal lighting's hundreds
         assert!(route.emax > 1.0 && route.emax < 60.0, "{route:?}");
@@ -3159,6 +3257,7 @@ mod tests {
             name: "1".into(),
             path: vec![(19.5, 3.75), (5.0, 3.75), (5.0, 14.5)],
             width: 2.0,
+            place: Default::default(),
         }];
         let pt = |kind, x, y, f| EmphasisPoint {
             kind,
@@ -3182,6 +3281,7 @@ mod tests {
             routes: &routes,
             room: Some(&room),
             open_area: Some(&room),
+            open_area_place: emergency::PlaceCategory::CrowdedPlace,
             points: &points,
         };
         let pos = emergency::auto_layout(&input, &limits, &set);
@@ -3224,6 +3324,7 @@ mod tests {
                         vertical: true,
                     })
                     .collect(),
+                ..Default::default()
             }),
             ..Default::default()
         };
@@ -3266,6 +3367,13 @@ mod tests {
             rep.points[1].vertical_lx.unwrap(),
         ];
         let scene = [route.emin, area.emin, vertical[0], vertical[1]];
+        // the central band: its edges with the centre line
+        let band = get(crate::scene::GRID_ROUTE_BAND).emin.min(route.emin) as f64;
+        let core_band = rep.routes[0].band.min_lx;
+        assert!(
+            (band - core_band).abs() / core_band < 0.08,
+            "band: core {core_band:.2} scene {band:.2}"
+        );
         eprintln!(
             "core {core:.2?} | scene {scene:.2?} | equipment Emin {:.2}",
             eq.emin
@@ -3278,6 +3386,79 @@ mod tests {
                 "core {core:.2?} scene {scene:.2?}"
             );
         }
+    }
+
+    #[test]
+    fn outdoor_plan_matches_the_area_designer() {
+        // the Outdoor designer's 2 × 3 grid on 60 × 40 m, road luminaire at 8 m
+        use eulumdat::area::{compute_area_illuminance, LuminairePlace};
+        let ldt = Eulumdat::parse(include_str!(
+            "../../eulumdat-wasm/templates/road_luminaire.ldt"
+        ))
+        .unwrap();
+        let poles: Vec<(f64, f64)> = [10.0, 30.0, 50.0]
+            .iter()
+            .flat_map(|&x| [10.0, 30.0].map(|y| (x, y)))
+            .collect();
+        let places: Vec<LuminairePlace> = poles
+            .iter()
+            .enumerate()
+            .map(|(i, &(x, y))| LuminairePlace::simple(i, x, y, 8.0))
+            .collect();
+        let core = compute_area_illuminance(&ldt, &places, 60.0, 40.0, 40, 1.0);
+        let plan = ScenePlan {
+            name: "60 × 40 m".into(),
+            indoor: false,
+            outline: vec![
+                Vec2::new(0.0, 0.0),
+                Vec2::new(60.0, 0.0),
+                Vec2::new(60.0, 40.0),
+                Vec2::new(0.0, 40.0),
+            ],
+            reflectances: [0.0, 0.0, 0.1],
+            luminaires: poles
+                .iter()
+                .map(|&(x, y)| crate::scene::PlanLuminaire {
+                    position: Vec3::new(x as f32, 8.0, y as f32),
+                    pole: Some(Vec2::new(x as f32, y as f32)),
+                    ..Default::default()
+                })
+                .collect(),
+            ..Default::default()
+        };
+        let mut v = Viewer::default();
+        v.load("road", ldt, Some(SceneKind::Planned));
+        v.set_plan(Some(Arc::new(plan)));
+        let mut sync = SyncSettings::for_scene(SceneKind::Planned);
+        sync.mode = "points".into();
+        sync.auto_quick = false;
+        sync.bounces = 1;
+        v.apply_sync(&sync);
+        v.resize(64.0, 40.0, 1.0);
+        v.update(0.016);
+        let f = v.frame_input();
+        let table = v.ies_table().unwrap().clone();
+        let mut cpu = crate::cpu::CpuTracer::new();
+        for _ in 0..2 {
+            cpu.probe_pass(&f, &table, 8);
+        }
+        v.probe_values = cpu.probe_values().to_vec();
+        let g = v.grid_statistics()[0].clone();
+        eprintln!(
+            "core avg {:.1} min {:.1} max {:.1} | scene Em {:.1} Emin {:.2} ({} points)",
+            core.avg_lux,
+            core.min_lux,
+            core.max_lux,
+            g.em,
+            g.emin,
+            v.layout.points.len()
+        );
+        assert!(
+            (g.em as f64 - core.avg_lux).abs() / core.avg_lux < 0.08,
+            "core {:.1} scene {:.1}",
+            core.avg_lux,
+            g.em
+        );
     }
 
     #[test]

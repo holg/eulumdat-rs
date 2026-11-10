@@ -159,6 +159,53 @@ async fn compile_typst_to_pdf(typst_source: &str) -> Result<Vec<u8>, String> {
     }
 }
 
+/// The emergency-lighting part of a PDF (Typst): the plan with routes and
+/// luminaires, the floor in emergency mode and the rows of the chosen
+/// standard. Starts with a page break.
+fn emergency_typst(
+    er: &zonal_emergency::EmResult,
+    routes: &[zonal_emergency::RouteDraft],
+    room: &Room,
+    layout: &eulumdat::zonal::LuminaireLayout,
+    theme: &SvgTheme,
+    u: eulumdat::UnitSystem,
+    floor: &Room,
+) -> String {
+    let svg = ZonalSvg::room_plan_with_overlay(room, layout, theme, u, &|ox, oy, s| {
+        zonal_emergency::overlay(Some(er), routes, &[], ox, oy, s, false)
+    });
+    // the floor in emergency mode, normal lighting off
+    let g = zonal_emergency::floor(er, &room_polygon(floor));
+    let floor_svg = ZonalSvg::room_plan_styled(
+        room,
+        layout,
+        theme,
+        u,
+        &|ox, oy, s| {
+            let mut o = zonal_emergency::floor_svg(
+                &g,
+                &zonal_emergency::floor_bands(&er.limits),
+                ox,
+                oy,
+                s,
+            );
+            o.push_str(&zonal_emergency::overlay(
+                Some(er),
+                routes,
+                &[],
+                ox,
+                oy,
+                s,
+                false,
+            ));
+            o
+        },
+        None,
+        er.source.which != zonal_emergency::EmLuminaire::Room,
+    );
+    zonal_emergency::typst_section(er, &svg, Some((&floor_svg, &g)))
+}
+
 /// The room's floor outline (the drawn shape, else the rectangle).
 fn room_polygon(room: &Room) -> Vec<(f64, f64)> {
     room.outline.clone().unwrap_or_else(|| {
@@ -828,7 +875,47 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             }));
         }
         let emergency_mode = em.is_some() && emergency.show.get_untracked();
+        // what the chosen standard requires, for the check in the scene
+        let em_standard = em.as_ref().map(|r| {
+            use eulumdat::emergency::PlaceCategory as P;
+            let l = &r.limits;
+            let finite = |v: f64| if v.is_finite() { v as f32 } else { 0.0 };
+            let rl = l.route_limits(P::EscapeCorridor);
+            let al = l.area_limits(emergency.open_place.get_untracked());
+            eulumdat_scene::scene::EmStandard {
+                name: l.name.clone(),
+                route_centre_lx: rl.centre_min_lx as f32,
+                route_band_lx: rl.band_min_lx as f32,
+                route_ratio: finite(rl.max_ratio),
+                route_avg_lx: rl.avg_min_lx as f32,
+                route_band_share: rl.band_share as f32,
+                route_edge_max_m: if rl.edge_max_m.is_finite() {
+                    rl.edge_max_m as f32
+                } else {
+                    0.0
+                },
+                ratio_over_band: rl.ratio_over_band,
+                area_avg_lx: al.avg_min_lx as f32,
+                stairs_lx: l.route_limits(P::StairsOrRefuge).band_min_lx as f32,
+                area_lx: al.min_lx as f32,
+                area_ratio: finite(al.max_ratio),
+                area_border_m: al.border_m as f32,
+                vertical_lx: if l.checks_emphasis() {
+                    l.emphasis_min_vertical_lx as f32
+                } else {
+                    0.0
+                },
+                lux_max: crate::components::zonal_emergency::floor_bands(l)[5] as f32,
+            }
+        });
         let emergency = em.as_ref().map(|r| PlanEmergency {
+            route_stairs: emergency
+                .routes
+                .get_untracked()
+                .iter()
+                .map(|rt| rt.place == eulumdat::emergency::PlaceCategory::StairsOrRefuge)
+                .collect(),
+            standard: em_standard.clone().unwrap_or_default(),
             routes: emergency
                 .routes
                 .get_untracked()
@@ -1553,23 +1640,7 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 }
                                 if let Some(er) = em_result.get_untracked() {
                                     let routes = emergency.routes.get_untracked();
-                                    let svg = ZonalSvg::room_plan_with_overlay(
-                                        &room, &r.layout, &theme, u,
-                                        &|ox, oy, s| zonal_emergency::overlay(Some(&er), &routes, &[], ox, oy, s, false),
-                                    );
-                                    // the floor in emergency mode, normal lighting off
-                                    let g = zonal_emergency::floor(&er, &room_polygon(&floor.get_untracked()));
-                                    let floor_svg = ZonalSvg::room_plan_styled(
-                                        &room, &r.layout, &theme, u,
-                                        &|ox, oy, s| {
-                                            let mut o = zonal_emergency::floor_svg(&g, ox, oy, s);
-                                            o.push_str(&zonal_emergency::overlay(Some(&er), &routes, &[], ox, oy, s, false));
-                                            o
-                                        },
-                                        None,
-                                        er.source.which != zonal_emergency::EmLuminaire::Room,
-                                    );
-                                    typ.push_str(&zonal_emergency::typst_section(&er, &svg, Some((&floor_svg, &g))));
+                                    typ.push_str(&emergency_typst(&er, &routes, &room, &r.layout, &theme, u, &floor.get_untracked()));
                                 }
 
                                 typ.push_str("#pagebreak()\n\n");
@@ -1604,6 +1675,44 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 });
                             }
                         >{move || if pdf_exporting.get() { locale.get().designer.exporting_pdf.clone() } else { locale.get().zonal_designer.export_pdf.clone() }}</button>
+                        // the emergency lighting alone, for the chosen standard
+                        {move || em_result.with(|r| r.as_ref().map(|r| r.limits.name.clone())).map(|std_name| view! {
+                            <button class="zonal-export-btn"
+                                disabled=move || pdf_exporting.get()
+                                on:click=move |_| {
+                                    let Some(er) = em_result.get_untracked() else { return; };
+                                    let u = units.get_untracked();
+                                    let r = result.get_untracked();
+                                    let room = Room::new(
+                                        room_length.get_untracked(), room_width.get_untracked(), room_height.get_untracked(),
+                                        workplane_height.get_untracked(), suspension_length.get_untracked(),
+                                    ).with_outline(shape_m());
+                                    let theme = SvgTheme::light();
+                                    let routes = emergency.routes.get_untracked();
+                                    let typ = zonal_emergency::report_typst(
+                                        &er,
+                                        &room,
+                                        &emergency_typst(&er, &routes, &room, &r.layout, &theme, u, &floor.get_untracked()),
+                                    );
+                                    set_pdf_exporting.set(true);
+                                    let file = format!("emergency_lighting_{}", er.limits.id);
+                                    wasm_bindgen_futures::spawn_local(async move {
+                                        match compile_typst_to_pdf(&typ).await {
+                                            Ok(pdf_bytes) => {
+                                                super::file_handler::download_bytes(
+                                                    &format!("{file}.pdf"), &pdf_bytes, "application/pdf",
+                                                );
+                                            }
+                                            Err(e) => {
+                                                web_sys::console::error_1(&format!("PDF export failed: {e}").into());
+                                                super::file_handler::download_file(&format!("{file}.typ"), &typ, "text/plain");
+                                            }
+                                        }
+                                        set_pdf_exporting.set(false);
+                                    });
+                                }
+                            >{move || fill(&locale.get().zonal_designer.emergency.report_pdf, &[("std", std_name.clone())])}</button>
+                        })}
                     </div>
                 </div>
 
@@ -1660,8 +1769,8 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 let overlay = |ox, oy, s| {
                                     let mut o = String::new();
                                     // emergency conditions: the floor in the emergency light
-                                    if let Some(g) = em_floor_map.as_ref() {
-                                        o.push_str(&zonal_emergency::floor_svg(g, ox, oy, s));
+                                    if let (Some(g), Some(er)) = (em_floor_map.as_ref(), em.as_ref()) {
+                                        o.push_str(&zonal_emergency::floor_svg(g, &zonal_emergency::floor_bands(&er.limits), ox, oy, s));
                                     }
                                     o.push_str(&p.as_ref().map(|p| p.overlay(ox, oy, s, sensors.show_all.get())).unwrap_or_default());
                                     o.push_str(&zonal_emergency::overlay(em.as_ref(), &em_routes, &em_wip, ox, oy, s, true));

@@ -8,7 +8,6 @@
 //! arc-minutes in position and well under 1 % in illuminated fraction — far
 //! better than any photometric night model needs.
 
-use crate::solar::solar_position;
 use std::f64::consts::PI;
 
 const DEG: f64 = PI / 180.0;
@@ -27,6 +26,17 @@ pub struct MoonPosition {
     pub phase_angle_rad: f64,
     /// Whether the moon is waxing (true) or waning (false).
     pub waxing: bool,
+    /// Distance Earth–Moon centre to centre (km), 356 000 … 407 000.
+    #[cfg_attr(feature = "serde", serde(default = "mean_distance"))]
+    pub distance_km: f64,
+}
+
+/// Mean Earth–Moon distance (km).
+pub const MEAN_DISTANCE_KM: f64 = 384_400.0;
+
+#[cfg(feature = "serde")]
+fn mean_distance() -> f64 {
+    MEAN_DISTANCE_KM
 }
 
 impl MoonPosition {
@@ -164,6 +174,26 @@ pub fn moon_position(
         + 0.032573 * (2.0 * dr + fr).sin()
         + 0.017198 * (2.0 * mpr + fr).sin();
 
+    // Distance (Σr, Meeus Table 47.A, the largest terms; E = eccentricity
+    // factor of the Earth's orbit for terms with the sun's anomaly), km.
+    let e = 1.0 - 0.002516 * t - 0.0000074 * t * t;
+    let dist = 385_000.56
+        + (-20_905_355.0 * mpr.cos()
+            - 3_699_111.0 * (2.0 * dr - mpr).cos()
+            - 2_955_968.0 * (2.0 * dr).cos()
+            - 569_925.0 * (2.0 * mpr).cos()
+            + 48_888.0 * e * mr.cos()
+            - 3_149.0 * (2.0 * fr).cos()
+            + 246_158.0 * (2.0 * dr - 2.0 * mpr).cos()
+            - 152_138.0 * e * (2.0 * dr - mr - mpr).cos()
+            - 170_733.0 * (2.0 * dr + mpr).cos()
+            - 204_586.0 * e * (2.0 * dr - mr).cos()
+            - 129_620.0 * dr.cos()
+            + 108_743.0 * e * (mr - mpr).cos()
+            + 104_755.0 * e * (mr + mpr).cos()
+            + 10_321.0 * (2.0 * dr - 2.0 * fr).cos())
+            / 1000.0;
+
     let lambda = lon * DEG; // ecliptic longitude (rad)
     let beta = lat * DEG; // ecliptic latitude (rad)
 
@@ -188,32 +218,28 @@ pub fn moon_position(
         az += 2.0 * PI;
     }
 
-    // --- Phase: elongation of the moon from the sun, and illuminated fraction.
-    // Use the sun's ecliptic longitude from the solar model's celestial geometry
-    // by comparing directions; a compact approximation uses the mean elongation
-    // D plus the equation-of-centre corrections, but the illuminated fraction is
-    // well-approximated by (1 - cos(phase_angle))/2 with phase_angle ≈ π - D_true.
-    // Compute the true elongation from apparent longitudes for good accuracy.
-    let sun = solar_position(year, month, day, utc_hours, latitude_deg, longitude_deg);
-    let _ = &sun; // used below only for consistency; elongation via longitudes
-                  // Sun apparent ecliptic longitude (low precision).
+    // --- Phase: the true elongation ψ of the moon from the sun (the moon's
+    // ecliptic latitude included: at full moon it keeps the phase angle off
+    // zero, which matters for the opposition surge and for eclipses), then
+    // the phase angle i from tan i = R sin ψ / (Δ − R cos ψ) (Meeus 48.2 /
+    // 48.3) and the illuminated fraction k = (1 + cos i) / 2.
     let sun_lon =
         norm360(280.46646 + 36000.76983 * t) + 1.914602 * (mr).sin() + 0.019993 * (2.0 * mr).sin();
-    let elongation = norm360(lon - sun_lon) * DEG; // moon − sun ecliptic longitude
-                                                   // Phase angle i ≈ 180° − elongation (as seen from Earth, small-parallax approx).
-    let phase_angle = PI - elongation;
-    let phase_angle = phase_angle.rem_euclid(2.0 * PI);
-    // Illuminated fraction k = (1 + cos i) / 2.
+    let dl = norm360(lon - sun_lon) * DEG; // moon − sun ecliptic longitude
+    let psi = (beta.cos() * dl.cos()).clamp(-1.0, 1.0).acos();
+    const SUN_DISTANCE_KM: f64 = 149_597_870.7;
+    let phase_angle = (SUN_DISTANCE_KM * psi.sin()).atan2(dist - SUN_DISTANCE_KM * psi.cos());
     let illuminated = (1.0 + phase_angle.cos()) / 2.0;
-    // Waxing while elongation grows from 0→180° (moon east of sun).
-    let waxing = elongation < PI;
+    // Waxing while the moon is east of the sun (longitude difference 0…180°).
+    let waxing = dl < PI;
 
     MoonPosition {
         altitude_rad: alt,
         azimuth_rad: az,
         illuminated_fraction: illuminated.clamp(0.0, 1.0),
-        phase_angle_rad: (PI - elongation).abs().min(PI),
+        phase_angle_rad: phase_angle.clamp(0.0, PI),
         waxing,
+        distance_km: dist,
     }
 }
 
@@ -247,6 +273,28 @@ mod tests {
             m.illuminated_fraction
         );
         assert_eq!(m.phase_name(), MoonPhase::New);
+    }
+
+    /// The distance stays within perigee / apogee and swings through both
+    /// within a month: the full moon of 2026-01-03 is close (perigee at
+    /// the turn of the year), the apogee half an anomalistic month later.
+    #[test]
+    fn distance_between_perigee_and_apogee() {
+        let d: Vec<f64> = (1..=28)
+            .map(|day| moon_position(2026, 1, day, 12.0, 0.0, 0.0).distance_km)
+            .collect();
+        let (lo, hi) = d
+            .iter()
+            .fold((f64::MAX, 0.0f64), |(a, b), &x| (a.min(x), b.max(x)));
+        assert!((356_000.0..366_000.0).contains(&lo), "perigee {lo:.0}");
+        assert!((400_000.0..407_000.0).contains(&hi), "apogee {hi:.0}");
+        let near = d.iter().position(|&x| x == lo).unwrap() + 1;
+        let far = d.iter().position(|&x| x == hi).unwrap() + 1;
+        assert!(near <= 3, "perigee early in January, day {near}");
+        assert!(
+            (11..=15).contains(&(far - near)),
+            "apogee {far} vs perigee {near}"
+        );
     }
 
     /// The illuminated fraction cycles through a full synodic month (~29.5 d):

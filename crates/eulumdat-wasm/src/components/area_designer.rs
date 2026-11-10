@@ -407,6 +407,26 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let (polygon_drawing, set_polygon_drawing) = signal(false);
     let (polygon_wip, set_polygon_wip) = signal(Vec::<(f64, f64)>::new());
 
+    // --- Site map (OpenStreetMap under the plan) ---
+    let site_map = super::site_map::SiteMapState::from_link(|k| url_get(k));
+    // the area's middle is the site
+    let site_anchor = move || (area_width.get() / 2.0, area_depth.get() / 2.0);
+    // with the map the plan keeps its true proportions (500 wide)
+    let plan_h = Memo::new(move |_| {
+        if site_map.on.get() && site_map.site.get().is_some() {
+            let (w, d) = match custom_polygon.get() {
+                Some(p) => {
+                    let (x0, y0, x1, y1) = p.bounding_box();
+                    (x1 - x0, y1 - y0)
+                }
+                None => (area_width.get(), area_depth.get()),
+            };
+            (80.0 + 420.0 * d / w.max(1.0)).clamp(200.0, 760.0)
+        } else {
+            400.0
+        }
+    });
+
     // --- Pole state ---
     let url_poles = url_get("poles").map(|s| decode_poles(&s));
     let (poles, set_poles) = signal(Vec::<PoleState>::new());
@@ -602,6 +622,10 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             Some(q) => format!("{hash}&{q}&sh={:.1}", sensor_height.get()),
             None => hash,
         };
+        let hash = match site_map.link_query() {
+            Some(q) => format!("{hash}&{q}"),
+            None => hash,
+        };
         set_url_hash(&hash);
     };
 
@@ -762,31 +786,44 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                     .unwrap_or_default()
             })
         };
+        // the site map under the plan (OpenStreetMap tiles)
+        let ph = plan_h.get();
+        let map = site_map.map(site_anchor());
+        let bounds = custom_polygon
+            .get()
+            .map(|p| p.bounding_box())
+            .unwrap_or((0.0, 0.0, aw, ad));
+        let underlay = move |ox: f64, oy: f64, sx: f64, sy: f64| {
+            map.map(|m| m.svg(bounds, (ox, oy, sx, sy), 1.6, 48))
+                .unwrap_or_default()
+        };
         let mut svg = if let Some(ref poly) = custom_polygon.get() {
-            AreaSvg::plan_view_with_polygon_overlay(
+            AreaSvg::plan_view_with_polygon_layers(
                 &pole_positions,
                 &placements,
                 poly,
                 500.0,
-                400.0,
+                ph,
                 &svg_theme,
                 sel,
                 lpp,
                 units.get(),
+                &underlay,
                 &overlay,
             )
         } else {
-            AreaSvg::plan_view_with_poles_overlay(
+            AreaSvg::plan_view_with_poles_layers(
                 &pole_positions,
                 &placements,
                 aw,
                 ad,
                 500.0,
-                400.0,
+                ph,
                 &svg_theme,
                 sel,
                 lpp,
                 units.get(),
+                &underlay,
                 &overlay,
             )
         };
@@ -800,7 +837,7 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             }
             let margin = 40.0;
             let plot_w = 500.0 - 2.0 * margin;
-            let plot_h = 400.0 - 2.0 * margin;
+            let plot_h = ph - 2.0 * margin;
             let sx = plot_w / aw;
             let sy = plot_h / ad;
 
@@ -833,12 +870,12 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let plan_ref = NodeRef::<leptos::html::Div>::new();
     let svg_margin = 40.0;
     let svg_w = 500.0;
-    let svg_h = 400.0;
 
-    // Convert mouse screen coords to world coords.
+    // Convert mouse screen coords to world coords (not clamped to the area).
     // Accounts for SVG preserveAspectRatio="xMidYMid meet" (default):
     // the SVG content is uniformly scaled and centered within the element.
-    let screen_to_world_from_event = move |ev: &web_sys::MouseEvent| -> Option<(f64, f64)> {
+    let screen_to_world_raw = move |ev: &web_sys::MouseEvent| -> Option<(f64, f64)> {
+        let svg_h = plan_h.get_untracked();
         let container = plan_ref.get()?;
         let svg_el = container.query_selector("svg").ok().flatten()?;
         let rect = svg_el.get_bounding_client_rect();
@@ -873,10 +910,24 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
 
         let wx = (svg_x - svg_margin) / plot_w * aw;
         let wy = (svg_y - svg_margin) / plot_h * ad;
+        Some((wx, wy))
+    };
+    let screen_to_world_from_event = move |ev: &web_sys::MouseEvent| -> Option<(f64, f64)> {
+        let (wx, wy) = screen_to_world_raw(ev)?;
+        let (aw, ad) = (area_width.get_untracked(), area_depth.get_untracked());
         Some((wx.clamp(0.0, aw), wy.clamp(0.0, ad)))
     };
 
     let on_plan_mousedown = move |ev: web_sys::MouseEvent| {
+        // moving the site map: the map follows the pointer
+        if site_map.moving.get_untracked() {
+            if let (Some(w), Some(site)) = (screen_to_world_raw(&ev), site_map.site.get_untracked())
+            {
+                site_map.drag.set(Some((w, site)));
+                ev.prevent_default();
+            }
+            return;
+        }
         let Some((wx, wy)) = screen_to_world_from_event(&ev) else {
             return;
         };
@@ -951,6 +1002,16 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     };
 
     let on_plan_mousemove = move |ev: web_sys::MouseEvent| {
+        if site_map.drag.with_untracked(|d| d.is_some()) {
+            if let Some(w) = screen_to_world_raw(&ev) {
+                let anchor = (
+                    area_width.get_untracked() / 2.0,
+                    area_depth.get_untracked() / 2.0,
+                );
+                site_map.drag_to(w, anchor);
+            }
+            return;
+        }
         if let Some(i) = sensor_drag.get_untracked() {
             let Some((wx, wy)) = screen_to_world_from_event(&ev) else {
                 return;
@@ -981,11 +1042,19 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let on_plan_mouseup = move |_ev: web_sys::MouseEvent| {
         set_dragging.set(false);
         sensor_drag.set(None);
+        if site_map.drag.get_untracked().is_some() {
+            site_map.drag.set(None);
+            site_map.store();
+        }
     };
 
     let on_plan_mouseleave = move |_ev: web_sys::MouseEvent| {
         set_dragging.set(false);
         sensor_drag.set(None);
+        if site_map.drag.get_untracked().is_some() {
+            site_map.drag.set(None);
+            site_map.store();
+        }
     };
 
     // --- Quick position presets ---
@@ -1015,6 +1084,8 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // --- Optimizer state ---
     let (opt_target_lux, set_opt_target_lux) = signal(20.0_f64);
+    // moonlight over the area (shown next to the luminaires' results)
+    let moon = super::moon_outdoor::MoonState::new();
     let (opt_target_u0, set_opt_target_u0) = signal(0.0_f64); // 0 = disabled
     let (opt_height_min, set_opt_height_min) = signal(defaults.opt_height_min);
     let (opt_height_max, set_opt_height_max) = signal(defaults.opt_height_max);
@@ -2211,6 +2282,11 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                     </div>
                     // Motion detectors
                     <SensorSidebar state=sensors plan=sensor_plan height=sensor_height/>
+                    // Site map (OpenStreetMap)
+                    <super::site_map::SiteMapSidebar state=site_map
+                        on_pick=Callback::new(move |p: super::location_picker::PickedPlace| moon.place.set(Some(p))) />
+                    // Moonlight
+                    <super::moon_outdoor::MoonSidebar state=moon/>
                 </div>
 
                 // Center: views
@@ -2309,6 +2385,14 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                         </tr>
                                     </table>
                                 </div>
+                                {
+                                    let (rmin, ravg) = (result.min_lux, result.avg_lux);
+                                    view! {
+                                        <super::moon_outdoor::MoonResults state=moon
+                                            stats=Signal::derive(move || (rmin, ravg))
+                                            target=Signal::derive(move || opt_target_lux.get()) />
+                                    }
+                                }
                                 <div class="area-export-buttons">
                                     <button class="area-export-btn"
                                         on:click=move |_| {

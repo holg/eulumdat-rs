@@ -19,6 +19,7 @@ spectrum = ["dep:eulumdat-spectrum"]
 [dependencies]
 bytemuck = { version = "1.14", features = ["derive"] }
 eulumdat = { workspace = true }
+eulumdat-daylight = { workspace = true }
 eulumdat-spectrum = { workspace = true, optional = true }
 glam = { version = "0.32", features = ["bytemuck", "serde"] }
 l3d_rs = { version = "0.2.3", optional = true }

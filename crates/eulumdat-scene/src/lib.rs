@@ -34,6 +34,7 @@ pub mod gpu;
 pub mod l3d;
 pub mod measure;
 pub mod mesh;
+pub mod moon;
 pub mod photometry;
 pub mod scene;
 pub mod sensing;

@@ -8,11 +8,8 @@ repository.workspace = true
 description = "3D scene viewer for photometric data using Bevy game engine"
 keywords = ["lighting", "photometry", "bevy", "3d", "visualization"]
 categories = ["game-development", "visualization"]
-# Depends on `bevy = { git = "https://github.com/holg/bevy.git" }` (the
-# `photometric_proposal` branch). crates.io rejects git deps, so this
-# crate cannot be published until the photometric proposal merges into
-# upstream Bevy. Flip back to `publish = true` once that happens.
-publish = false
+# Publishable again: it is on published Bevy 0.19 (the git fork with the
+# photometric proposal is retired). gldf-rs depends on it.
 
 [lib]
 name = "eulumdat_bevy"

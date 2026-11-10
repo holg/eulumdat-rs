@@ -2570,6 +2570,55 @@ if [[ -d "$LANDING_DIR" ]]; then
             brotli -f -q 11 "$DIST_DIR/app/index.html"
         fi
     fi
+    # Location picker: the geodb-rs globe (WebGPU "mini" build of geodb-globe,
+    # [globe] crate in build-config.toml) at app/globe/, opened with ?pick=1
+    # by the app (components/location_picker.rs). Built to target/globe-mini
+    # when its sources or data changed; without the 10 MB names layer (the
+    # picker does not load it). Skipped with a note when the sibling
+    # repository is not there.
+    GLOBE_CRATE_REL=$(toml_get "globe.crate" "")
+    if [[ -n "$GLOBE_CRATE_REL" ]]; then
+        GLOBE_CRATE="$ROOT_DIR/$GLOBE_CRATE_REL"
+        GLOBE_OUT="$ROOT_DIR/target/globe-mini"
+        if [[ -f "$GLOBE_CRATE/mini.html" ]] && command -v trunk &> /dev/null; then
+            GLOBE_HASH=$({
+                find "$GLOBE_CRATE/src" "$GLOBE_CRATE/../geodb-core/src" -type f -name "*.rs" 2>/dev/null | sort | xargs cat 2>/dev/null
+                cat "$GLOBE_CRATE/mini.html" "$GLOBE_CRATE/Cargo.toml" 2>/dev/null
+                find "$GLOBE_CRATE/assets/mini" -type f 2>/dev/null | sort | xargs cat 2>/dev/null
+            } | if command -v md5sum &> /dev/null; then md5sum | cut -c1-16; else md5 -q | cut -c1-16; fi)
+            GLOBE_OK=true
+            if [[ ! -f "$GLOBE_OUT/index.html" || "$GLOBE_HASH" != "$(get_cached_hash "globe")" ]]; then
+                echo "Building the geodb-rs globe (location picker)..."
+                if (cd "$GLOBE_CRATE" && CARGO_PROFILE_RELEASE_OPT_LEVEL=s CARGO_PROFILE_RELEASE_LTO=fat \
+                        CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1 CARGO_PROFILE_RELEASE_PANIC=abort \
+                        trunk build mini.html --release --public-url ./ --dist "$GLOBE_OUT"); then
+                    save_hash "globe" "$GLOBE_HASH"
+                else
+                    echo "WARNING: the globe did not build; the location picker is not included"
+                    GLOBE_OK=false
+                fi
+            else
+                echo "Globe (location picker): unchanged, skipping build"
+            fi
+            if [[ "$GLOBE_OK" == "true" ]]; then
+                rm -rf "$DIST_DIR/app/globe"
+                mkdir -p "$DIST_DIR/app/globe"
+                for f in "$GLOBE_OUT"/*; do
+                    [[ "$(basename "$f")" == "cities.names" ]] && continue
+                    cp "$f" "$DIST_DIR/app/globe/"
+                done
+                # the data files carry gzip inside their own format
+                if [[ "$SKIP_BROTLI" != "true" && "$HAVE_BROTLI" == "true" ]]; then
+                    for f in "$DIST_DIR/app/globe/"*.js "$DIST_DIR/app/globe/"*.wasm "$DIST_DIR/app/globe/index.html"; do
+                        [[ -f "$f" ]] && brotli -f -q 11 "$f"
+                    done
+                fi
+                echo "Globe (location picker): app/globe/"
+            fi
+        else
+            echo "Globe: $GLOBE_CRATE_REL not found (or trunk missing); the location picker is not included"
+        fi
+    fi
     # The 404 page stays reachable at the root as well.
     [[ -f "$DIST_DIR/app/404.html" ]] && cp "$DIST_DIR/app/404.html" "$DIST_DIR/404.html"
     if [[ "$SKIP_BROTLI" != "true" && "$HAVE_BROTLI" == "true" ]]; then

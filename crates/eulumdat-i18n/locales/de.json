@@ -434,7 +434,6 @@
       "bim": "BIM",
       "area_designer": "Außenbereich",
       "zonal_designer": "Innenraum",
-      "maps_designer": "Karten",
       "beam_angle": "Strahlwinkel",
       "iso_view": "ISO-Ansicht",
       "street_design": "🛣️ Straßenplanung"
@@ -814,6 +813,9 @@
       "reset_moves": "Objekte zurücksetzen",
       "status_detected": "Erfasst: {what} · {on} von {n} Leuchten an",
       "status_idle": "Nichts erfasst · Leuchten auf {pct} %",
+      "sensor_dim": "Sensoren schalten die Leuchten",
+      "sensor_dim_off_note": "Aus: die Sensoren erfassen nur, die Leuchten bleiben auf voller Leistung (wie im Planer). Einschalten und die Person oder ein Auto verschieben, um die Steuerung zu testen.",
+      "status_dim_off": "Sensorsteuerung aus · Leuchten auf voller Leistung",
       "status_person": "Person",
       "status_cars": "{n} Auto(s)",
       "status_no_area": "Dieser Sensor erfasst in {h} m nichts.",
@@ -841,9 +843,9 @@
       "scene_saved": "Gespeichert in „{project}“; Änderungen werden automatisch gespeichert.",
       "scene_unsaved": "Nur in diesem Browser; speichern, um sie in die Projektdatei aufzunehmen.",
       "sensor_volume_3d": "Erfassungsbereich in 3D zeigen",
-      "em_title": "🚨 Notbeleuchtung (EN 1838)",
+      "em_title": "🚨 Notbeleuchtung",
       "em_mode": "Notbetrieb (Netzausfall)",
-      "em_mode_desc": "Allgemeinbeleuchtung aus, Notleuchten an mit ihrem Notlichtstrom × Wartungsfaktor. Das Bild beginnt dunkel wie im Moment des Netzausfalls und passt sich an wie ein Auge; die Punkte zählen nur direktes Licht, wie EN 1838; Falschfarben 0–5 lx.",
+      "em_mode_desc": "Allgemeinbeleuchtung aus, Notleuchten an mit ihrem Notlichtstrom × Wartungsfaktor. Das Bild beginnt dunkel wie im Moment des Netzausfalls und passt sich an wie ein Auge; die Punkte zählen nur direktes Licht, wie die Normen für Notbeleuchtung.",
       "em_marks": "Planmarkierungen zeigen (Rettungsweg, Antipanikbereich, Einrichtungen)",
       "em_marks_off": "So, wie eine flüchtende Person es sieht: ohne Markierungen.",
       "em_walk": "Rettungsweg in Augenhöhe abgehen (1,6 m)",
@@ -857,13 +859,33 @@
       "em_check_points": "Sicherheitseinrichtungen (vertikal)",
       "em_check_min": "Emin {v} lx (≥ {req})",
       "em_check_ratio": "Emax / Emin {v} (≤ {req})",
-      "em_check_note": "Prüfung in der Lichtszene: direktes Licht, Punkte alle 0,5 m. Maßgeblich sind die EN-1838-Ergebnisse des Innenbeleuchtungs-Designers.",
+      "em_check_note": "Prüfung in der Lichtszene: direktes Licht, Punkte alle 0,5 m. Maßgeblich sind die Ergebnisse des Innenbeleuchtungs-Designers.",
       "em_off_hint": "Notbetrieb einschalten, um den Rettungsweg zu messen.",
       "em_measure": "📍 Messen (Ansicht Messraster)",
       "em_adapting": "👁 Die Augen gewöhnen sich an die Dunkelheit … {pct} %",
       "em_adapted": "👁 Angepasst: {stops} Blendenstufen heller als beim Netzausfall. Bewusst unter der vollen Anpassung, damit Notlicht dunkler wirkt als normales Licht.",
       "em_replay": "⚡ Netzausfall erneut",
-      "back_to_designer": "✏️ Zurück zum {from}"
+      "back_to_designer": "✏️ Zurück zum {from}",
+      "em_check_band": "Fluchtweg (mittlere Hälfte)",
+      "em_check_stairs": "Treppenraum / Zuflucht (mittlere Hälfte)",
+      "em_check_room": "Raum (ganzer Boden)",
+      "em_check_avg": "Em {v} lx (≥ {req})",
+      "moon_title": "☀️🌙 Sonne & Mond",
+      "moon_on": "Tageslicht und Mondlicht",
+      "moon_desc": "Natürliches Licht für ein Datum, eine Uhrzeit und einen Ort bei klarem Himmel: tagsüber die Sonne mit ihren Schatten und der helle Himmel, in der Dämmerung der Dämmerungshimmel, nachts Mond und Sterne; im Bild und in den Lux-Werten. Normen rechnen es nicht an, der Notbetrieb lässt es weg.",
+      "moon_date": "Datum",
+      "moon_time": "Ortszeit",
+      "moon_full": "→ Nächster Vollmond",
+      "moon_place": "Ort: {place}",
+      "moon_pick": "🌍 Auf dem Globus wählen",
+      "moon_north": "Norden in der Szene",
+      "moon_lamps_off": "Leuchten aus (nur natürliches Licht)",
+      "moon_readout": "{phase} {pct} % · {alt}° hoch · {lx} lx auf freiem Gelände (Strahl {beam} lx, Himmel {sky} lx)",
+      "moon_below": "Der Mond steht zu dieser Zeit unter dem Horizont.",
+      "moon_indoor": "Der Mond beleuchtet Außenszenen.",
+      "sun_readout": "☀️ Sonne {alt}° hoch · {lx} lx auf freiem Gelände (Strahl {beam} lx, Himmel {sky} lx)",
+      "twilight_readout": "🌆 Dämmerung (Sonne {alt}°) · {lx} lx auf freiem Gelände",
+      "night_readout": "✨ Sternenlicht · {lx} lx"
     },
     "sensor": {
       "tab": "Sensoren",
@@ -1274,7 +1296,30 @@
     "export_plan_svg": "Plan SVG exportieren",
     "export_room_svg": "Raum SVG exportieren",
     "export_3d_svg": "3D SVG exportieren",
-    "export_optimizer": "Optimierer exportieren"
+    "export_optimizer": "Optimierer exportieren",
+    "moon": {
+      "desc": "Natürliches Licht auf freiem Gelände bei klarem Himmel zum gewählten Datum und zur Uhrzeit (tagsüber die Sonne, in der Dämmerung der Dämmerungshimmel, nachts der Mond), überall gleich. Die Beleuchtungsstärken bleiben die der Leuchten (Normen rechnen natürliches Licht nicht an); es steht daneben.",
+      "with_moon": "Mit dem natürlichen Licht zu dieser Zeit (+{lx} lx)",
+      "dim": "Für das Minimum von {target} lx (Ziel des Optimierers) könnten die Leuchten heute Nacht mit {pct} % laufen.",
+      "dim_none": "Die Leuchten allein bleiben unter dem Minimum von {target} lx; das natürliche Licht fügt {lx} lx hinzu.",
+      "alone": "Das natürliche Licht allein gibt {pct} % des Minimums von {target} lx.",
+      "not_needed": "Die Leuchten werden dann nicht gebraucht: das natürliche Licht allein gibt {lx} lx (Minimum {target} lx)."
+    },
+    "sitemap": {
+      "title": "🗺 Lageplan",
+      "show": "OpenStreetMap-Karte unter dem Plan zeigen",
+      "desc": "Den Ort auf dem Globus suchen (heranzoomen, bis Straßen und Gebäude zu sehen sind, dann „Diesen Ort verwenden“), die Fläche auf der Karte zeichnen und die Masten setzen. Norden ist oben; der Ort ist die Mitte der Fläche.",
+      "pick": "🌍 Ort auf dem Globus suchen",
+      "site": "Ort: {place}",
+      "lat": "Breite",
+      "lon": "Länge",
+      "opacity": "Deckkraft der Karte",
+      "move_map": "✋ Karte verschieben",
+      "move_hint": "Auf dem Plan ziehen, um die Karte unter der Fläche zu verschieben.",
+      "done": "Fertig",
+      "no_site": "Noch kein Ort: auf dem Globus suchen oder die Koordinaten eingeben.",
+      "style": "Kartenstil"
+    }
   },
   "zonal_designer": {
     "title": "Innenbeleuchtungs-Designer",
@@ -1423,7 +1468,7 @@
       "outline_area": "Raumumriss: {a} m² Boden, {p} m Wand"
     },
     "emergency": {
-      "title": "Notbeleuchtung (EN 1838)",
+      "title": "Notbeleuchtung",
       "intro": "Rettungswege, Antipanikbereiche und Sicherheitseinrichtungen, nur von den Notleuchten beleuchtet: direktes Licht, Notlichtstrom, Wartungsfaktor.",
       "enable": "Notbeleuchtung planen",
       "luminaire": "Notleuchte",
@@ -1446,7 +1491,7 @@
       "route_item": "Weg {n}: {len} m, {w} m breit",
       "remove": "Entfernen",
       "open_area": "Raum als Antipanikbereich",
-      "open_area_hint": "Ab 60 m² vorgeschrieben; der Raum hat {a} m².",
+      "open_area_hint": "Ab {limit} m² vorgeschrieben; der Raum hat {a} m².",
       "points": "Sicherheitseinrichtungen",
       "place": "Auf dem Plan setzen:",
       "point_hint": "Klicken Sie auf dem Plan neben die Wand, an der die Einrichtung hängt (sie blickt in den Raum).",
@@ -1457,7 +1502,7 @@
       "kind_sign": "Von außen beleuchtetes Zeichen",
       "kind_exit": "Ausgang",
       "point_item": "{kind} bei ({x}, {y})",
-      "results_title": "Notbeleuchtung (EN 1838)",
+      "results_title": "Notbeleuchtung",
       "pass": "✓ Alle Anforderungen erfüllt",
       "fail": "✗ Nicht alle Anforderungen erfüllt",
       "count": "{n} Notleuchten, je {lm} lm, in {h} m",
@@ -1467,9 +1512,6 @@
       "route_centre": "{name}: Mittellinie min",
       "route_band": "{name}: Mittelband min",
       "route_ratio": "{name}: Emax / Emin",
-      "open_min": "Antipanikbereich min",
-      "open_ratio": "Antipanikbereich Emax / Emin",
-      "not_required": "nicht gefordert (≤ 60 m²)",
       "point_vertical": "{kind}: vertikal",
       "glare": "Blendung 60°–90° (höchster Wert)",
       "ra": "Farbwiedergabe Ra",
@@ -1480,7 +1522,118 @@
       "view_normal": "💡 Allgemeinbeleuchtung",
       "view_emergency": "🚨 Notbetrieb",
       "floor_legend": "Boden im Notbetrieb: direktes Licht der Notleuchten, Wartungsfaktor {mf}; min {min} lx, max {max} lx.",
-      "lum_off": "○ Allgemeinbeleuchtung, aus"
+      "lum_off": "○ Allgemeinbeleuchtung, aus",
+      "standard": "Norm",
+      "place_corridor": "Fluchtkorridor",
+      "place_stairs": "Treppenraum, Vorraum, Zuflucht",
+      "place_crowded": "Bereich mit vielen Personen",
+      "place_other": "Sonstiger Ort",
+      "room_place": "Der Raum ist",
+      "no_requirement": "keine Anforderung",
+      "band_half": "mittlere Hälfte",
+      "band_full": "ganze Breite",
+      "band_pct": "mittlere {pct} %",
+      "route_name": "Weg {n}",
+      "route_band_min": "{name}: Boden min ({band})",
+      "route_avg": "{name}: Mittelwert ({band})",
+      "route_ratio_band": "{name}: Emax / Emin ({band})",
+      "route_width": "{name}: Breite",
+      "route_width_req": "≤ {w} m: in Streifen teilen oder als Fläche prüfen",
+      "room_place_name": "Raum ({place})",
+      "open_name": "Freie Fläche",
+      "room_name": "Raum",
+      "area_min_of": "{name}: Boden min",
+      "area_avg_of": "{name}: Mittelwert",
+      "area_ratio_of": "{name}: Emax / Emin",
+      "end_avg": "{name}: Mittelwert nach {h} h ({pct} % Leistung)",
+      "end_min": "{name}: min nach {h} h ({pct} % Leistung)",
+      "not_required_above": "nicht gefordert (≤ {a} m²)",
+      "end_output": "Leistung am Ende der Betriebsdauer (%)",
+      "end_output_hint": "{std} lässt nach {h} h geringere Werte zu: Mittelwert {avg} lx, Minimum {min} lx. Geben Sie an, was die Leuchten dann noch abgeben; Notleuchten mit konstanter LED-Leistung bleiben bei 100 %.",
+      "room_floor_hint": "Geprüft über den ganzen Boden; der Raum hat {a} m².",
+      "report_pdf": "🚨 Bericht Sicherheitsbeleuchtung (PDF) · {std}",
+      "point_horizontal": "{kind}: horizontal",
+      "exit_floor": "{name}: Boden 0,5 m davor",
+      "lum_flux_min": "Notlichtstrom je Leuchte (kleinster)",
+      "count_of": "{name}: Anzahl Leuchten",
+      "route_gap": "{name}: größter Abstand zwischen Leuchten",
+      "area_flux": "{name}: Leuchtenlichtstrom je m²",
+      "area_spacing": "{name}: Abstand zur nächsten Leuchte ÷ Montagehöhe",
+      "for_information": "zur Information",
+      "kind_door_release": "Türentriegelung",
+      "kind_escape_plan": "Flucht- und Rettungsplan",
+      "kind_evac_aid": "Evakuierungshilfe",
+      "group_europe": "Europa",
+      "group_americas": "Amerika",
+      "group_asia": "Asien und Pazifik",
+      "standards": {
+        "en1838": {
+          "label": "EN 1838:2013 (Europa)",
+          "note": "Rettungswege bis 2 m Breite: mindestens 1 lx auf der Mittellinie und 0,5 lx über die mittlere Hälfte, Emax / Emin ≤ 40. Antipanikbereiche über 60 m²: 0,5 lx ohne 0,5 m Randzone, ≤ 40. 5 lx vertikal an Brandschutzeinrichtungen, Erste-Hilfe-Stellen und Meldern; Blendungsbegrenzung; Ra ≥ 40. Gültig bis 18. Juni 2027."
+        },
+        "en1838-2024": {
+          "label": "EN 1838:2024 (Europa)",
+          "note": "Rettungswege: mindestens 1 lx über die Breite abzüglich eines Streifens von min(W / 4; 0,5 m) an jeder Seite (bis 2 m: die mittlere Hälfte), Emax / Emin ≤ 40, mindestens zwei Leuchten je Rettungsweg und Antipanikbereich. Antipanikbereiche über 60 m² wie bisher; 5 lx vertikal auch an Türentriegelungen, Flucht- und Rettungsplänen und Evakuierungshilfen; Blendungsbegrenzung; Ra ≥ 40."
+        },
+        "bs5266": {
+          "label": "BS 5266-1:2025 (Vereinigtes Königreich)",
+          "note": "Die Werte der BS EN 1838:2024 (1 lx über den Rettungsweg ohne die Randstreifen, Antipanikbereiche 0,5 lx, 5 lx an Sicherheitseinrichtungen). Betriebsdauer 3 h bei Übernachtung, Versammlungsstätten, abschnittsweiser Räumung oder baldiger Wiederbenutzung; 1 h nur bei sofortiger Räumung."
+        },
+        "cte-sua4": {
+          "label": "CTE DB SUA 4 / REBT (Spanien)",
+          "note": "Rettungswege bis 2 m: 1 lx auf der Mittellinie, 0,5 lx über die mittlere Hälfte, Emax / Emin ≤ 40. Sicherheitseinrichtungen und Verteiler: 5 lx horizontal. Antipanik (REBT ITC-BT-28): 0,5 lx im ganzen Raum bis 1 m Höhe, unabhängig von der Größe, ohne Randzone. Reflexionsgrad null, Ra ≥ 40, 1 h."
+        },
+        "fr-erp": {
+          "label": "ERP, arrêté du 25 juin 1980 (Frankreich)",
+          "note": "Keine Lux-Werte: Notleuchten für die Evakuierung höchstens 15 m voneinander entlang der Verkehrswege, je 45 lm oder mehr, mindestens zwei auf Wegen über 15 m; Antipanikbeleuchtung in Räumen für 100 Personen oder mehr: 5 lm je m², Nachbarleuchten höchstens 4 Montagehöhen voneinander, mindestens zwei je Raum. Die Beleuchtungsstärke wird zur Information angezeigt."
+        },
+        "sp52": {
+          "label": "SP 52.13330.2016 (Russland)",
+          "note": "Rettungswege bis 2 m: 1 lx auf der Mittellinie, 0,5 lx über die halbe Breite, Emin / Emax ≥ 1 : 40. 5 lx am Boden vor jedem Ausgang sowie an Sicherheitseinrichtungen und Flucht- und Rettungsplänen. Antipanik über 60 m² (und ab 30 Personen): 0,5 lx ohne 0,5 m Randzone. Blendungsbegrenzung, Ra ≥ 40; 100 % in 10 s, 1 h."
+        },
+        "nfpa101": {
+          "label": "NFPA 101 / IBC (Vereinigte Staaten)",
+          "note": "Entlang des Rettungswegs auf Bodenhöhe: im Mittel mindestens 1 fc (10,8 lx), an jedem Punkt mindestens 0,1 fc (1,1 lx), max / min ≤ 40, über die Wegbreite und den Boden des Raums. Nach 1,5 h dürfen die Werte auf 6,5 lx im Mittel und 0,65 lx Minimum sinken: geben Sie die Leistung zu diesem Zeitpunkt ein. Von außen beleuchtete Ausgangszeichen 5 fc (54 lx)."
+        },
+        "nbcc": {
+          "label": "NBC Canada 2020",
+          "note": "Auf Boden- oder Stufenhöhe: im Mittel mindestens 10 lx und mindestens 1 lx über Ausgänge, öffentliche Flure, Hauptwege und die aufgeführten Räume; keine Gleichmäßigkeit. Betriebsdauer 30 min, 1 h (Pflege, Behandlung, Haft) oder 2 h (Hochhäuser)."
+        },
+        "nbr10898": {
+          "label": "ABNT NBR 10898 (Brasilien)",
+          "note": "Horizontal am Boden: mindestens 3 lx auf ebenen Flächen, 5 lx bei Höhenunterschieden (Treppen, Rampen, Hindernisse), max / min ≤ 20 entlang des Wegs. Betriebsdauer mindestens 1 h.",
+          "places": {
+            "corridor": "Ebene Fläche (Flur, Halle, Zuflucht)",
+            "crowded": "Ebene Fläche (Raum)",
+            "stairs": "Höhenunterschied (Treppe, Rampe, Hindernis)"
+          }
+        },
+        "gb55037": {
+          "label": "GB 55037-2022 (China)",
+          "note": "Mindestbeleuchtungsstärke horizontal am Boden je Ort (GB 55037-2022 §10.1.10): Treppenräume, Vorräume und Zufluchtsbereiche 10 lx, Fluchtkorridore und Bereiche mit vielen Personen 3 lx, sonstige Orte 1 lx; Wege über die mittlere Hälfte ihrer Breite, Räume über den ganzen Boden, keine Gleichmäßigkeit. Betriebsdauern und Umschaltzeiten (GB 51309-2018) werden nicht berechnet."
+        },
+        "jp-bsl": {
+          "label": "Baustandardgesetz (Japan)",
+          "note": "Nur direktes Licht: mindestens 2 lx am Boden an jedem Punkt des Raums und seiner Fluchtkorridore und Treppen, Ecken eingeschlossen (Leuchtstoff- und LED-Lampen; 1 lx bei Glühlampen). 30 min."
+        },
+        "nbc-in": {
+          "label": "NBC India 2016",
+          "note": "Rettungswege bis 2 m: mindestens 10 lx auf der Mittellinie und 5 lx über die halbe Breite, keine Gleichmäßigkeit; Räume mit 5 lx geprüft. Betriebsdauer 1,5 h, eingeschaltet innerhalb von 5 s."
+        },
+        "as2293": {
+          "label": "AS/NZS 2293.1:2018 (Australien)",
+          "note": "Rettungswege: mindestens 0,2 lx und im Mittel 0,5 lx am Boden, Treppen 1 lx; abseits der Wände gemessen. Nach öffentlichen Zusammenfassungen der Ausgabe 2018 (die Ausgabe 2026 ist noch nicht geprüft). 90 min im Betrieb."
+        },
+        "nz-f6": {
+          "label": "NZBC F6/AS1 (Neuseeland)",
+          "note": "Direkte Beleuchtungsstärke am Boden: 1 lx in geschützten Fluchtwegen und an Höhenänderungen, 0,2 lx überall sonst; Punkte innerhalb von 0,5 m vor Wänden ausgenommen. 90 min.",
+          "places": {
+            "corridor": "Geschützter Fluchtweg",
+            "stairs": "Höhenänderung",
+            "other": "Übriger Rettungsweg"
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -1574,7 +1727,7 @@
       "scene_3d_title": "3D-Szene",
       "area_title": "Außenbereichsplaner",
       "interior_title": "Innenraumplaner",
-      "maps_title": "Kartenplaner",
+      "maps_title": "Lageplan",
       "street_title": "Straßenplanung",
       "spectral_title": "Spektrallabor",
       "greenhouse_title": "Gewächshaus",
@@ -1595,7 +1748,7 @@
       "scene_3d_desc": "Durch Raum, Straße oder Parkplatz gehen – die Leuchte als Lichtquelle in der Game-Engine",
       "area_desc": "Mehrere Leuchten auf einer Fläche platzieren und die Beleuchtungsstärke am Boden ablesen",
       "interior_desc": "Räume mit Zonen, Nutzebenen und Gleichmäßigkeit nach EN 12464-1",
-      "maps_desc": "Leuchten auf einer echten Karte planen und die Beleuchtung von Straßen und Plätzen prüfen",
+      "maps_desc": "Auf einer OpenStreetMap-Karte des Orts planen: auf dem Globus finden, Fläche zeichnen, Masten setzen",
       "street_desc": "Straßenbeleuchtung mit mehreren Leuchten nach EN 13201, RP-8, CJJ 45 und MLO",
       "spectral_desc": "Spektren, Farbtemperatur, Ra, TM-30, melanopische Kennwerte und PPFD für Pflanzen aus SPD-Daten",
       "colour_quality_title": "Farbqualität",
@@ -1642,38 +1795,6 @@
       "compare_hint": "Sensor anklicken für seine Diagramme · Strg/⌘ + Klick auf einen zweiten, dann Vergleichen",
       "compare_selected": "⇄ {a} mit {b} vergleichen"
     }
-  },
-  "maps_designer": {
-    "title": "Beleuchtungs-Designer",
-    "instructions_title": "Anleitung:",
-    "instruction_polygon": "Polygon zeichnen (Parkplatzfläche)",
-    "instruction_luminaires": "Leuchten platzieren (Markierungen)",
-    "instruction_calculate": "Klicken Sie auf Berechnen für Heatmap",
-    "area_defined": "Fläche definiert:",
-    "luminaires_count": "Leuchten:",
-    "calculate": "Heatmap berechnen",
-    "my_location": "Mein Standort",
-    "export_csv": "CSV exportieren",
-    "show_values": "Werte anzeigen",
-    "hide_values": "Werte ausblenden",
-    "clear_all": "Alles löschen",
-    "results_title": "Berechnungsergebnisse",
-    "min": "Min",
-    "max": "Max",
-    "average": "Durchschnitt",
-    "uniformity": "Gleichmäßigkeit (U₀)",
-    "good_uniformity": "Gute Gleichmäßigkeit (U₀ ≥ 0,40)",
-    "acceptable_uniformity": "Akzeptable Gleichmäßigkeit (U₀ ≥ 0,25)",
-    "poor_uniformity": "Schlechte Gleichmäßigkeit – mehr Leuchten hinzufügen",
-    "legend_title": "Heatmap-Legende",
-    "legend_low": "Niedrig",
-    "legend_high": "Hoch",
-    "loading_description": "Außenbeleuchtung auf echten Satellitenbildern planen. Parkplatz zeichnen, Leuchten platzieren und Beleuchtungsstärke berechnen.",
-    "load_maps": "Google Maps laden",
-    "loading_maps": "Google Maps wird geladen...",
-    "toolbar_hint": "Werkzeugleiste: Polygon zum Zeichnen der Fläche, Markierung zum Platzieren von Leuchten",
-    "load_failed": "Google Maps konnte nicht geladen werden",
-    "try_again": "Erneut versuchen"
   },
   "goniosim": {
     "title": "Virtuelles Goniophotometer",
@@ -1772,7 +1893,25 @@
     "sky_empty_hint": "Ort und Zeit einstellen, dann Simulieren drücken, um Beleuchtungsstärke und Farbe des Himmels zu berechnen.",
     "scene_road": "Straße",
     "scene_room": "Raum",
-    "scene_plaza": "Platz"
+    "scene_plaza": "Platz",
+    "globe_pick": "🌍 Auf dem Globus wählen",
+    "globe_title": "Ort wählen",
+    "globe_hint": "Suchen Sie eine Stadt oder klicken Sie auf den Globus, dann „Use this place“: Breite, Länge und Zeitzone werden übernommen.",
+    "globe_close": "Schließen",
+    "moon_card_title": "🌙 Mondlicht heute Nacht",
+    "moonlight_now": "Mondlicht {lx} lx",
+    "moonlight_day": "Mond über dem Horizont · Tageslicht überwiegt",
+    "moon_summary": "{phase} {pct} % · {km} km ({dist})",
+    "moon_dist_close": "nah: {pct} % heller als bei mittlerer Entfernung",
+    "moon_dist_far": "fern: {pct} % dunkler als bei mittlerer Entfernung",
+    "moon_times": "Mondaufgang {rise} · Monduntergang {set} · bis {max} lx um {at}",
+    "moon_hours": "Der Mond allein gibt {h2} h lang 0,2 lx oder mehr und {h1} h lang 0,1 lx oder mehr während der Dunkelheit.",
+    "moon_dark": "Der Mond bleibt unter dem Horizont, solange es dunkel ist.",
+    "moon_ref_note": "Horizontale Beleuchtungsstärke auf freiem Gelände, klarer Himmel. Bezugslinien: 0,2 lx = Mindestwert auf Rettungswegen nach AS/NZS 2293 und NZBC F6 · 0,5 lx = EN 1838 Antipanikbereiche · 1 lx = EN 1838 Rettungswege · 2 lx = EN 13201 P6 Mittelwert. Wolken, Bäume und Gebäude nehmen viel davon weg.",
+    "moon_legend_total": "alles natürliche Licht",
+    "moon_legend_moon": "nur der Mond",
+    "moon_month_title": "Mondlicht in den nächsten 30 Nächten (das Höchste je Nacht)",
+    "moon_month_hint": "Eine Nacht anklicken, um sie oben zu zeigen."
   },
   "street": {
     "title": "Straßenbeleuchtungs-Designer",

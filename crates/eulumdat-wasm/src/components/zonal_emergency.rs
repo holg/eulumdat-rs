@@ -12,8 +12,8 @@ use super::plan_drag::Moves;
 use super::zonal_sensors::fill;
 use crate::i18n::use_locale;
 use eulumdat::emergency::{
-    self, EmergencyLuminaire, EmergencyReport, EmphasisKind, EmphasisPoint, EscapeRoute, FloorGrid,
-    Limits, Settings, SpacingRow,
+    self, Check, EmergencyLuminaire, EmergencyReport, EmphasisKind, EmphasisPoint, EscapeRoute,
+    FloorGrid, Limits, PlaceCategory, Settings, SpacingRow,
 };
 use eulumdat::Eulumdat;
 use leptos::prelude::*;
@@ -78,6 +78,25 @@ pub enum EmTool {
 pub struct RouteDraft {
     pub path: Vec<(f64, f64)>,
     pub width: f64,
+    /// What the route is (China: corridor 3 lx, stairs / refuge 10 lx).
+    pub place: PlaceCategory,
+}
+
+/// Label of a place category in a standard (its own words when the
+/// locale has them, e.g. Brazil's "level changes").
+pub fn place_label_in(s: &eulumdat_i18n::ZonalEmergency, std_id: &str, p: PlaceCategory) -> String {
+    s.std_place(std_id, p.key())
+        .unwrap_or_else(|| place_label(s, p))
+}
+
+/// Label of a place category.
+pub fn place_label(s: &eulumdat_i18n::ZonalEmergency, p: PlaceCategory) -> String {
+    match p {
+        PlaceCategory::EscapeCorridor => s.place_corridor.clone(),
+        PlaceCategory::StairsOrRefuge => s.place_stairs.clone(),
+        PlaceCategory::CrowdedPlace => s.place_crowded.clone(),
+        PlaceCategory::OtherPlace => s.place_other.clone(),
+    }
 }
 
 /// A point of emphasis as placed (facing into the room, degrees).
@@ -89,11 +108,14 @@ pub struct PointDraft {
     pub facing: f64,
 }
 
-pub const POINT_KINDS: [EmphasisKind; 5] = [
+pub const POINT_KINDS: [EmphasisKind; 8] = [
     EmphasisKind::FireEquipment,
     EmphasisKind::FirstAid,
     EmphasisKind::CallPoint,
     EmphasisKind::ExternallyLitSign,
+    EmphasisKind::DoorRelease,
+    EmphasisKind::EscapePlan,
+    EmphasisKind::EvacuationAid,
     EmphasisKind::Exit,
 ];
 
@@ -107,6 +129,9 @@ fn kind_key(k: EmphasisKind) -> &'static str {
         EmphasisKind::Stairs => "st",
         EmphasisKind::LevelChange => "lc",
         EmphasisKind::Intersection => "in",
+        EmphasisKind::DoorRelease => "dr",
+        EmphasisKind::EscapePlan => "ep",
+        EmphasisKind::EvacuationAid => "ea",
     }
 }
 
@@ -120,6 +145,9 @@ fn kind_from_key(k: &str) -> Option<EmphasisKind> {
         EmphasisKind::Stairs,
         EmphasisKind::LevelChange,
         EmphasisKind::Intersection,
+        EmphasisKind::DoorRelease,
+        EmphasisKind::EscapePlan,
+        EmphasisKind::EvacuationAid,
     ]
     .into_iter()
     .find(|v| kind_key(*v) == k)
@@ -132,6 +160,9 @@ pub fn kind_icon(k: EmphasisKind) -> &'static str {
         EmphasisKind::CallPoint => "🔔",
         EmphasisKind::ExternallyLitSign => "🪧",
         EmphasisKind::Exit => "🚪",
+        EmphasisKind::DoorRelease => "🔓",
+        EmphasisKind::EscapePlan => "🗺",
+        EmphasisKind::EvacuationAid => "♿",
         _ => "•",
     }
 }
@@ -143,6 +174,9 @@ pub fn kind_label(s: &eulumdat_i18n::ZonalEmergency, k: EmphasisKind) -> String 
         EmphasisKind::CallPoint => s.kind_call.clone(),
         EmphasisKind::ExternallyLitSign => s.kind_sign.clone(),
         EmphasisKind::Exit => s.kind_exit.clone(),
+        EmphasisKind::DoorRelease => s.kind_door_release.clone(),
+        EmphasisKind::EscapePlan => s.kind_escape_plan.clone(),
+        EmphasisKind::EvacuationAid => s.kind_evac_aid.clone(),
         other => format!("{other:?}"),
     }
 }
@@ -175,6 +209,49 @@ pub struct EmergencyState {
     /// The plan shows emergency conditions (normal lighting off, the
     /// floor in the emergency light); the Light scene opens that way.
     pub show: RwSignal<bool>,
+    /// The standard checked against (a [`Limits`] id).
+    pub standard: RwSignal<String>,
+    /// What the room is when its floor is checked (standards with a
+    /// minimum per kind of place).
+    pub open_place: RwSignal<PlaceCategory>,
+    /// Output at the end of the rated duration (% of the emergency flux;
+    /// standards with end-of-duration values).
+    pub end_pct: RwSignal<f64>,
+}
+
+/// The standard a plan starts with when its link names none: from the UI
+/// language, else the browser's region (en-US → NFPA 101 …), else EN
+/// 1838:2024 (the current edition; links name `emstd=en1838` for 2013).
+pub fn default_standard(ui_code: &str) -> String {
+    let browser = web_sys::window()
+        .and_then(|w| w.navigator().language())
+        .unwrap_or_default();
+    standard_for_language(ui_code, &browser).to_string()
+}
+
+/// [`default_standard`] for a UI language code and a browser language tag.
+pub fn standard_for_language(ui_code: &str, browser: &str) -> &'static str {
+    let b = browser.to_ascii_lowercase().replace('_', "-");
+    let region = b.split('-').nth(1).unwrap_or("");
+    match ui_code {
+        c if c.starts_with("zh") => return "gb55037",
+        "pt-BR" => return "nbr10898",
+        "ru" => return "sp52",
+        _ => {}
+    }
+    match (b.split('-').next().unwrap_or(""), region) {
+        ("ja", _) => "jp-bsl",
+        (_, "us") => "nfpa101",
+        (_, "ca") => "nbcc",
+        (_, "gb") => "bs5266",
+        (_, "au") => "as2293",
+        (_, "nz") => "nz-f6",
+        (_, "in") => "nbc-in",
+        (_, "br") => "nbr10898",
+        ("es", "es") => "cte-sua4",
+        ("fr", "fr") => "fr-erp",
+        _ => "en1838-2024",
+    }
 }
 
 fn parse_pairs(s: &str) -> Vec<(f64, f64)> {
@@ -194,11 +271,18 @@ impl EmergencyState {
             .map(|v| {
                 v.split('_')
                     .filter_map(|r| {
-                        let (pts, w) = r.split_once('~').unwrap_or((r, "2"));
-                        let path = parse_pairs(pts);
+                        // centre line ~ width [~ place]
+                        let mut parts = r.split('~');
+                        let path = parse_pairs(parts.next()?);
+                        let w = parts.next().unwrap_or("2");
+                        let place = parts
+                            .next()
+                            .and_then(PlaceCategory::from_key)
+                            .unwrap_or_default();
                         (path.len() >= 2).then(|| RouteDraft {
                             path,
                             width: w.parse().unwrap_or(2.0f64).clamp(0.5, 20.0),
+                            place,
                         })
                     })
                     .collect()
@@ -240,7 +324,44 @@ impl EmergencyState {
             moves: RwSignal::new(get("emmove").map(|v| Moves::decode(&v)).unwrap_or_default()),
             outdoor: false,
             show: RwSignal::new(get("emview").is_some_and(|v| v == "1")),
+            // a link names the standard; else the Chinese UI checks against
+            // the Chinese one
+            standard: RwSignal::new(
+                get("emstd")
+                    .and_then(|v| Limits::by_id(&v))
+                    .map(|l| l.id)
+                    .unwrap_or_else(|| default_standard(&use_locale().get_untracked().meta.code)),
+            ),
+            open_place: RwSignal::new(
+                get("emoplace")
+                    .and_then(|v| PlaceCategory::from_key(&v))
+                    .unwrap_or(PlaceCategory::CrowdedPlace),
+            ),
+            end_pct: RwSignal::new(num("emend").unwrap_or(100.0).clamp(1.0, 100.0)),
         }
+    }
+
+    /// Switch the standard; places it does not offer become its first
+    /// choice.
+    pub fn set_standard(&self, id: &str) {
+        let Some(l) = Limits::by_id(id) else {
+            return;
+        };
+        if let Some(p) = &l.places {
+            if let Some(&first) = p.route_places.first() {
+                self.routes.update(|v| {
+                    for r in v.iter_mut().filter(|r| !p.route_places.contains(&r.place)) {
+                        r.place = first;
+                    }
+                });
+            }
+            if let Some(&first) = p.area_places.first() {
+                if !p.area_places.contains(&self.open_place.get_untracked()) {
+                    self.open_place.set(first);
+                }
+            }
+        }
+        self.standard.set(l.id);
     }
 
     /// Link keys (tracked), `None` when emergency planning is off.
@@ -251,7 +372,11 @@ impl EmergencyState {
         let mut parts = vec![
             "em=1".to_string(),
             format!("eml={}", self.luminaire.get().key()),
+            format!("emstd={}", self.standard.get()),
         ];
+        if self.open_place.get() != PlaceCategory::CrowdedPlace {
+            parts.push(format!("emoplace={}", self.open_place.get().key()));
+        }
         if let Some(f) = self.flux.get() {
             parts.push(format!("emflux={f:.0}"));
         }
@@ -274,7 +399,11 @@ impl EmergencyState {
                         .iter()
                         .map(|(x, y)| format!("{x:.2},{y:.2}"))
                         .collect();
-                    format!("{}~{:.2}", pts.join(";"), r.width)
+                    if r.place == PlaceCategory::EscapeCorridor {
+                        format!("{}~{:.2}", pts.join(";"), r.width)
+                    } else {
+                        format!("{}~{:.2}~{}", pts.join(";"), r.width, r.place.key())
+                    }
                 })
                 .collect();
             parts.push(format!("emr={}", r.join("_")));
@@ -296,7 +425,15 @@ impl EmergencyState {
         if self.show.get() {
             parts.push("emview=1".into());
         }
+        if self.end_pct.get() < 100.0 {
+            parts.push(format!("emend={:.0}", self.end_pct.get()));
+        }
         Some(parts.join("&"))
+    }
+
+    /// The limits of the chosen standard (tracked).
+    pub fn limits(&self) -> Limits {
+        Limits::by_id(&self.standard.get()).unwrap_or_else(Limits::en1838)
     }
 
     /// End the route being drawn (kept when it has two points or more).
@@ -304,8 +441,13 @@ impl EmergencyState {
         let wip = self.wip.get_untracked();
         if wip.len() >= 2 {
             let width = self.width.get_untracked();
-            self.routes
-                .update(|r| r.push(RouteDraft { path: wip, width }));
+            self.routes.update(|r| {
+                r.push(RouteDraft {
+                    path: wip,
+                    width,
+                    place: PlaceCategory::default(),
+                })
+            });
         }
         self.wip.set(Vec::new());
         self.tool.set(EmTool::Off);
@@ -421,10 +563,11 @@ pub fn source(st: &EmergencyState, loaded: &Eulumdat, room_height: f64) -> Optio
     };
     let settings = Settings {
         maintenance_factor: mf,
+        end_output_share: st.end_pct.get() / 100.0,
         ..Default::default()
     };
     let spacing = (which != EmLuminaire::Room).then(|| {
-        emergency::spacing_table(&ldt, flux, &[height], width, &Limits::en1838(), &settings)
+        emergency::spacing_table(&ldt, flux, &[height], width, &st.limits(), &settings)
             .into_iter()
             .next()
     });
@@ -449,6 +592,8 @@ pub fn source(st: &EmergencyState, loaded: &Eulumdat, room_height: f64) -> Optio
 #[derive(Clone, PartialEq)]
 pub struct EmResult {
     pub report: EmergencyReport,
+    /// The standard checked against.
+    pub limits: Limits,
     /// Luminaires: x, y, C0 direction (deg).
     pub positions: Vec<(f64, f64, f64)>,
     pub source: EmSource,
@@ -484,12 +629,14 @@ pub fn compute(
             name: format!("{}", i + 1),
             path: r.path.clone(),
             width: r.width,
+            place: r.place,
         })
         .collect();
     let open = st.open_area.get();
-    let limits = Limits::en1838();
+    let limits = st.limits();
     let settings = Settings {
         maintenance_factor: src.mf,
+        end_output_share: st.end_pct.get() / 100.0,
         ..Default::default()
     };
     let room_area = if poly.len() >= 3 {
@@ -527,6 +674,7 @@ pub fn compute(
         routes: &routes,
         room: (poly.len() >= 3).then_some(poly),
         open_area: (open && poly.len() >= 3).then_some(poly),
+        open_area_place: st.open_place.get(),
         points: &points,
     };
     let mut pos: Vec<(f64, f64, f64)> = match src.which {
@@ -544,6 +692,7 @@ pub fn compute(
     let report = emergency::evaluate(&input.plan(&pos), &limits, &settings);
     EmResult {
         report,
+        limits,
         positions: pos,
         source: src.clone(),
         move_key,
@@ -574,10 +723,21 @@ pub fn floor(res: &EmResult, poly: &[(f64, f64)]) -> FloorGrid {
     emergency::floor_grid(&lums, poly, 0.25, res.source.mf)
 }
 
-/// Band edges of the floor map (lx): the open-area minimum (0.5), the
-/// route minimum (1), then steps up to the top of the Light scene's false
-/// colours (5).
-pub const FLOOR_BANDS: [f64; 6] = [0.5, 1.0, 2.0, 3.0, 4.0, 5.0];
+/// Band edges of the floor map (lx), with the standard's own values among
+/// them, so the colours tell where a minimum is met. EN 1838: the
+/// open-area minimum (0.5), the route minimum (1), then steps up to the
+/// top of the Light scene's false colours (5); China: its minimums (1, 3,
+/// 10) and steps between.
+pub fn floor_bands(limits: &Limits) -> [f64; 6] {
+    match limits.id.as_str() {
+        "gb55037" | "nbr10898" => [1.0, 2.0, 3.0, 5.0, 7.5, 10.0],
+        "nfpa101" => [1.1, 2.5, 5.0, 10.8, 15.0, 20.0],
+        "nbcc" | "nbc-in" => [1.0, 2.0, 5.0, 10.0, 15.0, 20.0],
+        "as2293" | "nz-f6" => [0.2, 0.5, 1.0, 2.0, 3.0, 5.0],
+        "jp-bsl" => [0.5, 1.0, 2.0, 3.0, 5.0, 10.0],
+        _ => [0.5, 1.0, 2.0, 3.0, 4.0, 5.0],
+    }
+}
 
 /// Colour of each band: viridis at the band's middle on a 0–5 lx scale,
 /// the same ramp as the Light scene's false colours.
@@ -585,13 +745,13 @@ const FLOOR_COLOURS: [&str; 7] = [
     "#46085c", "#46327e", "#365c8d", "#21918c", "#44bf70", "#bddf26", "#fde725",
 ];
 
-fn floor_band(e: f64) -> usize {
-    FLOOR_BANDS.iter().filter(|&&b| e >= b).count()
+fn floor_band(bands: &[f64; 6], e: f64) -> usize {
+    bands.iter().filter(|&&b| e >= b).count()
 }
 
 /// The floor map as SVG for a plan at `px = ox + x·s`, `py = oy + y·s`:
 /// one rectangle per run of equal band in each row.
-pub fn floor_svg(g: &FloorGrid, ox: f64, oy: f64, s: f64) -> String {
+pub fn floor_svg(g: &FloorGrid, bands: &[f64; 6], ox: f64, oy: f64, s: f64) -> String {
     let mut out = String::from(r#"<g shape-rendering="crispEdges">"#);
     let h = g.step * s;
     for j in 0..g.ny {
@@ -601,9 +761,9 @@ pub fn floor_svg(g: &FloorGrid, ox: f64, oy: f64, s: f64) -> String {
                 i += 1;
                 continue;
             };
-            let band = floor_band(e);
+            let band = floor_band(bands, e);
             let start = i;
-            while i + 1 < g.nx && g.at(i + 1, j).is_some_and(|v| floor_band(v) == band) {
+            while i + 1 < g.nx && g.at(i + 1, j).is_some_and(|v| floor_band(bands, v) == band) {
                 i += 1;
             }
             out.push_str(&format!(
@@ -622,7 +782,7 @@ pub fn floor_svg(g: &FloorGrid, ox: f64, oy: f64, s: f64) -> String {
 }
 
 /// Band labels of the floor map's legend.
-fn band_labels() -> [String; 7] {
+fn band_labels(b: &[f64; 6]) -> [String; 7] {
     let f = |v: f64| {
         if v.fract() == 0.0 {
             format!("{v:.0}")
@@ -630,7 +790,6 @@ fn band_labels() -> [String; 7] {
             format!("{v}")
         }
     };
-    let b = FLOOR_BANDS;
     [
         format!("< {}", f(b[0])),
         format!("{}–{}", f(b[0]), f(b[1])),
@@ -648,15 +807,20 @@ pub fn FloorLegend(grid: Memo<Option<FloorGrid>>, result: Memo<Option<EmResult>>
     let t = Memo::new(move |_| use_locale().get().zonal_designer.emergency.clone());
     move || {
         let (lo, hi) = grid.with(|g| g.as_ref().and_then(|g| g.min_max()))?;
-        let (mf, room) = result.with(|r| {
-            r.as_ref()
-                .map(|r| (r.source.mf, r.source.which == EmLuminaire::Room))
+        let (mf, room, bands) = result.with(|r| {
+            r.as_ref().map(|r| {
+                (
+                    r.source.mf,
+                    r.source.which == EmLuminaire::Room,
+                    floor_bands(&r.limits),
+                )
+            })
         })?;
         let tt = t.get();
         Some(view! {
             <div class="zonal-em-legend">
                 <div class="zonal-em-legend-bands">
-                    {band_labels().into_iter().zip(FLOOR_COLOURS).enumerate().map(|(k, (label, colour))| {
+                    {band_labels(&bands).into_iter().zip(FLOOR_COLOURS).enumerate().map(|(k, (label, colour))| {
                         let light = k >= 4;
                         view! {
                             <span style=format!("background: {colour}; color: {};", if light { "#111" } else { "#fff" })>{label}</span>
@@ -752,7 +916,6 @@ pub fn overlay(
     let px = |x: f64| ox + x * s;
     let py = |y: f64| oy + y * s;
     let mut out = String::new();
-    let limits = Limits::en1838();
     // escape routes: a safety-green band of the route's width with a
     // dashed centre line
     for r in routes {
@@ -781,8 +944,8 @@ pub fn overlay(
         // where a centre line misses the requirement: red over the band
         for rr in &res.report.routes {
             for w in rr.samples.windows(2) {
-                let ok = w[0].2 >= limits.escape_route.centre_min_lx
-                    && w[1].2 >= limits.escape_route.centre_min_lx;
+                let need = rr.point_min_lx();
+                let ok = w[0].2 >= need && w[1].2 >= need;
                 if ok {
                     continue;
                 }
@@ -794,8 +957,12 @@ pub fn overlay(
                     py(w[1].1),
                 ));
             }
-            if !rr.pass_centre {
-                let (x, y) = rr.centre.at_min;
+            if !rr.pass_centre || !rr.pass_band || !rr.pass_end {
+                let (x, y) = if rr.pass_centre {
+                    rr.band.at_min
+                } else {
+                    rr.centre.at_min
+                };
                 out.push_str(&format!(
                     r##"<circle cx="{:.1}" cy="{:.1}" r="7" fill="none" stroke="#dc2626" stroke-width="2"/>"##,
                     px(x),
@@ -936,7 +1103,49 @@ pub fn EmergencySidebar(
             </label>
             {move || state.enabled.get().then(|| {
                 let e = move || locale.get().zonal_designer.emergency.clone();
+                // a minimum per kind of place (China …): a place per route
+                // and for the room
+                let per_place = move || state.limits().places.is_some();
                 view! {
+                    <div class="zonal-prop-row">
+                        <span class="zonal-prop-label">{move || e().standard}</span>
+                        {move || {
+                            let s = e();
+                            let cur = state.standard.get();
+                            view! {
+                                <select on:change=move |ev| state.set_standard(&event_target_value(&ev))>
+                                    {[("europe", s.group_europe.clone()), ("americas", s.group_americas.clone()), ("asia", s.group_asia.clone())].into_iter().map(|(g, label)| {
+                                        let cur = cur.clone();
+                                        let s = s.clone();
+                                        view! {
+                                            <optgroup label=label>
+                                                {Limits::all().into_iter().filter(|l| l.group() == g).map(|l| view! {
+                                                    <option value=l.id.clone() selected=cur == l.id>{s.std_label(&l.id)}</option>
+                                                }).collect_view()}
+                                            </optgroup>
+                                        }
+                                    }).collect_view()}
+                                </select>
+                            }
+                        }}
+                    </div>
+                    <p class="zonal-sensors-hint">{move || e().std_note(&state.standard.get())}</p>
+                    {move || state.limits().end_of_duration.map(|end| {
+                        let name = state.limits().name;
+                        view! {
+                            {num_row(
+                                Signal::derive(move || e().end_output),
+                                Signal::derive(move || format!("{:.0}", state.end_pct.get())),
+                                Callback::new(move |v: f64| state.end_pct.set(v.clamp(1.0, 100.0))),
+                            )}
+                            <p class="zonal-sensors-hint">{move || fill(&e().end_output_hint, &[
+                                ("std", name.clone()),
+                                ("h", format!("{}", end.after_h)),
+                                ("avg", format!("{}", end.avg_min_lx)),
+                                ("min", format!("{}", end.min_lx)),
+                            ])}</p>
+                        }
+                    })}
                     <div class="zonal-prop-row">
                         <span class="zonal-prop-label">{move || e().luminaire}</span>
                         {move || {
@@ -1004,6 +1213,8 @@ pub fn EmergencySidebar(
                         let s = e();
                         state.routes.get().into_iter().enumerate().map(|(i, r)| {
                             let len: f64 = r.path.windows(2).map(|w| (w[1].0 - w[0].0).hypot(w[1].1 - w[0].1)).sum();
+                            let place = r.place;
+                            let limits = state.limits();
                             view! {
                                 <div class="zonal-emergency-item">
                                     <span>{fill(&s.route_item, &[
@@ -1015,6 +1226,18 @@ pub fn EmergencySidebar(
                                         on:click=move |_| state.routes.update(|v| { if i < v.len() { v.remove(i); } })
                                     >"✕"</button>
                                 </div>
+                                // per place (China …): what the route is decides its minimum
+                                {limits.places.clone().map(|pl| view! {
+                                    <select class="zonal-emergency-place" on:change=move |ev| {
+                                        if let Some(c) = PlaceCategory::from_key(&event_target_value(&ev)) {
+                                            state.routes.update(|v| { if let Some(r) = v.get_mut(i) { r.place = c; } });
+                                        }
+                                    }>
+                                        {pl.route_places.clone().into_iter().map(|c| view! {
+                                            <option value=c.key() selected=c == place>{format!("{} · {} lx", place_label_in(&s, &limits.id, c), pl.required(c))}</option>
+                                        }).collect_view()}
+                                    </select>
+                                })}
                             }
                         }).collect_view()
                     }}
@@ -1044,7 +1267,36 @@ pub fn EmergencySidebar(
                         />
                         {move || format!(" {}", e().open_area)}
                     </label>
-                    <p class="zonal-sensors-hint">{move || fill(&e().open_area_hint, &[("a", format!("{:.1}", room_area.get()))])}</p>
+                    {move || if per_place() {
+                        let s = e();
+                        let cur = state.open_place.get();
+                        let pl = state.limits().places;
+                        view! {
+                            <div class="zonal-prop-row">
+                                <span class="zonal-prop-label">{s.room_place.clone()}</span>
+                                <select on:change=move |ev| {
+                                    if let Some(c) = PlaceCategory::from_key(&event_target_value(&ev)) {
+                                        state.open_place.set(c);
+                                    }
+                                }>
+                                    {pl.as_ref().map(|p| p.area_places.clone()).unwrap_or_default().into_iter().map(|c| {
+                                        let lx = pl.as_ref().map(|p| p.required(c)).unwrap_or(0.0);
+                                        view! { <option value=c.key() selected=c == cur>{format!("{} · {} lx", place_label_in(&s, &state.standard.get_untracked(), c), lx)}</option> }
+                                    }).collect_view()}
+                                </select>
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! { <p class="zonal-sensors-hint">{move || {
+                            let above = state.limits().anti_panic.applies_above_m2;
+                            let a = format!("{:.1}", room_area.get());
+                            if above > 0.0 {
+                                fill(&e().open_area_hint, &[("a", a), ("limit", format!("{above}"))])
+                            } else {
+                                fill(&e().room_floor_hint, &[("a", a)])
+                            }
+                        }}</p> }.into_any()
+                    }}
 
                     <h5 class="zonal-emergency-h">{move || e().points}</h5>
                     <div class="zonal-emergency-kinds">
@@ -1101,6 +1353,142 @@ fn ratio(r: f64) -> String {
     }
 }
 
+/// The localized words for a band of `share` of the route width.
+fn band_label(s: &eulumdat_i18n::ZonalEmergency, share: f64) -> String {
+    if (share - 0.5).abs() < 1e-9 {
+        s.band_half.clone()
+    } else if share >= 1.0 - 1e-9 {
+        s.band_full.clone()
+    } else {
+        fill(&s.band_pct, &[("pct", format!("{:.0}", share * 100.0))])
+    }
+}
+
+/// One localized row of the results table: what, value, required, pass.
+pub fn check_row(
+    s: &eulumdat_i18n::ZonalEmergency,
+    rep: &EmergencyReport,
+    limits: &Limits,
+    c: &Check,
+) -> (String, String, String, Option<bool>) {
+    use eulumdat::emergency::{CheckKind as K, Subject};
+    let num = |v: f64| format!("{}", (v * 1000.0).round() / 1000.0);
+    let band = band_label(s, limits.escape_route.band_share);
+    let per_place = limits.places.is_some();
+    // the subject's name as the labels put it in
+    let route = |i: usize| {
+        rep.routes.get(i).map_or(String::new(), |r| {
+            let name = fill(&s.route_name, &[("n", r.name.clone())]);
+            if per_place {
+                format!("{name} ({})", place_label_in(s, &limits.id, r.place))
+            } else {
+                name
+            }
+        })
+    };
+    let area = |i: usize| {
+        rep.open_areas.get(i).map_or(String::new(), |a| {
+            if per_place {
+                fill(
+                    &s.room_place_name,
+                    &[("place", place_label_in(s, &limits.id, a.place))],
+                )
+            } else if limits.anti_panic.applies_above_m2 > 0.0 {
+                s.open_name.clone()
+            } else {
+                s.room_name.clone()
+            }
+        })
+    };
+    let subject = match c.subject {
+        Subject::Route(i) => route(i),
+        Subject::Area(i) => area(i),
+        Subject::HighRisk(i) => rep
+            .high_risk
+            .get(i)
+            .map_or(String::new(), |a| a.name.clone()),
+        Subject::Point(i) => rep.points.get(i).map_or(String::new(), |p| {
+            format!("{} {}", kind_icon(p.kind), kind_label(s, p.kind))
+        }),
+        Subject::Luminaires => String::new(),
+    };
+    let after = limits.end_of_duration.as_ref().map_or(0.0, |e| e.after_h);
+    let end = |t: &str| {
+        fill(
+            t,
+            &[
+                ("name", subject.clone()),
+                ("h", num(after)),
+                (
+                    "pct",
+                    format!("{:.0}", rep.settings.end_output_share * 100.0),
+                ),
+            ],
+        )
+    };
+    let named = |t: &str| fill(t, &[("name", subject.clone()), ("band", band.clone())]);
+    let what = match c.kind {
+        K::CentreMin => named(&s.route_centre),
+        // EN 1838's "central band"; other profiles name their share
+        K::BandMin if !per_place && limits.escape_route.centre_min_lx > 0.0 => named(&s.route_band),
+        K::BandMin => named(&s.route_band_min),
+        K::RouteAverage => named(&s.route_avg),
+        K::RouteRatio if limits.escape_route.ratio_over_band => named(&s.route_ratio_band),
+        K::RouteRatio => named(&s.route_ratio),
+        K::RouteWidth => named(&s.route_width),
+        K::AreaMin => named(&s.area_min_of),
+        K::AreaAverage => named(&s.area_avg_of),
+        K::AreaRatio | K::HighRiskRatio => named(&s.area_ratio_of),
+        K::HighRiskMin => named(&s.area_min_of),
+        K::EndAverage => end(&s.end_avg),
+        K::EndMin => end(&s.end_min),
+        K::Vertical if limits.emphasis_horizontal => {
+            fill(&s.point_horizontal, &[("kind", subject.clone())])
+        }
+        K::Vertical => fill(&s.point_vertical, &[("kind", subject.clone())]),
+        K::Glare => s.glare.clone(),
+        K::Ra => s.ra.clone(),
+        K::ExitFloor => named(&s.exit_floor),
+        K::LuminaireFlux => s.lum_flux_min.clone(),
+        K::RouteCount | K::AreaCount => named(&s.count_of),
+        K::RouteSpacing => named(&s.route_gap),
+        K::AreaFlux => named(&s.area_flux),
+        K::AreaSpacing => named(&s.area_spacing),
+    };
+    let value = match (c.kind, c.value) {
+        (_, None) => s.ra_unknown.clone(),
+        (K::RouteRatio | K::AreaRatio | K::HighRiskRatio, Some(v)) => ratio(v),
+        (K::Glare, Some(v)) => format!("{v:.1} cd"),
+        (K::Ra, Some(v)) => format!("{v:.0}"),
+        (K::RouteWidth | K::RouteSpacing, Some(v)) => format!("{v:.1} m"),
+        (K::RouteCount | K::AreaCount, Some(v)) => format!("{v:.0}"),
+        (K::LuminaireFlux, Some(v)) => format!("{v:.0} lm"),
+        (K::AreaFlux, Some(v)) => format!("{v:.1} lm/m²"),
+        (K::AreaSpacing, Some(v)) => format!("{v:.1}"),
+        (_, Some(v)) => format!("{v:.2} lx"),
+    };
+    let required = match c.kind {
+        _ if c.pass.is_none() && c.limit == 0.0 && c.kind != K::Vertical => {
+            s.for_information.clone()
+        }
+        K::AreaMin if c.pass.is_none() => fill(
+            &s.not_required_above,
+            &[("a", num(limits.anti_panic.applies_above_m2))],
+        ),
+        K::Vertical if c.pass.is_none() => s.no_requirement.clone(),
+        K::RouteWidth => fill(&s.route_width_req, &[("w", num(c.limit))]),
+        K::RouteRatio | K::AreaRatio | K::HighRiskRatio => format!("≤ {}", num(c.limit)),
+        K::Glare => format!("≤ {:.0} cd", c.limit),
+        K::Ra | K::RouteCount | K::AreaCount => format!("≥ {}", num(c.limit)),
+        K::RouteSpacing => format!("≤ {} m", num(c.limit)),
+        K::LuminaireFlux => format!("≥ {} lm", num(c.limit)),
+        K::AreaFlux => format!("≥ {} lm/m²", num(c.limit)),
+        K::AreaSpacing => format!("≤ {}", num(c.limit)),
+        _ => format!("≥ {} lx", num(c.limit)),
+    };
+    (what, value, required, c.pass)
+}
+
 #[component]
 pub fn EmergencyResults(result: Memo<Option<EmResult>>) -> impl IntoView {
     let locale = use_locale();
@@ -1108,95 +1496,13 @@ pub fn EmergencyResults(result: Memo<Option<EmResult>>) -> impl IntoView {
         let r = result.get()?;
         let l = locale.get();
         let s = l.zonal_designer.emergency.clone();
-        let limits = Limits::en1838();
+        let limits = &r.limits;
         let rep = &r.report;
-        let mut rows: Vec<(String, String, String, Option<bool>)> = Vec::new();
-        for x in &rep.routes {
-            rows.push((
-                fill(&s.route_centre, &[("name", x.name.clone())]),
-                format!("{:.2} lx", x.centre.min_lx),
-                format!("≥ {} lx", limits.escape_route.centre_min_lx),
-                Some(x.pass_centre),
-            ));
-            rows.push((
-                fill(&s.route_band, &[("name", x.name.clone())]),
-                format!("{:.2} lx", x.band.min_lx),
-                format!("≥ {} lx", limits.escape_route.band_min_lx),
-                Some(x.pass_band),
-            ));
-            rows.push((
-                fill(&s.route_ratio, &[("name", x.name.clone())]),
-                ratio(x.centre.ratio),
-                format!("≤ {}", limits.escape_route.max_ratio),
-                Some(x.pass_ratio),
-            ));
-        }
-        for a in &rep.open_areas {
-            if a.required {
-                rows.push((
-                    s.open_min.clone(),
-                    format!("{:.2} lx", a.stats.min_lx),
-                    format!("≥ {} lx", a.required_lx),
-                    Some(a.pass_min),
-                ));
-                rows.push((
-                    s.open_ratio.clone(),
-                    ratio(a.stats.ratio),
-                    format!("≤ {}", a.max_ratio),
-                    Some(a.pass_ratio),
-                ));
-            } else {
-                rows.push((
-                    s.open_min.clone(),
-                    format!("{:.2} lx", a.stats.min_lx),
-                    s.not_required.clone(),
-                    None,
-                ));
-            }
-        }
-        for p in &rep.points {
-            if let (Some(e), Some(ok)) = (p.vertical_lx, p.pass) {
-                rows.push((
-                    format!(
-                        "{} {}",
-                        kind_icon(p.kind),
-                        fill(&s.point_vertical, &[("kind", kind_label(&s, p.kind))])
-                    ),
-                    format!("{e:.2} lx"),
-                    format!("≥ {} lx", limits.emphasis_min_vertical_lx),
-                    Some(ok),
-                ));
-            }
-        }
-        if let Some(g) = rep
-            .glare
+        let rows: Vec<(String, String, String, Option<bool>)> = rep
+            .checks
             .iter()
-            .max_by(|a, b| (a.i_max_cd / a.limit_cd).total_cmp(&(b.i_max_cd / b.limit_cd)))
-        {
-            rows.push((
-                s.glare.clone(),
-                format!("{:.1} cd", g.i_max_cd),
-                format!("≤ {:.0} cd", g.limit_cd),
-                Some(rep.glare.iter().all(|g| g.pass)),
-            ));
-        }
-        let ra = if !rep.ra_below_limit.is_empty() {
-            Some(false)
-        } else if rep.ra_unknown.is_empty() && !rep.glare.is_empty() {
-            Some(true)
-        } else {
-            None
-        };
-        rows.push((
-            s.ra.clone(),
-            if ra.is_none() {
-                s.ra_unknown.clone()
-            } else {
-                String::new()
-            },
-            format!("≥ {}", limits.min_ra),
-            ra,
-        ));
+            .map(|c| check_row(&s, rep, limits, c))
+            .collect();
         let pass = rep.pass();
         let summary = fill(
             &s.count,
@@ -1207,7 +1513,7 @@ pub fn EmergencyResults(result: Memo<Option<EmResult>>) -> impl IntoView {
             ],
         );
         Some(view! {
-            <h3 class="zonal-sensors-h">{format!("🚨 {}", s.results_title)}</h3>
+            <h3 class="zonal-sensors-h">{format!("🚨 {} · {}", s.results_title, limits.name)}</h3>
             <p class=if pass && r.has_checks() { "zonal-emergency-pass" } else { "zonal-emergency-fail" }>
                 {if r.has_checks() { if pass { s.pass.clone() } else { s.fail.clone() } } else { s.nothing.clone() }}
             </p>
@@ -1225,6 +1531,7 @@ pub fn EmergencyResults(result: Memo<Option<EmResult>>) -> impl IntoView {
                     </tr>
                 }).collect_view()}
             </table>
+            <p class="zonal-sensors-hint">{s.std_note(&limits.id)}</p>
             <p class="zonal-sensors-hint">{fill(&s.method, &[("mf", format!("{:.2}", r.source.mf))])}</p>
         })
     }
@@ -1244,17 +1551,52 @@ fn typ_text(s: &str) -> String {
         .replace('<', "\\<")
 }
 
-/// "Emergency Lighting (EN 1838)" section of the interior PDF (English like
-/// the rest of that report).
+/// A PDF of the emergency lighting alone (Typst source): title with the
+/// standard, the room, then `section` ([`typst_section`], its page break
+/// dropped).
+pub fn report_typst(r: &EmResult, room: &eulumdat::zonal::Room, section: &str) -> String {
+    let mut t = format!(
+        "#set page(paper: \"a4\", margin: 1.5cm, footer: align(center)[#text(size: 8pt, fill: gray)[Candelabra · emergency lighting · {}]])\n#set text(font: \"Helvetica\", size: 10pt)\n\n= Emergency Lighting Report\n=== {}\n\n",
+        typ_text(&r.limits.name),
+        typ_text(&r.limits.name)
+    );
+    t.push_str(&format!(
+        "*Room:* {:.1} × {:.1} m, {:.1} m high, {:.1} m² floor  |  *Region:* {}\n\n",
+        room.length,
+        room.width,
+        room.height,
+        room.area(),
+        typ_text(&r.limits.region)
+    ));
+    t.push_str(
+        section
+            .trim_start()
+            .trim_start_matches("#pagebreak()")
+            .trim_start(),
+    );
+    t
+}
+
+/// "Emergency Lighting (<standard>)" section of the interior PDF (English
+/// like the rest of that report).
 pub fn typst_section(
     r: &EmResult,
     plan_svg: &str,
     floor_svg: Option<(&str, &FloorGrid)>,
 ) -> String {
     let escape = |s: &str| s.replace('\\', "\\\\").replace('"', "\\\"");
-    let limits = Limits::en1838();
+    let limits = &r.limits;
     let rep = &r.report;
-    let mut t = String::from("#pagebreak()\n\n== Emergency Lighting (EN 1838)\n\n");
+    let mut t = format!(
+        "#pagebreak()\n\n== Emergency Lighting ({})\n\n",
+        limits.name
+    );
+    t.push_str(&format!(
+        "*Standard:* {} ({}). {}\n\n",
+        typ_text(&limits.name),
+        typ_text(&limits.region),
+        typ_text(&limits.clauses)
+    ));
     t.push_str(&format!(
         "*Emergency luminaire:* {}  |  *Luminaires:* {}  |  *Emergency flux:* {:.0} lm  |  *Mounting height:* {:.2} m  |  *Maintenance factor:* {:.2}\n\n",
         typ_text(&r.source.name),
@@ -1287,78 +1629,9 @@ pub fn typst_section(
             }
         ));
     };
-    for x in &rep.routes {
-        row(
-            &mut t,
-            format!("Route {}: centre line min", x.name),
-            format!("{:.2} lx", x.centre.min_lx),
-            format!("≥ {} lx", limits.escape_route.centre_min_lx),
-            Some(x.pass_centre),
-        );
-        row(
-            &mut t,
-            format!("Route {}: central band min", x.name),
-            format!("{:.2} lx", x.band.min_lx),
-            format!("≥ {} lx", limits.escape_route.band_min_lx),
-            Some(x.pass_band),
-        );
-        row(
-            &mut t,
-            format!("Route {}: Emax / Emin", x.name),
-            ratio(x.centre.ratio),
-            format!("≤ {}", limits.escape_route.max_ratio),
-            Some(x.pass_ratio),
-        );
-    }
-    for a in &rep.open_areas {
-        if a.required {
-            row(
-                &mut t,
-                format!("Open area ({:.1} m²) min", a.area_m2),
-                format!("{:.2} lx", a.stats.min_lx),
-                format!("≥ {} lx", a.required_lx),
-                Some(a.pass_min),
-            );
-            row(
-                &mut t,
-                "Open area Emax / Emin".into(),
-                ratio(a.stats.ratio),
-                format!("≤ {}", a.max_ratio),
-                Some(a.pass_ratio),
-            );
-        } else {
-            row(
-                &mut t,
-                format!("Open area ({:.1} m²)", a.area_m2),
-                format!("{:.2} lx", a.stats.min_lx),
-                "not required (≤ 60 m²)".into(),
-                None,
-            );
-        }
-    }
-    for p in &rep.points {
-        if let (Some(e), Some(ok)) = (p.vertical_lx, p.pass) {
-            row(
-                &mut t,
-                format!("{:?} at ({:.1}, {:.1}): vertical", p.kind, p.x, p.y),
-                format!("{e:.2} lx"),
-                format!("≥ {} lx", limits.emphasis_min_vertical_lx),
-                Some(ok),
-            );
-        }
-    }
-    if let Some(g) = rep
-        .glare
-        .iter()
-        .max_by(|a, b| (a.i_max_cd / a.limit_cd).total_cmp(&(b.i_max_cd / b.limit_cd)))
-    {
-        row(
-            &mut t,
-            "Glare, I max 60°–90°".into(),
-            format!("{:.1} cd", g.i_max_cd),
-            format!("≤ {:.0} cd", g.limit_cd),
-            Some(rep.glare.iter().all(|g| g.pass)),
-        );
+    for c in &rep.checks {
+        let [what, value, req] = rep.describe(c, limits);
+        row(&mut t, what, value, req, c.pass);
     }
     t.push_str(")\n\n");
     t.push_str(&format!(
@@ -1369,26 +1642,43 @@ pub fn typst_section(
             "not all requirements met"
         }
     ));
+    let route_rule = if limits.escape_route.centre_min_lx > 0.0 {
+        format!(
+            "the centre line and the {}",
+            emergency::band_words(limits.escape_route.band_share)
+        )
+    } else {
+        format!(
+            "the {}",
+            emergency::band_words(limits.escape_route.band_share)
+        )
+    };
+    let mut notes = limits.notes.join(" ");
+    if limits.end_of_duration.is_some() {
+        notes.push_str(&format!(
+            " Output at the end of the rated duration: {:.0} % of the flux above.",
+            rep.settings.end_output_share * 100.0
+        ));
+    }
     t.push_str(&format!(
-        "_Method: direct light only (EN 1838), emergency flux at the end of the rated duration × maintenance factor {:.2}; points every {:.1} m along routes, open-area grid {:.2} m with a {:.1} m border; equipment at {:.1} m facing into the room. Response times ({} s / {} s) and the rated duration are not calculated. Colour rendering of the emergency light: {}._\n\n",
+        "_Method: direct light only, emergency flux × maintenance factor {:.2}; points every {:.1} m along routes over {}, area grid {:.2} m with a {:.1} m border; equipment at {:.1} m facing into the room. {} Not calculated: {}. Colour rendering of the emergency light: {}._\n\n",
         r.source.mf,
         rep.settings.route_step_m,
+        route_rule,
         rep.settings.grid_step_m,
         limits.anti_panic.border_m,
         rep.settings.emphasis_height_m,
-        limits.timing.half_s,
-        limits.timing.full_s,
-        if !rep.ra_below_limit.is_empty() {
-            "below Ra 40".to_string()
-        } else if rep.ra_unknown.is_empty() {
-            format!("Ra ≥ {}", limits.min_ra)
-        } else {
-            "unknown".to_string()
+        typ_text(&notes),
+        typ_text(&limits.not_calculated()),
+        match rep.ra_unknown.is_empty() {
+            _ if !rep.ra_below_limit.is_empty() => format!("below Ra {}", limits.min_ra),
+            true if !r.positions.is_empty() && limits.checks_ra() => format!("Ra ≥ {}", limits.min_ra),
+            _ => "not checked or unknown".to_string(),
         }
     ));
     if let Some((svg, g)) = floor_svg {
         let (lo, hi) = g.min_max().unwrap_or((0.0, 0.0));
-        let bands: Vec<String> = band_labels()
+        let bands: Vec<String> = band_labels(&floor_bands(&r.limits))
             .into_iter()
             .zip(FLOOR_COLOURS)
             .map(|(l, c)| {

@@ -14,9 +14,9 @@ use eulumdat_scene::cpu::CpuTracer;
 use eulumdat_scene::mesh::LuminaireMesh;
 use eulumdat_scene::scene::{
     suggest_scene, ObjectId, SceneKind, ScenePlan, GRID_EMPHASIS, GRID_OPEN_AREA, GRID_ROUTE,
-    MAX_SENSORS,
+    GRID_ROUTE_BAND, GRID_STAIRS, GRID_STAIRS_BAND, MAX_SENSORS,
 };
-use eulumdat_scene::sync::{scene_id, Status, SyncSettings};
+use eulumdat_scene::sync::{scene_id, GridStat, Status, SyncSettings};
 use eulumdat_scene::viewer::{ViewMode, Viewer};
 use leptos::prelude::*;
 use std::cell::RefCell;
@@ -522,13 +522,26 @@ fn draw_emergency(
     ctx.set_line_dash(&dash(3.0, 4.0)).ok();
     ctx.stroke();
     ctx.set_line_dash(&js_sys::Array::new()).ok();
-    let need = eulumdat::emergency::Limits::en1838().emphasis_min_vertical_lx as f32;
+    // the plan's standard (China has no vertical minimum: neutral rings)
+    let need = viewer
+        .settings
+        .params
+        .plan
+        .as_ref()
+        .and_then(|p| p.emergency.as_ref())
+        .map_or(5.0, |e| e.standard.vertical_lx);
     ctx.set_text_align("center");
     ctx.set_text_baseline("middle");
     for p in &m.points {
         let (x, y) = (p.x as f64, p.y as f64);
         let ring = match p.lux {
-            Some(e) if e >= need => "rgba(74,222,128,0.95)",
+            Some(e) if need <= 0.0 || e >= need => {
+                if need > 0.0 {
+                    "rgba(74,222,128,0.95)"
+                } else {
+                    "rgba(226,232,240,0.9)"
+                }
+            }
             Some(_) => "rgba(248,113,113,0.95)",
             None => "rgba(226,232,240,0.9)",
         };
@@ -922,6 +935,10 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
             *s = s.switched_to(SceneKind::Planned);
             s.sensors = n;
             s.sensor_height = height;
+            // the designed lighting first: the sensors only detect until
+            // the user turns their control on (else nobody in a zone =
+            // every luminaire at the idle level)
+            s.sensor_dim = false;
             // the mode the designer showed; arriving in emergency mode
             // replays the power failure (the eye adapts again)
             if plan.emergency.is_some() {
@@ -1441,6 +1458,8 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
                                         ("{on}", st.lamps_on.to_string()),
                                         ("{n}", st.lamps.to_string()),
                                     ])
+                                } else if !settings.get().sensor_dim {
+                                    tt.status_dim_off.clone()
                                 } else {
                                     let idle = settings.get_untracked().sensor_idle;
                                     fill(&tt.status_idle, &[("{pct}", format!("{:.0}", idle * 100.0))])
@@ -1743,7 +1762,7 @@ fn RtControlPanel(
                         </div>
                     </Section>
 
-                    {move || show_emergency.get().then(|| view! { <EmergencyPanel settings set_settings status /> })}
+                    {move || show_emergency.get().then(|| view! { <EmergencyPanel settings set_settings status plan /> })}
 
                     <Section title=Signal::derive(move || t.get().step_view)>
                         <div style="display: flex; gap: 4px;">
@@ -1935,14 +1954,20 @@ fn RtControlPanel(
                                     }).collect_view()}
                                 </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 3px;">
+                            <Check label=Signal::derive(move || t.get().sensor_dim)
+                                checked=Signal::derive(move || settings.get().sensor_dim)
+                                on_change=move |v| upd(&|s| s.sensor_dim = v) />
+                            {move || (!settings.get().sensor_dim).then(|| view! {
+                                <div style=desc_style>{move || t.get().sensor_dim_off_note}</div>
+                            })}
+                            <div style=move || format!("display: {}; flex-direction: column; gap: 3px;", if settings.get().sensor_dim { "flex" } else { "none" })>
                                 {["together", "nearest"].into_iter().map(|id| view! {
                                     <button style=move || seg_style(settings.get().sensor_control == id) on:click=move |_| upd(&|s| s.sensor_control = id.into())>
                                         {move || { let tt = t.get(); if id == "nearest" { tt.control_nearest } else { tt.control_together } }}
                                     </button>
                                 }).collect_view()}
                             </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style=move || format!("display: {}; align-items: center; gap: 8px;", if settings.get().sensor_dim { "flex" } else { "none" })>
                                 <span style="color: var(--text-secondary); width: 70px;">{move || t.get().idle_level}</span>
                                 <div style="display: flex; gap: 3px; flex: 1;">
                                     {[0.0f32, 0.1, 0.3, 0.5].into_iter().map(|lv| view! {
@@ -1967,6 +1992,8 @@ fn RtControlPanel(
                             </div>
                         })}
                     </Section>
+
+                    <MoonPanel settings set_settings status />
 
                     <Section title=Signal::derive(move || t.get().light_camera) collapsed=true>
                         <Check label=Signal::derive(move || format!("{}{}", t.get().cct_from_file, status.get().cct_file.map(|c| format!(" ({c:.0} K)")).unwrap_or_default()))
@@ -2057,6 +2084,142 @@ fn RtControlPanel(
     }
 }
 
+/// The moon over an outdoor scene: on / off, the night, the place (globe),
+/// north in the scene, luminaires off, and what the moon gives.
+#[component]
+fn MoonPanel(
+    settings: ReadSignal<SyncSettings>,
+    set_settings: WriteSignal<SyncSettings>,
+    status: ReadSignal<Status>,
+) -> impl IntoView {
+    use crate::components::location_picker::{GlobePicker, PickedPlace};
+    let t = Memo::new(move |_| crate::i18n::use_locale().get().ui.light_scene.clone());
+    let upd = move |f: &dyn Fn(&mut SyncSettings)| set_settings.update(|s| f(s));
+    let desc_style = "font-size: 10.5px; color: var(--text-secondary); line-height: 1.4;";
+    let place = RwSignal::new(PickedPlace::load_last());
+    let globe = RwSignal::new(false);
+    let dst_key = |d: eulumdat_daylight::DstRule| match d {
+        eulumdat_daylight::DstRule::Eu => "eu",
+        eulumdat_daylight::DstRule::Us => "us",
+        eulumdat_daylight::DstRule::SouthernEu => "south",
+        eulumdat_daylight::DstRule::None => "none",
+    };
+    let set_place = move |p: &PickedPlace| {
+        let (utc, dst) = p.clock();
+        let (lat, lon) = (p.lat, p.lon);
+        upd(&|s| {
+            s.moon_lat = lat;
+            s.moon_lon = lon;
+            s.moon_utc = utc as f32;
+            s.moon_dst = dst_key(dst).into();
+        });
+    };
+    // switched on: tonight at the last place picked on the globe
+    let switch_on = move |on: bool| {
+        if on {
+            let d = js_sys::Date::new_0();
+            let today = format!(
+                "{:04}-{:02}-{:02}",
+                d.get_full_year(),
+                d.get_month() + 1,
+                d.get_date()
+            );
+            upd(&|s| {
+                s.moon = true;
+                s.moon_date = today.clone();
+            });
+            if let Some(p) = place.get_untracked() {
+                set_place(&p);
+            }
+        } else {
+            upd(&|s| s.moon = false);
+        }
+    };
+    let phase_icon = |f: f32, waxing: bool| match (f, waxing) {
+        (f, _) if f < 0.04 => "🌑",
+        (f, _) if f > 0.96 => "🌕",
+        (f, true) if f < 0.4 => "🌒",
+        (f, true) if f < 0.6 => "🌓",
+        (_, true) => "🌔",
+        (f, false) if f < 0.4 => "🌘",
+        (f, false) if f < 0.6 => "🌗",
+        _ => "🌖",
+    };
+    let lx = |v: f32| crate::components::moon_outdoor::lx(f64::from(v));
+    view! {
+        <Section title=Signal::derive(move || t.get().moon_title) collapsed=true>
+            <Check label=Signal::derive(move || t.get().moon_on) checked=Signal::derive(move || settings.get().moon)
+                on_change=move |v| switch_on(v) />
+            <div style=desc_style>{move || t.get().moon_desc}</div>
+            {move || (!status.get().outdoor).then(|| view! { <div style=desc_style>{move || t.get().moon_indoor}</div> })}
+            {move || settings.get().moon.then(|| view! {
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                    <span style="color: var(--text-secondary); width: 70px;">{move || t.get().moon_date}</span>
+                    <input type="date" style="flex: 1; padding: 3px 5px; background: var(--surface-elevated); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;"
+                        prop:value=move || settings.get().moon_date
+                        on:change=move |ev| {
+                            let v = event_target_value(&ev);
+                            if eulumdat_scene::moon::parse_date(&v).is_some() {
+                                upd(&|s| s.moon_date = v.clone());
+                            }
+                        } />
+                    <button style="padding: 3px 6px; font-size: 10.5px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); cursor: pointer;"
+                        on:click=move |_| {
+                            if let Some(d) = settings.get_untracked().moon_time().and_then(|mt| eulumdat_scene::moon::next_full_moon(&mt)) {
+                                upd(&|s| s.moon_date = d.clone());
+                            }
+                        }>{move || t.get().moon_full}</button>
+                </div>
+                <Range label=t.get_untracked().moon_time unit="h" value=settings.get_untracked().moon_hour min=0.0 max=23.75 step=0.25
+                    on_change=move |v| upd(&|s| s.moon_hour = v) />
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px;">
+                    <span style="flex: 1;">{move || fill(&t.get().moon_place, &[("{place}", place.get().map(|p| p.label()).unwrap_or_else(|| format!("{:.2}°, {:.2}°", settings.get().moon_lat, settings.get().moon_lon)))])}</span>
+                    <button style="padding: 3px 6px; font-size: 10.5px; background: var(--surface-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); cursor: pointer;"
+                        on:click=move |_| globe.set(true)>{move || t.get().moon_pick}</button>
+                </div>
+                <GlobePicker open=globe
+                    at=Signal::derive(move || (settings.get().moon_lat, settings.get().moon_lon))
+                    on_pick=Callback::new(move |p: PickedPlace| { set_place(&p); place.set(Some(p)); }) />
+                <Range label=t.get_untracked().moon_north unit="°" value=settings.get_untracked().north_deg min=0.0 max=355.0 step=5.0
+                    on_change=move |v| upd(&|s| s.north_deg = v) />
+                <Check label=Signal::derive(move || t.get().moon_lamps_off) checked=Signal::derive(move || settings.get().lamps_off)
+                    on_change=move |v| upd(&|s| s.lamps_off = v) />
+                <div style="font-size: 11px; color: #79c0ff; font-variant-numeric: tabular-nums;">
+                    {move || {
+                        use eulumdat_scene::moon::SkyKind;
+                        let tt = t.get();
+                        match status.get().sky {
+                            Some(sk) if sk.kind == SkyKind::Sun => fill(&tt.sun_readout, &[
+                                ("{alt}", format!("{:.0}", sk.sun_altitude_deg)),
+                                ("{lx}", lx(sk.horizontal_lux)),
+                                ("{beam}", lx(sk.beam_lux)),
+                                ("{sky}", lx(sk.sky_lux)),
+                            ]),
+                            Some(sk) if sk.kind == SkyKind::Twilight => fill(&tt.twilight_readout, &[
+                                ("{alt}", format!("{:.0}", sk.sun_altitude_deg)),
+                                ("{lx}", lx(sk.horizontal_lux)),
+                            ]),
+                            Some(sk) if sk.moon.altitude_deg > 0.0 => {
+                                let m = sk.moon;
+                                fill(&tt.moon_readout, &[
+                                    ("{phase}", phase_icon(m.illuminated, m.waxing).to_string()),
+                                    ("{pct}", format!("{:.0}", m.illuminated * 100.0)),
+                                    ("{alt}", format!("{:.0}", m.altitude_deg)),
+                                    ("{lx}", lx(m.horizontal_lux)),
+                                    ("{beam}", lx(m.normal_lux)),
+                                    ("{sky}", lx(m.sky_lux)),
+                                ])
+                            }
+                            Some(sk) => format!("{} {}", tt.moon_below, fill(&tt.night_readout, &[("{lx}", lx(sk.horizontal_lux))])),
+                            None => String::new(),
+                        }
+                    }}
+                </div>
+            })}
+        </Section>
+    }
+}
+
 /// Emergency lighting of a planned scene: emergency mode, the plan's
 /// markings on / off (off = as a person escaping sees it), walking a route
 /// at eye height, and the EN 1838 check of the measured points.
@@ -2065,6 +2228,7 @@ fn EmergencyPanel(
     settings: ReadSignal<SyncSettings>,
     set_settings: WriteSignal<SyncSettings>,
     status: ReadSignal<Status>,
+    plan: Signal<Option<Arc<ScenePlan>>>,
 ) -> impl IntoView {
     let t = Memo::new(move |_| use_locale().get().ui.light_scene.clone());
     let upd = move |f: &dyn Fn(&mut SyncSettings)| set_settings.update(|s| f(s));
@@ -2084,7 +2248,12 @@ fn EmergencyPanel(
     let walking = Memo::new(move |_| status.get().walk.is_some());
     // in steps of 1 %: the text changes, the panel does not rebuild per tick
     let adaptation = Memo::new(move |_| (status.get().adaptation * 100.0).round() / 100.0);
-    let lim = eulumdat::emergency::Limits::en1838();
+    // what the plan's standard requires (EN 1838 when the plan says nothing)
+    let standard = Memo::new(move |_| {
+        plan.get()
+            .and_then(|p| p.emergency.as_ref().map(|e| e.standard.clone()))
+            .unwrap_or_default()
+    });
     let checks = move || {
         let tt = t.get();
         let st = status.get();
@@ -2098,56 +2267,133 @@ fn EmergencyPanel(
             }
             .into_any();
         }
+        let req = standard.get();
         let find = |name: &str| st.grids.iter().find(|g| g.name == name).cloned();
-        let rows: Vec<(String, bool, String)> = [
-            (
-                GRID_ROUTE,
+        // a grid's minimum together with its band edges (the central band)
+        let with_band = |centre: &str, band: &str| match (find(centre), find(band)) {
+            (Some(c), Some(b)) => Some((c.emin.min(b.emin), c.emax.max(b.emax))),
+            (Some(c), None) => Some((c.emin, c.emax)),
+            _ => None,
+        };
+        // (label, min, max, average, required min, max ratio, required
+        // average; 0 = no such rule)
+        let mut checks: Vec<(String, f32, f32, f32, f32, f32, f32)> = Vec::new();
+        let route_avg = |c: &GridStat, b: Option<&GridStat>| match b {
+            // the band grid holds both edges: weigh it twice
+            Some(b) => (c.em + 2.0 * b.em) / 3.0,
+            None => c.em,
+        };
+        let band_ratio = if req.ratio_over_band {
+            req.route_ratio
+        } else {
+            0.0
+        };
+        if let Some(g) = find(GRID_ROUTE).filter(|_| req.route_centre_lx > 0.0) {
+            // EN 1838: the centre line (+ its ratio)
+            let ratio = if req.ratio_over_band {
+                0.0
+            } else {
+                req.route_ratio
+            };
+            checks.push((
                 tt.em_check_route.clone(),
-                lim.escape_route.centre_min_lx,
-                Some(lim.escape_route.max_ratio),
-            ),
-            (
-                GRID_OPEN_AREA,
-                tt.em_check_open.clone(),
-                lim.anti_panic.min_lx,
-                Some(lim.anti_panic.max_ratio),
-            ),
-            (
-                GRID_EMPHASIS,
+                g.emin,
+                g.emax,
+                0.0,
+                req.route_centre_lx,
+                ratio,
+                0.0,
+            ));
+        }
+        if let Some((mn, mx)) =
+            with_band(GRID_ROUTE, GRID_ROUTE_BAND).filter(|_| req.route_band_lx > 0.0)
+        {
+            let avg =
+                find(GRID_ROUTE).map_or(0.0, |c| route_avg(&c, find(GRID_ROUTE_BAND).as_ref()));
+            checks.push((
+                tt.em_check_band.clone(),
+                mn,
+                mx,
+                avg,
+                req.route_band_lx,
+                band_ratio,
+                req.route_avg_lx,
+            ));
+        }
+        if let Some((mn, mx)) = with_band(GRID_STAIRS, GRID_STAIRS_BAND) {
+            checks.push((
+                tt.em_check_stairs.clone(),
+                mn,
+                mx,
+                0.0,
+                req.stairs_lx,
+                0.0,
+                0.0,
+            ));
+        }
+        if let Some(g) = find(GRID_OPEN_AREA) {
+            checks.push((
+                if req.area_border_m > 0.0 {
+                    tt.em_check_open.clone()
+                } else {
+                    tt.em_check_room.clone()
+                },
+                g.emin,
+                g.emax,
+                g.em,
+                req.area_lx,
+                req.area_ratio,
+                req.area_avg_lx,
+            ));
+        }
+        if let Some(g) = find(GRID_EMPHASIS).filter(|_| req.vertical_lx > 0.0) {
+            checks.push((
                 tt.em_check_points.clone(),
-                lim.emphasis_min_vertical_lx,
-                None,
-            ),
-        ]
-        .into_iter()
-        .filter_map(|(name, label, min, ratio)| {
-            let g = find(name)?;
-            let mut ok = g.emin as f64 >= min;
-            let mut text = fill(
-                &tt.em_check_min,
-                &[("{v}", fmt_lux(g.emin)), ("{req}", format!("{min}"))],
-            );
-            if let Some(r) = ratio {
-                let v = if g.emin > 0.0 {
-                    g.emax / g.emin
-                } else {
-                    f32::INFINITY
-                };
-                ok &= (v as f64) <= r;
-                let shown = if v.is_finite() {
-                    format!("{v:.1}")
-                } else {
-                    "∞".into()
-                };
-                text.push_str(" · ");
-                text.push_str(&fill(
-                    &tt.em_check_ratio,
-                    &[("{v}", shown), ("{req}", format!("{r}"))],
-                ));
-            }
-            Some((label, ok, text))
-        })
-        .collect();
+                g.emin,
+                g.emax,
+                0.0,
+                req.vertical_lx,
+                0.0,
+                0.0,
+            ));
+        }
+        let rows: Vec<(String, bool, String)> = checks
+            .into_iter()
+            .map(|(label, emin, emax, avg, min, ratio, avg_req)| {
+                let mut ok = emin >= min;
+                let mut text = fill(
+                    &tt.em_check_min,
+                    &[("{v}", fmt_lux(emin)), ("{req}", format!("{min}"))],
+                );
+                if avg_req > 0.0 {
+                    ok &= avg >= avg_req;
+                    text.push_str(" · ");
+                    text.push_str(&fill(
+                        &tt.em_check_avg,
+                        &[("{v}", fmt_lux(avg)), ("{req}", format!("{avg_req}"))],
+                    ));
+                }
+                if ratio > 0.0 {
+                    let v = if emin > 0.0 {
+                        emax / emin
+                    } else {
+                        f32::INFINITY
+                    };
+                    ok &= v <= ratio;
+                    let shown = if v.is_finite() {
+                        format!("{v:.1}")
+                    } else {
+                        "∞".into()
+                    };
+                    text.push_str(" · ");
+                    text.push_str(&fill(
+                        &tt.em_check_ratio,
+                        &[("{v}", shown), ("{req}", format!("{ratio}"))],
+                    ));
+                }
+                (label, ok, text)
+            })
+            .collect();
         if rows.is_empty() {
             return view! { <div style=desc_style>{tt.measuring.clone()}</div> }.into_any();
         }
@@ -2166,7 +2412,7 @@ fn EmergencyPanel(
         .into_any()
     };
     view! {
-        <Section title=Signal::derive(move || t.get().em_title)>
+        <Section title=Signal::derive(move || format!("{} · {}", t.get().em_title, standard.get().name))>
             <Check label=Signal::derive(move || t.get().em_mode) checked=Signal::derive(move || settings.get().emergency_mode)
                 on_change=move |v| upd(&|s| s.emergency_mode = v) />
             <div style=desc_style>{move || t.get().em_mode_desc}</div>

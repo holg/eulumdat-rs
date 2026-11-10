@@ -6016,3 +6016,54 @@ tr.delta-major .metric-percent {
 .zonal-plan-tool {
     cursor: crosshair;
 }
+
+/* Pick a place on the geodb-rs globe (components/location_picker.rs) */
+.globe-picker-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(2, 4, 9, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.globe-picker {
+    width: min(1200px, 94vw);
+    height: min(820px, 88vh);
+    display: flex;
+    flex-direction: column;
+    background: #020409;
+    border: 1px solid var(--border, #30363d);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.globe-picker-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #e6ecf5;
+    background: #0c1220;
+    border-bottom: 1px solid rgba(140, 170, 220, 0.16);
+}
+.globe-picker-head span {
+    flex: 1;
+    color: #8a97ad;
+    font-size: 12px;
+}
+.globe-picker-head button {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(140, 170, 220, 0.3);
+    background: transparent;
+    color: #e6ecf5;
+    cursor: pointer;
+}
+.globe-picker iframe {
+    flex: 1;
+    width: 100%;
+    border: 0;
+}
+

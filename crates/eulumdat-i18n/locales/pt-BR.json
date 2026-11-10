@@ -434,7 +434,6 @@
       "bim": "BIM",
       "area_designer": "Exterior",
       "zonal_designer": "Interior",
-      "maps_designer": "Mapas",
       "beam_angle": "Ângulo de feixe",
       "iso_view": "Vista ISO",
       "street_design": "🛣️ Iluminação viária"
@@ -814,6 +813,9 @@
       "reset_moves": "Recolocar os objetos",
       "status_detected": "Detectado: {what} · {on} de {n} luminárias acesas",
       "status_idle": "Nada detectado · luminárias a {pct} %",
+      "sensor_dim": "Os sensores comandam as luminárias",
+      "sensor_dim_off_note": "Desligado: os sensores só detectam, as luminárias ficam com potência total (como no projetista). Ligue e mova a pessoa ou um carro para testar o controle.",
+      "status_dim_off": "Controle por sensores desligado · luminárias com potência total",
       "status_person": "pessoa",
       "status_cars": "{n} carro(s)",
       "status_no_area": "Este sensor não detecta nada a {h} m.",
@@ -841,9 +843,9 @@
       "scene_saved": "Salva em “{project}”; as alterações são salvas automaticamente.",
       "scene_unsaved": "Mantida neste navegador; salve para incluí-la no arquivo do projeto.",
       "sensor_volume_3d": "Mostrar o volume de detecção em 3D",
-      "em_title": "🚨 Iluminação de emergência (EN 1838)",
+      "em_title": "🚨 Iluminação de emergência",
       "em_mode": "Modo de emergência (falta de energia)",
-      "em_mode_desc": "Iluminação normal desligada, luminárias de emergência acesas com seu fluxo de emergência × fator de manutenção. A imagem começa escura, como no momento da falta de energia, e se adapta como um olho; os pontos contam só a luz direta, como a EN 1838; falsas cores 0–5 lx.",
+      "em_mode_desc": "Iluminação normal desligada, luminárias de emergência acesas com seu fluxo de emergência × fator de manutenção. A imagem começa escura, como no momento da falta de energia, e se adapta como um olho; os pontos contam só a luz direta, como as normas de iluminação de emergência.",
       "em_marks": "Mostrar as marcações da planta (rota, área antipânico, equipamentos)",
       "em_marks_off": "Como quem está fugindo vê: sem marcações.",
       "em_walk": "Percorrer a rota na altura dos olhos (1,6 m)",
@@ -857,13 +859,33 @@
       "em_check_points": "Equipamentos (vertical)",
       "em_check_min": "Emin {v} lx (≥ {req})",
       "em_check_ratio": "Emax / Emin {v} (≤ {req})",
-      "em_check_note": "Verificação na cena de luz: luz direta, pontos a cada 0,5 m. A referência são os resultados EN 1838 do projetista de iluminação interna.",
+      "em_check_note": "Verificação na cena de luz: luz direta, pontos a cada 0,5 m. A referência são os resultados do projetista de iluminação interna.",
       "em_off_hint": "Ligue o modo de emergência para medir a rota.",
       "em_measure": "📍 Medir (vista Malha)",
       "em_adapting": "👁 Os olhos se adaptam ao escuro… {pct} %",
       "em_adapted": "👁 Adaptado: {stops} pontos mais claro do que na falta de energia. Abaixo da adaptação completa, para que a luz de emergência continue parecendo mais fraca que a normal.",
       "em_replay": "⚡ Repetir a falta de energia",
-      "back_to_designer": "✏️ Voltar ao {from}"
+      "back_to_designer": "✏️ Voltar ao {from}",
+      "em_check_band": "Rota de fuga (metade central)",
+      "em_check_stairs": "Escada / refúgio (metade central)",
+      "em_check_room": "Ambiente (piso inteiro)",
+      "em_check_avg": "Eméd {v} lx (≥ {req})",
+      "moon_title": "☀️🌙 Sol e lua",
+      "moon_on": "Luz do dia e luar",
+      "moon_desc": "Luz natural para uma data, hora e local com céu limpo: de dia o sol com suas sombras e o céu claro, ao entardecer o céu do crepúsculo, à noite a lua e as estrelas; na imagem e nos valores em lux. As normas não a contam; o modo de emergência a deixa de fora.",
+      "moon_date": "Data",
+      "moon_time": "Hora local",
+      "moon_full": "→ Próxima lua cheia",
+      "moon_place": "Local: {place}",
+      "moon_pick": "🌍 Escolher no globo",
+      "moon_north": "Norte na cena",
+      "moon_lamps_off": "Luminárias apagadas (só luz natural)",
+      "moon_readout": "{phase} {pct} % · {alt}° de altura · {lx} lx em terreno aberto (feixe {beam} lx, céu {sky} lx)",
+      "moon_below": "A lua está abaixo do horizonte neste horário.",
+      "moon_indoor": "A lua ilumina cenas externas.",
+      "sun_readout": "☀️ Sol a {alt}° · {lx} lx em terreno aberto (feixe {beam} lx, céu {sky} lx)",
+      "twilight_readout": "🌆 Crepúsculo (sol a {alt}°) · {lx} lx em terreno aberto",
+      "night_readout": "✨ Luz das estrelas · {lx} lx"
     },
     "sensor": {
       "tab": "Sensores",
@@ -1274,7 +1296,30 @@
     "export_plan_svg": "Exportar SVG em planta",
     "export_room_svg": "Exportar SVG do ambiente",
     "export_3d_svg": "Exportar SVG 3D",
-    "export_optimizer": "Exportar otimizador"
+    "export_optimizer": "Exportar otimizador",
+    "moon": {
+      "desc": "Luz natural em terreno aberto com céu limpo na data e hora escolhidas (o sol de dia, o céu do crepúsculo ao entardecer, a lua à noite), igual em toda parte. As iluminâncias continuam sendo as das luminárias (as normas não contam a luz natural); ela aparece ao lado.",
+      "with_moon": "Com a luz natural desse momento (+{lx} lx)",
+      "dim": "Para manter o mínimo de {target} lx (meta do otimizador), as luminárias poderiam funcionar a {pct} % esta noite.",
+      "dim_none": "As luminárias sozinhas ficam abaixo do mínimo de {target} lx; a luz natural soma {lx} lx.",
+      "alone": "Só a luz natural dá {pct} % do mínimo de {target} lx.",
+      "not_needed": "As luminárias não são necessárias nesse momento: só a luz natural dá {lx} lx (mínimo {target} lx)."
+    },
+    "sitemap": {
+      "title": "🗺 Mapa do local",
+      "show": "Mostrar o mapa do OpenStreetMap sob a planta",
+      "desc": "Encontre o local no globo (aproxime até ver ruas e prédios e clique em “Usar este lugar”), desenhe a área no mapa e posicione os postes. O norte fica em cima; o local é o centro da área.",
+      "pick": "🌍 Encontrar o local no globo",
+      "site": "Local: {place}",
+      "lat": "Latitude",
+      "lon": "Longitude",
+      "opacity": "Opacidade do mapa",
+      "move_map": "✋ Mover o mapa",
+      "move_hint": "Arraste na planta para mover o mapa sob a área.",
+      "done": "Pronto",
+      "no_site": "Ainda sem local: encontre-o no globo ou digite as coordenadas.",
+      "style": "Estilo do mapa"
+    }
   },
   "zonal_designer": {
     "title": "Projetista de iluminação interna",
@@ -1423,7 +1468,7 @@
       "outline_area": "Contorno do ambiente: {a} m² de piso, {p} m de paredes"
     },
     "emergency": {
-      "title": "Iluminação de emergência (EN 1838)",
+      "title": "Iluminação de emergência",
       "intro": "Rotas de fuga, áreas antipânico e equipamentos de segurança, iluminados só pelas luminárias de emergência: luz direta, fluxo de emergência, fator de manutenção.",
       "enable": "Planejar a iluminação de emergência",
       "luminaire": "Luminária de emergência",
@@ -1446,7 +1491,7 @@
       "route_item": "Rota {n}: {len} m, {w} m de largura",
       "remove": "Remover",
       "open_area": "Ambiente como área antipânico",
-      "open_area_hint": "Obrigatória acima de 60 m²; o ambiente tem {a} m².",
+      "open_area_hint": "Obrigatória acima de {limit} m²; o ambiente tem {a} m².",
       "points": "Pontos de ênfase",
       "place": "Colocar no plano:",
       "point_hint": "Clique no plano junto à parede onde está o equipamento (ele fica voltado para o ambiente).",
@@ -1457,7 +1502,7 @@
       "kind_sign": "Sinal iluminado externamente",
       "kind_exit": "Saída",
       "point_item": "{kind} em ({x}, {y})",
-      "results_title": "Iluminação de emergência (EN 1838)",
+      "results_title": "Iluminação de emergência",
       "pass": "✓ Todos os requisitos atendidos",
       "fail": "✗ Nem todos os requisitos atendidos",
       "count": "{n} luminárias de emergência, {lm} lm cada, a {h} m",
@@ -1467,9 +1512,6 @@
       "route_centre": "{name}: linha central mín.",
       "route_band": "{name}: faixa central mín.",
       "route_ratio": "{name}: Emax / Emin",
-      "open_min": "Área antipânico mín.",
-      "open_ratio": "Área antipânico Emax / Emin",
-      "not_required": "não exigido (≤ 60 m²)",
       "point_vertical": "{kind}: vertical",
       "glare": "Ofuscamento 60°–90° (máximo)",
       "ra": "Reprodução de cor Ra",
@@ -1480,7 +1522,118 @@
       "view_normal": "💡 Iluminação normal",
       "view_emergency": "🚨 Modo de emergência",
       "floor_legend": "Piso em modo de emergência: luz direta das luminárias de emergência, fator de manutenção {mf}; mín. {min} lx, máx. {max} lx.",
-      "lum_off": "○ iluminação normal, desligada"
+      "lum_off": "○ iluminação normal, desligada",
+      "standard": "Norma",
+      "place_corridor": "Corredor de fuga",
+      "place_stairs": "Escada, antecâmara, refúgio",
+      "place_crowded": "Local com muitas pessoas",
+      "place_other": "Outro local",
+      "room_place": "O ambiente é",
+      "no_requirement": "sem requisito",
+      "band_half": "metade central",
+      "band_full": "toda a largura",
+      "band_pct": "{pct} % central",
+      "route_name": "Rota {n}",
+      "route_band_min": "{name}: piso mín. ({band})",
+      "route_avg": "{name}: média ({band})",
+      "route_ratio_band": "{name}: Emax / Emin ({band})",
+      "route_width": "{name}: largura",
+      "route_width_req": "≤ {w} m: dividir em faixas ou verificar como área aberta",
+      "room_place_name": "Ambiente ({place})",
+      "open_name": "Área aberta",
+      "room_name": "Ambiente",
+      "area_min_of": "{name}: piso mín.",
+      "area_avg_of": "{name}: média",
+      "area_ratio_of": "{name}: Emax / Emin",
+      "end_avg": "{name}: média após {h} h (fluxo {pct} %)",
+      "end_min": "{name}: mín. após {h} h (fluxo {pct} %)",
+      "not_required_above": "não exigida (≤ {a} m²)",
+      "end_output": "Fluxo no fim da autonomia (%)",
+      "end_output_hint": "{std} admite valores menores após {h} h: média {avg} lx, mínimo {min} lx. Informe o fluxo que as luminárias ainda dão nesse momento; as de LED com fluxo constante ficam em 100 %.",
+      "room_floor_hint": "Verificado em todo o piso; o ambiente tem {a} m².",
+      "report_pdf": "🚨 Relatório de iluminação de emergência (PDF) · {std}",
+      "point_horizontal": "{kind}: horizontal",
+      "exit_floor": "{name}: piso 0,5 m à frente",
+      "lum_flux_min": "Fluxo de emergência por luminária (menor)",
+      "count_of": "{name}: número de luminárias",
+      "route_gap": "{name}: maior distância entre luminárias",
+      "area_flux": "{name}: fluxo das luminárias por m²",
+      "area_spacing": "{name}: distância à luminária mais próxima ÷ altura de montagem",
+      "for_information": "a título informativo",
+      "kind_door_release": "Destravamento de porta",
+      "kind_escape_plan": "Planta de emergência",
+      "kind_evac_aid": "Auxílio à evacuação",
+      "group_europe": "Europa",
+      "group_americas": "Américas",
+      "group_asia": "Ásia e Pacífico",
+      "standards": {
+        "en1838": {
+          "label": "EN 1838:2013 (Europa)",
+          "note": "Rotas de fuga de até 2 m de largura: no mínimo 1 lx na linha central e 0,5 lx na metade central, Emax / Emin ≤ 40. Áreas antipânico acima de 60 m²: 0,5 lx sem uma borda de 0,5 m, ≤ 40. 5 lx na vertical em equipamentos de incêndio, primeiros socorros e acionadores manuais; limites de ofuscamento; Ra ≥ 40. Válida até 18 de junho de 2027."
+        },
+        "en1838-2024": {
+          "label": "EN 1838:2024 (Europa)",
+          "note": "Rotas de fuga: no mínimo 1 lx na largura menos uma faixa de min(W / 4; 0,5 m) de cada lado (até 2 m: a metade central), Emax / Emin ≤ 40, no mínimo duas luminárias por rota e por área antipânico. Áreas antipânico acima de 60 m² como antes; 5 lx na vertical também em destravamentos de porta, plantas de emergência e auxílios à evacuação; limites de ofuscamento; Ra ≥ 40."
+        },
+        "bs5266": {
+          "label": "BS 5266-1:2025 (Reino Unido)",
+          "note": "Os valores da BS EN 1838:2024 (1 lx na rota menos as faixas laterais, áreas antipânico 0,5 lx, 5 lx nos equipamentos). Autonomia de 3 h para locais com dormitórios, casas de espetáculos, evacuação por fases ou reocupação rápida; 1 h só com evacuação imediata."
+        },
+        "cte-sua4": {
+          "label": "CTE DB SUA 4 / REBT (Espanha)",
+          "note": "Rotas de fuga de até 2 m: 1 lx no eixo, 0,5 lx na metade central, Emax / Emin ≤ 40. Equipamentos de segurança e quadros de distribuição: 5 lx na horizontal. Antipânico (REBT ITC-BT-28): 0,5 lx em todo o espaço até 1 m de altura, qualquer que seja a área, sem borda. Refletância nula, Ra ≥ 40, 1 h."
+        },
+        "fr-erp": {
+          "label": "ERP, arrêté du 25 juin 1980 (França)",
+          "note": "Sem valores em lux: luminárias de evacuação a no máximo 15 m uma da outra ao longo das circulações, 45 lm ou mais cada, duas ou mais em rotas acima de 15 m; iluminação de ambiente em locais para 100 pessoas ou mais: 5 lm por m², luminárias vizinhas a no máximo 4 alturas de montagem, duas ou mais por local. A iluminância é mostrada a título informativo."
+        },
+        "sp52": {
+          "label": "SP 52.13330.2016 (Rússia)",
+          "note": "Rotas de fuga de até 2 m: 1 lx no eixo, 0,5 lx em metade da largura, Emin / Emax ≥ 1 : 40. 5 lx no piso diante de cada saída, nos equipamentos e nas plantas de emergência. Antipânico acima de 60 m² (e 30 pessoas ou mais): 0,5 lx sem uma borda de 0,5 m. Limites de ofuscamento, Ra ≥ 40; 100 % em 10 s, 1 h."
+        },
+        "nfpa101": {
+          "label": "NFPA 101 / IBC (Estados Unidos)",
+          "note": "Ao longo da rota de fuga, no nível do piso: média de no mínimo 1 fc (10,8 lx), em qualquer ponto no mínimo 0,1 fc (1,1 lx), máx. / mín. ≤ 40, na largura da rota e no piso do ambiente. Após 1,5 h os valores podem cair para 6,5 lx de média e 0,65 lx de mínimo: informe o fluxo nesse momento. Sinais de saída iluminados externamente 5 fc (54 lx)."
+        },
+        "nbcc": {
+          "label": "NBC Canada 2020",
+          "note": "No nível do piso ou dos degraus: média de no mínimo 10 lx e mínimo de 1 lx em saídas, corredores públicos, rotas principais e os ambientes listados; sem razão de uniformidade. Autonomia de 30 min, 1 h (cuidados, tratamento, detenção) ou 2 h (edifícios altos)."
+        },
+        "nbr10898": {
+          "label": "ABNT NBR 10898 (Brasil)",
+          "note": "Horizontal no piso: no mínimo 3 lx em locais planos, 5 lx em locais com desnível (escadas, rampas, obstáculos), máx. / mín. ≤ 20 ao longo da rota. Autonomia mínima de 1 h.",
+          "places": {
+            "corridor": "Área plana (corredor, hall, área de refúgio)",
+            "crowded": "Área plana (ambiente)",
+            "stairs": "Desnível (escada, rampa, obstáculo)"
+          }
+        },
+        "gb55037": {
+          "label": "GB 55037-2022 (China)",
+          "note": "Iluminância horizontal mínima no piso por local (GB 55037-2022 §10.1.10): escadas, antecâmaras e espaços de refúgio 10 lx, corredores de fuga e locais com muitas pessoas 3 lx, outros locais 1 lx; rotas na metade central da largura, ambientes no piso inteiro, sem razão de uniformidade. Durações e tempos de comutação (GB 51309-2018) não são calculados."
+        },
+        "jp-bsl": {
+          "label": "Lei de Normas de Edificação (Japão)",
+          "note": "Só luz direta: no mínimo 2 lx no piso em cada ponto do ambiente e de seus corredores de fuga e escadas, cantos incluídos (fontes fluorescentes e LED; 1 lx para lâmpadas incandescentes). 30 min."
+        },
+        "nbc-in": {
+          "label": "NBC India 2016",
+          "note": "Rotas de fuga de até 2 m: no mínimo 10 lx na linha central e 5 lx em metade da largura, sem razão de uniformidade; ambientes verificados com 5 lx. Autonomia de 1,5 h, acendimento em até 5 s."
+        },
+        "as2293": {
+          "label": "AS/NZS 2293.1:2018 (Austrália)",
+          "note": "Rotas de fuga: no mínimo 0,2 lx e média de 0,5 lx no piso, escadas 1 lx; medido longe das paredes. Com base em resumos públicos da edição de 2018 (a edição de 2026 ainda não foi verificada). 90 min em serviço."
+        },
+        "nz-f6": {
+          "label": "NZBC F6/AS1 (Nova Zelândia)",
+          "note": "Iluminância direta no piso: 1 lx nas rotas de saída protegidas e nas mudanças de nível, 0,2 lx em todos os outros pontos; pontos a menos de 0,5 m das paredes ficam de fora. 90 min.",
+          "places": {
+            "corridor": "Rota de saída protegida",
+            "stairs": "Mudança de nível",
+            "other": "Restante da rota de fuga"
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -1574,7 +1727,7 @@
       "scene_3d_title": "Cena 3D",
       "area_title": "Projetista de áreas externas",
       "interior_title": "Projetista de interiores",
-      "maps_title": "Projetista em mapa",
+      "maps_title": "Mapa do local",
       "street_title": "Projeto viário",
       "spectral_title": "Laboratório espectral",
       "greenhouse_title": "Estufa",
@@ -1595,7 +1748,7 @@
       "scene_3d_desc": "Percorra uma sala, via ou estacionamento com a luminária como luz de motor de jogo",
       "area_desc": "Posicione várias luminárias em uma área e leia a iluminância no piso",
       "interior_desc": "Ambientes com zonas, planos de trabalho e uniformidade conforme EN 12464-1",
-      "maps_desc": "Planeje luminárias em um mapa real e verifique a iluminação de ruas e praças",
+      "maps_desc": "Planejar sobre um mapa do OpenStreetMap do local: encontrá-lo no globo, desenhar a área, posicionar os postes",
       "street_desc": "Iluminação viária com várias luminárias conforme EN 13201, RP-8, CJJ 45 e MLO",
       "spectral_desc": "Espectros, TCC, IRC, TM-30, melanópico e PPFD hortícola a partir de dados SPD",
       "colour_quality_title": "Qualidade de cor",
@@ -1642,38 +1795,6 @@
       "compare_hint": "Clique em um sensor para ver seus diagramas · Ctrl/⌘ + clique em um segundo e depois Comparar",
       "compare_selected": "⇄ Comparar {a} com {b}"
     }
-  },
-  "maps_designer": {
-    "title": "Projetista de iluminação",
-    "instructions_title": "Instruções:",
-    "instruction_polygon": "Desenhe um polígono (área do estacionamento)",
-    "instruction_luminaires": "Posicione as luminárias (marcadores)",
-    "instruction_calculate": "Clique em Calcular para ver o mapa de calor",
-    "area_defined": "Área definida:",
-    "luminaires_count": "Luminárias:",
-    "calculate": "Calcular mapa de calor",
-    "my_location": "Minha localização",
-    "export_csv": "Exportar CSV",
-    "show_values": "Mostrar valores",
-    "hide_values": "Ocultar valores",
-    "clear_all": "Limpar tudo",
-    "results_title": "Resultados do cálculo",
-    "min": "Mín",
-    "max": "Máx",
-    "average": "Média",
-    "uniformity": "Uniformidade (U₀)",
-    "good_uniformity": "Boa uniformidade (U₀ ≥ 0,40)",
-    "acceptable_uniformity": "Uniformidade aceitável (U₀ ≥ 0,25)",
-    "poor_uniformity": "Uniformidade insuficiente - adicione mais luminárias",
-    "legend_title": "Legenda do mapa de calor",
-    "legend_low": "Baixo",
-    "legend_high": "Alto",
-    "loading_description": "Projete iluminação externa em mapas de satélite reais. Desenhe seu estacionamento, posicione as luminárias e calcule a iluminância.",
-    "load_maps": "Carregar Google Maps",
-    "loading_maps": "Carregando Google Maps...",
-    "toolbar_hint": "Use a barra de ferramentas: Polígono para desenhar a área, Marcador para posicionar luminárias",
-    "load_failed": "Falha ao carregar o Google Maps",
-    "try_again": "Tentar novamente"
   },
   "goniosim": {
     "title": "Goniofotômetro Virtual",
@@ -1772,7 +1893,25 @@
     "sky_empty_hint": "Ajuste o local e a hora, depois pressione Traçar para calcular a iluminância e a cor do céu.",
     "scene_road": "Estrada",
     "scene_room": "Sala",
-    "scene_plaza": "Praça"
+    "scene_plaza": "Praça",
+    "globe_pick": "🌍 Escolher no globo",
+    "globe_title": "Escolher um lugar",
+    "globe_hint": "Pesquise uma cidade ou clique no globo e depois em “Use this place”: latitude, longitude e fuso horário são aplicados.",
+    "globe_close": "Fechar",
+    "moon_card_title": "🌙 Luar desta noite",
+    "moonlight_now": "Luar {lx} lx",
+    "moonlight_day": "Lua acima do horizonte · a luz do dia predomina",
+    "moon_summary": "{phase} {pct} % · {km} km ({dist})",
+    "moon_dist_close": "perto: {pct} % mais brilhante que na distância média",
+    "moon_dist_far": "longe: {pct} % mais fraca que na distância média",
+    "moon_times": "Nascer {rise} · ocaso {set} · até {max} lx às {at}",
+    "moon_hours": "Só a lua dá 0,2 lx ou mais durante {h2} h e 0,1 lx ou mais durante {h1} h das horas escuras.",
+    "moon_dark": "A lua fica abaixo do horizonte enquanto está escuro.",
+    "moon_ref_note": "Iluminância horizontal em terreno aberto, céu limpo. Linhas de referência: 0,2 lx = mínimo em rotas de fuga pela AS/NZS 2293 e NZBC F6 · 0,5 lx = áreas antipânico EN 1838 · 1 lx = rotas de fuga EN 1838 · 2 lx = média P6 EN 13201. Nuvens, árvores e prédios tiram boa parte.",
+    "moon_legend_total": "toda a luz natural",
+    "moon_legend_moon": "só a lua",
+    "moon_month_title": "Luar nas próximas 30 noites (o máximo por noite)",
+    "moon_month_hint": "Clique numa noite para mostrá-la acima."
   },
   "street": {
     "title": "Projetista de Iluminação Viária",

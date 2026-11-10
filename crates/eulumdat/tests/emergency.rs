@@ -101,6 +101,7 @@ fn corridor(ldt: &Eulumdat, flux: f64, spacing: f64) -> EmergencyPlan<'_> {
             name: "corridor".into(),
             path: vec![(0.0, 1.0), (20.0, 1.0)],
             width: 2.0,
+            place: Default::default(),
         }],
         ..Default::default()
     }
@@ -152,10 +153,12 @@ fn open_areas_border_and_size_rule() {
             OpenArea {
                 name: "hall".into(),
                 polygon: square(10.0),
+                place: emergency::PlaceCategory::CrowdedPlace,
             },
             OpenArea {
                 name: "store".into(),
                 polygon: square(5.0),
+                place: emergency::PlaceCategory::CrowdedPlace,
             },
         ],
         ..Default::default()
@@ -258,6 +261,7 @@ fn glare_limit_by_mounting_height_and_route_direction() {
             name: "r".into(),
             path: vec![(0.0, 1.0), (20.0, 1.0)],
             width: 2.0,
+            place: Default::default(),
         }],
         ..Default::default()
     };
@@ -513,6 +517,7 @@ fn landing_page_l_office() {
         name: "1".into(),
         path: vec![(19.5, 3.75), (5.0, 3.75), (5.0, 14.5)],
         width: 2.0,
+        place: Default::default(),
     }];
     let pt = |kind, x, y, f| EmphasisPoint {
         kind,
@@ -538,6 +543,7 @@ fn landing_page_l_office() {
         routes: &routes,
         room: Some(&room),
         open_area: Some(&room),
+        open_area_place: emergency::PlaceCategory::CrowdedPlace,
         points: &points,
     };
     let pos = emergency::auto_layout(&input, &limits, &s);
@@ -595,4 +601,811 @@ fn the_floor_map_agrees_with_the_point_values() {
     assert!(close(e, direct, 1e-9), "{e} vs {direct}");
     let (lo, hi) = g.min_max().unwrap();
     assert!(lo > 0.0 && hi >= e && lo <= e);
+}
+
+// ─── China: GB 55037-2022 ────────────────────────────────────────────
+
+#[test]
+fn chinese_limits_match_their_data_file() {
+    let v: serde_json::Value = serde_json::from_str(emergency::LIMITS_CN_JSON).unwrap();
+    let l = Limits::gb55037();
+    let p = l.places.as_ref().expect("a per-place profile");
+    let f = &v["floor_min_illuminance_lx"];
+    assert_eq!(
+        f["stairs_front_rooms_refuge"].as_f64(),
+        Some(p.stairs_or_refuge_lx)
+    );
+    assert_eq!(f["evacuation_corridor"].as_f64(), Some(p.corridor_lx));
+    assert_eq!(f["crowded_place"].as_f64(), Some(p.crowded_lx));
+    assert_eq!(f["other_place"].as_f64(), Some(p.other_lx));
+    let m = &v["measurement"];
+    assert_eq!(
+        m["route_band_share_of_width"].as_f64(),
+        Some(l.escape_route.band_share)
+    );
+    assert_eq!(m["area_border_m"].as_f64(), Some(l.anti_panic.border_m));
+    let g = &v["GB_51309_2018"];
+    let d = &g["duration_h"];
+    let hours: Vec<f64> = l.timing.durations.iter().map(|d| d.hours).collect();
+    assert_eq!(
+        vec![
+            d["buildings_over_100_m"].as_f64().unwrap(),
+            d["hospitals_elderly_care_public_over_100000_m2_underground_over_20000_m2"]
+                .as_f64()
+                .unwrap(),
+            d["other"].as_f64().unwrap()
+        ],
+        hours
+    );
+    assert_eq!(g["switch_over_s"].as_f64(), Some(l.timing.full_s));
+    assert_eq!(
+        g["switch_over_high_risk_s"].as_f64(),
+        Some(l.timing.high_risk_full_s)
+    );
+    assert_eq!(v["profile"]["id"].as_str(), Some(l.id.as_str()));
+    assert_eq!(v["profile"]["name"].as_str(), Some(l.name.as_str()));
+    // the values per place
+    use emergency::PlaceCategory as P;
+    assert_eq!(p.required(P::StairsOrRefuge), 10.0);
+    assert_eq!(p.required(P::EscapeCorridor), 3.0);
+    assert_eq!(p.required(P::CrowdedPlace), 3.0);
+    assert_eq!(p.required(P::OtherPlace), 1.0);
+    assert_eq!(Limits::by_id("gb55037"), Some(l));
+    assert_eq!(Limits::by_id("en1838"), Some(Limits::en1838()));
+}
+
+#[test]
+fn one_corridor_two_profiles() {
+    use emergency::PlaceCategory as P;
+    let ldt = hemisphere();
+    // a 20 m corridor, 2 m wide, a luminaire every 4 m at 2.8 m
+    let lums: Vec<_> = (0..=5)
+        .map(|k| lum(&ldt, 300.0, k as f64 * 4.0, 0.0, 2.8))
+        .collect();
+    let route = |place| EscapeRoute {
+        name: "1".into(),
+        path: vec![(0.0, 0.0), (20.0, 0.0)],
+        width: 2.0,
+        place,
+    };
+    let plan = |place| EmergencyPlan {
+        luminaires: lums.clone(),
+        routes: vec![route(place)],
+        points: vec![EmphasisPoint {
+            kind: EmphasisKind::FireEquipment,
+            x: 10.0,
+            y: 1.0,
+            z: None,
+            facing: Some(270.0),
+        }],
+        ..Default::default()
+    };
+    let s = Settings::default();
+    let en = emergency::evaluate(&plan(P::EscapeCorridor), &Limits::en1838(), &s);
+    let cn = emergency::evaluate(&plan(P::EscapeCorridor), &Limits::gb55037(), &s);
+    let stairs = emergency::evaluate(&plan(P::StairsOrRefuge), &Limits::gb55037(), &s);
+    let (e, c, st) = (&en.routes[0], &cn.routes[0], &stairs.routes[0]);
+    // the same light, other requirements
+    assert_eq!(e.centre, c.centre);
+    assert_eq!((e.required_centre_lx, e.required_band_lx), (1.0, 0.5));
+    // China checks the central half only (it holds the centre line)
+    assert_eq!((c.required_centre_lx, c.required_band_lx), (0.0, 3.0));
+    assert_eq!((st.required_centre_lx, st.required_band_lx), (0.0, 10.0));
+    assert!(
+        c.max_ratio.is_infinite() && c.pass_ratio,
+        "no uniformity in China"
+    );
+    assert_eq!(cn.profile, "GB 55037-2022");
+    assert_eq!(en.profile, "EN 1838:2013");
+    // the corridor has ~3–6 lx: fine for EN and China, too dark for stairs
+    assert!(e.pass(), "{e:?}");
+    assert!(c.band.min_lx > 3.0 && c.pass(), "{:?}", c.band);
+    assert!(!st.pass(), "stairs need 10 lx: {:?}", st.band);
+    // equipment: EN wants 5 lx vertical, China has no such rule
+    assert!(en.points[0].pass.is_some());
+    assert_eq!(cn.points[0].pass, None);
+    assert!(cn.points[0].vertical_lx.is_some(), "still reported");
+    assert!(cn.glare.iter().all(|g| g.pass && g.limit_cd.is_infinite()));
+}
+
+#[test]
+fn chinese_areas_have_a_minimum_whatever_their_size() {
+    use emergency::PlaceCategory as P;
+    let ldt = hemisphere();
+    let lums = vec![lum(&ldt, 400.0, 2.5, 2.5, 3.0)];
+    let small = vec![(0.0, 0.0), (5.0, 0.0), (5.0, 5.0), (0.0, 5.0)];
+    let plan = |place| EmergencyPlan {
+        luminaires: lums.clone(),
+        open_areas: vec![OpenArea {
+            name: "room".into(),
+            polygon: small.clone(),
+            place,
+        }],
+        ..Default::default()
+    };
+    let s = Settings::default();
+    let en = emergency::evaluate(&plan(P::CrowdedPlace), &Limits::en1838(), &s);
+    assert!(!en.open_areas[0].required, "25 m² is below EN's 60 m²");
+    let other = emergency::evaluate(&plan(P::OtherPlace), &Limits::gb55037(), &s);
+    let crowded = emergency::evaluate(&plan(P::CrowdedPlace), &Limits::gb55037(), &s);
+    let (o, c) = (&other.open_areas[0], &crowded.open_areas[0]);
+    assert!(o.required && c.required);
+    assert_eq!((o.required_lx, c.required_lx), (1.0, 3.0));
+    // the whole floor (no border): more points than EN's core area
+    assert!(o.stats.points > en.open_areas[0].stats.points);
+    assert_eq!(o.stats, c.stats);
+}
+
+#[test]
+fn chinese_stairs_get_closer_luminaires() {
+    use emergency::PlaceCategory as P;
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/emergency");
+    let ldt = Eulumdat::from_file(dir.join("demo_em_route.ldt")).unwrap();
+    let limits = Limits::gb55037();
+    let s = Settings::default();
+    // a brighter setting of the demo optic: 10 lx on stairs is a lot
+    let flux = 900.0;
+    let spacing = emergency::spacing_table(&ldt, flux, &[3.0], 2.0, &limits, &s).remove(0);
+    let layout = |place| {
+        let routes = vec![EscapeRoute {
+            name: "1".into(),
+            path: vec![(0.0, 1.0), (24.0, 1.0)],
+            width: 2.0,
+            place,
+        }];
+        let input = emergency::AutoInput {
+            ldt: &ldt,
+            flux_lm: flux,
+            height: 3.0,
+            ra: None,
+            spacing: &spacing,
+            routes: &routes,
+            room: None,
+            open_area: None,
+            open_area_place: P::CrowdedPlace,
+            points: &[],
+        };
+        let pos = emergency::auto_layout(&input, &limits, &s);
+        let rep = emergency::evaluate(&input.plan(&pos), &limits, &s);
+        (pos.len(), rep.routes[0].clone())
+    };
+    let (n_corridor, corridor) = layout(P::EscapeCorridor);
+    let (n_stairs, stairs) = layout(P::StairsOrRefuge);
+    eprintln!(
+        "corridor: {n_corridor} luminaires, band min {:.2} lx | stairs: {n_stairs}, band min {:.2} lx",
+        corridor.band.min_lx, stairs.band.min_lx
+    );
+    assert!(corridor.pass(), "{corridor:?}");
+    assert!(stairs.pass(), "{:?}", stairs.band);
+    assert!(n_stairs > n_corridor);
+}
+
+// ─── report rows per profile ─────────────────────────────────────────
+
+/// The corridor of `one_corridor_two_profiles`, with an extinguisher.
+fn corridor_plan(ldt: &Eulumdat, place: emergency::PlaceCategory) -> EmergencyPlan<'_> {
+    EmergencyPlan {
+        luminaires: (0..=5)
+            .map(|k| lum(ldt, 300.0, k as f64 * 4.0, 0.0, 2.8))
+            .collect(),
+        routes: vec![EscapeRoute {
+            name: "1".into(),
+            path: vec![(0.0, 0.0), (20.0, 0.0)],
+            width: 2.0,
+            place,
+        }],
+        points: vec![EmphasisPoint {
+            kind: EmphasisKind::FireEquipment,
+            x: 10.0,
+            y: 1.0,
+            z: None,
+            facing: Some(270.0),
+        }],
+        ..Default::default()
+    }
+}
+
+#[test]
+fn report_rows_follow_the_profile() {
+    use emergency::{CheckKind as K, PlaceCategory as P, Subject};
+    let ldt = hemisphere();
+    let s = Settings::default();
+    let kinds =
+        |r: &emergency::EmergencyReport| -> Vec<K> { r.checks.iter().map(|c| c.kind).collect() };
+    let en = emergency::evaluate(
+        &corridor_plan(&ldt, P::EscapeCorridor),
+        &Limits::en1838(),
+        &s,
+    );
+    assert_eq!(
+        kinds(&en),
+        vec![
+            K::CentreMin,
+            K::BandMin,
+            K::RouteRatio,
+            K::Vertical,
+            K::Glare,
+            K::Ra
+        ]
+    );
+    assert!(en.checks.iter().all(|c| c.pass.is_some()));
+    let cn = emergency::evaluate(
+        &corridor_plan(&ldt, P::EscapeCorridor),
+        &Limits::gb55037(),
+        &s,
+    );
+    // China: the floor minimum over the central half; equipment reported only
+    assert_eq!(kinds(&cn), vec![K::BandMin, K::Vertical]);
+    assert_eq!(cn.checks[0].limit, 3.0);
+    assert_eq!(cn.checks[1].pass, None);
+    assert_eq!(cn.checks[0].subject, Subject::Route(0));
+    // the English rows name what each profile measures
+    let [what, value, req] = en.describe(&en.checks[1], &Limits::en1838());
+    assert_eq!(what, "Route 1: floor min, central half");
+    assert!(value.ends_with(" lx") && req == "≥ 0.5 lx", "{value} {req}");
+    let [what, _, req] = cn.describe(&cn.checks[0], &Limits::gb55037());
+    assert_eq!(
+        what,
+        "Route 1 (evacuation corridor): floor min, central half"
+    );
+    assert_eq!(req, "≥ 3 lx");
+    let [_, _, req] = cn.describe(&cn.checks[1], &Limits::gb55037());
+    assert_eq!(req, "no requirement");
+    // pass = every row with a limit
+    assert_eq!(en.pass(), en.checks.iter().all(|c| c.pass != Some(false)));
+    assert!(en.has_checks() && cn.has_checks());
+}
+
+#[test]
+fn every_profile_has_an_id_name_and_region() {
+    let all = Limits::all();
+    assert!(all.len() >= 2);
+    for l in &all {
+        assert!(
+            !l.id.is_empty() && !l.name.is_empty() && !l.region.is_empty(),
+            "{l:?}"
+        );
+        assert_eq!(Limits::by_id(&l.id).as_ref(), Some(l));
+        // something to check on a route
+        let r = &l.escape_route;
+        let lux = r.centre_min_lx > 0.0 || r.band_min_lx > 0.0 || r.avg_min_lx > 0.0;
+        let layout = r.min_luminaires > 0 || r.max_spacing_m.is_finite();
+        assert!(lux || layout, "{}", l.id);
+        assert_eq!(
+            lux, !l.lux_informative,
+            "{}: lux rules or lux for information",
+            l.id
+        );
+        assert!(l.escape_route.band_share > 0.0 && l.escape_route.band_share <= 1.0);
+        if let Some(p) = &l.places {
+            assert!(
+                !p.route_places.is_empty() && !p.area_places.is_empty(),
+                "{}",
+                l.id
+            );
+        }
+    }
+    let mut ids: Vec<&str> = all.iter().map(|l| l.id.as_str()).collect();
+    ids.dedup();
+    assert_eq!(ids.len(), all.len(), "ids are unique");
+    assert_eq!(
+        Limits::by_id("CN").map(|l| l.id),
+        Some("gb55037".to_string())
+    );
+}
+
+#[test]
+fn en1838_2024_lights_the_route_width_less_the_edge_strips() {
+    use emergency::{CheckKind as K, PlaceCategory as P};
+    let l = Limits::en1838_2024();
+    let r = &l.escape_route;
+    // up to 2 m: the central half (W / 4 on each side); wider: 0.5 m strips
+    assert!(close(r.band_half_width(2.0), 0.5, 1e-12));
+    assert!(close(r.band_half_width(1.2), 0.3, 1e-12));
+    assert!(close(r.band_half_width(4.0), 1.5, 1e-12));
+    assert!(close(
+        Limits::en1838().escape_route.band_half_width(4.0),
+        1.0,
+        1e-12
+    ));
+    let ldt = hemisphere();
+    let s = Settings::default();
+    let rep = emergency::evaluate(&corridor_plan(&ldt, P::EscapeCorridor), &l, &s);
+    let kinds: Vec<K> = rep.checks.iter().map(|c| c.kind).collect();
+    assert_eq!(kinds[..3], [K::BandMin, K::RouteRatio, K::RouteCount]);
+    assert_eq!(rep.checks[0].limit, 1.0, "1 lx over the band, not 0.5");
+    assert_eq!(
+        rep.checks[2].value,
+        Some(6.0),
+        "six luminaires on the corridor"
+    );
+    // one luminaire is not enough (§5.1.8), however bright
+    let one = EmergencyPlan {
+        luminaires: vec![lum(&ldt, 5000.0, 10.0, 0.0, 2.8)],
+        ..corridor_plan(&ldt, P::EscapeCorridor)
+    };
+    let rep = emergency::evaluate(&one, &l, &s);
+    let count = rep.checks.iter().find(|c| c.kind == K::RouteCount).unwrap();
+    assert_eq!(count.pass, Some(false));
+    assert!(!rep.routes[0].pass() && !rep.pass());
+    // the UK code takes the same values, with its own durations
+    let uk = Limits::bs5266();
+    assert_eq!(uk.escape_route, l.escape_route);
+    assert_eq!(uk.timing.durations[0].hours, 3.0);
+}
+
+#[test]
+fn russia_wants_5_lx_in_front_of_exits() {
+    use emergency::{CheckKind as K, PlaceCategory as P};
+    let ldt = hemisphere();
+    let mut plan = corridor_plan(&ldt, P::EscapeCorridor);
+    plan.points.push(EmphasisPoint {
+        kind: EmphasisKind::Exit,
+        x: 20.0,
+        y: 0.0,
+        z: None,
+        facing: Some(180.0),
+    });
+    let s = Settings::default();
+    let ru = emergency::evaluate(&plan, &Limits::sp52(), &s);
+    let exit = ru.checks.iter().find(|c| c.kind == K::ExitFloor).unwrap();
+    // 0.5 m in front of the door, on the floor, from the luminaire above
+    let e = emergency::illuminance(&plan.luminaires, (19.5, 0.0, 0.0), (0.0, 0.0, 1.0), 0.8);
+    assert!(close(exit.value.unwrap(), e, 1e-9));
+    assert_eq!(exit.limit, 5.0);
+    assert_eq!(exit.pass, Some(e >= 5.0));
+    // EN 1838 has no such rule
+    let en = emergency::evaluate(&plan, &Limits::en1838(), &s);
+    assert!(en.checks.iter().all(|c| c.kind != K::ExitFloor));
+    assert_eq!(Limits::sp52().timing.full_s, 10.0);
+}
+
+#[test]
+fn spain_checks_equipment_horizontally_and_rooms_up_to_1_m() {
+    use emergency::{CheckKind as K, PlaceCategory as P};
+    let ldt = hemisphere();
+    let s = Settings::default();
+    let plan = corridor_plan(&ldt, P::EscapeCorridor);
+    let es = emergency::evaluate(&plan, &Limits::cte_sua4(), &s);
+    let en = emergency::evaluate(&plan, &Limits::en1838(), &s);
+    // horizontal at the extinguisher's height, not vertical towards the room
+    let h = emergency::illuminance(&plan.luminaires, (10.0, 1.0, 1.2), (0.0, 0.0, 1.0), 0.8);
+    assert!(close(es.points[0].vertical_lx.unwrap(), h, 1e-9));
+    assert!(!close(en.points[0].vertical_lx.unwrap(), h, 1e-3));
+    assert!(
+        es.checks.iter().all(|c| c.kind != K::Glare),
+        "no glare limit"
+    );
+    // anti-panic: any size, no border, the floor and the 1 m plane
+    let small = vec![(0.0, 2.0), (5.0, 2.0), (5.0, 7.0), (0.0, 7.0)];
+    let room = EmergencyPlan {
+        open_areas: vec![OpenArea {
+            name: "room".into(),
+            polygon: small,
+            place: P::CrowdedPlace,
+        }],
+        ..corridor_plan(&ldt, P::EscapeCorridor)
+    };
+    let es = emergency::evaluate(&room, &Limits::cte_sua4(), &s);
+    let en = emergency::evaluate(&room, &Limits::en1838(), &s);
+    assert!(es.open_areas[0].required && !en.open_areas[0].required);
+    assert_eq!(
+        es.open_areas[0].stats.points,
+        2 * 20 * 20,
+        "0.25 m grid, two planes"
+    );
+}
+
+#[test]
+fn france_counts_lumens_and_spacings_not_lux() {
+    use emergency::{CheckKind as K, PlaceCategory as P};
+    let ldt = hemisphere();
+    let s = Settings::default();
+    let l = Limits::fr_erp();
+    let route = |spacing: f64, flux: f64| EmergencyPlan {
+        luminaires: (0..)
+            .map(|k| k as f64 * spacing)
+            .take_while(|x| *x <= 20.0 + 1e-9)
+            .map(|x| lum(&ldt, flux, x, 0.0, 2.8))
+            .collect(),
+        ..corridor_plan(&ldt, P::EscapeCorridor)
+    };
+    let ok = emergency::evaluate(&route(10.0, 60.0), &l, &s);
+    let find = |r: &emergency::EmergencyReport, k: K| {
+        r.checks.iter().find(|c| c.kind == k).cloned().unwrap()
+    };
+    assert_eq!(find(&ok, K::RouteSpacing).value, Some(10.0));
+    assert_eq!(find(&ok, K::RouteCount).value, Some(3.0));
+    assert_eq!(find(&ok, K::LuminaireFlux).pass, Some(true));
+    // lux only for information
+    let band = find(&ok, K::BandMin);
+    assert_eq!((band.pass, band.limit), (None, 0.0));
+    assert!(ok.pass(), "{:?}", ok.checks);
+    // 16 m apart: too far; 40 lm: too little
+    let far = emergency::evaluate(&route(16.0, 60.0), &l, &s);
+    assert_eq!(find(&far, K::RouteSpacing).pass, Some(false));
+    let dim = emergency::evaluate(&route(10.0, 40.0), &l, &s);
+    assert_eq!(find(&dim, K::LuminaireFlux).pass, Some(false));
+    // ambient lighting: 5 lm per m², neighbours within 4 mounting heights
+    let hall = vec![(0.0, 2.0), (20.0, 2.0), (20.0, 12.0), (0.0, 12.0)];
+    let plan = |flux: f64| EmergencyPlan {
+        luminaires: [(5.0, 7.0), (15.0, 7.0)]
+            .iter()
+            .map(|&(x, y)| lum(&ldt, flux, x, y, 3.0))
+            .collect(),
+        open_areas: vec![OpenArea {
+            name: "hall".into(),
+            polygon: hall.clone(),
+            place: P::CrowdedPlace,
+        }],
+        ..Default::default()
+    };
+    let lit = emergency::evaluate(&plan(500.0), &l, &s);
+    assert!(close(
+        find(&lit, K::AreaFlux).value.unwrap(),
+        1000.0 / 200.0,
+        1e-12
+    ));
+    assert_eq!(find(&lit, K::AreaFlux).pass, Some(true));
+    assert!(close(
+        find(&lit, K::AreaSpacing).value.unwrap(),
+        10.0 / 3.0,
+        1e-12
+    ));
+    assert_eq!(find(&lit, K::AreaCount).pass, Some(true));
+    let dim = emergency::evaluate(&plan(400.0), &l, &s);
+    assert_eq!(find(&dim, K::AreaFlux).pass, Some(false));
+    // the spacing table follows the spacing rules
+    let rows = emergency::spacing_table(&ldt, 100.0, &[3.0], 2.0, &l, &s);
+    assert_eq!(rows[0].route_spacing_c0_m, 15.0);
+    assert_eq!(rows[0].open_area_grid_m, 12.0);
+}
+
+#[test]
+fn us_codes_check_average_minimum_and_the_end_of_the_duration() {
+    use emergency::{CheckKind as K, PlaceCategory as P};
+    let ldt = hemisphere();
+    let l = Limits::nfpa101();
+    let plan = corridor_plan(&ldt, P::EscapeCorridor);
+    let s = Settings::default();
+    let rep = emergency::evaluate(&plan, &l, &s);
+    let kinds: Vec<K> = rep.checks.iter().map(|c| c.kind).collect();
+    assert_eq!(
+        kinds,
+        vec![
+            K::BandMin,
+            K::RouteAverage,
+            K::RouteRatio,
+            K::EndAverage,
+            K::EndMin,
+            K::Vertical
+        ]
+    );
+    // over the full width: the band edges are the walls
+    assert!(close(l.escape_route.band_half_width(2.0), 1.0, 1e-12));
+    let r = &rep.routes[0];
+    assert_eq!(rep.checks[1].value, Some(r.band.avg_lx));
+    assert_eq!((rep.checks[0].limit, rep.checks[1].limit), (1.1, 10.8));
+    // the extinguisher has no rule in the US (signs only)
+    assert_eq!(rep.checks[5].pass, None);
+    // the 1.5 h values follow the output at the end of the duration
+    let half = emergency::evaluate(
+        &plan,
+        &l,
+        &Settings {
+            end_output_share: 0.5,
+            ..Default::default()
+        },
+    );
+    let end = |r: &emergency::EmergencyReport| {
+        r.checks
+            .iter()
+            .find(|c| c.kind == K::EndAverage)
+            .unwrap()
+            .value
+            .unwrap()
+    };
+    assert!(close(end(&half), 0.5 * end(&rep), 1e-12));
+    assert!(close(end(&rep), r.band.avg_lx, 1e-12));
+    // ~3–6 lx: far below the 10.8 lx average the US codes ask for
+    assert!(!rep.pass());
+    // a brighter corridor passes, and the decline to 60 % is allowed
+    let bright = EmergencyPlan {
+        luminaires: (0..=10)
+            .map(|k| lum(&ldt, 900.0, k as f64 * 2.0, 0.0, 2.8))
+            .collect(),
+        ..corridor_plan(&ldt, P::EscapeCorridor)
+    };
+    let at = |share: f64| {
+        emergency::evaluate(
+            &bright,
+            &l,
+            &Settings {
+                end_output_share: share,
+                ..Default::default()
+            },
+        )
+    };
+    assert!(at(1.0).pass(), "{:?}", at(1.0).checks);
+    assert!(at(0.6).pass());
+    // far below 60 % the 1.5 h values fail
+    let avg = at(1.0).routes[0].band.avg_lx;
+    assert!(!at(6.0 / avg).pass() && at(6.6 / avg).routes[0].pass_end);
+}
+
+#[test]
+fn place_profiles_of_the_americas_and_asia() {
+    use emergency::{CheckKind as K, PlaceCategory as P};
+    let ldt = hemisphere();
+    let s = Settings::default();
+    let plan = corridor_plan(&ldt, P::EscapeCorridor);
+    let first = |l: &Limits, place| {
+        let r = emergency::evaluate(&corridor_plan(&ldt, place), l, &s);
+        (r.checks[0].kind, r.checks[0].limit)
+    };
+    // Brazil: 3 lx on flat ground, 5 lx on stairs, ≤ 20 : 1
+    let br = Limits::nbr10898();
+    assert_eq!(first(&br, P::EscapeCorridor), (K::BandMin, 3.0));
+    assert_eq!(first(&br, P::StairsOrRefuge), (K::BandMin, 5.0));
+    let rep = emergency::evaluate(&plan, &br, &s);
+    let ratio = rep.checks.iter().find(|c| c.kind == K::RouteRatio).unwrap();
+    assert_eq!(
+        (ratio.limit, ratio.value),
+        (20.0, Some(rep.routes[0].band.ratio))
+    );
+    // New Zealand: 1 lx in exitways, 0.2 lx elsewhere
+    let nz = Limits::nz_f6();
+    assert_eq!(first(&nz, P::EscapeCorridor), (K::BandMin, 1.0));
+    assert_eq!(first(&nz, P::OtherPlace), (K::BandMin, 0.2));
+    // Australia: 0.2 lx minimum and 0.5 lx average, stairs 1 lx
+    let au = Limits::as2293();
+    let rep = emergency::evaluate(&plan, &au, &s);
+    assert_eq!(
+        rep.checks
+            .iter()
+            .map(|c| (c.kind, c.limit))
+            .take(2)
+            .collect::<Vec<_>>(),
+        vec![(K::BandMin, 0.2), (K::RouteAverage, 0.5)]
+    );
+    assert_eq!(first(&au, P::StairsOrRefuge), (K::BandMin, 1.0));
+    // Japan: 2 lx everywhere on the floor, the full width
+    let jp = Limits::jp_bsl();
+    assert_eq!(first(&jp, P::EscapeCorridor), (K::BandMin, 2.0));
+    assert!(close(jp.escape_route.band_half_width(2.0), 1.0, 1e-12));
+    // India: 10 lx on the centre line, 5 lx over the central half
+    let rep = emergency::evaluate(&plan, &Limits::nbc_in(), &s);
+    assert_eq!(
+        rep.checks
+            .iter()
+            .map(|c| (c.kind, c.limit))
+            .take(2)
+            .collect::<Vec<_>>(),
+        vec![(K::CentreMin, 10.0), (K::BandMin, 5.0)]
+    );
+    // Canada: average 10 lx, minimum 1 lx, no ratio
+    let rep = emergency::evaluate(&plan, &Limits::nbcc(), &s);
+    assert_eq!(
+        rep.checks
+            .iter()
+            .map(|c| (c.kind, c.limit))
+            .collect::<Vec<_>>(),
+        vec![
+            (K::BandMin, 1.0),
+            (K::RouteAverage, 10.0),
+            (K::Vertical, 0.0)
+        ]
+    );
+    // every profile's English rows read
+    for l in Limits::all() {
+        let rep = emergency::evaluate(&plan, &l, &s);
+        for c in &rep.checks {
+            let [what, value, req] = rep.describe(c, &l);
+            assert!(
+                !what.is_empty() && !value.is_empty() && !req.is_empty(),
+                "{} {c:?}",
+                l.id
+            );
+        }
+        assert!(!l.not_calculated().is_empty());
+    }
+}
+
+#[test]
+fn profiles_match_their_data_file() {
+    let v: serde_json::Value = serde_json::from_str(emergency::PROFILES_JSON).unwrap();
+    let list = v["profiles"].as_array().unwrap();
+    let get = |id: &str| -> &serde_json::Value {
+        list.iter()
+            .find(|p| p["id"] == id)
+            .unwrap_or_else(|| panic!("{id} missing"))
+    };
+    // every profile is either here or in its own file
+    for l in Limits::all() {
+        if l.id != "en1838" && l.id != "gb55037" {
+            let p = get(&l.id);
+            assert_eq!(p["name"].as_str(), Some(l.name.as_str()), "{}", l.id);
+            assert!(!p["sources"].as_array().unwrap().is_empty(), "{}", l.id);
+        }
+    }
+    let n = |id: &str, k: &str| get(id)["values"][k].as_f64().unwrap();
+    let e = Limits::en1838_2024();
+    assert_eq!(
+        n("en1838-2024", "route_min_lx_over_band"),
+        e.escape_route.band_min_lx
+    );
+    assert_eq!(
+        n("en1838-2024", "route_edge_max_m"),
+        e.escape_route.edge_max_m
+    );
+    assert_eq!(
+        n("en1838-2024", "route_max_ratio"),
+        e.escape_route.max_ratio
+    );
+    assert_eq!(n("en1838-2024", "open_area_min_lx"), e.anti_panic.min_lx);
+    let es = Limits::cte_sua4();
+    assert_eq!(
+        n("cte-sua4", "anti_panic_planes_up_to_m"),
+        es.anti_panic.planes_up_to_m
+    );
+    assert_eq!(
+        n("cte-sua4", "equipment_horizontal_lx"),
+        es.emphasis_min_vertical_lx
+    );
+    let fr = Limits::fr_erp();
+    assert_eq!(
+        n("fr-erp", "route_max_spacing_m"),
+        fr.escape_route.max_spacing_m
+    );
+    assert_eq!(n("fr-erp", "luminaire_min_lm"), fr.min_luminaire_lm);
+    assert_eq!(
+        n("fr-erp", "ambient_min_lm_per_m2"),
+        fr.anti_panic.min_flux_per_m2
+    );
+    assert_eq!(
+        n("fr-erp", "ambient_max_spacing_per_height"),
+        fr.anti_panic.max_spacing_per_height
+    );
+    let ru = Limits::sp52();
+    assert_eq!(n("sp52", "exit_floor_lx"), ru.exit_floor_min_lx);
+    assert_eq!(
+        get("sp52")["values"]["response_s"][1].as_f64(),
+        Some(ru.timing.full_s)
+    );
+    let us = Limits::nfpa101();
+    let end = us.end_of_duration.clone().unwrap();
+    assert_eq!(n("nfpa101", "route_avg_lx"), us.escape_route.avg_min_lx);
+    assert_eq!(n("nfpa101", "route_min_lx"), us.escape_route.band_min_lx);
+    assert_eq!(n("nfpa101", "end_avg_lx"), end.avg_min_lx);
+    assert_eq!(n("nfpa101", "end_min_lx"), end.min_lx);
+    assert_eq!(
+        n("nfpa101", "external_sign_face_lx"),
+        us.emphasis_min_vertical_lx
+    );
+    let ca = Limits::nbcc();
+    assert_eq!(
+        (n("nbcc", "avg_lx"), n("nbcc", "min_lx")),
+        (ca.escape_route.avg_min_lx, ca.escape_route.band_min_lx)
+    );
+    let br = Limits::nbr10898().places.unwrap();
+    assert_eq!(
+        (n("nbr10898", "flat_lx"), n("nbr10898", "level_change_lx")),
+        (br.corridor_lx, br.stairs_or_refuge_lx)
+    );
+    assert_eq!(
+        n("nbr10898", "max_ratio"),
+        Limits::nbr10898().escape_route.max_ratio
+    );
+    assert_eq!(
+        n("jp-bsl", "floor_min_lx_fluorescent_led"),
+        Limits::jp_bsl().escape_route.band_min_lx
+    );
+    let ind = Limits::nbc_in();
+    assert_eq!(
+        (n("nbc-in", "route_centre_lx"), n("nbc-in", "route_band_lx")),
+        (ind.escape_route.centre_min_lx, ind.escape_route.band_min_lx)
+    );
+    let au = Limits::as2293();
+    assert_eq!(
+        (n("as2293", "route_min_lx"), n("as2293", "route_avg_lx")),
+        (au.escape_route.band_min_lx, au.escape_route.avg_min_lx)
+    );
+    assert_eq!(
+        n("as2293", "stairs_lx"),
+        au.places.unwrap().stairs_or_refuge_lx
+    );
+    let nz = Limits::nz_f6().places.unwrap();
+    assert_eq!(
+        (n("nz-f6", "exitway_lx"), n("nz-f6", "elsewhere_lx")),
+        (nz.corridor_lx, nz.other_lx)
+    );
+}
+
+/// The landing page's L-shaped office laid out automatically for `limits`.
+fn l_office_auto(limits: &Limits) -> (usize, emergency::EmergencyReport) {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/emergency");
+    let ldt = Eulumdat::from_file(dir.join("demo_em_route.ldt")).unwrap();
+    let s = Settings::default();
+    let room = vec![
+        (0.0, 0.0),
+        (20.0, 0.0),
+        (20.0, 7.5),
+        (10.0, 7.5),
+        (10.0, 15.0),
+        (0.0, 15.0),
+    ];
+    let routes = vec![EscapeRoute {
+        name: "1".into(),
+        path: vec![(19.5, 3.75), (5.0, 3.75), (5.0, 14.5)],
+        width: 2.0,
+        place: limits
+            .places
+            .as_ref()
+            .and_then(|p| p.route_places.first().copied())
+            .unwrap_or_default(),
+    }];
+    let pt = |kind, x, y, f| EmphasisPoint {
+        kind,
+        x,
+        y,
+        z: None,
+        facing: Some(f),
+    };
+    let points = vec![
+        pt(EmphasisKind::FireEquipment, 15.0, 7.4, 270.0),
+        pt(EmphasisKind::FirstAid, 0.1, 10.0, 0.0),
+        pt(EmphasisKind::Exit, 20.0, 3.75, 180.0),
+        pt(EmphasisKind::Exit, 5.0, 15.0, 270.0),
+    ];
+    let flux = emergency::luminaire_flux_lm(&ldt);
+    let spacing = emergency::spacing_table(&ldt, flux, &[3.0], 2.0, limits, &s).remove(0);
+    let input = emergency::AutoInput {
+        ldt: &ldt,
+        flux_lm: flux,
+        height: 3.0,
+        ra: Some(80.0),
+        spacing: &spacing,
+        routes: &routes,
+        room: Some(&room),
+        open_area: Some(&room),
+        open_area_place: limits
+            .places
+            .as_ref()
+            .and_then(|p| p.area_places.first().copied())
+            .unwrap_or(emergency::PlaceCategory::CrowdedPlace),
+        points: &points,
+    };
+    let pos = emergency::auto_layout(&input, limits, &s);
+    let rep = emergency::evaluate(&input.plan(&pos), limits, &s);
+    (pos.len(), rep)
+}
+
+#[test]
+fn the_demo_office_passes_every_profile_automatically() {
+    let mut failed = Vec::new();
+    for l in Limits::all() {
+        let (n, rep) = l_office_auto(&l);
+        let bad: Vec<String> = rep
+            .checks
+            .iter()
+            .filter(|c| c.pass == Some(false))
+            .map(|c| {
+                let [w, v, r] = rep.describe(c, &l);
+                format!("{w}: {v} ({r})")
+            })
+            .collect();
+        eprintln!(
+            "{:<12} {n:>3} luminaires {}",
+            l.id,
+            if bad.is_empty() {
+                "✓".to_string()
+            } else {
+                bad.join("; ")
+            }
+        );
+        if !bad.is_empty() {
+            failed.push(l.id.clone());
+        }
+    }
+    assert!(failed.is_empty(), "automatic layout fails {failed:?}");
 }

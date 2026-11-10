@@ -65,6 +65,41 @@ impl AreaSvg {
         units: UnitSystem,
         overlay: &dyn Fn(f64, f64, f64, f64) -> String,
     ) -> String {
+        Self::plan_view_with_poles_layers(
+            pole_positions,
+            placements,
+            area_width,
+            area_depth,
+            svg_width,
+            svg_height,
+            theme,
+            selected_pole,
+            luminaires_per_pole,
+            units,
+            &|_, _, _, _| String::new(),
+            overlay,
+        )
+    }
+
+    /// [`Self::plan_view_with_poles_overlay`] with an `underlay` drawn
+    /// right over the background, under the area outline and the grid
+    /// (e.g. a site map, [`super::sitemap::SiteMap::svg`]); both get the
+    /// pixel position of plan point (0, 0) and the scales in px per metre.
+    #[allow(clippy::too_many_arguments)]
+    pub fn plan_view_with_poles_layers(
+        pole_positions: &[(usize, f64, f64)],
+        placements: &[LuminairePlace],
+        area_width: f64,
+        area_depth: f64,
+        svg_width: f64,
+        svg_height: f64,
+        theme: &SvgTheme,
+        selected_pole: Option<usize>,
+        luminaires_per_pole: usize,
+        units: UnitSystem,
+        underlay: &dyn Fn(f64, f64, f64, f64) -> String,
+        overlay: &dyn Fn(f64, f64, f64, f64) -> String,
+    ) -> String {
         let margin = 40.0;
         let plot_w = svg_width - 2.0 * margin;
         let plot_h = svg_height - 2.0 * margin;
@@ -86,6 +121,7 @@ impl AreaSvg {
 <rect width="{svg_width}" height="{svg_height}" fill="{bg}"/>
 "#
         );
+        svg.push_str(&underlay(margin, margin, scale_x, scale_y));
 
         // Area outline
         svg.push_str(&format!(
@@ -235,6 +271,37 @@ impl AreaSvg {
         units: UnitSystem,
         overlay: &dyn Fn(f64, f64, f64, f64) -> String,
     ) -> String {
+        Self::plan_view_with_polygon_layers(
+            pole_positions,
+            placements,
+            polygon,
+            svg_width,
+            svg_height,
+            theme,
+            selected_pole,
+            luminaires_per_pole,
+            units,
+            &|_, _, _, _| String::new(),
+            overlay,
+        )
+    }
+
+    /// [`Self::plan_view_with_polygon_overlay`] with an `underlay` over the
+    /// background (see [`Self::plan_view_with_poles_layers`]).
+    #[allow(clippy::too_many_arguments)]
+    pub fn plan_view_with_polygon_layers(
+        pole_positions: &[(usize, f64, f64)],
+        placements: &[LuminairePlace],
+        polygon: &super::polygon::AreaPolygon,
+        svg_width: f64,
+        svg_height: f64,
+        theme: &SvgTheme,
+        selected_pole: Option<usize>,
+        luminaires_per_pole: usize,
+        units: UnitSystem,
+        underlay: &dyn Fn(f64, f64, f64, f64) -> String,
+        overlay: &dyn Fn(f64, f64, f64, f64) -> String,
+    ) -> String {
         let (bx0, by0, bx1, by1) = polygon.bounding_box();
         let bbox_w = bx1 - bx0;
         let bbox_h = by1 - by0;
@@ -258,6 +325,12 @@ impl AreaSvg {
 <rect width="{svg_width}" height="{svg_height}" fill="{bg}"/>
 "#
         );
+        svg.push_str(&underlay(
+            margin - bx0 * scale_x,
+            margin - by0 * scale_y,
+            scale_x,
+            scale_y,
+        ));
 
         // Polygon outline (replaces rectangle)
         let pts = polygon.to_svg_points(bx0, by0, scale_x, scale_y, margin);

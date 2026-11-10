@@ -10,6 +10,8 @@
 //! - [`coords`] — the single, frozen adapter between the astronomical (horizon),
 //!   Bevy world (+Y up), and photometric Type-C (gamma-from-nadir) frames.
 //! - [`constants`] — solar / daylight physical constants.
+//! - [`lunar`] / [`night`] — moon position, phase and distance; moonlight,
+//!   twilight and starlight on the ground (lux).
 //!
 //! Everything is **photometric** (lux, cd/m²). Radiometric inputs (W/m²) are
 //! converted via the luminous efficacy of daylight in [`constants`]. A spectral
@@ -34,11 +36,13 @@ pub mod constants;
 pub mod coords;
 pub mod location;
 pub mod lunar;
+pub mod night;
 pub mod sky;
 pub mod solar;
 
 pub use availability::{daylight_cct, DaylightAvailability};
 pub use location::{location_by_name, DstRule, LocalDateTime, NamedLocation, LOCATIONS};
 pub use lunar::{moon_position, MoonPhase, MoonPosition};
+pub use night::{Moonlight, NaturalLight, NaturalSource, NightSummary};
 pub use sky::{CieSky, PerezSky, SkyParams, SkyRadiance};
 pub use solar::SolarPosition;

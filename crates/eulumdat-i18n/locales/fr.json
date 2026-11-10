@@ -434,7 +434,6 @@
       "bim": "BIM",
       "area_designer": "Extérieur",
       "zonal_designer": "Intérieur",
-      "maps_designer": "Cartes",
       "beam_angle": "Angle de faisceau",
       "iso_view": "Vue ISO",
       "street_design": "🛣️ Éclairage routier"
@@ -814,6 +813,9 @@
       "reset_moves": "Remettre les objets en place",
       "status_detected": "Détecté : {what} · {on} sur {n} luminaires allumés",
       "status_idle": "Rien de détecté · luminaires à {pct} %",
+      "sensor_dim": "Les détecteurs commandent les luminaires",
+      "sensor_dim_off_note": "Désactivé : les détecteurs ne font que détecter, les luminaires restent à pleine puissance (comme dans l'outil de conception). Activez-le et déplacez la personne ou une voiture pour essayer la commande.",
+      "status_dim_off": "Commande par détecteurs désactivée · luminaires à pleine puissance",
       "status_person": "personne",
       "status_cars": "{n} voiture(s)",
       "status_no_area": "Ce capteur ne détecte rien à {h} m.",
@@ -841,9 +843,9 @@
       "scene_saved": "Enregistrée dans « {project} » ; les modifications sont enregistrées automatiquement.",
       "scene_unsaved": "Conservée dans ce navigateur ; enregistrez-la pour l'ajouter au fichier de projet.",
       "sensor_volume_3d": "Afficher le volume de détection en 3D",
-      "em_title": "🚨 Éclairage de sécurité (EN 1838)",
+      "em_title": "🚨 Éclairage de sécurité",
       "em_mode": "Mode secours (coupure secteur)",
-      "em_mode_desc": "Éclairage normal éteint, luminaires de secours allumés à leur flux de secours × facteur de maintenance. L’image commence sombre, comme au moment de la coupure, et s’adapte comme un œil ; les points ne comptent que la lumière directe, comme l’EN 1838 ; fausses couleurs 0–5 lx.",
+      "em_mode_desc": "Éclairage normal éteint, luminaires de secours allumés à leur flux de secours × facteur de maintenance. L’image commence sombre, comme au moment de la coupure, et s’adapte comme un œil ; les points ne comptent que la lumière directe, comme les normes d’éclairage de sécurité.",
       "em_marks": "Afficher les marquages du plan (chemin, zone anti-panique, équipements)",
       "em_marks_off": "Tel qu’une personne qui évacue le voit : sans marquages.",
       "em_walk": "Parcourir le chemin à hauteur des yeux (1,6 m)",
@@ -857,13 +859,33 @@
       "em_check_points": "Équipements (vertical)",
       "em_check_min": "Emin {v} lx (≥ {req})",
       "em_check_ratio": "Emax / Emin {v} (≤ {req})",
-      "em_check_note": "Contrôle dans la scène lumineuse : lumière directe, points tous les 0,5 m. Les résultats EN 1838 du concepteur d’éclairage intérieur font foi.",
+      "em_check_note": "Contrôle dans la scène lumineuse : lumière directe, points tous les 0,5 m. Les résultats du concepteur d’éclairage intérieur font foi.",
       "em_off_hint": "Activez le mode secours pour mesurer le chemin.",
       "em_measure": "📍 Mesurer (vue Grille)",
       "em_adapting": "👁 Les yeux s’habituent à l’obscurité… {pct} %",
       "em_adapted": "👁 Adapté : {stops} diaphragmes plus clair qu’à la coupure. Volontairement en dessous de l’adaptation complète, pour que l’éclairage de secours paraisse plus sombre que l’éclairage normal.",
       "em_replay": "⚡ Rejouer la coupure",
-      "back_to_designer": "✏️ Retour au {from}"
+      "back_to_designer": "✏️ Retour au {from}",
+      "em_check_band": "Chemin d’évacuation (moitié centrale)",
+      "em_check_stairs": "Escalier / refuge (moitié centrale)",
+      "em_check_room": "Pièce (tout le sol)",
+      "em_check_avg": "Emoy {v} lx (≥ {req})",
+      "moon_title": "☀️🌙 Soleil et lune",
+      "moon_on": "Lumière du jour et clair de lune",
+      "moon_desc": "Lumière naturelle pour une date, une heure et un lieu par ciel clair : le jour, le soleil avec ses ombres et le ciel lumineux ; au crépuscule, le ciel crépusculaire ; la nuit, la lune et les étoiles ; dans l'image et dans les valeurs en lux. Les normes ne la comptent pas, le mode secours la laisse de côté.",
+      "moon_date": "Date",
+      "moon_time": "Heure locale",
+      "moon_full": "→ Prochaine pleine lune",
+      "moon_place": "Lieu : {place}",
+      "moon_pick": "🌍 Choisir sur le globe",
+      "moon_north": "Nord dans la scène",
+      "moon_lamps_off": "Luminaires éteints (lumière naturelle seule)",
+      "moon_readout": "{phase} {pct} % · {alt}° de haut · {lx} lx en terrain dégagé (faisceau {beam} lx, ciel {sky} lx)",
+      "moon_below": "La lune est sous l'horizon à cette heure.",
+      "moon_indoor": "La lune éclaire les scènes extérieures.",
+      "sun_readout": "☀️ Soleil à {alt}° · {lx} lx en terrain dégagé (faisceau {beam} lx, ciel {sky} lx)",
+      "twilight_readout": "🌆 Crépuscule (soleil à {alt}°) · {lx} lx en terrain dégagé",
+      "night_readout": "✨ Lumière des étoiles · {lx} lx"
     },
     "sensor": {
       "tab": "Capteurs",
@@ -1274,7 +1296,30 @@
     "export_plan_svg": "Exporter SVG vue en plan",
     "export_room_svg": "Exporter SVG vue de pièce",
     "export_3d_svg": "Exporter SVG 3D",
-    "export_optimizer": "Exporter l'optimiseur"
+    "export_optimizer": "Exporter l'optimiseur",
+    "moon": {
+      "desc": "Lumière naturelle en terrain dégagé par ciel clair à la date et à l'heure choisies (le soleil le jour, le ciel crépusculaire au crépuscule, la lune la nuit), partout la même. Les éclairements restent ceux des luminaires (les normes ne comptent pas la lumière naturelle) ; elle est indiquée à côté.",
+      "with_moon": "Avec la lumière naturelle à ce moment (+{lx} lx)",
+      "dim": "Pour garder le minimum de {target} lx (objectif de l'optimiseur), les luminaires pourraient fonctionner à {pct} % cette nuit.",
+      "dim_none": "Les luminaires seuls restent sous le minimum de {target} lx ; la lumière naturelle ajoute {lx} lx.",
+      "alone": "La lumière naturelle seule donne {pct} % du minimum de {target} lx.",
+      "not_needed": "Les luminaires ne sont alors pas nécessaires : la lumière naturelle seule donne {lx} lx (minimum {target} lx)."
+    },
+    "sitemap": {
+      "title": "🗺 Plan du site",
+      "show": "Afficher la carte OpenStreetMap sous le plan",
+      "desc": "Trouvez le site sur le globe (zoomez jusqu'à voir les rues et les bâtiments, puis « Utiliser ce lieu »), dessinez la zone sur la carte et placez les mâts. Le nord est en haut ; le site est le centre de la zone.",
+      "pick": "🌍 Trouver le site sur le globe",
+      "site": "Site : {place}",
+      "lat": "Latitude",
+      "lon": "Longitude",
+      "opacity": "Opacité de la carte",
+      "move_map": "✋ Déplacer la carte",
+      "move_hint": "Faites glisser sur le plan pour déplacer la carte sous la zone.",
+      "done": "Terminé",
+      "no_site": "Pas encore de site : trouvez-le sur le globe ou saisissez ses coordonnées.",
+      "style": "Style de carte"
+    }
   },
   "zonal_designer": {
     "title": "Concepteur d'éclairage intérieur",
@@ -1423,7 +1468,7 @@
       "outline_area": "Contour de la pièce : {a} m² de sol, {p} m de murs"
     },
     "emergency": {
-      "title": "Éclairage de sécurité (EN 1838)",
+      "title": "Éclairage de sécurité",
       "intro": "Chemins d’évacuation, zones anti-panique et équipements de sécurité, éclairés par les seuls blocs de secours : lumière directe, flux de secours, facteur de maintenance.",
       "enable": "Planifier l’éclairage de sécurité",
       "luminaire": "Luminaire de secours",
@@ -1446,7 +1491,7 @@
       "route_item": "Chemin {n} : {len} m, {w} m de large",
       "remove": "Retirer",
       "open_area": "Pièce comme zone anti-panique",
-      "open_area_hint": "Obligatoire au-delà de 60 m² ; la pièce fait {a} m².",
+      "open_area_hint": "Obligatoire au-delà de {limit} m² ; la pièce fait {a} m².",
       "points": "Points particuliers",
       "place": "Placer sur le plan :",
       "point_hint": "Cliquez sur le plan près du mur où se trouve l’équipement (il fait face à la pièce).",
@@ -1457,7 +1502,7 @@
       "kind_sign": "Signe éclairé de l’extérieur",
       "kind_exit": "Sortie",
       "point_item": "{kind} en ({x}, {y})",
-      "results_title": "Éclairage de sécurité (EN 1838)",
+      "results_title": "Éclairage de sécurité",
       "pass": "✓ Toutes les exigences sont remplies",
       "fail": "✗ Toutes les exigences ne sont pas remplies",
       "count": "{n} luminaires de secours, {lm} lm chacun, à {h} m",
@@ -1467,9 +1512,6 @@
       "route_centre": "{name} : axe min",
       "route_band": "{name} : bande centrale min",
       "route_ratio": "{name} : Emax / Emin",
-      "open_min": "Zone anti-panique min",
-      "open_ratio": "Zone anti-panique Emax / Emin",
-      "not_required": "non exigé (≤ 60 m²)",
       "point_vertical": "{kind} : vertical",
       "glare": "Éblouissement 60°–90° (maximum)",
       "ra": "Rendu des couleurs Ra",
@@ -1480,7 +1522,118 @@
       "view_normal": "💡 Éclairage normal",
       "view_emergency": "🚨 Mode secours",
       "floor_legend": "Sol en mode secours : lumière directe des luminaires de secours, facteur de maintenance {mf} ; min {min} lx, max {max} lx.",
-      "lum_off": "○ éclairage normal, éteint"
+      "lum_off": "○ éclairage normal, éteint",
+      "standard": "Norme",
+      "place_corridor": "Couloir d’évacuation",
+      "place_stairs": "Escalier, sas, refuge",
+      "place_crowded": "Lieu à forte affluence",
+      "place_other": "Autre lieu",
+      "room_place": "La pièce est",
+      "no_requirement": "aucune exigence",
+      "band_half": "moitié centrale",
+      "band_full": "toute la largeur",
+      "band_pct": "{pct} % centraux",
+      "route_name": "Chemin {n}",
+      "route_band_min": "{name} : sol min ({band})",
+      "route_avg": "{name} : moyenne ({band})",
+      "route_ratio_band": "{name} : Emax / Emin ({band})",
+      "route_width": "{name} : largeur",
+      "route_width_req": "≤ {w} m : diviser en bandes ou vérifier comme zone ouverte",
+      "room_place_name": "Pièce ({place})",
+      "open_name": "Zone ouverte",
+      "room_name": "Pièce",
+      "area_min_of": "{name} : sol min",
+      "area_avg_of": "{name} : moyenne",
+      "area_ratio_of": "{name} : Emax / Emin",
+      "end_avg": "{name} : moyenne après {h} h (flux {pct} %)",
+      "end_min": "{name} : min après {h} h (flux {pct} %)",
+      "not_required_above": "non requis (≤ {a} m²)",
+      "end_output": "Flux en fin d'autonomie (%)",
+      "end_output_hint": "{std} admet des valeurs plus basses après {h} h : moyenne {avg} lx, minimum {min} lx. Indiquez le flux que les luminaires donnent encore à ce moment ; les blocs LED à flux constant restent à 100 %.",
+      "room_floor_hint": "Vérifié sur tout le sol ; la pièce fait {a} m².",
+      "report_pdf": "🚨 Rapport éclairage de sécurité (PDF) · {std}",
+      "point_horizontal": "{kind} : horizontal",
+      "exit_floor": "{name} : sol à 0,5 m devant",
+      "lum_flux_min": "Flux de secours par luminaire (le plus faible)",
+      "count_of": "{name} : nombre de luminaires",
+      "route_gap": "{name} : plus grand écart entre luminaires",
+      "area_flux": "{name} : flux des luminaires par m²",
+      "area_spacing": "{name} : distance au luminaire voisin ÷ hauteur de montage",
+      "for_information": "pour information",
+      "kind_door_release": "Déverrouillage de porte",
+      "kind_escape_plan": "Plan d’évacuation",
+      "kind_evac_aid": "Aide à l’évacuation",
+      "group_europe": "Europe",
+      "group_americas": "Amériques",
+      "group_asia": "Asie et Pacifique",
+      "standards": {
+        "en1838": {
+          "label": "EN 1838:2013 (Europe)",
+          "note": "Chemins d’évacuation jusqu’à 2 m de large : au moins 1 lx sur l’axe et 0,5 lx sur la moitié centrale, Emax / Emin ≤ 40. Zones anti-panique de plus de 60 m² : 0,5 lx hors bordure de 0,5 m, ≤ 40. 5 lx vertical aux équipements incendie, postes de premiers secours et déclencheurs manuels ; limites d’éblouissement ; Ra ≥ 40. Valable jusqu’au 18 juin 2027."
+        },
+        "en1838-2024": {
+          "label": "EN 1838:2024 (Europe)",
+          "note": "Chemins d’évacuation : au moins 1 lx sur la largeur moins une bande de min(W / 4 ; 0,5 m) de chaque côté (jusqu’à 2 m : la moitié centrale), Emax / Emin ≤ 40, au moins deux luminaires par chemin et par zone anti-panique. Zones anti-panique de plus de 60 m² comme avant ; 5 lx vertical aussi aux déverrouillages de porte, plans d’évacuation et aides à l’évacuation ; limites d’éblouissement ; Ra ≥ 40."
+        },
+        "bs5266": {
+          "label": "BS 5266-1:2025 (Royaume-Uni)",
+          "note": "Les valeurs de la BS EN 1838:2024 (1 lx sur le chemin moins les bandes latérales, zones anti-panique 0,5 lx, 5 lx aux équipements). Autonomie 3 h pour les locaux à sommeil, salles de spectacle, évacuation par phases ou réoccupation rapide ; 1 h seulement avec évacuation immédiate."
+        },
+        "cte-sua4": {
+          "label": "CTE DB SUA 4 / REBT (Espagne)",
+          "note": "Chemins d’évacuation jusqu’à 2 m : 1 lx sur l’axe, 0,5 lx sur la moitié centrale, Emax / Emin ≤ 40. Équipements de sécurité et tableaux de distribution : 5 lx horizontal. Anti-panique (REBT ITC-BT-28) : 0,5 lx dans tout l’espace jusqu’à 1 m de hauteur, quelle que soit la surface, sans bordure. Réflexion nulle, Ra ≥ 40, 1 h."
+        },
+        "fr-erp": {
+          "label": "ERP, arrêté du 25 juin 1980 (France)",
+          "note": "Pas de valeurs en lux : foyers d’évacuation espacés de 15 m au plus le long des circulations, 45 lm au moins chacun, deux au moins sur les circulations de plus de 15 m ; éclairage d’ambiance dans les locaux recevant 100 personnes ou plus : 5 lm par m², foyers voisins espacés de 4 hauteurs de montage au plus, deux au moins par local. L’éclairement est indiqué pour information."
+        },
+        "sp52": {
+          "label": "SP 52.13330.2016 (Russie)",
+          "note": "Chemins d’évacuation jusqu’à 2 m : 1 lx sur l’axe, 0,5 lx sur la moitié de la largeur, Emin / Emax ≥ 1 : 40. 5 lx au sol devant chaque sortie, aux équipements et aux plans d’évacuation. Anti-panique au-delà de 60 m² (et 30 personnes ou plus) : 0,5 lx hors bordure de 0,5 m. Limites d’éblouissement, Ra ≥ 40 ; 100 % en 10 s, 1 h."
+        },
+        "nfpa101": {
+          "label": "NFPA 101 / IBC (États-Unis)",
+          "note": "Le long du chemin d’évacuation, au niveau du sol : moyenne d’au moins 1 fc (10,8 lx), en tout point au moins 0,1 fc (1,1 lx), max / min ≤ 40, sur la largeur du chemin et le sol de la pièce. Après 1,5 h, les valeurs peuvent descendre à 6,5 lx en moyenne et 0,65 lx au minimum : saisissez le flux à ce moment-là. Signaux de sortie éclairés de l’extérieur 5 fc (54 lx)."
+        },
+        "nbcc": {
+          "label": "NBC Canada 2020",
+          "note": "Au niveau du sol ou des marches : moyenne d’au moins 10 lx et minimum de 1 lx sur les issues, corridors communs, voies principales et pièces listées ; sans rapport d’uniformité. Autonomie 30 min, 1 h (soins, traitement, détention) ou 2 h (bâtiments de grande hauteur)."
+        },
+        "nbr10898": {
+          "label": "ABNT NBR 10898 (Brésil)",
+          "note": "Horizontal au sol : au moins 3 lx sur les zones planes, 5 lx aux changements de niveau (escaliers, rampes, obstacles), max / min ≤ 20 le long du chemin. Autonomie d’au moins 1 h.",
+          "places": {
+            "corridor": "Zone plane (couloir, hall, refuge)",
+            "crowded": "Zone plane (pièce)",
+            "stairs": "Changement de niveau (escalier, rampe, obstacle)"
+          }
+        },
+        "gb55037": {
+          "label": "GB 55037-2022 (Chine)",
+          "note": "Éclairement horizontal minimal au sol selon le lieu (GB 55037-2022 §10.1.10) : escaliers, sas et espaces refuges 10 lx, couloirs d’évacuation et lieux à forte affluence 3 lx, autres lieux 1 lx ; chemins sur la moitié centrale de leur largeur, pièces sur tout le sol, sans rapport d’uniformité. Durées et temps de commutation (GB 51309-2018) non calculés."
+        },
+        "jp-bsl": {
+          "label": "Loi sur les normes de construction (Japon)",
+          "note": "Lumière directe seulement : au moins 2 lx au sol en tout point de la pièce, de ses couloirs d’évacuation et de ses escaliers, coins compris (sources fluorescentes et LED ; 1 lx pour les lampes à incandescence). 30 min."
+        },
+        "nbc-in": {
+          "label": "NBC India 2016",
+          "note": "Chemins d’évacuation jusqu’à 2 m : au moins 10 lx sur l’axe et 5 lx sur la moitié de la largeur, sans rapport d’uniformité ; pièces vérifiées à 5 lx. Autonomie 1,5 h, allumage en 5 s."
+        },
+        "as2293": {
+          "label": "AS/NZS 2293.1:2018 (Australie)",
+          "note": "Chemins d’évacuation : au moins 0,2 lx et une moyenne de 0,5 lx au sol, escaliers 1 lx ; mesuré à distance des murs. D’après des résumés publics de l’édition 2018 (l’édition 2026 n’est pas encore vérifiée). 90 min en service."
+        },
+        "nz-f6": {
+          "label": "NZBC F6/AS1 (Nouvelle-Zélande)",
+          "note": "Éclairement direct au sol : 1 lx dans les dégagements protégés et aux changements de niveau, 0,2 lx partout ailleurs ; points à moins de 0,5 m des murs exclus. 90 min.",
+          "places": {
+            "corridor": "Dégagement protégé",
+            "stairs": "Changement de niveau",
+            "other": "Ailleurs sur le chemin d’évacuation"
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -1574,7 +1727,7 @@
       "scene_3d_title": "Scène 3D",
       "area_title": "Concepteur extérieur",
       "interior_title": "Concepteur d'intérieur",
-      "maps_title": "Concepteur sur carte",
+      "maps_title": "Plan du site",
       "street_title": "Éclairage routier",
       "spectral_title": "Labo spectral",
       "greenhouse_title": "Serre",
@@ -1595,7 +1748,7 @@
       "scene_3d_desc": "Parcourir une pièce, une route ou un parking avec le luminaire comme lumière de moteur de jeu",
       "area_desc": "Placer plusieurs luminaires sur une zone et lire l'éclairement au sol",
       "interior_desc": "Pièces avec zones, plans utiles et uniformité selon EN 12464-1",
-      "maps_desc": "Planifier des luminaires sur une vraie carte et vérifier l'éclairage des rues et des places",
+      "maps_desc": "Planifier sur une carte OpenStreetMap du site : le trouver sur le globe, dessiner la zone, placer les mâts",
       "street_desc": "Éclairage de voirie multi-luminaires selon EN 13201, RP-8, CJJ 45 et MLO",
       "spectral_desc": "Spectres, TCP, IRC, TM-30, mélanopique et PPFD horticole à partir de données SPD",
       "colour_quality_title": "Qualité de couleur",
@@ -1642,38 +1795,6 @@
       "compare_hint": "Cliquez sur un capteur pour ses diagrammes · Ctrl/⌘ + clic sur un second, puis Comparer",
       "compare_selected": "⇄ Comparer {a} avec {b}"
     }
-  },
-  "maps_designer": {
-    "title": "Concepteur d'éclairage",
-    "instructions_title": "Instructions :",
-    "instruction_polygon": "Dessiner un polygone (zone de parking)",
-    "instruction_luminaires": "Placer des luminaires (marqueurs)",
-    "instruction_calculate": "Cliquer sur Calculer pour voir la carte thermique",
-    "area_defined": "Zone définie :",
-    "luminaires_count": "Luminaires :",
-    "calculate": "Calculer la carte thermique",
-    "my_location": "Ma position",
-    "export_csv": "Exporter CSV",
-    "show_values": "Afficher les valeurs",
-    "hide_values": "Masquer les valeurs",
-    "clear_all": "Tout effacer",
-    "results_title": "Résultats du calcul",
-    "min": "Min",
-    "max": "Max",
-    "average": "Moyenne",
-    "uniformity": "Uniformité (U₀)",
-    "good_uniformity": "Bonne uniformité (U₀ ≥ 0,40)",
-    "acceptable_uniformity": "Uniformité acceptable (U₀ ≥ 0,25)",
-    "poor_uniformity": "Uniformité médiocre - ajoutez davantage de luminaires",
-    "legend_title": "Légende de la carte thermique",
-    "legend_low": "Faible",
-    "legend_high": "Élevé",
-    "loading_description": "Concevez l'éclairage extérieur sur de vraies cartes satellites. Dessinez votre parking, placez les luminaires et calculez l'éclairement.",
-    "load_maps": "Charger Google Maps",
-    "loading_maps": "Chargement de Google Maps...",
-    "toolbar_hint": "Utilisez la barre d'outils : Polygone pour dessiner la zone, Marqueur pour placer les luminaires",
-    "load_failed": "Échec du chargement de Google Maps",
-    "try_again": "Réessayer"
   },
   "goniosim": {
     "title": "Goniophotomètre Virtuel",
@@ -1772,7 +1893,25 @@
     "sky_empty_hint": "Réglez le lieu et l'heure, puis appuyez sur Tracer pour calculer l'éclairement et la couleur du ciel.",
     "scene_road": "Route",
     "scene_room": "Pièce",
-    "scene_plaza": "Place"
+    "scene_plaza": "Place",
+    "globe_pick": "🌍 Choisir sur le globe",
+    "globe_title": "Choisir un lieu",
+    "globe_hint": "Cherchez une ville ou cliquez sur le globe, puis « Use this place » : latitude, longitude et fuseau horaire sont repris.",
+    "globe_close": "Fermer",
+    "moon_card_title": "🌙 Clair de lune cette nuit",
+    "moonlight_now": "Clair de lune {lx} lx",
+    "moonlight_day": "Lune levée · la lumière du jour domine",
+    "moon_summary": "{phase} {pct} % · {km} km ({dist})",
+    "moon_dist_close": "proche : {pct} % plus lumineuse qu'à la distance moyenne",
+    "moon_dist_far": "lointaine : {pct} % moins lumineuse qu'à la distance moyenne",
+    "moon_times": "Lever {rise} · coucher {set} · jusqu'à {max} lx à {at}",
+    "moon_hours": "La lune seule donne 0,2 lx ou plus pendant {h2} h et 0,1 lx ou plus pendant {h1} h des heures sombres.",
+    "moon_dark": "La lune reste sous l'horizon tant qu'il fait nuit.",
+    "moon_ref_note": "Éclairement horizontal en terrain dégagé, ciel clair. Lignes de référence : 0,2 lx = minimum des chemins d'évacuation selon AS/NZS 2293 et NZBC F6 · 0,5 lx = zones anti-panique EN 1838 · 1 lx = chemins d'évacuation EN 1838 · 2 lx = moyenne P6 EN 13201. Nuages, arbres et bâtiments en retirent une grande partie.",
+    "moon_legend_total": "toute la lumière naturelle",
+    "moon_legend_moon": "la lune seule",
+    "moon_month_title": "Clair de lune des 30 prochaines nuits (le maximum par nuit)",
+    "moon_month_hint": "Cliquez sur une nuit pour l'afficher ci-dessus."
   },
   "street": {
     "title": "Concepteur d'éclairage routier",

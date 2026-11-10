@@ -1,0 +1,317 @@
+{
+  "note": "Emergency-lighting profiles beyond EN 1838:2013 (data/en1838_en17037_limits.json) and GB 55037 (data/cn_gb55037_limits.json): the values eulumdat::emergency::Limits uses, where they come from and what is still open. Numbers from public secondary sources, never copied standard text; check against the published texts before relying on a profile.",
+  "profiles": [
+    {
+      "id": "en1838-2024",
+      "name": "EN 1838:2024",
+      "region": "Europe (EU / EFTA national editions)",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "route_min_lx_over_band": 1.0,
+        "route_edge_strip": "min(W/4, 0.5 m) on each side",
+        "route_edge_max_m": 0.5,
+        "route_max_ratio": 40.0,
+        "route_min_luminaires": 2,
+        "open_area_min_lx": 0.5,
+        "open_area_border_m": 0.5,
+        "open_area_above_m2": 60.0,
+        "open_area_min_luminaires": 2,
+        "high_risk_pct_of_normal": 10.0,
+        "high_risk_abs_min_lx": 15.0,
+        "emphasis_vertical_lx": 5.0,
+        "emphasis_items": "fire equipment, first aid, call points, manual door releases, escape plans, evacuation aids, externally lit signs",
+        "response_s": [
+          5.0,
+          60.0
+        ],
+        "high_risk_response_s": 0.5,
+        "duration_h_min": 1.0,
+        "edition_2013_withdrawn": "2027-06-18"
+      },
+      "sources": [
+        "https://www.inotec-licht.de/fileadmin/user_upload/101208382_005_Handbuch_NotundSicherheitsbeleuchtung-2026.pdf",
+        "https://volta-org.be/media/oq1fcihv/nieuwe-normen-voor-noodverlichting.pdf",
+        "https://www.dinmedia.de/de/norm/din-en-1838/386699531",
+        "https://www.philippayne.co.uk/knowledge/bs-en-1838-simplified/",
+        "https://www.thelightreviewonline.com/richard-hayes-reviewing-some-of-the-latest-changes-in-emergency-lighting-standards/",
+        "https://www.dgwz.de/wp-content/uploads/Neue-Din-EN-1838-Notbeleuchtung-Sicherheitsbeleuchtung.pdf"
+      ],
+      "open_points": [
+        "whether 40:1 is taken on the centre line or over the lit band (checked over the band here)",
+        "glare table (no source names a change; the 2013 table is kept)",
+        "Ra for route lighting (Ra 40 confirmed for sign light sources)"
+      ]
+    },
+    {
+      "id": "bs5266",
+      "name": "BS 5266-1:2025",
+      "region": "United Kingdom",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "values": "as EN 1838:2024 (BS EN 1838:2024)",
+        "duration_h_3": [
+          "sleeping accommodation",
+          "entertainment venues",
+          "phased evacuation",
+          "re-occupation before recharge"
+        ],
+        "duration_h_1": "immediate evacuation, not re-occupied until recharged",
+        "in_force": "2025-10-31"
+      },
+      "sources": [
+        "https://niceic.com/newsletter/bs-5266-1-emergency-lighting/",
+        "https://www.eca.co.uk/news/2025/oct/significant-changes-to-emergency-lighting-standards-strengthen-building-safety",
+        "https://www.agcled.com/blog/bs-5266-12025-explained-key-changes-uk-emergency-lighting-code-practice.html"
+      ],
+      "open_points": [
+        "5 lx on the floor of accessible toilets (one source; EN 1838:2024 says 1 lx)"
+      ]
+    },
+    {
+      "id": "cte-sua4",
+      "name": "CTE DB SUA 4 / REBT ITC-BT-28",
+      "region": "Spain",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "route_centre_lx": 1.0,
+        "route_band_lx": 0.5,
+        "route_max_ratio": 40.0,
+        "equipment_horizontal_lx": 5.0,
+        "anti_panic_lx": 0.5,
+        "anti_panic_planes_up_to_m": 1.0,
+        "anti_panic_max_ratio": 40.0,
+        "high_risk_abs_min_lx": 15.0,
+        "high_risk_pct_of_normal": 10.0,
+        "min_ra": 40.0,
+        "response_s": [
+          5.0,
+          60.0
+        ],
+        "duration_h": 1.0,
+        "reflectance": "zero (direct light only)"
+      },
+      "sources": [
+        "https://www.codigotecnico.org/pdf/Documentos/SUA/DccSUA.pdf",
+        "https://www.boe.es/buscar/pdf/2002/BOE-A-2002-18099-consolidado.pdf",
+        "https://industria.gob.es/Calidad-Industrial/seguridadindustrial/instalacionesindustriales/baja-tension/Documents/bt/guia_bt_28_mar15R3.pdf"
+      ],
+      "open_points": [
+        "height of the 5 lx horizontal at equipment (taken at the equipment's height here)"
+      ]
+    },
+    {
+      "id": "fr-erp",
+      "name": "ERP EC 7–EC 15 (arrêté du 25 juin 1980)",
+      "region": "France",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "route_max_spacing_m": 15.0,
+        "route_min_luminaires_above_15_m": 2,
+        "luminaire_min_lm": 45.0,
+        "ambient_min_lm_per_m2": 5.0,
+        "ambient_max_spacing_per_height": 4.0,
+        "ambient_min_luminaires": 2,
+        "duration_h": 1.0,
+        "lux_values": "none"
+      },
+      "sources": [
+        "https://www.legifrance.gouv.fr/loda/id/LEGITEXT000020303557",
+        "https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000020317494",
+        "https://content.preventionbtp.fr/pdf/droit_de_la_prevention/article-5-de-l-arrete-du-14-decembre-2011-relatif-aux-installations-d-eclairage-de-securite.pdf"
+      ],
+      "open_points": [
+        "switch-over time not stated",
+        "luminaires at exits, obstacles and changes of direction (not checked)"
+      ]
+    },
+    {
+      "id": "sp52",
+      "name": "SP 52.13330.2016",
+      "region": "Russia",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "route_centre_lx": 1.0,
+        "route_band_lx": 0.5,
+        "route_max_ratio": 40.0,
+        "exit_floor_lx": 5.0,
+        "equipment_lx": 5.0,
+        "anti_panic_lx": 0.5,
+        "anti_panic_border_m": 0.5,
+        "anti_panic_above_m2": 60.0,
+        "high_risk_abs_min_lx": 15.0,
+        "high_risk_pct_of_normal": 10.0,
+        "min_ra": 40.0,
+        "response_s": [
+          5.0,
+          10.0
+        ],
+        "high_risk_response_s": 0.5,
+        "duration_h": 1.0,
+        "limited_mobility_lx": 5.0
+      },
+      "sources": [
+        "https://meganorm.ru/mega_doc/norm/pravila/0/sp_52_13330_2016_svod_pravil_estestvennoe_i_iskusstvennoe.html",
+        "https://meganorm.ru/Data2/1/4293730/4293730006.htm",
+        "https://fireman.club/news/izmenenyi-trebovaniya-k-avariynomu-osveshheniyu/",
+        "https://electromontaj-proekt.ru/nashi-stati/proektirovanie/neodnoznachnosti-norm-avariynogo-osveshcheniya/"
+      ],
+      "open_points": [
+        "100 % within 10 s (SP 52) or 60 s (SP 439)",
+        "5 lx at equipment horizontal (SP 52) or vertical (SP 439; used here)",
+        "reflections not stated"
+      ]
+    },
+    {
+      "id": "nfpa101",
+      "name": "NFPA 101 / IBC",
+      "region": "United States",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "route_avg_lx": 10.8,
+        "route_min_lx": 1.1,
+        "max_ratio": 40.0,
+        "end_after_h": 1.5,
+        "end_avg_lx": 6.5,
+        "end_min_lx": 0.65,
+        "external_sign_face_lx": 54.0,
+        "duration_h": 1.5,
+        "switch_over_s": 10.0
+      },
+      "sources": [
+        "https://dmflighting.com/technical-bulletin-emergency-lighting-requirements/",
+        "https://www.signify.com/en-us/brands/bodine/resources/code-requirements",
+        "https://exitlightco.com/NFPA-101-Life-Safety-Code.html",
+        "https://www.csemag.com/the-basics-of-emergency-illumination/"
+      ],
+      "open_points": [
+        "line or width of the path of egress (width used here)",
+        "IBC 2024 clause numbers"
+      ]
+    },
+    {
+      "id": "nbcc",
+      "name": "NBC Canada 2020",
+      "region": "Canada",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "avg_lx": 10.0,
+        "min_lx": 1.0,
+        "duration_h": [
+          2.0,
+          1.0,
+          0.5
+        ]
+      },
+      "sources": [
+        "https://www.standardpro.com/hubfs/Stanpro-Building-Code-2020_EN_R01.pdf",
+        "https://iaeimagazine.org/columns/canadian/emergency-lighting-what-why-and-how/"
+      ],
+      "open_points": [
+        "NBC 2025 published, not yet checked",
+        "measurement method and reflections not stated"
+      ]
+    },
+    {
+      "id": "nbr10898",
+      "name": "ABNT NBR 10898",
+      "region": "Brazil",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "flat_lx": 3.0,
+        "level_change_lx": 5.0,
+        "max_ratio": 20.0,
+        "duration_h": 1.0
+      },
+      "sources": [
+        "https://www.bombeiros.go.gov.br/wp-content/uploads/2021/09/NT-18_2022_-_Iluminacao_de_emergencia.pdf",
+        "https://www.bombeiros.rs.gov.br/upload/arquivos/202501/17094900-rtcbmrs-n-13-2025-iluminacao-de-emergencia.pdf",
+        "https://www.normas.com.br/visualizar/artigo-tecnico/1888/nbr-10898-sistema-de-iluminacao-de-emergencia"
+      ],
+      "open_points": [
+        "changes in the 2023 edition",
+        "switch-over time",
+        "how the route width is measured (less 0.5 m along each side here)"
+      ]
+    },
+    {
+      "id": "jp-bsl",
+      "name": "Building Standard Law (Japan)",
+      "region": "Japan",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "floor_min_lx": 1.0,
+        "floor_min_lx_fluorescent_led": 2.0,
+        "duration_h": 0.5,
+        "direct_light_only": true
+      },
+      "sources": [
+        "https://www2.panasonic.biz/jp/lighting/plam/manual/facilities/emergency-light/",
+        "https://www.city.ota.tokyo.jp/seikatsu/sumaimachinami/kenchiku/emergency_lights_unit.html",
+        "https://www.mlit.go.jp/notice/noticedata/pdf/201706/00006702.pdf"
+      ],
+      "open_points": []
+    },
+    {
+      "id": "nbc-in",
+      "name": "NBC India 2016",
+      "region": "India",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "route_centre_lx": 10.0,
+        "route_band_lx": 5.0,
+        "duration_h": 1.5,
+        "switch_on_s": 5.0
+      },
+      "sources": [
+        "https://www.iitk.ac.in/nicee/IITK-GSDMA/F03.pdf",
+        "https://airlight.in/nbc-requirement/"
+      ],
+      "open_points": [
+        "a revision is under way (BIS draft with EN 1838 values)",
+        "rooms: no rule of their own (5 lx used here)"
+      ]
+    },
+    {
+      "id": "as2293",
+      "name": "AS/NZS 2293.1:2018",
+      "region": "Australia",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "route_min_lx": 0.2,
+        "route_avg_lx": 0.5,
+        "stairs_lx": 1.0,
+        "duration_h_in_service": 1.5
+      },
+      "sources": [
+        "https://library.e.abb.com/",
+        "https://www.standards.org.au/blog/ncc-2022-standards-spotlight-emergency-lighting-and-exit-signs-for-buildings",
+        "https://www.neca.asn.au/necagroup/content/emergency-lighting-and-exit-signs-buildings-update"
+      ],
+      "open_points": [
+        "AS/NZS 2293.1:2026 published, not yet checked",
+        "centre line or width",
+        "40:1 ratio (not confirmed, not checked)"
+      ]
+    },
+    {
+      "id": "nz-f6",
+      "name": "NZBC F6/AS1",
+      "region": "New Zealand",
+      "checked": "2026-11-08 against public secondary sources (manufacturer guides, associations, authorities, code extracts); not yet against the published texts",
+      "values": {
+        "exitway_lx": 1.0,
+        "level_change_lx": 1.0,
+        "elsewhere_lx": 0.2,
+        "border_m": 0.5,
+        "duration_h": 1.5,
+        "direct_light_only": true
+      },
+      "sources": [
+        "https://codehub.building.govt.nz/resources/f6as1-amd-4"
+      ],
+      "open_points": [
+        "the 0.5 m wall border is consultants' practice"
+      ]
+    }
+  ]
+}

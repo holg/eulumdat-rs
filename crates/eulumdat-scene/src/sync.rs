@@ -76,6 +76,11 @@ pub struct SyncSettings {
     /// Output (0–1) of lamps whose sensor detects nothing.
     #[serde(default = "default_sensor_idle")]
     pub sensor_idle: f32,
+    /// The sensors switch the luminaires (to `sensor_idle` when nothing
+    /// is detected); off = they only detect, the luminaires stay at full
+    /// output. A plan from a designer arrives with it off.
+    #[serde(default = "default_true")]
+    pub sensor_dim: bool,
     /// quick | balanced | high (`viewer::Quality`); the panel's presets
     /// also set `bounces` and `samples`.
     #[serde(default = "default_quality")]
@@ -109,6 +114,54 @@ pub struct SyncSettings {
     /// Bumped to replay the power failure (the eye adapts again).
     #[serde(default)]
     pub emergency_replay: u32,
+    /// The moon over outdoor scenes ([`crate::moon`]): on, the night
+    /// (local date "YYYY-MM-DD" and wall-clock hour), the place (latitude,
+    /// longitude, standard UTC offset, DST rule "eu" | "us" | "south" |
+    /// "none") and north in the scene (degrees from −Z towards +X).
+    #[serde(default)]
+    pub moon: bool,
+    #[serde(default = "default_moon_date")]
+    pub moon_date: String,
+    #[serde(default = "default_moon_hour")]
+    pub moon_hour: f32,
+    #[serde(default = "default_moon_lat")]
+    pub moon_lat: f64,
+    #[serde(default = "default_moon_lon")]
+    pub moon_lon: f64,
+    #[serde(default = "default_moon_utc")]
+    pub moon_utc: f32,
+    #[serde(default = "default_moon_dst")]
+    pub moon_dst: String,
+    #[serde(default)]
+    pub north_deg: f32,
+    /// All luminaires off: the scene in moonlight alone.
+    #[serde(default)]
+    pub lamps_off: bool,
+}
+
+fn default_moon_date() -> String {
+    // a full moon
+    "2026-01-03".into()
+}
+
+fn default_moon_hour() -> f32 {
+    23.0
+}
+
+fn default_moon_lat() -> f64 {
+    52.52
+}
+
+fn default_moon_lon() -> f64 {
+    13.40
+}
+
+fn default_moon_utc() -> f32 {
+    1.0
+}
+
+fn default_moon_dst() -> String {
+    "eu".into()
 }
 
 fn default_true() -> bool {
@@ -216,6 +269,10 @@ impl SyncSettings {
                     self.sensor_control = v.clone();
                     true
                 }
+                "sensordim" => {
+                    self.sensor_dim = b(v);
+                    true
+                }
                 "quality" => {
                     self.quality = v.clone();
                     true
@@ -241,6 +298,32 @@ impl SyncSettings {
                     true
                 }
                 "walk" => f(v).map(|x| self.walk = Some(x.clamp(0.0, 1.0))).is_some(),
+                "moon" | "sky" => {
+                    self.moon = b(v);
+                    true
+                }
+                "moondate" => crate::moon::parse_date(v)
+                    .map(|_| self.moon_date = v.to_string())
+                    .is_some(),
+                "moontime" => f(v).map(|x| self.moon_hour = x.clamp(0.0, 23.99)).is_some(),
+                "moonlat" => v
+                    .parse::<f64>()
+                    .map(|x| self.moon_lat = x.clamp(-90.0, 90.0))
+                    .is_ok(),
+                "moonlon" => v
+                    .parse::<f64>()
+                    .map(|x| self.moon_lon = x.clamp(-180.0, 180.0))
+                    .is_ok(),
+                "moonutc" => f(v).map(|x| self.moon_utc = x.clamp(-12.0, 14.0)).is_some(),
+                "moondst" => {
+                    self.moon_dst = v.to_string();
+                    true
+                }
+                "north" => f(v).map(|x| self.north_deg = x.rem_euclid(360.0)).is_some(),
+                "lampsoff" => {
+                    self.lamps_off = b(v);
+                    true
+                }
                 "walkroute" => f(v).map(|x| self.walk_route = x.max(0.0) as u32).is_some(),
                 "sensoridle" => f(v).map(|x| self.sensor_idle = x.clamp(0.0, 1.0)).is_some(),
                 _ => false,
@@ -284,11 +367,22 @@ impl SyncSettings {
             sensor_motion: self.sensor_motion.clone(),
             sensor_control: self.sensor_control.clone(),
             sensor_idle: self.sensor_idle,
+            sensor_dim: self.sensor_dim,
             sensor_volume: self.sensor_volume,
             emergency_mode: self.emergency_mode,
             emergency_marks: self.emergency_marks,
             // a counter: kept, so the next bump is a change
             emergency_replay: self.emergency_replay,
+            moon: self.moon,
+            moon_date: self.moon_date.clone(),
+            moon_hour: self.moon_hour,
+            moon_lat: self.moon_lat,
+            moon_lon: self.moon_lon,
+            moon_utc: self.moon_utc,
+            moon_dst: self.moon_dst.clone(),
+            north_deg: self.north_deg,
+            // another scene: its luminaires on
+            lamps_off: false,
             ..Self::for_scene(kind)
         }
     }
@@ -329,6 +423,7 @@ impl SyncSettings {
             sensor_motion: default_sensor_motion(),
             sensor_control: default_sensor_control(),
             sensor_idle: default_sensor_idle(),
+            sensor_dim: true,
             quality: default_quality(),
             denoise: true,
             auto_quick: true,
@@ -339,7 +434,29 @@ impl SyncSettings {
             walk_route: 0,
             walk_play: false,
             emergency_replay: 0,
+            moon: false,
+            moon_date: default_moon_date(),
+            moon_hour: default_moon_hour(),
+            moon_lat: default_moon_lat(),
+            moon_lon: default_moon_lon(),
+            moon_utc: default_moon_utc(),
+            moon_dst: default_moon_dst(),
+            north_deg: 0.0,
+            lamps_off: false,
         }
+    }
+
+    /// When and where the moon is taken, `None` when it is off.
+    pub fn moon_time(&self) -> Option<crate::moon::MoonTime> {
+        self.moon.then(|| crate::moon::MoonTime {
+            date: self.moon_date.clone(),
+            hour: self.moon_hour,
+            latitude: self.moon_lat,
+            longitude: self.moon_lon,
+            utc_offset: self.moon_utc,
+            dst: self.moon_dst.clone(),
+            north_deg: self.north_deg,
+        })
     }
 }
 
@@ -387,6 +504,10 @@ pub struct GridStat {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Status {
+    /// The natural light over the scene (on and outdoors), for the panel.
+    pub sky: Option<crate::moon::SkyLight>,
+    /// The scene is outdoors (the moon can light it).
+    pub outdoor: bool,
     pub name: String,
     pub lumens: f64,
     pub peak_cd: f32,

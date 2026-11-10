@@ -25,6 +25,8 @@ struct Params {
     f1: vec4<f32>,           // sky scale, ambient, haze, glare
     f2: vec4<f32>,           // firefly clamp, exposure, lux max, iso step
     size: vec4<u32>,         // width, height, unused, unused
+    moon: vec4<f32>,         // xyz unit vector toward the moon, w = its illuminance normal to the beam (lx; 0 = no moon)
+    moon_sky: vec4<f32>,     // rgb moonlight colour (luma = tint luma), w = radiance of the moonlit sky (cd/m², uniform)
 }
 
 // kind 0 oriented box (p0 centre, p1 half extents, r0..r2 rotation columns),
@@ -68,6 +70,8 @@ const TWO_PI: f32 = 6.28318530717959;
 const INV_PI: f32 = 0.31830988618379;
 const EPS: f32 = 1.0e-3;
 const FAR: f32 = 1.0e20;
+// Moonlight scattered by the air is blue like the day sky (luma 1).
+const MOON_SKY_TINT: vec3<f32> = vec3<f32>(0.84, 1.0, 1.4);
 
 const MAT_PAVING: i32 = 0;
 const MAT_ASPHALT: i32 = 1;
@@ -792,8 +796,44 @@ fn direct_light(p: vec3<f32>, n: vec3<f32>, v: vec3<f32>, m: Mat, one: bool) -> 
         out.e += en * ndotl;
         sum += eval_bsdf(n, v, wi, m).f * en;
     }
-    out.l = sum * P.tint.rgb;
+    var l = sum * P.tint.rgb;
+    // the moon (outdoor scenes): its beam, shadowed, and one sample of the
+    // moonlit sky over the surface (shadowed by what stands around)
+    if (P.moon.w > 0.0) {
+        let wm = P.moon.xyz;
+        let c = dot(n, wm);
+        if (c > 0.0 && !occluded(p + n * EPS, wm, FAR)) {
+            out.e += P.moon.w * c;
+            l += eval_bsdf(n, v, wm, m).f * P.moon.w * P.moon_sky.rgb;
+        }
+    }
+    if (P.moon_sky.w > 0.0) {
+        let u1 = rnd();
+        let phi = TWO_PI * rnd();
+        let r = sqrt(u1);
+        let d = tangent_frame(n) * vec3<f32>(r * cos(phi), r * sin(phi), sqrt(max(0.0, 1.0 - u1)));
+        if (d.y > 0.0 && !occluded(p + n * EPS, d, FAR)) {
+            // cosine sampling: E = π L, reflected = f · L · π / cos
+            out.e += PI * P.moon_sky.w;
+            let cd = max(dot(n, d), 1.0e-4);
+            l += eval_bsdf(n, v, d, m).f * (P.moon_sky.w * PI / cd) * P.moon_sky.rgb * MOON_SKY_TINT;
+        }
+    }
+    out.l = l;
     return out;
+}
+
+// The moonlit sky seen from the camera, with the moon's disc (drawn 1.2°
+// wide so it shows; its brightness keeps the moon's illuminance).
+fn moon_sky_seen(rd: vec3<f32>) -> vec3<f32> {
+    var c = vec3<f32>(0.0);
+    if (P.moon_sky.w > 0.0 && rd.y > 0.0) {
+        c += P.moon_sky.rgb * MOON_SKY_TINT * P.moon_sky.w;
+    }
+    if (P.moon.w > 0.0 && dot(rd, P.moon.xyz) > 0.99978) {
+        c += P.moon_sky.rgb * (P.moon.w / 1.377e-3);
+    }
+    return c;
 }
 
 struct LumHit {
@@ -964,7 +1004,7 @@ fn trace(@builtin(global_invocation_id) gid: vec3<u32>) {
 
         if (hit.mat < 0) {
             if (primary) {
-                radiance += sky(rd);
+                radiance += sky(rd) + moon_sky_seen(rd);
             } else {
                 var fill = vec3<f32>(1.0);
                 if (P.f0.w > 0.5) { fill = vec3<f32>(0.8, 0.88, 1.0); }

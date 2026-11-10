@@ -7,6 +7,9 @@
 //!     --scene street --mode isolux --samples 200 --size 1280x800 --tilt 15 --out out.ppm
 //! ```
 //!
+//! `--moon 2026-01-03T00:30 [--lat --lon --utc --dst --north]` puts the
+//! natural light of that moment over an outdoor scene (sun by day,
+//! twilight, moon by night), `--lamps-off` switches the luminaires off.
 //! In `points` mode the per-grid Em / Emin / Uo table is printed. `--cpu`
 //! runs the Rust tracer instead of the GPU (use a small `--size`), which is
 //! the cross-check between the two paths.
@@ -140,6 +143,41 @@ fn main() {
             None => println!("l3d body: no usable geometry"),
         }
     }
+    // `--moon 2026-01-03T00:30` (local time; `--lat 52.52 --lon 13.40
+    // --utc 1 --dst eu --north 0`, Berlin by default) puts the moon over an
+    // outdoor scene; `--lamps-off` shows it alone.
+    if let Some(m) = arg(&args, "--moon") {
+        let (date, time) = m.split_once('T').unwrap_or((m.as_str(), "23:00"));
+        let hour = time
+            .split_once(':')
+            .and_then(|(h, mi)| Some(h.parse::<f32>().ok()? + mi.parse::<f32>().ok()? / 60.0))
+            .unwrap_or(23.0);
+        let num = |k: &str, d: f64| arg(&args, k).and_then(|v| v.parse().ok()).unwrap_or(d);
+        let t = eulumdat_scene::moon::MoonTime {
+            date: date.to_string(),
+            hour,
+            latitude: num("--lat", 52.52),
+            longitude: num("--lon", 13.40),
+            utc_offset: num("--utc", 1.0) as f32,
+            dst: arg(&args, "--dst").unwrap_or_else(|| "eu".into()),
+            north_deg: num("--north", 0.0) as f32,
+        };
+        viewer.settings.sky = t.sky();
+        match viewer.settings.sky {
+            Some(sk) => println!(
+                "sky: {:?}, sun {:.0}° up, {:.3} lx horizontal ({:.3} lx beam normal, {:.3} lx sky); moon {:.0} % lit, {:.0}° up",
+                sk.kind,
+                sk.sun_altitude_deg,
+                sk.horizontal_lux,
+                sk.beam_lux,
+                sk.sky_lux,
+                sk.moon.illuminated * 100.0,
+                sk.moon.altitude_deg
+            ),
+            None => println!("sky: unreadable date {date:?}"),
+        }
+    }
+    viewer.settings.lamps_off = args.iter().any(|a| a == "--lamps-off");
     viewer.max_pixels = f32::MAX;
     viewer.resize(w as f32, h as f32, 1.0);
 

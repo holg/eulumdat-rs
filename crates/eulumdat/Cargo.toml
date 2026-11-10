@@ -19,11 +19,15 @@ documentation = "https://docs.rs/eulumdat"
 #
 # The beam/field regression fixtures are third-party photometric files that
 # are kept in the repo for testing only and are not redistributed.
+#
+# The whole tests/ folder stays out too: it holds more third-party files
+# (Deko-Light, LEDVANCE, SLV LDTs, the SLV Oculus TM-33 sample, the LITESTAR
+# OXL sample, 6.6 MB) next to our own demos, and library users do not need
+# any of it. The tests run from the repository.
 exclude = [
     "examples/wasm_benchmark.rs",
     "benches/native_benchmark.rs",
-    "tests/beam_field_sections.rs",
-    "tests/fixtures/beam_field/",
+    "tests/",
 ]
 
 [features]

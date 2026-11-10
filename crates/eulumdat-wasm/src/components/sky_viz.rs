@@ -9,7 +9,7 @@
 
 use eulumdat_daylight::availability::daylight_cct;
 use eulumdat_daylight::location::{LocalDateTime, NamedLocation};
-use eulumdat_daylight::DaylightAvailability;
+use eulumdat_daylight::{NaturalLight, NightSummary};
 
 /// Correlated-colour-temperature → sRGB hex, over the ~1500–15000 K range.
 ///
@@ -407,15 +407,9 @@ pub fn scene_render_svg(
     let alt = sun.altitude_deg();
     let (zenith, horizon) = sky_colours(alt, turbidity);
 
-    // Ground brightness from the actual horizontal illuminance (log-mapped over
-    // the ~0.001..100000 lx daylight/night span).
-    let avail = if sun.is_daytime() {
-        DaylightAvailability::clear_sky(&sun, turbidity).ghi_lux
-    } else if alt > -6.0 {
-        5.0
-    } else {
-        0.002
-    };
+    // Ground brightness from the actual horizontal illuminance, the moon
+    // included (log-mapped over the ~0.001..100000 lx daylight/night span).
+    let avail = NaturalLight::at(&sun, &dt.moon_position(loc), turbidity).total_lux();
     let lit = ((avail.max(1e-4).log10() + 4.0) / 9.0).clamp(0.03, 1.0); // 1e-4→0, 1e5→1
     let night = alt < 2.0;
 
@@ -559,6 +553,249 @@ fn plaza_foreground(w: f64, h: f64, horizon_y: f64, lit: f64, night: bool) -> St
     )
 }
 
+// ── 5. Natural light through the night (moon, twilight, stars) ────────────
+
+/// Labels of [`night_light_svg`].
+pub struct NightChartLabels {
+    pub total: String,
+    pub moon: String,
+}
+
+/// Wall-clock label of `hours` after noon.
+pub fn clock_after_noon(hours: f64) -> String {
+    let t = (12.0 + hours).rem_euclid(24.0);
+    let mut h = t.floor() as u32;
+    let mut m = ((t - h as f64) * 60.0).round() as u32;
+    if m == 60 {
+        m = 0;
+        h = (h + 1) % 24;
+    }
+    format!("{h:02}:{m:02}")
+}
+
+/// Horizontal illuminance from noon to noon on a log scale (0.001–10 lx):
+/// all natural light (filled) and the moon alone (line), with reference
+/// lines at 0.2 / 0.5 / 1 / 2 lx, sunset / sunrise (☀) and moonrise /
+/// moonset (☾) marked, and `now` (hours after noon).
+pub fn night_light_svg(
+    n: &NightSummary,
+    now: Option<f64>,
+    labels: &NightChartLabels,
+    w: f64,
+    h: f64,
+) -> String {
+    let (l, r, t, b) = (34.0, 44.0, 10.0, 22.0);
+    let (pw, ph) = (w - l - r, h - t - b);
+    let (lo, hi) = (-3.0f64, 1.0f64); // log10 lx
+    let x = |hours: f64| l + hours / 24.0 * pw;
+    let y = |lx: f64| t + ph * (1.0 - ((lx.max(1e-6).log10() - lo) / (hi - lo)).clamp(0.0, 1.0));
+    let mut o = String::new();
+    // grid: decades
+    for d in -3..=1 {
+        let yy = y(10f64.powi(d));
+        let lbl = match d {
+            -3 => "0.001",
+            -2 => "0.01",
+            -1 => "0.1",
+            0 => "1",
+            _ => "10",
+        };
+        o.push_str(&format!(
+            r##"<line x1="{l}" y1="{yy:.1}" x2="{:.1}" y2="{yy:.1}" stroke="currentColor" stroke-opacity="0.12"/><text x="{:.1}" y="{:.1}" font-size="9" fill="currentColor" fill-opacity="0.6" text-anchor="end">{lbl}</text>"##,
+            l + pw,
+            l - 4.0,
+            yy + 3.0
+        ));
+    }
+    // the day, shaded
+    for s in n.samples.windows(2) {
+        if s[0].sun_altitude_deg > 0.0 {
+            o.push_str(&format!(
+                r##"<rect x="{:.1}" y="{t}" width="{:.2}" height="{ph}" fill="#f0883e" fill-opacity="0.08"/>"##,
+                x(s[0].hours),
+                x(s[1].hours) - x(s[0].hours) + 0.3
+            ));
+        }
+    }
+    // all natural light
+    let mut area = format!("M{:.1},{:.1}", x(0.0), y(1e-6));
+    for s in &n.samples {
+        area.push_str(&format!(
+            " L{:.1},{:.1}",
+            x(s.hours),
+            y(s.light.total_lux())
+        ));
+    }
+    area.push_str(&format!(" L{:.1},{:.1} Z", x(24.0), y(1e-6)));
+    o.push_str(&format!(
+        r##"<path d="{area}" fill="#8b949e" fill-opacity="0.22" stroke="#8b949e" stroke-opacity="0.6" stroke-width="1"/>"##
+    ));
+    // the moon alone
+    let mut line = String::new();
+    let mut pen = false;
+    for s in &n.samples {
+        let e = s.light.moon.global_horizontal_lux;
+        if e <= 1e-4 {
+            pen = false;
+            continue;
+        }
+        line.push_str(&format!(
+            "{}{:.1},{:.1} ",
+            if pen { "L" } else { "M" },
+            x(s.hours),
+            y(e)
+        ));
+        pen = true;
+    }
+    o.push_str(&format!(
+        r##"<path d="{line}" fill="none" stroke="#79c0ff" stroke-width="2.2" stroke-linejoin="round"/>"##
+    ));
+    // reference lines
+    for (lx, lbl) in [
+        (0.2, "0.2 lx"),
+        (0.5, "0.5 lx"),
+        (1.0, "1 lx"),
+        (2.0, "2 lx"),
+    ] {
+        let yy = y(lx);
+        o.push_str(&format!(
+            r##"<line x1="{l}" y1="{yy:.1}" x2="{:.1}" y2="{yy:.1}" stroke="#3fb950" stroke-opacity="0.75" stroke-dasharray="4,3"/><text x="{:.1}" y="{:.1}" font-size="9" fill="#3fb950">{lbl}</text>"##,
+            l + pw,
+            l + pw + 3.0,
+            yy + 3.0
+        ));
+    }
+    // rise / set marks
+    // the sun's marks at the top, the moon's a line lower (they are often
+    // close together)
+    let mark = |hours: Option<f64>, glyph: &str, colour: &str, dy: f64| {
+        hours.map_or(String::new(), |hh| {
+            let xx = x(hh);
+            format!(
+                r##"<line x1="{xx:.1}" y1="{t}" x2="{xx:.1}" y2="{:.1}" stroke="{colour}" stroke-opacity="0.7" stroke-dasharray="2,2"/><text x="{xx:.1}" y="{:.1}" font-size="10" fill="{colour}" text-anchor="middle">{glyph}</text>"##,
+                t + ph,
+                t + dy
+            )
+        })
+    };
+    o.push_str(&mark(n.sunset, "☀↓", "#f0883e", 9.0));
+    o.push_str(&mark(n.sunrise, "☀↑", "#f0883e", 9.0));
+    o.push_str(&mark(n.moonrise, "☾↑", "#79c0ff", 22.0));
+    o.push_str(&mark(n.moonset, "☾↓", "#79c0ff", 22.0));
+    // hours
+    for k in 0..=8 {
+        let hh = k as f64 * 3.0;
+        o.push_str(&format!(
+            r##"<text x="{:.1}" y="{:.1}" font-size="9" fill="currentColor" fill-opacity="0.65" text-anchor="middle">{}</text>"##,
+            x(hh),
+            h - 8.0,
+            &clock_after_noon(hh)[..2]
+        ));
+    }
+    if let Some(now) = now.filter(|v| (0.0..=24.0).contains(v)) {
+        let xx = x(now);
+        o.push_str(&format!(
+            r##"<line x1="{xx:.1}" y1="{t}" x2="{xx:.1}" y2="{:.1}" stroke="currentColor" stroke-width="1.5"/>"##,
+            t + ph
+        ));
+    }
+    // legend
+    o.push_str(&format!(
+        r##"<rect x="{:.1}" y="{:.1}" width="10" height="6" fill="#8b949e" fill-opacity="0.4"/><text x="{:.1}" y="{:.1}" font-size="9" fill="currentColor" fill-opacity="0.8">{}</text><line x1="{:.1}" y1="{:.1}" x2="{:.1}" y2="{:.1}" stroke="#79c0ff" stroke-width="2.2"/><text x="{:.1}" y="{:.1}" font-size="9" fill="currentColor" fill-opacity="0.8">{}</text>"##,
+        l + 6.0,
+        t + ph - 22.0,
+        l + 20.0,
+        t + ph - 16.0,
+        xml_text(&labels.total),
+        l + 6.0,
+        t + ph - 7.0,
+        l + 16.0,
+        t + ph - 7.0,
+        l + 20.0,
+        t + ph - 4.0,
+        xml_text(&labels.moon),
+    ));
+    format!(
+        r##"<svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;color:var(--text-muted,#8b949e);">{o}</svg>"##
+    )
+}
+
+/// One night of [`moon_month_svg`]: the most moonlight while dark, the
+/// moon at midnight.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NightBar {
+    pub max_lux: f64,
+    pub illuminated: f64,
+    pub waxing: bool,
+}
+
+/// The most moonlight of each night (bars, 0–0.35 lx) with the moon's
+/// phase above; bar `i` carries `data-night="i"` for clicks, `selected` is
+/// outlined.
+pub fn moon_month_svg(
+    nights: &[NightBar],
+    selected: usize,
+    labels_from: &[String],
+    w: f64,
+    h: f64,
+) -> String {
+    let n = nights.len().max(1);
+    let cw = w / n as f64;
+    let (top, bottom) = (26.0, 16.0);
+    let ph = h - top - bottom;
+    let mut o = String::new();
+    for (i, nb) in nights.iter().enumerate() {
+        let x0 = i as f64 * cw;
+        let bh = (nb.max_lux / 0.35).clamp(0.0, 1.0) * ph;
+        let fill = if nb.max_lux >= 0.2 {
+            "#79c0ff"
+        } else if nb.max_lux >= 0.05 {
+            "#4a7fb5"
+        } else {
+            "#30363d"
+        };
+        o.push_str(&format!(
+            r##"<g data-night="{i}" style="cursor:pointer"><rect x="{x0:.1}" y="0" width="{cw:.1}" height="{h}" fill="transparent"/><rect x="{:.1}" y="{:.1}" width="{:.1}" height="{bh:.1}" rx="1.5" fill="{fill}"/>{}</g>"##,
+            x0 + cw * 0.15,
+            top + ph - bh,
+            cw * 0.7,
+            moon_disc_svg(x0 + cw / 2.0, 10.0, (cw * 0.32).min(7.0), nb.illuminated, nb.waxing)
+        ));
+        if i == selected {
+            o.push_str(&format!(
+                r##"<rect x="{:.1}" y="1" width="{:.1}" height="{:.1}" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/>"##,
+                x0 + 0.5,
+                cw - 1.0,
+                h - 2.0
+            ));
+        }
+        if let Some(lbl) = labels_from.get(i).filter(|l| !l.is_empty()) {
+            o.push_str(&format!(
+                r##"<text x="{:.1}" y="{:.1}" font-size="8.5" fill="currentColor" fill-opacity="0.65" text-anchor="middle">{}</text>"##,
+                x0 + cw / 2.0,
+                h - 4.0,
+                xml_text(lbl)
+            ));
+        }
+    }
+    // the 0.2 lx line
+    let y02 = top + ph - (0.2 / 0.35) * ph;
+    o.push_str(&format!(
+        r##"<line x1="0" y1="{y02:.1}" x2="{w}" y2="{y02:.1}" stroke="#3fb950" stroke-opacity="0.75" stroke-dasharray="4,3"/><text x="{:.1}" y="{:.1}" font-size="8.5" fill="#3fb950" text-anchor="end">0.2 lx</text>"##,
+        w - 2.0,
+        y02 - 2.0
+    ));
+    format!(
+        r##"<svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;color:var(--text-muted,#8b949e);">{o}</svg>"##
+    )
+}
+
+fn xml_text(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -622,6 +859,42 @@ mod tests {
             r + g + b
         };
         assert!(lum(&znoon) > lum(&znight), "noon sky brighter than night");
+    }
+
+    #[test]
+    fn moonlit_scene_is_brighter_than_a_moonless_one() {
+        // full moon 2026-01-03, new moon 2026-01-18, midnight in Berlin
+        let night = |d: u32| LocalDateTime::new(2026, 1, d, 0.5);
+        let ground = |svg: String| {
+            let i = svg.find("id=\"scGround\"").unwrap();
+            svg[i..i + 200].to_string()
+        };
+        let full = scene_render_svg(&night(3), &berlin(), SceneKind::Road, 2.5, 400.0, 200.0);
+        let new = scene_render_svg(&night(18), &berlin(), SceneKind::Road, 2.5, 400.0, 200.0);
+        assert_ne!(ground(full), ground(new), "the full moon lights the ground");
+    }
+
+    #[test]
+    fn night_chart_and_month_strip_are_wellformed() {
+        let n = NightSummary::of(LocalDateTime::new(2026, 1, 2, 0.0), &berlin(), 2.5, 10.0);
+        let labels = NightChartLabels {
+            total: "all".into(),
+            moon: "moon".into(),
+        };
+        let svg = night_light_svg(&n, Some(12.0), &labels, 640.0, 200.0);
+        assert!(svg.starts_with("<svg") && svg.ends_with("</svg>"));
+        assert!(svg.contains("☾↑") && svg.contains("0.2 lx"));
+        let bars: Vec<NightBar> = (0..30)
+            .map(|i| NightBar {
+                max_lux: i as f64 / 100.0,
+                illuminated: i as f64 / 30.0,
+                waxing: true,
+            })
+            .collect();
+        let strip = moon_month_svg(&bars, 3, &[], 640.0, 90.0);
+        assert_eq!(strip.matches("data-night=").count(), 30);
+        assert_eq!(clock_after_noon(12.5), "00:30");
+        assert_eq!(clock_after_noon(0.0), "12:00");
     }
 
     #[test]

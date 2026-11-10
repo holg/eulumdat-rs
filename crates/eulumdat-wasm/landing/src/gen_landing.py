@@ -96,6 +96,28 @@ EN = collections.OrderedDict([
 ("sky_sub","A moated castle in Lüdinghausen, rebuilt from the open survey data of Geobasis NRW: the 3D mesh and laser scan for the park and the moat, the building model for the walls, with façades projected from photographs. Floodlights wash the walls, lanterns stand on the bridges. Press Space to switch between lighting that brightens the night sky and lighting that keeps it dark, Z to raise the drawbridge; fly with WASD and the mouse."),
 ("sky_cap","Dark-sky mode, seen from the east bank. Survey data © Geobasis NRW (dl-de/zero-2.0); façades from 67 Wikimedia Commons photographs, CC BY-SA. <a href=\"vischering-credits.html\">Photo credits</a>"),
 ("sky_link","Open Burg Vischering"),
+("nav_eco","Sister sites"),
+("eco_h","Four sites, one path from the LED to the building"),
+("eco_sub","Candelabra has three sister sites. Each does one job, all four run in your browser on the same open-source Rust crates, and a file carries the luminaire from one to the next: from the LED's ray file to the luminaire at work, into its product data, and into the building model."),
+("eco_tm25_r","The light source"),
+("eco_tm25_p","Opens IES TM-25 ray files (.TM25RAY and LightTools .ray): the near-field emission of an LED as rays, the far field, the irradiance on a plane close to the source, the spectrum and a luminance map. The format handling is checked against the standard and Julius Muschaweck's reference implementation, TM25RaySetTools."),
+("eco_tm25_o","Gives: far-field LDT and IES, ATLA XML with the spectrum, SPD"),
+("eco_cand_r","The luminaire at work · this site"),
+("eco_cand_p","Every diagram, the standards checks, path-traced light scenes, outdoor, interior and street design, sensors and emergency lighting. A GLDF opens with its 3D body in the light scene, its sensors and its emergency emitters."),
+("eco_cand_o","Gives: LDT, IES, TM-33-23, ATLA, TM-27 SPDX, PDF reports"),
+("eco_gldf_r","The product data"),
+("eco_gldf_p","Builds and edits GLDF containers. Drop an LDT, IES or TM-33 file and it becomes a GLDF; add the L3D geometry, variants, light sources, sensors and emergency data, check it against the GLDF schema and look at the body in 3D."),
+("eco_gldf_o","Gives: .gldf, and IFC with the photometry inside"),
+("eco_bim_r","The building"),
+("eco_bim_p","Opens IFC building models in 3D, with the spatial tree and every property set. A light fixture that carries its photometry shows its polar diagram and data, and can light the model."),
+("eco_bim_o","Reads: IFC with photometry from gldf.icu, or as IfcLightSourceGoniometric from lighting software"),
+("eco_flow_h","How a file travels"),
+("eco_f1s","“Open in editor” on tm25.eu takes the far field of a ray file straight into Candelabra as an LDT; “Virtual goniometer” sends the rays themselves through covers and reflectors."),
+("eco_f2s","Save the luminaire from Candelabra as LDT, IES or TM-33 and drop it on gldf.icu: it becomes a GLDF container, ready for its geometry, variants and sensors."),
+("eco_f3s","Drop the .gldf on Candelabra: the brightest photometry becomes the luminaire, the L3D model its body in the light scene, and its sensors and emergency emitters join the project."),
+("eco_f4s","“Export IFC” on gldf.icu writes the luminaire with its photometry inside; open the file on bimifc.de and the fixture shows its polar diagram and data."),
+("eco_k","One set of crates underneath"),
+("eco_kp","The same Rust crates do the work on every site: eulumdat reads and draws the photometry in Candelabra, gldf.icu and bimifc.de, tm25ray reads the ray files for tm25.eu and Candelabra, l3d-rs reads the 3D bodies. Nothing is uploaded on any of the four. Candelabra, gldf.icu and tm25.eu are AGPL-3.0, bimifc is MPL-2.0."),
 ("for_h","Who it is for"),
 ("for_sub","Candelabra is not a replacement for a full project calculation. It is the fastest place to look at, check, understand and show a luminaire, and a growing set of tools around it."),
 ("a1_h","Lighting designers and architects"),("a1_w","Check a luminaire before it goes into a project, or show a client what it does."),
@@ -122,8 +144,8 @@ EN = collections.OrderedDict([
 ("how_1","In the browser"),("how_1s","Rust compiled to WebAssembly; the tracer runs on your GPU through WebGPU, with a CPU fallback."),
 ("how_2","Your files stay yours"),("how_2s","Nothing is uploaded. A luminaire library lives in your browser's storage only."),
 ("how_3","Real photometry"),("how_3s","Scenes sample the intensity table itself; grid values match a CPU reference within noise."),
-("how_4","Open and free"),("how_4s","AGPL-licensed source on GitHub, library crates on crates.io, GLDF tooling at gldf.icu, ray files at tm25.eu."),
-("foot_l","Candelabra · built on <a href=\"https://github.com/holg/eulumdat-rs\">eulumdat-rs</a> · sister sites <a href=\"https://gldf.icu\">gldf.icu</a> and <a href=\"https://tm25.eu\">tm25.eu</a>"),
+("how_4","Open and free"),("how_4s","AGPL-licensed source on GitHub, library crates on crates.io, GLDF tooling at gldf.icu, ray files at tm25.eu, building models at bimifc.de."),
+("foot_l","Candelabra · built on <a href=\"https://github.com/holg/eulumdat-rs\">eulumdat-rs</a> · sister sites <a href=\"https://gldf.icu\">gldf.icu</a>, <a href=\"https://tm25.eu\">tm25.eu</a> and <a href=\"https://bimifc.de\">bimifc.de</a>"),
 ("foot_open","Open the workbench"),("foot_quiz","Quiz"),("foot_feedback","Feedback"),
 ])
 HTML_KEYS = {"samples","fmt_p","a4_3s","foot_l","know_p","sky_cap"}
@@ -134,7 +156,7 @@ for code, d in TR.items():
 # Newer sections must be translated, not copies of the English text, and the
 # colour-quality intro quotes the demo LED (pinned in
 # crates/eulumdat/tests/colour_quality_demo.rs) in every language.
-MUST_TRANSLATE = [k for k in EN if k.startswith(("cq_", "sens_", "em_")) or k in ("nav_colour", "nav_sensors", "fmt_sensor", "nav_emergency")]
+MUST_TRANSLATE = [k for k in EN if k.startswith(("cq_", "sens_", "em_", "eco_")) or k in ("nav_colour", "nav_sensors", "fmt_sensor", "nav_emergency", "nav_eco")]
 for code, d in TR.items():
     same = [k for k in MUST_TRANSLATE if d[k] == EN[k]]
     assert not same, (code, "untranslated", same)
@@ -199,8 +221,11 @@ page = f'''<!doctype html>
   header.top {{ display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 10px; }}
   .brand {{ display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: var(--text); }}
   .brand svg {{ width: 28px; height: 28px; }}
-  nav.top {{ display: flex; align-items: center; gap: 18px; }}
-  nav.top a {{ color: var(--muted); font-size: .95rem; }}
+  .brand {{ flex-shrink: 0; }}
+  /* the links wrap as whole words onto a second row instead of pushing the
+     button off the page (German, Russian and Spanish labels are long) */
+  nav.top {{ display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px 16px; }}
+  nav.top a {{ color: var(--muted); font-size: .95rem; white-space: nowrap; }}
   nav.top select {{ background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: .9rem; }}
   .btn {{ display: inline-block; padding: 11px 20px; border-radius: 10px; font-weight: 600; border: 1px solid var(--line); background: var(--surface); color: var(--text); }}
   .btn.primary {{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }}
@@ -268,6 +293,15 @@ page = f'''<!doctype html>
   .wide {{ margin: 0 0 16px; }}
   .wide img {{ display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 14px; box-shadow: var(--shadow); background: #07080a; }}
   .wide figcaption {{ color: var(--muted); font-size: .84rem; margin-top: 8px; }}
+  .eco {{ display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 8px; align-items: stretch; }}
+  .eco article {{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 16px 14px; display: flex; flex-direction: column; }}
+  .eco article.here {{ border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }}
+  .eco h3 {{ margin: 0; font-size: 1.1rem; }}
+  .eco p {{ font-size: .88rem; color: var(--muted); margin: 0 0 10px; }}
+  .eco p.role {{ margin: 2px 0 8px; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; }}
+  .eco p.io {{ margin: auto 0 0; background: var(--tint); color: var(--text); border-radius: 8px; padding: 6px 9px; font-size: .8rem; }}
+  .eco .arrow {{ align-self: center; font-size: 1.5rem; color: var(--accent); }}
+  h3.eco-flow {{ margin: 24px 0 10px; font-size: 1.1rem; }}
   footer {{ padding: 26px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: .88rem; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }}
   @media (max-width: 860px) {{
     .hero {{ grid-template-columns: 1fr; }}
@@ -278,6 +312,8 @@ page = f'''<!doctype html>
     .fmt .arrow {{ transform: rotate(90deg); }}
     .views {{ grid-template-columns: 1fr; }}
     .cq {{ grid-template-columns: 1fr; }}
+    .eco {{ grid-template-columns: 1fr; }}
+    .eco .arrow {{ transform: rotate(90deg); justify-self: center; }}
     nav.top a.hide-sm {{ display: none; }}
   }}
 </style>
@@ -292,6 +328,7 @@ page = f'''<!doctype html>
     <nav class="top">
       <a class="hide-sm" href="#views" data-i18n="nav_views">{t("nav_views")}</a>
       <a class="hide-sm" href="#formats" data-i18n="nav_formats">{t("nav_formats")}</a>
+      <a class="hide-sm" href="#family" data-i18n="nav_eco">{t("nav_eco")}</a>
       <a class="hide-sm" href="#lab">Spectrum Lab</a>
       <a class="hide-sm" href="#colour" data-i18n="nav_colour">{t("nav_colour")}</a>
       <a class="hide-sm" href="#sensors" data-i18n="nav_sensors">{t("nav_sensors")}</a>
@@ -379,6 +416,51 @@ page = f'''<!doctype html>
     </div>
   </section>
 
+  <section id="family">
+    <h2 data-i18n="eco_h">{t("eco_h")}</h2>
+    <p class="sub" data-i18n="eco_sub">{t("eco_sub")}</p>
+    <div class="eco">
+      <article>
+        <h3><a href="https://tm25.eu">tm25.eu</a></h3>
+        <p class="role" data-i18n="eco_tm25_r">{t("eco_tm25_r")}</p>
+        <p data-i18n="eco_tm25_p">{t("eco_tm25_p")}</p>
+        <p class="io" data-i18n="eco_tm25_o">{t("eco_tm25_o")}</p>
+      </article>
+      <div class="arrow" aria-hidden="true">→</div>
+      <article class="here">
+        <h3><a href="app/">Candelabra</a></h3>
+        <p class="role" data-i18n="eco_cand_r">{t("eco_cand_r")}</p>
+        <p data-i18n="eco_cand_p">{t("eco_cand_p")}</p>
+        <p class="io" data-i18n="eco_cand_o">{t("eco_cand_o")}</p>
+      </article>
+      <div class="arrow" aria-hidden="true">⇄</div>
+      <article>
+        <h3><a href="https://gldf.icu">gldf.icu</a></h3>
+        <p class="role" data-i18n="eco_gldf_r">{t("eco_gldf_r")}</p>
+        <p data-i18n="eco_gldf_p">{t("eco_gldf_p")}</p>
+        <p class="io" data-i18n="eco_gldf_o">{t("eco_gldf_o")}</p>
+      </article>
+      <div class="arrow" aria-hidden="true">→</div>
+      <article>
+        <h3><a href="https://bimifc.de">bimifc.de</a></h3>
+        <p class="role" data-i18n="eco_bim_r">{t("eco_bim_r")}</p>
+        <p data-i18n="eco_bim_p">{t("eco_bim_p")}</p>
+        <p class="io" data-i18n="eco_bim_o">{t("eco_bim_o")}</p>
+      </article>
+    </div>
+    <h3 class="eco-flow" data-i18n="eco_flow_h">{t("eco_flow_h")}</h3>
+    <div class="how">
+      <div><b>tm25.eu → Candelabra</b><span data-i18n="eco_f1s">{t("eco_f1s")}</span></div>
+      <div><b>Candelabra → gldf.icu</b><span data-i18n="eco_f2s">{t("eco_f2s")}</span></div>
+      <div><b>gldf.icu → Candelabra</b><span data-i18n="eco_f3s">{t("eco_f3s")}</span></div>
+      <div><b>gldf.icu → bimifc.de</b><span data-i18n="eco_f4s">{t("eco_f4s")}</span></div>
+    </div>
+    <div class="know">
+      <b data-i18n="eco_k">{t("eco_k")}</b>
+      <p data-i18n="eco_kp">{t("eco_kp")}</p>
+    </div>
+  </section>
+
   <section id="lab">
     <h2 data-i18n="lab_h">{t("lab_h")}</h2>
     <p class="sub" data-i18n="lab_sub">{t("lab_sub")}</p>
@@ -445,7 +527,7 @@ page = f'''<!doctype html>
     <h2 data-i18n="em_h">{t("em_h")}</h2>
     <p class="sub" data-i18n="em_sub">{t("em_sub")}</p>
     <div class="cq">
-      <figure><a href="app/#interior?preset=0&amp;sample=demo-led-3000k&amp;sensor=none&amp;shape=0,0;1,0;1,0.5;0.5,0.5;0.5,1;0,1&amp;em=1&amp;eml=route&amp;emr=19.5,3.75;5,3.75;5,14.5~2&amp;emp=fe:15,7.4,270_fa:0.1,10,0_ex:20,3.75,180_ex:5,15,270"><img src="img/emergency_plan.svg" alt="L-shaped office plan with an escape route around the corner, emergency luminaires, a fire extinguisher, first aid and two exits" loading="lazy"></a><figcaption data-i18n="em_cap">{t("em_cap")}</figcaption></figure>
+      <figure><a href="app/#interior?preset=0&amp;sample=demo-led-3000k&amp;sensor=none&amp;shape=0,0;1,0;1,0.5;0.5,0.5;0.5,1;0,1&amp;em=1&amp;eml=route&amp;emstd=en1838&amp;emr=19.5,3.75;5,3.75;5,14.5~2&amp;emp=fe:15,7.4,270_fa:0.1,10,0_ex:20,3.75,180_ex:5,15,270"><img src="img/emergency_plan.svg" alt="L-shaped office plan with an escape route around the corner, emergency luminaires, a fire extinguisher, first aid and two exits" loading="lazy"></a><figcaption data-i18n="em_cap">{t("em_cap")}</figcaption></figure>
       <div>
         <div class="how">
           <div><b data-i18n="em_1">{t("em_1")}</b><span data-i18n="em_1s">{t("em_1s")}</span></div>
@@ -453,7 +535,7 @@ page = f'''<!doctype html>
           <div><b data-i18n="em_3">{t("em_3")}</b><span data-i18n="em_3s">{t("em_3s")}</span></div>
           <div><b data-i18n="em_4">{t("em_4")}</b><span data-i18n="em_4s">{t("em_4s")}</span></div>
         </div>
-        <p style="margin:16px 0 0"><a class="btn primary" href="app/#interior?preset=0&amp;sample=demo-led-3000k&amp;sensor=none&amp;shape=0,0;1,0;1,0.5;0.5,0.5;0.5,1;0,1&amp;em=1&amp;eml=route&amp;emr=19.5,3.75;5,3.75;5,14.5~2&amp;emp=fe:15,7.4,270_fa:0.1,10,0_ex:20,3.75,180_ex:5,15,270" data-i18n="em_link">{t("em_link")}</a> <a class="btn" href="app/#interior?preset=2&amp;sample=demo-led-3000k&amp;sensor=none&amp;em=1" data-i18n="em_link2">{t("em_link2")}</a></p>
+        <p style="margin:16px 0 0"><a class="btn primary" href="app/#interior?preset=0&amp;sample=demo-led-3000k&amp;sensor=none&amp;shape=0,0;1,0;1,0.5;0.5,0.5;0.5,1;0,1&amp;em=1&amp;eml=route&amp;emstd=en1838&amp;emr=19.5,3.75;5,3.75;5,14.5~2&amp;emp=fe:15,7.4,270_fa:0.1,10,0_ex:20,3.75,180_ex:5,15,270" data-i18n="em_link">{t("em_link")}</a> <a class="btn" href="app/#interior?preset=2&amp;sample=demo-led-3000k&amp;sensor=none&amp;em=1" data-i18n="em_link2">{t("em_link2")}</a></p>
         <p class="sub" style="margin-top:14px" data-i18n="em_note">{t("em_note")}</p>
       </div>
     </div>

@@ -11,7 +11,9 @@
 //! volume the footprint on the ground (`SensorFile::area_at`, plane 0 m,
 //! as the planning tools cut the walking plane) decides. Lamps run at full
 //! output while their sensor detects something, else at
-//! `SensorControl::idle_level`.
+//! `SensorControl::idle_level`; with `SensorControl::dims` off the sensors
+//! only detect and every lamp stays at full output (a plan from a designer
+//! arrives so, to show the designed lighting).
 
 use eulumdat::sensor::{DetectionArea, DetectionVolume, Motion};
 use glam::{Vec2, Vec3};
@@ -52,6 +54,9 @@ pub struct SensorControl {
     pub idle_level: f32,
     /// Motion type the detection area is taken for.
     pub motion: Motion,
+    /// The sensors switch the lamps; off = they only detect, every lamp
+    /// at full output.
+    pub dims: bool,
 }
 
 impl Default for SensorControl {
@@ -60,6 +65,7 @@ impl Default for SensorControl {
             mode: ControlMode::Together,
             idle_level: 0.1,
             motion: Motion::Tangential,
+            dims: true,
         }
     }
 }
@@ -177,7 +183,7 @@ pub fn evaluate(
         })
         .collect();
     let idle = control.idle_level.clamp(0.0, 1.0);
-    let lamp_level = if sensors.is_empty() {
+    let lamp_level = if sensors.is_empty() || !control.dims {
         vec![1.0; scene.lamps.len()]
     } else {
         match control.mode {
@@ -257,6 +263,14 @@ mod tests {
         let s = evaluate(&build_scene(&p), Some(&area), None, &control);
         assert!(!s.any());
         assert_eq!(s.lamp_level, vec![0.1; 3]);
+        // sensors that only detect (a plan from a designer): full output
+        let only_detect = SensorControl {
+            dims: false,
+            ..control
+        };
+        let s = evaluate(&build_scene(&p), Some(&area), None, &only_detect);
+        assert!(!s.any());
+        assert_eq!(s.lamp_level, vec![1.0; 3]);
 
         // the person moves under the sensor
         p.moves = vec![(ObjectId::Person, Vec2::new(p.sensors[0].x, p.sensors[0].z))];

@@ -438,6 +438,11 @@ pub struct Receiver {
 /// Grid names of a planned scene in emergency mode (grids of one name are
 /// evaluated together).
 pub const GRID_ROUTE: &str = "escape route";
+/// The central band's edges (a quarter of the width off the centre line).
+pub const GRID_ROUTE_BAND: &str = "escape route band";
+/// Stairs / refuge routes (China), centre line and band edges.
+pub const GRID_STAIRS: &str = "stairs / refuge";
+pub const GRID_STAIRS_BAND: &str = "stairs / refuge band";
 pub const GRID_OPEN_AREA: &str = "open area (floor)";
 pub const GRID_EMPHASIS: &str = "point of emphasis (vertical)";
 
@@ -656,11 +661,72 @@ pub struct PlanPhotometry {
 pub struct PlanEmergency {
     /// Escape routes: centre line and width.
     pub routes: Vec<(Vec<Vec2>, f32)>,
+    /// Per route: stairs / front room / refuge (China: its own, higher
+    /// minimum; measured as its own grids).
+    #[serde(default)]
+    pub route_stairs: Vec<bool>,
+    /// The standard and what it requires, for the check in the scene.
+    #[serde(default)]
+    pub standard: EmStandard,
     /// The open (anti-panic) area, if the room is one.
     pub open_area: Option<Vec<Vec2>>,
     /// Points of emphasis: position, height, facing (deg, from +x towards
     /// +z), symbol.
     pub points: Vec<PlanPoint>,
+}
+
+/// What the plan's standard requires (lx; a minimum, average or ratio of 0
+/// = no such rule). Default = EN 1838.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+pub struct EmStandard {
+    pub name: String,
+    /// Routes: centre line, band (`route_band_share` of the width), Emax /
+    /// Emin on the centre line (or over the band when `ratio_over_band`),
+    /// average over the band.
+    pub route_centre_lx: f32,
+    pub route_band_lx: f32,
+    pub route_ratio: f32,
+    pub route_avg_lx: f32,
+    pub route_band_share: f32,
+    /// The strip left out along each side is at most this wide (EN
+    /// 1838:2024: 0.5 m; 0 = no cap).
+    pub route_edge_max_m: f32,
+    pub ratio_over_band: bool,
+    /// The open area / room: average.
+    pub area_avg_lx: f32,
+    /// Stairs / refuge routes (China): over the central band.
+    pub stairs_lx: f32,
+    /// The open area / room: floor minimum, Emax / Emin, border left out.
+    pub area_lx: f32,
+    pub area_ratio: f32,
+    pub area_border_m: f32,
+    /// Vertical illuminance at equipment.
+    pub vertical_lx: f32,
+    /// Top of the false colours in emergency mode.
+    pub lux_max: f32,
+}
+
+impl Default for EmStandard {
+    fn default() -> Self {
+        Self {
+            name: "EN 1838:2013".into(),
+            route_centre_lx: 1.0,
+            route_band_lx: 0.5,
+            route_ratio: 40.0,
+            route_avg_lx: 0.0,
+            route_band_share: 0.5,
+            route_edge_max_m: 0.0,
+            ratio_over_band: false,
+            area_avg_lx: 0.0,
+            stairs_lx: 0.0,
+            area_lx: 0.5,
+            area_ratio: 40.0,
+            area_border_m: 0.5,
+            vertical_lx: 5.0,
+            lux_max: 5.0,
+        }
+    }
 }
 
 /// A point of emphasis (fire equipment, first aid, exit …) on a plan.
@@ -989,13 +1055,21 @@ fn build_planned(p: &SceneParams, plan: &ScenePlan) -> BuiltScene {
                 0.09,
                 mat::METAL,
             ));
-            boxes.push(cylinder(
+            // a luminaire on its own pole (no arm) sits on the shaft: the
+            // shaft ends under it and does not shade its light (it used to
+            // run through the luminaire and took ~20 % of the light off the
+            // ground; the planners ignore poles, a real spigot enters from
+            // the side)
+            let post_top = (lamp_xz - foot).length() <= 0.05;
+            let mut shaft = cylinder(
                 v3(foot.x, y * 0.45, foot.y),
-                v3(foot.x, y + 0.25, foot.y),
+                v3(foot.x, if post_top { y - 0.03 } else { y + 0.25 }, foot.y),
                 0.065,
                 mat::METAL,
-            ));
-            if (lamp_xz - foot).length() > 0.05 {
+            );
+            shaft.casts_shadow = !post_top;
+            boxes.push(shaft);
+            if !post_top {
                 let mut arm = cylinder(
                     v3(foot.x, y + 0.16, foot.y),
                     v3(lamp_xz.x, y + 0.16, lamp_xz.y),
@@ -1053,7 +1127,13 @@ fn build_planned(p: &SceneParams, plan: &ScenePlan) -> BuiltScene {
         // EN 1838 measures on the floor: points every 0.5 m along each
         // route's centre line, and the open area
         grids.clear();
-        for (path, _) in &em.routes {
+        for (ri, (path, width)) in em.routes.iter().enumerate() {
+            let stairs = em.route_stairs.get(ri).copied().unwrap_or(false);
+            let (centre_name, band_name) = if stairs {
+                (GRID_STAIRS, GRID_STAIRS_BAND)
+            } else {
+                (GRID_ROUTE, GRID_ROUTE_BAND)
+            };
             for w in path.windows(2) {
                 let a = v3(w[0].x, 0.02, w[0].y);
                 let u = v3(w[1].x, 0.02, w[1].y) - a;
@@ -1061,15 +1141,27 @@ fn build_planned(p: &SceneParams, plan: &ScenePlan) -> BuiltScene {
                 if len < 0.1 {
                     continue;
                 }
-                let side = Vec3::new(-u.z, 0.0, u.x) / len * 0.02;
-                grids.push(MeasureGrid {
-                    name: GRID_ROUTE,
-                    receiver: receiver(a - side * 0.5, u, side, Vec3::Y),
-                    nu: ((len / 0.5).ceil() as usize).clamp(1, MAX_GRID_AXIS),
-                    nv: 1,
-                    outline: None,
-                    border: 0.0,
-                });
+                let n = Vec3::new(-u.z, 0.0, u.x) / len;
+                let side = n * 0.02;
+                // the centre line, and the band's edges (EN 1838: the
+                // central half, a quarter of the width to each side)
+                let st = &em.standard;
+                let mut edge = width * (1.0 - st.route_band_share.clamp(0.0, 1.0)) / 2.0;
+                if st.route_edge_max_m > 0.0 {
+                    edge = edge.min(st.route_edge_max_m);
+                }
+                let q = ((width / 2.0 - edge) / width.max(1e-3)).max(0.0);
+                for (off, name) in [(0.0, centre_name), (q, band_name), (-q, band_name)] {
+                    let o = a + n * (off * width);
+                    grids.push(MeasureGrid {
+                        name,
+                        receiver: receiver(o - side * 0.5, u, side, Vec3::Y),
+                        nu: ((len / 0.5).ceil() as usize).clamp(1, MAX_GRID_AXIS),
+                        nv: 1,
+                        outline: None,
+                        border: 0.0,
+                    });
+                }
             }
         }
         if let Some(area) = em.open_area.as_ref() {
@@ -1087,7 +1179,7 @@ fn build_planned(p: &SceneParams, plan: &ScenePlan) -> BuiltScene {
                 nv: n(size.y),
                 receiver: floor,
                 outline: Some(area.clone()),
-                border: 0.5,
+                border: em.standard.area_border_m.max(0.0),
             });
         }
         // vertical illuminance at the equipment, 5 cm in front of it

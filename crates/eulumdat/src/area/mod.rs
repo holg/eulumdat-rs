@@ -7,6 +7,7 @@ mod compute;
 pub mod layout;
 mod optimize;
 mod polygon;
+pub mod sitemap;
 mod svg;
 
 pub(crate) use compute::compute_illuminance_at_point;
@@ -17,4 +18,5 @@ pub use compute::{
 pub use layout::{ArrangementType, GridPreset, PoleConfig};
 pub use optimize::{optimize_spacing, OptimizationCriteria, OptimizationRow};
 pub use polygon::AreaPolygon;
+pub use sitemap::{SiteMap, TileStyle};
 pub use svg::{AreaSvg, ContourOverlay};

@@ -54,7 +54,6 @@ use super::isocandela_diagram::IsocandelaDiagramView;
 use super::isolux_footprint::IsoluxFootprint;
 use super::isolux_isometric::IsoluxIsometric;
 use super::lcs_classification::LcsClassification;
-use super::maps_designer::MapsDesigner;
 use super::polar_diagram::PolarDiagram;
 use super::rt_scene::RtSceneViewer;
 use super::sensor_view::{
@@ -194,7 +193,6 @@ pub enum MainTab {
     Scene3D,
     AreaDesigner,
     ZonalDesigner,
-    MapsDesigner,
     GonioSim,
     SpectrumDemo,
     DaylightSky,
@@ -240,8 +238,6 @@ pub enum Tab {
     AreaDesignerTab,
     // Zonal Designer group (single tab, no sub-tabs)
     ZonalDesignerTab,
-    // Maps Designer group (single tab, no sub-tabs)
-    MapsDesignerTab,
     // GonioSim group (single tab, no sub-tabs)
     GonioSimTab,
     // Spectrum Lab group (single tab, no sub-tabs)
@@ -275,7 +271,6 @@ impl Tab {
             Tab::Scene3DTab | Tab::SceneRtTab => MainTab::Scene3D,
             Tab::AreaDesignerTab => MainTab::AreaDesigner,
             Tab::ZonalDesignerTab => MainTab::ZonalDesigner,
-            Tab::MapsDesignerTab => MainTab::MapsDesigner,
             Tab::GonioSimTab => MainTab::GonioSim,
             Tab::SpectrumDemoTab => MainTab::SpectrumDemo,
             Tab::DaylightSkyTab => MainTab::DaylightSky,
@@ -297,7 +292,6 @@ impl Tab {
             MainTab::Scene3D => Tab::SceneRtTab,
             MainTab::AreaDesigner => Tab::AreaDesignerTab,
             MainTab::ZonalDesigner => Tab::ZonalDesignerTab,
-            MainTab::MapsDesigner => Tab::MapsDesignerTab,
             MainTab::GonioSim => Tab::GonioSimTab,
             MainTab::SpectrumDemo => Tab::SpectrumDemoTab,
             MainTab::DaylightSky => Tab::DaylightSkyTab,
@@ -333,7 +327,6 @@ impl Tab {
             MainTab::Scene3D => &[Tab::SceneRtTab, Tab::Scene3DTab],
             MainTab::AreaDesigner => &[Tab::AreaDesignerTab],
             MainTab::ZonalDesigner => &[Tab::ZonalDesignerTab],
-            MainTab::MapsDesigner => &[Tab::MapsDesignerTab],
             MainTab::GonioSim => &[Tab::GonioSimTab],
             MainTab::SpectrumDemo => &[Tab::SpectrumDemoTab],
             MainTab::DaylightSky => &[Tab::DaylightSkyTab],
@@ -874,19 +867,22 @@ pub fn App() -> impl IntoView {
         }
     });
 
-    let (view_mode, set_view_mode) = signal(ViewMode::default());
-    let (current_file, set_current_file) = signal::<Option<String>>(None);
-    // If URL hash starts with #designer, open the designer tab directly
-    let initial_tab = web_sys::window()
+    // An Outdoor designer share link (`#designer?…`) opens that designer
+    // (in the editor, not on the dashboard)
+    let designer_link = web_sys::window()
         .and_then(|w| w.location().hash().ok())
-        .map(|h| {
-            if h.starts_with("#designer") {
-                Tab::AreaDesignerTab
-            } else {
-                Tab::default()
-            }
-        })
-        .unwrap_or_default();
+        .is_some_and(|h| h.starts_with("#designer"));
+    let (view_mode, set_view_mode) = signal(if designer_link {
+        ViewMode::Editor
+    } else {
+        ViewMode::default()
+    });
+    let (current_file, set_current_file) = signal::<Option<String>>(None);
+    let initial_tab = if designer_link {
+        Tab::AreaDesignerTab
+    } else {
+        Tab::default()
+    };
     let (active_tab, set_active_tab) = signal(initial_tab);
     let (selected_lamp_set, set_selected_lamp_set) = signal(0_usize);
     let (templates_loading, set_templates_loading) = signal(false);
@@ -1454,7 +1450,11 @@ pub fn App() -> impl IntoView {
             "bim" | "export" => Some(Tab::BimTab),
             "area" => Some(Tab::AreaDesignerTab),
             "interior" => Some(Tab::ZonalDesignerTab),
-            "maps" => Some(Tab::MapsDesignerTab),
+            // the map designer: the Outdoor designer on its site map
+            "maps" => {
+                super::site_map::request_site_map();
+                Some(Tab::AreaDesignerTab)
+            }
             "street" => Some(Tab::StreetDesignTab),
             "goniosim" => Some(Tab::GonioSimTab),
             "daylight" => Some(Tab::DaylightSkyTab),
@@ -1931,7 +1931,6 @@ pub fn App() -> impl IntoView {
             | Tab::SceneRtTab
             | Tab::AreaDesignerTab
             | Tab::ZonalDesignerTab
-            | Tab::MapsDesignerTab
             | Tab::GonioSimTab
             | Tab::SpectrumDemoTab
             | Tab::DaylightSkyTab
@@ -2613,7 +2612,10 @@ pub fn App() -> impl IntoView {
                                     Feature::Scene3D => Tab::Scene3DTab,
                                     Feature::Area => Tab::AreaDesignerTab,
                                     Feature::Interior => Tab::ZonalDesignerTab,
-                                    Feature::Maps => Tab::MapsDesignerTab,
+                                    Feature::Maps => {
+                                        super::site_map::request_site_map();
+                                        Tab::AreaDesignerTab
+                                    }
                                     Feature::Street => Tab::StreetDesignTab,
                                     Feature::Spectral | Feature::Digitizer => Tab::Spectral,
                                     // The card needs a spectrum: without one, open the demo LED.
@@ -2800,15 +2802,6 @@ pub fn App() -> impl IntoView {
                             >
                                 {move || format!("🏢 {}", locale.get().ui.tabs.zonal_designer)}
                             </button>
-                            // Maps Designer - only shown on secret URL (requires Google Maps API key)
-                            {move || export_enabled.then(|| view! {
-                                <button
-                                    class=move || format!("tab{}", if active_main_tab.get() == MainTab::MapsDesigner { " active" } else { "" })
-                                    on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::MapsDesigner))
-                                >
-                                    {move || format!("🗺️ {}", locale.get().ui.tabs.maps_designer)}
-                                </button>
-                            })}
                             <button
                                 class=move || format!("tab{}", if active_main_tab.get() == MainTab::GonioSim { " active" } else { "" })
                                 on:click=move |_| set_active_tab.set(Tab::default_for_main(MainTab::GonioSim))
@@ -2868,7 +2861,6 @@ pub fn App() -> impl IntoView {
                                                 Tab::SceneRtTab => locale.get().ui.tabs.scene_rt.clone(),
                                                 Tab::AreaDesignerTab => locale.get().ui.tabs.area_designer.clone(),
                                                 Tab::ZonalDesignerTab => locale.get().ui.tabs.zonal_designer.clone(),
-                                                Tab::MapsDesignerTab => locale.get().ui.tabs.maps_designer.clone(),
                                                 Tab::GonioSimTab => locale.get().goniosim.title.clone(),
                                                 Tab::SpectrumDemoTab => locale.get().spectrum_lab.title.clone(),
                                                 Tab::DaylightSkyTab => locale.get().spectrum_lab.sky_tab_title.clone(),
@@ -3270,16 +3262,6 @@ pub fn App() -> impl IntoView {
                                             <span class="diagram-title">{move || locale.get().ui.tabs.zonal_designer.clone()}</span>
                                         </div>
                                         <ZonalDesigner ldc=ldc />
-                                    </div>
-                                }.into_any(),
-                                Tab::MapsDesignerTab => view! {
-                                    <div class="maps-designer-tab">
-                                        <div class="diagram-header">
-                                            <span class="diagram-title">{move || locale.get().ui.tabs.maps_designer.clone()}</span>
-                                        </div>
-                                        <div class="maps-container" style="height: 600px; position: relative;">
-                                            <MapsDesigner />
-                                        </div>
                                     </div>
                                 }.into_any(),
                                 Tab::GonioSimTab => view! {

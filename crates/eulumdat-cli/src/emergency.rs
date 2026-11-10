@@ -1,4 +1,6 @@
-//! `eulumdat emergency`: EN 1838 spacing tables and plan checks.
+//! `eulumdat emergency`: spacing tables and plan checks against one of the
+//! emergency-lighting profiles of `eulumdat::emergency::Limits::all`
+//! (`--standard en1838 | gb55037 | …`, `--standard list` prints them).
 
 use anyhow::{bail, Context, Result};
 use eulumdat::emergency::{
@@ -19,13 +21,30 @@ pub struct Args {
     pub variant: Option<String>,
     pub duration: Option<u32>,
     pub plan: Option<PathBuf>,
+    pub standard: String,
+    pub end_output: f64,
     pub json: bool,
 }
 
 pub fn run(a: Args) -> Result<()> {
-    let limits = Limits::en1838();
+    if a.standard.eq_ignore_ascii_case("list") {
+        for l in Limits::all() {
+            println!("{:<12} {} — {}", l.id, l.name, l.region);
+            println!("{:<12} {}", "", l.clauses);
+        }
+        return Ok(());
+    }
+    let Some(limits) = Limits::by_id(&a.standard) else {
+        let ids: Vec<String> = Limits::all().into_iter().map(|l| l.id).collect();
+        bail!(
+            "unknown standard {:?}: one of {} (or `--standard list`)",
+            a.standard,
+            ids.join(", ")
+        );
+    };
     let settings = Settings {
         maintenance_factor: a.mf,
+        end_output_share: (a.end_output / 100.0).clamp(0.01, 1.0),
         ..Default::default()
     };
     if let Some(plan) = &a.plan {
@@ -45,7 +64,8 @@ pub fn run(a: Args) -> Result<()> {
         return Ok(());
     }
     println!(
-        "Emergency lighting (EN 1838): {}, {} lm in emergency mode{}, maintenance factor {}",
+        "Emergency lighting ({}): {}, {} lm in emergency mode{}, maintenance factor {}",
+        limits.name,
         display_name(&ldt, file),
         fmt(flux, 0),
         if a.flux.is_none() {
@@ -55,7 +75,7 @@ pub fn run(a: Args) -> Result<()> {
         },
         a.mf
     );
-    print_table(&rows);
+    print_table(&rows, &limits);
     Ok(())
 }
 
@@ -96,15 +116,42 @@ fn fmt(v: f64, decimals: usize) -> String {
     format!("{v:.decimals$}")
 }
 
-fn print_table(rows: &[SpacingRow]) {
+fn print_table(rows: &[SpacingRow], l: &Limits) {
+    use emergency::PlaceCategory as P;
     if let Some(r) = rows.first() {
+        let rl = l.route_limits(P::EscapeCorridor);
+        let route = if rl.avg_min_lx > 0.0 {
+            format!(
+                "avg {} / min {}",
+                rl.avg_min_lx,
+                rl.centre_min_lx.max(rl.band_min_lx)
+            )
+        } else {
+            format!("{}", rl.centre_min_lx.max(rl.band_min_lx))
+        };
+        let al = l.area_limits(P::CrowdedPlace);
+        let area = if al.avg_min_lx > 0.0 {
+            format!("avg {} / min {}", al.avg_min_lx, al.min_lx)
+        } else {
+            format!("{}", al.min_lx)
+        };
+        let (route, area) = if l.lux_informative {
+            (
+                format!("route: spacing rule, ≤ {} m", rl.max_spacing_m),
+                format!("area: ≤ {} × h", al.max_spacing_per_height),
+            )
+        } else {
+            (
+                format!(
+                    "route {} m wide, {route} lx: C0 / C90",
+                    fmt(r.route_width_m, 1)
+                ),
+                format!("open area {area} lx"),
+            )
+        };
         println!(
             "  {:>5}  {:>9}  {:>27}  {:>15}  {:>18}",
-            "h (m)",
-            "E below",
-            format!("route {} m wide, 1 lx: C0 / C90", fmt(r.route_width_m, 1)),
-            "open area 0.5 lx",
-            "I 60–90° / limit"
+            "h (m)", "E below", route, area, "I 60–90° / limit"
         );
     }
     for r in rows {
@@ -128,9 +175,15 @@ fn print_table(rows: &[SpacingRow]) {
             format!(
                 "{} / {}",
                 fmt(r.glare_i_max_cd, 1),
-                fmt(r.glare_limit_cd, 0)
+                if r.glare_limit_cd.is_finite() {
+                    fmt(r.glare_limit_cd, 0)
+                } else {
+                    "none".to_string()
+                }
             ),
-            if r.glare_i_max_cd <= r.glare_limit_cd {
+            if !r.glare_limit_cd.is_finite() {
+                " "
+            } else if r.glare_i_max_cd <= r.glare_limit_cd {
                 "✓"
             } else {
                 "✗"
@@ -322,9 +375,10 @@ fn run_gldf(file: &Path, a: &Args, limits: &Limits, settings: &Settings) -> Resu
                 l.ra.map(|r| format!(", Ra {} (≥ {} needed)", fmt(r, 0), fmt(limits.min_ra, 0)))
                     .unwrap_or_default()
             );
-            print_table(&emergency::spacing_table(
-                &ldt, flux, &a.heights, a.width, limits, settings,
-            ));
+            print_table(
+                &emergency::spacing_table(&ldt, flux, &a.heights, a.width, limits, settings),
+                limits,
+            );
         }
     }
     Ok(())
@@ -409,136 +463,102 @@ fn mark(ok: bool) -> &'static str {
     }
 }
 
-fn ratio(r: f64) -> String {
-    if r.is_finite() {
-        fmt(r, 1)
-    } else {
-        "∞".into()
-    }
-}
-
 fn print_report(r: &EmergencyReport, l: &Limits) {
+    use emergency::{CheckKind as K, Subject};
     println!(
-        "Emergency lighting check (EN 1838), direct light only, maintenance factor {}",
-        r.settings.maintenance_factor
+        "Emergency lighting check: {} ({}), direct light only, maintenance factor {}",
+        l.name, l.region, r.settings.maintenance_factor
     );
-    if !r.routes.is_empty() {
-        println!("\nEscape routes");
+    println!("  {}", l.clauses);
+    for n in &l.notes {
+        println!("  {n}");
     }
-    for x in &r.routes {
-        println!(
-            "  {} ({} m long): centre min {} lx (≥ {}) {}, band min {} lx (≥ {}) {}, Emax/Emin {} (≤ {}) {}{}",
-            x.name,
-            fmt(x.length_m, 1),
-            fmt(x.centre.min_lx, 2),
-            l.escape_route.centre_min_lx,
-            mark(x.pass_centre),
-            fmt(x.band.min_lx, 2),
-            l.escape_route.band_min_lx,
-            mark(x.pass_band),
-            ratio(x.centre.ratio),
-            l.escape_route.max_ratio,
-            mark(x.pass_ratio),
-            if x.too_wide {
-                "  (wider than 2 m: split into strips or treat as an open area)"
-            } else {
-                ""
-            }
-        );
-        if !x.pass_centre {
-            println!(
-                "    darkest point at ({}, {})",
-                fmt(x.centre.at_min.0, 1),
-                fmt(x.centre.at_min.1, 1)
-            );
+    let mut group = "";
+    // points without a rule of their own (exits …): where the light is,
+    // at the end of the points' group
+    let mut others_shown = false;
+    let others = |group: &mut &str| {
+        let mut lines = r
+            .points
+            .iter()
+            .filter(|p| p.vertical_lx.is_none())
+            .peekable();
+        if lines.peek().is_some() && *group != "Points of emphasis" {
+            println!("\nPoints of emphasis");
+            *group = "Points of emphasis";
         }
-    }
-    if !r.open_areas.is_empty() {
-        println!("\nOpen areas (anti-panic)");
-    }
-    for x in &r.open_areas {
-        println!(
-            "  {} ({} m²{}): min {} lx (≥ {}) {}, Emax/Emin {} (≤ {}) {}",
-            x.name,
-            fmt(x.area_m2, 1),
-            if x.required {
-                ""
-            } else {
-                ", ≤ 60 m²: not required"
-            },
-            fmt(x.stats.min_lx, 2),
-            x.required_lx,
-            mark(x.pass_min),
-            ratio(x.stats.ratio),
-            x.max_ratio,
-            mark(x.pass_ratio)
-        );
-    }
-    if !r.high_risk.is_empty() {
-        println!("\nHigh-risk task areas");
-    }
-    for x in &r.high_risk {
-        println!(
-            "  {}: min {} lx (≥ {}) {}, Emax/Emin {} (≤ {}) {}",
-            x.name,
-            fmt(x.stats.min_lx, 1),
-            fmt(x.required_lx, 1),
-            mark(x.pass_min),
-            ratio(x.stats.ratio),
-            x.max_ratio,
-            mark(x.pass_ratio)
-        );
-    }
-    if !r.points.is_empty() {
-        println!("\nPoints of emphasis");
-    }
-    for p in &r.points {
-        let near = p
-            .nearest_luminaire_m
-            .map(|d| format!("nearest luminaire {} m", fmt(d, 1)))
-            .unwrap_or_default();
-        match (p.vertical_lx, p.pass) {
-            (Some(e), Some(ok)) => println!(
-                "  {:?} at ({}, {}): vertical {} lx (≥ {}) {}{}, {near}",
-                p.kind,
+        for p in lines {
+            println!(
+                "  {} at ({}, {}): nearest luminaire {}",
+                p.kind.words(),
                 fmt(p.x, 1),
                 fmt(p.y, 1),
-                fmt(e, 2),
-                l.emphasis_min_vertical_lx,
-                mark(ok),
-                if p.assumed_facing {
-                    " (no facing given: best direction)"
-                } else {
-                    ""
-                }
-            ),
-            _ => println!(
-                "  {:?} at ({}, {}): {near}",
-                p.kind,
-                fmt(p.x, 1),
-                fmt(p.y, 1)
-            ),
+                p.nearest_luminaire_m
+                    .map(|d| format!("{} m", fmt(d, 1)))
+                    .unwrap_or_else(|| "–".into())
+            );
+        }
+    };
+    for c in &r.checks {
+        let g = match c.subject {
+            Subject::Route(_) => "Escape routes",
+            Subject::Area(_) if l.anti_panic.applies_above_m2 > 0.0 => "Open areas (anti-panic)",
+            Subject::Area(_) => "Rooms",
+            Subject::HighRisk(_) => "High-risk task areas",
+            Subject::Point(_) => "Points of emphasis",
+            Subject::Luminaires => "Luminaires",
+        };
+        if g == "Luminaires" && !others_shown {
+            others(&mut group);
+            others_shown = true;
+        }
+        if g != group {
+            println!("\n{g}");
+            group = g;
+        }
+        let [what, value, required] = r.describe(c, l);
+        let mark = match c.pass {
+            Some(ok) => mark(ok),
+            None => "",
+        };
+        println!("  {what}: {value} ({required}) {mark}");
+        let darkest = matches!(
+            c.kind,
+            K::CentreMin | K::BandMin | K::AreaMin | K::HighRiskMin | K::EndMin
+        );
+        if let (Some(false), true, Some(at)) = (c.pass, darkest, c.at) {
+            println!("    darkest point at ({}, {})", fmt(at.0, 1), fmt(at.1, 1));
+        }
+        if let (K::Vertical, Subject::Point(i)) = (c.kind, c.subject) {
+            if r.points.get(i).is_some_and(|p| p.assumed_facing) {
+                println!("    no facing given: the best of eight directions");
+            }
         }
     }
-    println!("\nDisability glare (60°–90°)");
-    for g in &r.glare {
-        println!(
-            "  luminaire {}: {} cd (≤ {}, {}{}) {}",
-            g.luminaire + 1,
-            fmt(g.i_max_cd, 1),
-            fmt(g.limit_cd, 0),
-            if g.high_risk {
-                "high-risk column"
-            } else {
-                "escape / anti-panic column"
-            },
-            if g.route_directions {
-                ", along the route"
-            } else {
-                ", all directions"
-            },
-            mark(g.pass)
-        );
+    if !others_shown {
+        others(&mut group);
+    }
+    if l.checks_glare() && !r.glare.is_empty() {
+        println!("\nDisability glare (60°–90°), per luminaire");
+        for g in &r.glare {
+            println!(
+                "  luminaire {}: {} cd (≤ {}, {}{}) {}",
+                g.luminaire + 1,
+                fmt(g.i_max_cd, 1),
+                fmt(g.limit_cd, 0),
+                if g.high_risk {
+                    "high-risk column"
+                } else {
+                    "escape / anti-panic column"
+                },
+                if g.route_directions {
+                    ", along the route"
+                } else {
+                    ", all directions"
+                },
+                mark(g.pass)
+            );
+        }
     }
     if !r.ra_below_limit.is_empty() {
         println!(
@@ -555,10 +575,14 @@ fn print_report(r: &EmergencyReport, l: &Limits) {
         );
     }
     println!(
-        "\nResult: {}  (response times {} s / {} s, high-risk {} s and the rated duration are not computed)",
-        if r.pass() { "PASS" } else { "FAIL" },
-        l.timing.half_s,
-        l.timing.full_s,
-        l.timing.high_risk_full_s
+        "\nResult: {}",
+        if !r.has_checks() {
+            "nothing to check"
+        } else if r.pass() {
+            "PASS"
+        } else {
+            "FAIL"
+        }
     );
+    println!("Not calculated: {}", l.not_calculated());
 }

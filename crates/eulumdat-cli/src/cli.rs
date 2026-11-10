@@ -409,9 +409,10 @@ pub enum Commands {
         output: Option<PathBuf>,
     },
 
-    /// EN 1838 emergency lighting: spacing table of an emergency luminaire
-    /// (.ldt / .ies at its emergency flux), the variants and emergency
-    /// emitters of a GLDF, or the check of a plan (--plan plan.json)
+    /// Emergency lighting (EN 1838, GB 55037 and other standards, see
+    /// --standard list): spacing table of an emergency luminaire (.ldt /
+    /// .ies at its emergency flux), the variants and emergency emitters of
+    /// a GLDF, or the check of a plan (--plan plan.json)
     Emergency {
         /// Luminaire (.ldt, .ies or .gldf); not needed with --plan
         file: Option<PathBuf>,
@@ -443,9 +444,20 @@ pub enum Commands {
         duration: Option<u32>,
 
         /// Check a plan: JSON with luminaires (file, flux_lm, x, y, height,
-        /// rotation, ra), routes, open_areas, high_risk, points
+        /// rotation, ra), routes, open_areas, high_risk, points (routes and
+        /// open areas may carry "place": corridor | stairs | crowded | other)
         #[arg(long)]
         plan: Option<PathBuf>,
+
+        /// Standard (profile id, e.g. en1838, gb55037 / cn); `list` prints
+        /// every profile with its region and clauses
+        #[arg(long, default_value = "en1838")]
+        standard: String,
+
+        /// Output at the end of the rated duration, % of the emergency flux
+        /// (standards with end-of-duration values)
+        #[arg(long, default_value_t = 100.0)]
+        end_output: f64,
 
         /// Print JSON
         #[arg(long)]

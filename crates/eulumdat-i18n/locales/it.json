@@ -434,7 +434,6 @@
       "bim": "BIM",
       "area_designer": "Esterni",
       "zonal_designer": "Interni",
-      "maps_designer": "Mappe",
       "beam_angle": "Angolo del fascio",
       "iso_view": "Vista ISO",
       "street_design": "🛣️ Illuminazione stradale"
@@ -814,6 +813,9 @@
       "reset_moves": "Rimetti a posto gli oggetti",
       "status_detected": "Rilevato: {what} · {on} di {n} apparecchi accesi",
       "status_idle": "Nulla rilevato · apparecchi al {pct} %",
+      "sensor_dim": "I sensori comandano gli apparecchi",
+      "sensor_dim_off_note": "Disattivato: i sensori rilevano soltanto, gli apparecchi restano a piena potenza (come nel progettista). Attivalo e sposta la persona o un'auto per provare il controllo.",
+      "status_dim_off": "Controllo dei sensori disattivato · apparecchi a piena potenza",
       "status_person": "persona",
       "status_cars": "{n} auto",
       "status_no_area": "Questo sensore non rileva nulla a {h} m.",
@@ -841,9 +843,9 @@
       "scene_saved": "Salvata in «{project}»; le modifiche vengono salvate automaticamente.",
       "scene_unsaved": "Conservata in questo browser; salvala per inserirla nel file di progetto.",
       "sensor_volume_3d": "Mostra il volume di rilevamento in 3D",
-      "em_title": "🚨 Illuminazione di emergenza (EN 1838)",
+      "em_title": "🚨 Illuminazione di emergenza",
       "em_mode": "Modalità emergenza (mancanza rete)",
-      "em_mode_desc": "Illuminazione ordinaria spenta, apparecchi di emergenza accesi con il loro flusso di emergenza × fattore di manutenzione. L’immagine parte buia, come al momento del guasto, e si adatta come un occhio; i punti contano solo la luce diretta, come la EN 1838; falsi colori 0–5 lx.",
+      "em_mode_desc": "Illuminazione ordinaria spenta, apparecchi di emergenza accesi con il loro flusso di emergenza × fattore di manutenzione. L’immagine parte buia, come al momento del guasto, e si adatta come un occhio; i punti contano solo la luce diretta, come le norme sull’illuminazione di emergenza.",
       "em_marks": "Mostra i segni del progetto (via di esodo, area antipanico, dispositivi)",
       "em_marks_off": "Come lo vede chi sta fuggendo: senza segni.",
       "em_walk": "Percorri la via all’altezza degli occhi (1,6 m)",
@@ -857,13 +859,33 @@
       "em_check_points": "Dispositivi (verticale)",
       "em_check_min": "Emin {v} lx (≥ {req})",
       "em_check_ratio": "Emax / Emin {v} (≤ {req})",
-      "em_check_note": "Verifica nella scena luminosa: luce diretta, punti ogni 0,5 m. Il riferimento sono i risultati EN 1838 del progettista illuminazione interna.",
+      "em_check_note": "Verifica nella scena luminosa: luce diretta, punti ogni 0,5 m. Il riferimento sono i risultati del progettista illuminazione interna.",
       "em_off_hint": "Attivi la modalità emergenza per misurare la via.",
       "em_measure": "📍 Misura (vista Griglia)",
       "em_adapting": "👁 Gli occhi si abituano al buio… {pct} %",
       "em_adapted": "👁 Adattato: {stops} stop più chiaro rispetto al guasto. Volutamente sotto l’adattamento completo, così la luce di emergenza resta più tenue di quella ordinaria.",
       "em_replay": "⚡ Ripeti il guasto",
-      "back_to_designer": "✏️ Torna al {from}"
+      "back_to_designer": "✏️ Torna al {from}",
+      "em_check_band": "Via di esodo (metà centrale)",
+      "em_check_stairs": "Scala / rifugio (metà centrale)",
+      "em_check_room": "Locale (tutto il pavimento)",
+      "em_check_avg": "Emed {v} lx (≥ {req})",
+      "moon_title": "☀️🌙 Sole e luna",
+      "moon_on": "Luce diurna e luce lunare",
+      "moon_desc": "Luce naturale per una data, un'ora e un luogo a cielo sereno: di giorno il sole con le sue ombre e il cielo diurno, al crepuscolo il cielo crepuscolare, di notte la luna e le stelle; nell'immagine e nei valori in lux. Le norme non la contano, la modalità di emergenza la esclude.",
+      "moon_date": "Data",
+      "moon_time": "Ora locale",
+      "moon_full": "→ Prossima luna piena",
+      "moon_place": "Luogo: {place}",
+      "moon_pick": "🌍 Scegli sul globo",
+      "moon_north": "Nord nella scena",
+      "moon_lamps_off": "Apparecchi spenti (solo luce naturale)",
+      "moon_readout": "{phase} {pct} % · {alt}° di altezza · {lx} lx in terreno aperto (fascio {beam} lx, cielo {sky} lx)",
+      "moon_below": "A quest'ora la luna è sotto l'orizzonte.",
+      "moon_indoor": "La luna illumina le scene esterne.",
+      "sun_readout": "☀️ Sole a {alt}° · {lx} lx in terreno aperto (fascio {beam} lx, cielo {sky} lx)",
+      "twilight_readout": "🌆 Crepuscolo (sole a {alt}°) · {lx} lx in terreno aperto",
+      "night_readout": "✨ Luce delle stelle · {lx} lx"
     },
     "sensor": {
       "tab": "Sensori",
@@ -1274,7 +1296,30 @@
     "export_plan_svg": "Esporta SVG pianta",
     "export_room_svg": "Esporta SVG stanza",
     "export_3d_svg": "Esporta SVG 3D",
-    "export_optimizer": "Esporta ottimizzatore"
+    "export_optimizer": "Esporta ottimizzatore",
+    "moon": {
+      "desc": "Luce naturale su terreno aperto a cielo sereno alla data e all'ora scelte (il sole di giorno, il cielo crepuscolare al crepuscolo, la luna di notte), uguale ovunque. Gli illuminamenti restano quelli degli apparecchi (le norme non contano la luce naturale); è indicata accanto.",
+      "with_moon": "Con la luce naturale di quel momento (+{lx} lx)",
+      "dim": "Per mantenere il minimo di {target} lx (obiettivo dell'ottimizzatore), stanotte gli apparecchi potrebbero funzionare al {pct} %.",
+      "dim_none": "Gli apparecchi da soli restano sotto il minimo di {target} lx; la luce naturale aggiunge {lx} lx.",
+      "alone": "La luce naturale da sola dà il {pct} % del minimo di {target} lx.",
+      "not_needed": "In quel momento gli apparecchi non servono: la luce naturale da sola dà {lx} lx (minimo {target} lx)."
+    },
+    "sitemap": {
+      "title": "🗺 Mappa del sito",
+      "show": "Mostra la mappa OpenStreetMap sotto la planimetria",
+      "desc": "Trova il sito sul globo (ingrandisci finché si vedono strade ed edifici, poi «Usa questo luogo»), disegna l'area sulla mappa e posiziona i pali. Il nord è in alto; il sito è il centro dell'area.",
+      "pick": "🌍 Trova il sito sul globo",
+      "site": "Sito: {place}",
+      "lat": "Latitudine",
+      "lon": "Longitudine",
+      "opacity": "Opacità della mappa",
+      "move_map": "✋ Sposta la mappa",
+      "move_hint": "Trascina sulla planimetria per spostare la mappa sotto l'area.",
+      "done": "Fatto",
+      "no_site": "Nessun sito: trovalo sul globo o inserisci le coordinate.",
+      "style": "Stile della mappa"
+    }
   },
   "zonal_designer": {
     "title": "Progettista illuminazione interna",
@@ -1423,7 +1468,7 @@
       "outline_area": "Contorno del locale: {a} m² di pavimento, {p} m di pareti"
     },
     "emergency": {
-      "title": "Illuminazione di emergenza (EN 1838)",
+      "title": "Illuminazione di emergenza",
       "intro": "Vie di esodo, aree antipanico e dispositivi di sicurezza, illuminati dai soli apparecchi di emergenza: luce diretta, flusso di emergenza, fattore di manutenzione.",
       "enable": "Progettare l'illuminazione di emergenza",
       "luminaire": "Apparecchio di emergenza",
@@ -1446,7 +1491,7 @@
       "route_item": "Via {n}: {len} m, larga {w} m",
       "remove": "Rimuovi",
       "open_area": "Locale come area antipanico",
-      "open_area_hint": "Obbligatoria oltre 60 m²; il locale ha {a} m².",
+      "open_area_hint": "Obbligatoria oltre {limit} m²; il locale ha {a} m².",
       "points": "Punti da evidenziare",
       "place": "Posiziona sul piano:",
       "point_hint": "Clicchi sul piano accanto alla parete dove si trova il dispositivo (guarda verso il locale).",
@@ -1457,7 +1502,7 @@
       "kind_sign": "Segnale illuminato dall'esterno",
       "kind_exit": "Uscita",
       "point_item": "{kind} in ({x}, {y})",
-      "results_title": "Illuminazione di emergenza (EN 1838)",
+      "results_title": "Illuminazione di emergenza",
       "pass": "✓ Tutti i requisiti soddisfatti",
       "fail": "✗ Non tutti i requisiti sono soddisfatti",
       "count": "{n} apparecchi di emergenza, {lm} lm ciascuno, a {h} m",
@@ -1467,9 +1512,6 @@
       "route_centre": "{name}: linea centrale min",
       "route_band": "{name}: banda centrale min",
       "route_ratio": "{name}: Emax / Emin",
-      "open_min": "Area antipanico min",
-      "open_ratio": "Area antipanico Emax / Emin",
-      "not_required": "non richiesta (≤ 60 m²)",
       "point_vertical": "{kind}: verticale",
       "glare": "Abbagliamento 60°–90° (massimo)",
       "ra": "Resa cromatica Ra",
@@ -1480,7 +1522,118 @@
       "view_normal": "💡 Illuminazione ordinaria",
       "view_emergency": "🚨 Modalità emergenza",
       "floor_legend": "Pavimento in emergenza: luce diretta degli apparecchi di emergenza, fattore di manutenzione {mf}; min {min} lx, max {max} lx.",
-      "lum_off": "○ illuminazione ordinaria, spenta"
+      "lum_off": "○ illuminazione ordinaria, spenta",
+      "standard": "Norma",
+      "place_corridor": "Corridoio di esodo",
+      "place_stairs": "Scala, filtro, rifugio",
+      "place_crowded": "Luogo affollato",
+      "place_other": "Altro luogo",
+      "room_place": "Il locale è",
+      "no_requirement": "nessun requisito",
+      "band_half": "metà centrale",
+      "band_full": "tutta la larghezza",
+      "band_pct": "{pct} % centrale",
+      "route_name": "Percorso {n}",
+      "route_band_min": "{name}: pavimento min ({band})",
+      "route_avg": "{name}: media ({band})",
+      "route_ratio_band": "{name}: Emax / Emin ({band})",
+      "route_width": "{name}: larghezza",
+      "route_width_req": "≤ {w} m: dividere in fasce o verificare come area aperta",
+      "room_place_name": "Locale ({place})",
+      "open_name": "Area aperta",
+      "room_name": "Locale",
+      "area_min_of": "{name}: pavimento min",
+      "area_avg_of": "{name}: media",
+      "area_ratio_of": "{name}: Emax / Emin",
+      "end_avg": "{name}: media dopo {h} h (flusso {pct} %)",
+      "end_min": "{name}: min dopo {h} h (flusso {pct} %)",
+      "not_required_above": "non richiesta (≤ {a} m²)",
+      "end_output": "Flusso a fine autonomia (%)",
+      "end_output_hint": "{std} ammette valori più bassi dopo {h} h: media {avg} lx, minimo {min} lx. Inserisci il flusso che gli apparecchi danno ancora; quelli LED a flusso costante restano al 100 %.",
+      "room_floor_hint": "Verificato su tutto il pavimento; il locale ha {a} m².",
+      "report_pdf": "🚨 Relazione illuminazione di emergenza (PDF) · {std}",
+      "point_horizontal": "{kind}: orizzontale",
+      "exit_floor": "{name}: pavimento 0,5 m davanti",
+      "lum_flux_min": "Flusso di emergenza per apparecchio (minimo)",
+      "count_of": "{name}: numero di apparecchi",
+      "route_gap": "{name}: distanza massima tra apparecchi",
+      "area_flux": "{name}: flusso degli apparecchi per m²",
+      "area_spacing": "{name}: distanza dall'apparecchio più vicino ÷ altezza di montaggio",
+      "for_information": "a titolo informativo",
+      "kind_door_release": "Sblocco porta",
+      "kind_escape_plan": "Planimetria di evacuazione",
+      "kind_evac_aid": "Ausilio di evacuazione",
+      "group_europe": "Europa",
+      "group_americas": "Americhe",
+      "group_asia": "Asia e Pacifico",
+      "standards": {
+        "en1838": {
+          "label": "EN 1838:2013 (Europa)",
+          "note": "Vie di esodo larghe fino a 2 m: almeno 1 lx sulla linea centrale e 0,5 lx sulla metà centrale, Emax / Emin ≤ 40. Aree antipanico oltre 60 m²: 0,5 lx escluso un bordo di 0,5 m, ≤ 40. 5 lx verticali presso attrezzature antincendio, primo soccorso e pulsanti di allarme; limiti di abbagliamento; Ra ≥ 40. Valida fino al 18 giugno 2027."
+        },
+        "en1838-2024": {
+          "label": "EN 1838:2024 (Europa)",
+          "note": "Vie di esodo: almeno 1 lx sulla larghezza meno una fascia di min(W / 4; 0,5 m) su ogni lato (fino a 2 m: la metà centrale), Emax / Emin ≤ 40, almeno due apparecchi per via di esodo e per area antipanico. Aree antipanico oltre 60 m² come prima; 5 lx verticali anche presso sblocchi porta, planimetrie di evacuazione e ausili di evacuazione; limiti di abbagliamento; Ra ≥ 40."
+        },
+        "bs5266": {
+          "label": "BS 5266-1:2025 (Regno Unito)",
+          "note": "I valori della BS EN 1838:2024 (1 lx sulla via meno le fasce laterali, aree antipanico 0,5 lx, 5 lx presso i dispositivi). Autonomia 3 h per locali con pernottamento, locali di pubblico spettacolo, esodo per fasi o rioccupazione anticipata; 1 h solo con esodo immediato."
+        },
+        "cte-sua4": {
+          "label": "CTE DB SUA 4 / REBT (Spagna)",
+          "note": "Vie di esodo fino a 2 m: 1 lx sulla linea centrale, 0,5 lx sulla metà centrale, Emax / Emin ≤ 40. Dispositivi di sicurezza e quadri di distribuzione: 5 lx orizzontali. Antipanico (REBT ITC-BT-28): 0,5 lx in tutto lo spazio fino a 1 m di altezza, qualunque sia la superficie, senza bordo. Riflessione nulla, Ra ≥ 40, 1 h."
+        },
+        "fr-erp": {
+          "label": "ERP, arrêté du 25 juin 1980 (Francia)",
+          "note": "Nessun valore in lux: apparecchi di evacuazione distanti al massimo 15 m lungo i percorsi, almeno 45 lm ciascuno, almeno due sui percorsi oltre 15 m; illuminazione d'ambiente nei locali per 100 persone o più: 5 lm per m², apparecchi vicini distanti al massimo 4 altezze di montaggio, almeno due per locale. L'illuminamento è mostrato a titolo informativo."
+        },
+        "sp52": {
+          "label": "SP 52.13330.2016 (Russia)",
+          "note": "Vie di esodo fino a 2 m: 1 lx sulla linea centrale, 0,5 lx su metà della larghezza, Emin / Emax ≥ 1 : 40. 5 lx a pavimento davanti a ogni uscita, presso i dispositivi e le planimetrie di evacuazione. Antipanico oltre 60 m² (e 30 persone o più): 0,5 lx escluso un bordo di 0,5 m. Limiti di abbagliamento, Ra ≥ 40; 100 % entro 10 s, 1 h."
+        },
+        "nfpa101": {
+          "label": "NFPA 101 / IBC (Stati Uniti)",
+          "note": "Lungo la via di esodo a livello del pavimento: media di almeno 1 fc (10,8 lx), in ogni punto almeno 0,1 fc (1,1 lx), max / min ≤ 40, sulla larghezza della via e sul pavimento del locale. Dopo 1,5 h i valori possono scendere a 6,5 lx di media e 0,65 lx di minimo: inserire il flusso di quel momento. Segnali di uscita illuminati dall'esterno 5 fc (54 lx)."
+        },
+        "nbcc": {
+          "label": "NBC Canada 2020",
+          "note": "A livello del pavimento o della pedata: media di almeno 10 lx e minimo di 1 lx su uscite, corridoi comuni, percorsi principali e locali elencati; nessun rapporto di uniformità. Autonomia 30 min, 1 h (cura, trattamento, detenzione) o 2 h (edifici alti)."
+        },
+        "nbr10898": {
+          "label": "ABNT NBR 10898 (Brasile)",
+          "note": "Orizzontale a pavimento: almeno 3 lx nelle zone piane, 5 lx dove cambia il livello (scale, rampe, ostacoli), max / min ≤ 20 lungo la via. Autonomia di almeno 1 h.",
+          "places": {
+            "corridor": "Zona piana (corridoio, atrio, rifugio)",
+            "crowded": "Zona piana (locale)",
+            "stairs": "Dislivello (scala, rampa, ostacolo)"
+          }
+        },
+        "gb55037": {
+          "label": "GB 55037-2022 (Cina)",
+          "note": "Illuminamento orizzontale minimo a pavimento per luogo (GB 55037-2022 §10.1.10): scale, filtri e spazi rifugio 10 lx, corridoi di esodo e luoghi affollati 3 lx, altri luoghi 1 lx; vie sulla metà centrale della larghezza, locali su tutto il pavimento, nessun rapporto di uniformità. Durate e tempi di commutazione (GB 51309-2018) non calcolati."
+        },
+        "jp-bsl": {
+          "label": "Legge sugli standard edilizi (Giappone)",
+          "note": "Solo luce diretta: almeno 2 lx a pavimento in ogni punto del locale e dei suoi corridoi di esodo e scale, angoli compresi (sorgenti fluorescenti e LED; 1 lx per lampade a incandescenza). 30 min."
+        },
+        "nbc-in": {
+          "label": "NBC India 2016",
+          "note": "Vie di esodo fino a 2 m: almeno 10 lx sulla linea centrale e 5 lx su metà della larghezza, nessun rapporto di uniformità; locali verificati a 5 lx. Autonomia 1,5 h, accensione entro 5 s."
+        },
+        "as2293": {
+          "label": "AS/NZS 2293.1:2018 (Australia)",
+          "note": "Vie di esodo: almeno 0,2 lx e una media di 0,5 lx a pavimento, scale 1 lx; misurato lontano dalle pareti. Da sintesi pubbliche dell'edizione 2018 (l'edizione 2026 non è ancora verificata). 90 min in servizio."
+        },
+        "nz-f6": {
+          "label": "NZBC F6/AS1 (Nuova Zelanda)",
+          "note": "Illuminamento diretto a pavimento: 1 lx nelle vie di uscita protette e ai cambi di livello, 0,2 lx altrove; esclusi i punti a meno di 0,5 m dalle pareti. 90 min.",
+          "places": {
+            "corridor": "Via di uscita protetta",
+            "stairs": "Cambio di livello",
+            "other": "Resto della via di esodo"
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -1574,7 +1727,7 @@
       "scene_3d_title": "Scena 3D",
       "area_title": "Progettista esterni",
       "interior_title": "Progettista di interni",
-      "maps_title": "Progettista su mappa",
+      "maps_title": "Mappa del sito",
       "street_title": "Progetto stradale",
       "spectral_title": "Laboratorio spettrale",
       "greenhouse_title": "Serra",
@@ -1595,7 +1748,7 @@
       "scene_3d_desc": "Percorrete una stanza, una strada o un parcheggio con l'apparecchio come luce di motore di gioco",
       "area_desc": "Disponete più apparecchi su un'area e leggete l'illuminamento a terra",
       "interior_desc": "Locali con zone, piani di lavoro e uniformità secondo EN 12464-1",
-      "maps_desc": "Pianificate gli apparecchi su una mappa reale e verificate l'illuminazione di strade e piazze",
+      "maps_desc": "Progettare su una mappa OpenStreetMap del sito: trovarlo sul globo, disegnare l'area, posizionare i pali",
       "street_desc": "Illuminazione stradale con più apparecchi secondo EN 13201, RP-8, CJJ 45 e MLO",
       "spectral_desc": "Spettri, CCT, CRI, TM-30, melanopico e PPFD orticolo da dati SPD",
       "colour_quality_title": "Qualità del colore",
@@ -1642,38 +1795,6 @@
       "compare_hint": "Fai clic su un sensore per i suoi diagrammi · Ctrl/⌘ + clic su un secondo, poi Confronta",
       "compare_selected": "⇄ Confronta {a} con {b}"
     }
-  },
-  "maps_designer": {
-    "title": "Progettista illuminazione",
-    "instructions_title": "Istruzioni:",
-    "instruction_polygon": "Disegna un poligono (area parcheggio)",
-    "instruction_luminaires": "Posiziona gli apparecchi (marcatori)",
-    "instruction_calculate": "Clicca Calcola per vedere la mappa di calore",
-    "area_defined": "Area definita:",
-    "luminaires_count": "Apparecchi:",
-    "calculate": "Calcola mappa di calore",
-    "my_location": "La mia posizione",
-    "export_csv": "Esporta CSV",
-    "show_values": "Mostra valori",
-    "hide_values": "Nascondi valori",
-    "clear_all": "Cancella tutto",
-    "results_title": "Risultati calcolo",
-    "min": "Min",
-    "max": "Max",
-    "average": "Media",
-    "uniformity": "Uniformità (U₀)",
-    "good_uniformity": "Buona uniformità (U₀ ≥ 0,40)",
-    "acceptable_uniformity": "Uniformità accettabile (U₀ ≥ 0,25)",
-    "poor_uniformity": "Uniformità insufficiente - aggiungere altri apparecchi",
-    "legend_title": "Legenda mappa di calore",
-    "legend_low": "Basso",
-    "legend_high": "Alto",
-    "loading_description": "Progetta illuminazione esterna su mappe satellitari reali. Disegna il tuo parcheggio, posiziona gli apparecchi e calcola l'illuminamento.",
-    "load_maps": "Carica Google Maps",
-    "loading_maps": "Caricamento Google Maps...",
-    "toolbar_hint": "Usa la barra degli strumenti: Poligono per disegnare l'area, Marcatore per posizionare gli apparecchi",
-    "load_failed": "Impossibile caricare Google Maps",
-    "try_again": "Riprova"
   },
   "goniosim": {
     "title": "Goniofotometro Virtuale",
@@ -1772,7 +1893,25 @@
     "sky_empty_hint": "Regola luogo e ora, poi premi Traccia per calcolare illuminamento e colore del cielo.",
     "scene_road": "Strada",
     "scene_room": "Stanza",
-    "scene_plaza": "Piazza"
+    "scene_plaza": "Piazza",
+    "globe_pick": "🌍 Scegli sul globo",
+    "globe_title": "Scegli un luogo",
+    "globe_hint": "Cerchi una città o clicchi sul globo, poi «Use this place»: latitudine, longitudine e fuso orario vengono ripresi.",
+    "globe_close": "Chiudi",
+    "moon_card_title": "🌙 Luce lunare stanotte",
+    "moonlight_now": "Luce lunare {lx} lx",
+    "moonlight_day": "Luna sopra l'orizzonte · prevale la luce del giorno",
+    "moon_summary": "{phase} {pct} % · {km} km ({dist})",
+    "moon_dist_close": "vicina: {pct} % più luminosa che alla distanza media",
+    "moon_dist_far": "lontana: {pct} % meno luminosa che alla distanza media",
+    "moon_times": "Sorge {rise} · tramonta {set} · fino a {max} lx alle {at}",
+    "moon_hours": "La luna da sola dà 0,2 lx o più per {h2} h e 0,1 lx o più per {h1} h delle ore buie.",
+    "moon_dark": "La luna resta sotto l'orizzonte finché è buio.",
+    "moon_ref_note": "Illuminamento orizzontale in terreno aperto, cielo sereno. Linee di riferimento: 0,2 lx = minimo sulle vie di esodo secondo AS/NZS 2293 e NZBC F6 · 0,5 lx = aree antipanico EN 1838 · 1 lx = vie di esodo EN 1838 · 2 lx = media P6 EN 13201. Nuvole, alberi ed edifici ne tolgono gran parte.",
+    "moon_legend_total": "tutta la luce naturale",
+    "moon_legend_moon": "solo la luna",
+    "moon_month_title": "Luce lunare nelle prossime 30 notti (il massimo per notte)",
+    "moon_month_hint": "Fai clic su una notte per mostrarla sopra."
   },
   "street": {
     "title": "Progettista Illuminazione Stradale",

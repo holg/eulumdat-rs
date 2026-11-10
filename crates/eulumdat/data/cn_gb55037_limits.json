@@ -1,0 +1,39 @@
+{
+    "profile": {
+        "id": "gb55037",
+        "name": "GB 55037-2022",
+        "region": "China (mainland)",
+        "governs": "GB 55037-2022 General code for fire protection of buildings, clause 10.1.10 (mandatory, in force 2023-06-01); where GB 51309-2018 or GB 50016-2014 give lower floor values for the same places, the general code governs",
+        "checked": "2026-11-08 against reproductions of the clause in public design-review and training material (several independent sources agree); not yet against the published code text"
+    },
+    "floor_min_illuminance_lx": {
+        "stairs_front_rooms_refuge": 10.0,
+        "evacuation_corridor": 3.0,
+        "crowded_place": 3.0,
+        "other_place": 1.0
+    },
+    "places": {
+        "stairs_front_rooms_refuge": "evacuation stairwells and their front rooms or combined front rooms, refuge corridors and their front rooms, refuge floors, refuge rooms, fire-fighting-only passages",
+        "evacuation_corridor": "evacuation corridors",
+        "crowded_place": "crowded places",
+        "other_place": "all other places"
+    },
+    "measurement": {
+        "quantity": "minimum horizontal illuminance on the floor (not an average)",
+        "uniformity": "none",
+        "route_band_share_of_width": 0.5,
+        "route_band_note": "routes are checked over the central half of their width, as Chinese design calculations do",
+        "area_border_m": 0.0,
+        "area_border_note": "no border is defined: the whole floor of the place"
+    },
+    "GB_51309_2018": {
+        "note": "fire emergency lighting and evacuation indicating systems: system rules where the general code says nothing (reported, not calculated)",
+        "duration_h": {
+            "buildings_over_100_m": 1.5,
+            "hospitals_elderly_care_public_over_100000_m2_underground_over_20000_m2": 1.0,
+            "other": 0.5
+        },
+        "switch_over_s": 5.0,
+        "switch_over_high_risk_s": 0.25
+    }
+}

@@ -219,17 +219,14 @@ pub(crate) fn run_sky_trace(
         };
         (dome, target, spd, regime)
     } else {
-        // Night: starlight + airglow PLUS the moon (which dominates when up).
+        // Night: twilight, starlight + airglow PLUS the moon (which
+        // dominates when up): phase, distance and atmosphere
+        // (`eulumdat_daylight::night`).
         let twilight = sun.altitude_deg() > -6.0;
-        let star_floor = if twilight { 5.0 } else { 0.0015 };
-
-        let moon_face_lux = eulumdat_goniosim::moon_illuminance(moon.illuminated_fraction);
-        let moon_lux = if moon.is_up() {
-            moon_face_lux * moon.altitude_rad.sin().max(0.0)
-        } else {
-            0.0
-        };
-        let night_lux = star_floor + moon_lux;
+        let nat = eulumdat_daylight::NaturalLight::at(sun, moon, 2.5);
+        let star_floor = nat.twilight_lux + nat.starlight_lux;
+        let moon_lux = nat.moon.global_horizontal_lux;
+        let night_lux = nat.total_lux();
 
         let cct = if moon_lux > star_floor {
             let base = eulumdat_goniosim::MOON_CCT_K;

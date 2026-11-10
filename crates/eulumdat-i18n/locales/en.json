@@ -434,7 +434,6 @@
       "bim": "BIM",
       "area_designer": "Outdoor",
       "zonal_designer": "Interior",
-      "maps_designer": "Maps",
       "beam_angle": "Beam Angle",
       "iso_view": "ISO View",
       "street_design": "🛣️ Street Design"
@@ -814,6 +813,9 @@
       "reset_moves": "Put objects back",
       "status_detected": "Detected: {what} · {on} of {n} luminaires on",
       "status_idle": "Nothing detected · luminaires at {pct} %",
+      "sensor_dim": "Sensors switch the luminaires",
+      "sensor_dim_off_note": "Off: the sensors only detect, the luminaires stay at full output (as in the designer). Turn it on and move the person or a car to try the control.",
+      "status_dim_off": "Sensor control off · luminaires at full output",
       "status_person": "person",
       "status_cars": "{n} car(s)",
       "status_no_area": "This sensor detects nothing at {h} m.",
@@ -841,9 +843,9 @@
       "scene_saved": "Saved in “{project}”; changes are saved automatically.",
       "scene_unsaved": "Kept in this browser; save it to put it into the project file.",
       "sensor_volume_3d": "Show the detection volume in 3D",
-      "em_title": "🚨 Emergency lighting (EN 1838)",
+      "em_title": "🚨 Emergency lighting",
       "em_mode": "Emergency mode (mains failure)",
-      "em_mode_desc": "Normal lighting off, emergency luminaires on at their emergency flux × maintenance factor. The picture starts dark, as at the moment the power fails, and adapts like an eye; points take direct light only, as EN 1838 counts it; false colours 0–5 lx.",
+      "em_mode_desc": "Normal lighting off, emergency luminaires on at their emergency flux × maintenance factor. The picture starts dark, as at the moment the power fails, and adapts like an eye; points take direct light only, as the emergency lighting standards count it.",
       "em_marks": "Show the plan markings (route, open area, equipment)",
       "em_marks_off": "As a person escaping sees it: no markings.",
       "em_walk": "Walk the route at eye height (1.6 m)",
@@ -857,13 +859,33 @@
       "em_check_points": "Equipment (vertical)",
       "em_check_min": "Emin {v} lx (≥ {req})",
       "em_check_ratio": "Emax / Emin {v} (≤ {req})",
-      "em_check_note": "Check in the Light scene: direct light, points every 0.5 m. The Interior designer’s EN 1838 results are the reference.",
+      "em_check_note": "Check in the Light scene: direct light, points every 0.5 m. The Interior designer’s results are the reference.",
       "em_off_hint": "Switch emergency mode on to measure the route.",
       "em_measure": "📍 Measure (Grid view)",
       "em_adapting": "👁 Eyes adapting to the dark… {pct} %",
       "em_adapted": "👁 Adapted: {stops} stops brighter than when the power failed. Kept below full adaptation, so emergency light still looks dimmer than normal light.",
       "em_replay": "⚡ Power failure again",
-      "back_to_designer": "✏️ Back to the {from}"
+      "back_to_designer": "✏️ Back to the {from}",
+      "em_check_band": "Escape route (central half)",
+      "em_check_stairs": "Stairs / refuge (central half)",
+      "em_check_room": "Room (whole floor)",
+      "em_check_avg": "Eavg {v} lx (≥ {req})",
+      "moon_title": "☀️🌙 Sun & moon",
+      "moon_on": "Daylight and moonlight",
+      "moon_desc": "Natural light for a date, time and place under a clear sky: by day the sun with its shadows and the daylit sky, at dusk the twilight sky, at night the moon and the stars; in the picture and in the lux values. Codes do not count it, emergency mode leaves it out.",
+      "moon_date": "Date",
+      "moon_time": "Local time",
+      "moon_full": "→ Next full moon",
+      "moon_place": "Place: {place}",
+      "moon_pick": "🌍 Pick on the globe",
+      "moon_north": "North in the scene",
+      "moon_lamps_off": "Luminaires off (natural light alone)",
+      "moon_readout": "{phase} {pct} % · {alt}° up · {lx} lx on open ground (beam {beam} lx, sky {sky} lx)",
+      "moon_below": "The moon is below the horizon at this time.",
+      "moon_indoor": "The moon lights outdoor scenes.",
+      "sun_readout": "☀️ Sun {alt}° up · {lx} lx on open ground (beam {beam} lx, sky {sky} lx)",
+      "twilight_readout": "🌆 Twilight (sun {alt}°) · {lx} lx on open ground",
+      "night_readout": "✨ Starlight · {lx} lx"
     },
     "sensor": {
       "tab": "Sensors",
@@ -1274,7 +1296,30 @@
     "export_plan_svg": "Export Plan SVG",
     "export_room_svg": "Export Room SVG",
     "export_3d_svg": "Export 3D SVG",
-    "export_optimizer": "Export Optimizer"
+    "export_optimizer": "Export Optimizer",
+    "moon": {
+      "desc": "Natural light on open ground under a clear sky at the chosen date and time (the sun by day, the twilight sky at dusk, the moon at night), the same everywhere. The illuminance results stay the luminaires' own (codes do not count natural light); it is shown next to them.",
+      "with_moon": "With the natural light then (+{lx} lx)",
+      "dim": "To keep the {target} lx minimum (optimizer target), the luminaires could run at {pct} % tonight.",
+      "dim_none": "The luminaires alone stay below the {target} lx minimum; the natural light adds {lx} lx.",
+      "alone": "The natural light alone gives {pct} % of the {target} lx minimum.",
+      "not_needed": "The luminaires are not needed then: the natural light alone gives {lx} lx (minimum {target} lx)."
+    },
+    "sitemap": {
+      "title": "🗺 Site map",
+      "show": "Show the OpenStreetMap map under the plan",
+      "desc": "Find the site on the globe (zoom in until streets and buildings show, then “Use this place”), draw the area on the map and place the poles. North is up; the site is the middle of the area.",
+      "pick": "🌍 Find the site on the globe",
+      "site": "Site: {place}",
+      "lat": "Latitude",
+      "lon": "Longitude",
+      "opacity": "Map opacity",
+      "move_map": "✋ Move the map",
+      "move_hint": "Drag on the plan to move the map under the area.",
+      "done": "Done",
+      "no_site": "No site yet: find it on the globe or enter its coordinates.",
+      "style": "Map style"
+    }
   },
   "zonal_designer": {
     "title": "Interior Lighting Designer",
@@ -1423,7 +1468,7 @@
       "outline_area": "Room outline: {a} m² floor, {p} m of walls"
     },
     "emergency": {
-      "title": "Emergency lighting (EN 1838)",
+      "title": "Emergency lighting",
       "intro": "Escape routes, open areas and safety equipment, lit by the emergency luminaires alone: direct light, emergency flux, maintenance factor.",
       "enable": "Plan emergency lighting",
       "luminaire": "Emergency luminaire",
@@ -1446,7 +1491,7 @@
       "route_item": "Route {n}: {len} m, {w} m wide",
       "remove": "Remove",
       "open_area": "Room as open (anti-panic) area",
-      "open_area_hint": "Required above 60 m²; the room has {a} m².",
+      "open_area_hint": "Required above {limit} m²; the room has {a} m².",
       "points": "Points of emphasis",
       "place": "Place on the plan:",
       "point_hint": "Click on the plan next to the wall the equipment is on (it faces into the room).",
@@ -1457,7 +1502,7 @@
       "kind_sign": "Externally lit sign",
       "kind_exit": "Exit",
       "point_item": "{kind} at ({x}, {y})",
-      "results_title": "Emergency lighting (EN 1838)",
+      "results_title": "Emergency lighting",
       "pass": "✓ All requirements met",
       "fail": "✗ Not all requirements met",
       "count": "{n} emergency luminaires, {lm} lm each, at {h} m",
@@ -1467,9 +1512,6 @@
       "route_centre": "{name}: centre line min",
       "route_band": "{name}: central band min",
       "route_ratio": "{name}: Emax / Emin",
-      "open_min": "Open area min",
-      "open_ratio": "Open area Emax / Emin",
-      "not_required": "not required (≤ 60 m²)",
       "point_vertical": "{kind}: vertical",
       "glare": "Glare 60°–90° (highest)",
       "ra": "Colour rendering Ra",
@@ -1480,7 +1522,118 @@
       "view_normal": "💡 Normal lighting",
       "view_emergency": "🚨 Emergency mode",
       "floor_legend": "Floor in emergency mode: direct light of the emergency luminaires, maintenance factor {mf}; min {min} lx, max {max} lx.",
-      "lum_off": "○ normal luminaires, off"
+      "lum_off": "○ normal luminaires, off",
+      "standard": "Standard",
+      "place_corridor": "Evacuation corridor",
+      "place_stairs": "Stairs, front room, refuge",
+      "place_crowded": "Crowded place",
+      "place_other": "Other place",
+      "room_place": "The room is",
+      "no_requirement": "no requirement",
+      "band_half": "central half",
+      "band_full": "full width",
+      "band_pct": "central {pct} %",
+      "route_name": "Route {n}",
+      "route_band_min": "{name}: floor min ({band})",
+      "route_avg": "{name}: average ({band})",
+      "route_ratio_band": "{name}: Emax / Emin ({band})",
+      "route_width": "{name}: width",
+      "route_width_req": "≤ {w} m: split into strips or check as an open area",
+      "room_place_name": "Room ({place})",
+      "open_name": "Open area",
+      "room_name": "Room",
+      "area_min_of": "{name}: floor min",
+      "area_avg_of": "{name}: average",
+      "area_ratio_of": "{name}: Emax / Emin",
+      "end_avg": "{name}: average after {h} h ({pct} % output)",
+      "end_min": "{name}: min after {h} h ({pct} % output)",
+      "not_required_above": "not required (≤ {a} m²)",
+      "end_output": "Output at the end of the duration (%)",
+      "end_output_hint": "{std} allows lower values after {h} h: average {avg} lx, minimum {min} lx. Enter the output the luminaires still give then; constant-output LED emergency luminaires keep 100 %.",
+      "room_floor_hint": "Checked over the whole floor; the room has {a} m².",
+      "report_pdf": "🚨 Emergency lighting report (PDF) · {std}",
+      "point_horizontal": "{kind}: horizontal",
+      "exit_floor": "{name}: floor 0.5 m in front",
+      "lum_flux_min": "Emergency flux per luminaire (lowest)",
+      "count_of": "{name}: luminaires",
+      "route_gap": "{name}: largest gap between luminaires",
+      "area_flux": "{name}: luminaire flux per m²",
+      "area_spacing": "{name}: nearest luminaire ÷ mounting height",
+      "for_information": "for information",
+      "kind_door_release": "Door release",
+      "kind_escape_plan": "Escape plan",
+      "kind_evac_aid": "Evacuation aid",
+      "group_europe": "Europe",
+      "group_americas": "Americas",
+      "group_asia": "Asia and Pacific",
+      "standards": {
+        "en1838": {
+          "label": "EN 1838:2013 (Europe)",
+          "note": "Escape routes up to 2 m wide: at least 1 lx on the centre line and 0.5 lx over the central half, Emax / Emin ≤ 40. Open areas over 60 m²: 0.5 lx without a 0.5 m border, ≤ 40. 5 lx vertical at fire equipment, first aid and call points; glare limits; Ra ≥ 40. Valid until 18 June 2027."
+        },
+        "en1838-2024": {
+          "label": "EN 1838:2024 (Europe)",
+          "note": "Escape routes: at least 1 lx over the width less a strip of min(W / 4, 0.5 m) along each side (up to 2 m: the central half), Emax / Emin ≤ 40, at least two luminaires per route and open area. Open areas over 60 m² as before; 5 lx vertical also at door releases, escape plans and evacuation aids; glare limits; Ra ≥ 40."
+        },
+        "bs5266": {
+          "label": "BS 5266-1:2025 (United Kingdom)",
+          "note": "The values of BS EN 1838:2024 (1 lx over the route less the edge strips, open areas 0.5 lx, 5 lx at equipment). Duration 3 h for sleeping accommodation, entertainment venues, phased evacuation or early re-occupation; 1 h only with immediate evacuation."
+        },
+        "cte-sua4": {
+          "label": "CTE DB SUA 4 / REBT (Spain)",
+          "note": "Escape routes up to 2 m: 1 lx on the axis, 0.5 lx over the central half, Emax / Emin ≤ 40. Safety equipment and distribution boards: 5 lx horizontal. Anti-panic (REBT ITC-BT-28): 0.5 lx in the whole space up to 1 m, any size, no border. Zero reflectance, Ra ≥ 40, 1 h."
+        },
+        "fr-erp": {
+          "label": "ERP, arrêté du 25 juin 1980 (France)",
+          "note": "No lux values: evacuation luminaires at most 15 m apart along circulation routes, 45 lm or more each, two or more on routes over 15 m; ambient lighting in rooms for 100 people or more: 5 lm per m², neighbours at most 4 mounting heights apart, two or more per room. Illuminance is shown for information."
+        },
+        "sp52": {
+          "label": "SP 52.13330.2016 (Russia)",
+          "note": "Escape routes up to 2 m: 1 lx on the axis, 0.5 lx over half the width, Emin / Emax ≥ 1 : 40. 5 lx on the floor in front of every exit and at equipment and evacuation plans. Anti-panic over 60 m² (and 30 people or more): 0.5 lx without a 0.5 m border. Glare limits, Ra ≥ 40; 100 % within 10 s, 1 h."
+        },
+        "nfpa101": {
+          "label": "NFPA 101 / IBC (United States)",
+          "note": "Along the path of egress at floor level: average at least 1 fc (10.8 lx), at any point at least 0.1 fc (1.1 lx), max / min ≤ 40, over the route width and the room's floor. After 1.5 h the values may fall to 6.5 lx average and 0.65 lx minimum: enter the output then. Externally lit exit signs 5 fc (54 lx)."
+        },
+        "nbcc": {
+          "label": "NBC Canada 2020",
+          "note": "At floor or tread level: an average of at least 10 lx and a minimum of 1 lx over exits, public corridors, principal routes and the listed rooms; no uniformity ratio. Duration 30 min, 1 h (care, treatment, detention) or 2 h (high buildings)."
+        },
+        "nbr10898": {
+          "label": "ABNT NBR 10898 (Brazil)",
+          "note": "Horizontal on the floor: at least 3 lx on flat areas, 5 lx where the level changes (stairs, ramps, obstacles), max / min ≤ 20 along the route. Duration at least 1 h.",
+          "places": {
+            "corridor": "Flat area (corridor, hall, refuge)",
+            "crowded": "Flat area (room)",
+            "stairs": "Level change (stairs, ramp, obstacle)"
+          }
+        },
+        "gb55037": {
+          "label": "GB 55037-2022 (China)",
+          "note": "Minimum horizontal illuminance on the floor by place (GB 55037-2022 §10.1.10): stairs, front rooms and refuge spaces 10 lx, evacuation corridors and crowded places 3 lx, other places 1 lx; routes over the central half of their width, rooms over the whole floor, no uniformity ratio. Durations and switch-over times (GB 51309-2018) are not calculated."
+        },
+        "jp-bsl": {
+          "label": "Building Standard Law (Japan)",
+          "note": "Direct light only: at least 2 lx on the floor at every point of the room and its escape corridors and stairs, corners included (fluorescent and LED sources; 1 lx for incandescent lamps). 30 min."
+        },
+        "nbc-in": {
+          "label": "NBC India 2016",
+          "note": "Escape routes up to 2 m: at least 10 lx on the centre line and 5 lx over half the width, no uniformity ratio; rooms checked at 5 lx. Duration 1.5 h, on within 5 s."
+        },
+        "as2293": {
+          "label": "AS/NZS 2293.1:2018 (Australia)",
+          "note": "Escape routes: at least 0.2 lx and an average of 0.5 lx on the floor, stairs 1 lx; measured away from the walls. From public summaries of the 2018 edition (the 2026 edition is not yet checked). 90 min in service."
+        },
+        "nz-f6": {
+          "label": "NZBC F6/AS1 (New Zealand)",
+          "note": "Direct illuminance on the floor: 1 lx in exitways and at changes of level, 0.2 lx everywhere else; points within 0.5 m of walls left out. 90 min.",
+          "places": {
+            "corridor": "Exitway",
+            "stairs": "Change of level",
+            "other": "Elsewhere on the escape route"
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -1574,7 +1727,7 @@
       "scene_3d_title": "3D scene",
       "area_title": "Outdoor designer",
       "interior_title": "Interior designer",
-      "maps_title": "Maps designer",
+      "maps_title": "Site map",
       "street_title": "Street design",
       "spectral_title": "Spectral lab",
       "greenhouse_title": "Greenhouse",
@@ -1595,7 +1748,7 @@
       "scene_3d_desc": "Walk through a room, road or parking lot with the luminaire as a game-engine light",
       "area_desc": "Place several luminaires on an area and read the illuminance on the ground",
       "interior_desc": "Rooms with zones, workplanes and uniformity per EN 12464-1",
-      "maps_desc": "Plan luminaires on a real map and check the lighting of streets and places",
+      "maps_desc": "Plan on an OpenStreetMap map of the site: find it on the globe, draw the area, place the poles",
       "street_desc": "Multi-luminaire road lighting against EN 13201, RP-8, CJJ 45 and MLO",
       "spectral_desc": "Spectra, CCT, CRI, TM-30, melanopic and horticultural PPFD from SPD data",
       "colour_quality_title": "Colour quality",
@@ -1642,38 +1795,6 @@
       "compare_hint": "Click a sensor for its diagrams · Ctrl/⌘ + click a second one, then Compare",
       "compare_selected": "⇄ Compare {a} with {b}"
     }
-  },
-  "maps_designer": {
-    "title": "Lighting Designer",
-    "instructions_title": "Instructions:",
-    "instruction_polygon": "Draw a polygon (parking lot area)",
-    "instruction_luminaires": "Place luminaires (markers)",
-    "instruction_calculate": "Click Calculate to see heatmap",
-    "area_defined": "Area defined:",
-    "luminaires_count": "Luminaires:",
-    "calculate": "Calculate Heatmap",
-    "my_location": "My Location",
-    "export_csv": "Export CSV",
-    "show_values": "Show Values",
-    "hide_values": "Hide Values",
-    "clear_all": "Clear All",
-    "results_title": "Calculation Results",
-    "min": "Min",
-    "max": "Max",
-    "average": "Average",
-    "uniformity": "Uniformity (U₀)",
-    "good_uniformity": "Good uniformity (U₀ ≥ 0.40)",
-    "acceptable_uniformity": "Acceptable uniformity (U₀ ≥ 0.25)",
-    "poor_uniformity": "Poor uniformity - add more luminaires",
-    "legend_title": "Heatmap Legend",
-    "legend_low": "Low",
-    "legend_high": "High",
-    "loading_description": "Design outdoor lighting on real satellite maps. Draw your parking lot, place luminaires, and calculate illuminance.",
-    "load_maps": "Load Google Maps",
-    "loading_maps": "Loading Google Maps...",
-    "toolbar_hint": "Use toolbar: Polygon to draw area, Marker to place luminaires",
-    "load_failed": "Failed to load Google Maps",
-    "try_again": "Try Again"
   },
   "goniosim": {
     "title": "Virtual Goniophotometer",
@@ -1772,7 +1893,25 @@
     "sky_empty_hint": "Adjust the location and time, then press Trace to compute the sky's illuminance and colour.",
     "scene_road": "Road",
     "scene_room": "Room",
-    "scene_plaza": "Plaza"
+    "scene_plaza": "Plaza",
+    "globe_pick": "🌍 Pick on the globe",
+    "globe_title": "Pick a place",
+    "globe_hint": "Search a city or click the globe, then “Use this place”: its latitude, longitude and time zone are taken over.",
+    "globe_close": "Close",
+    "moon_card_title": "🌙 Moonlight tonight",
+    "moonlight_now": "Moonlight {lx} lx",
+    "moonlight_day": "Moon up · daylight dominates",
+    "moon_summary": "{phase} {pct} % · {km} km ({dist})",
+    "moon_dist_close": "close: {pct} % brighter than at mean distance",
+    "moon_dist_far": "far: {pct} % dimmer than at mean distance",
+    "moon_times": "Moonrise {rise} · moonset {set} · up to {max} lx at {at}",
+    "moon_hours": "The moon alone gives 0.2 lx or more for {h2} h and 0.1 lx or more for {h1} h of the dark hours.",
+    "moon_dark": "The moon stays below the horizon while it is dark.",
+    "moon_ref_note": "Horizontal illuminance on open ground, clear sky. Reference lines: 0.2 lx = escape-route minimum of AS/NZS 2293 and NZBC F6 · 0.5 lx = EN 1838 open areas · 1 lx = EN 1838 escape routes · 2 lx = EN 13201 P6 average. Clouds, trees and buildings take much of it away.",
+    "moon_legend_total": "all natural light",
+    "moon_legend_moon": "moon alone",
+    "moon_month_title": "Moonlight over the next 30 nights (the most per night)",
+    "moon_month_hint": "Click a night to show it above."
   },
   "street": {
     "title": "Street Lighting Designer",

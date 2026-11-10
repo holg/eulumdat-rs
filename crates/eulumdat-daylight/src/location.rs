@@ -202,6 +202,42 @@ impl LocalDateTime {
         solar_position(y, m, d, utc, loc.latitude_deg, loc.longitude_deg)
     }
 
+    /// The same wall-clock time on the previous calendar day.
+    pub fn prev_day(&self) -> Self {
+        let (year, month, day) = prev_day(self.year, self.month, self.day);
+        Self {
+            year,
+            month,
+            day,
+            ..*self
+        }
+    }
+
+    /// The same wall-clock time on the next calendar day.
+    pub fn next_day(&self) -> Self {
+        let (year, month, day) = next_day(self.year, self.month, self.day);
+        Self {
+            year,
+            month,
+            day,
+            ..*self
+        }
+    }
+
+    /// `hours` later on the wall clock (0 ≤ hours < 24 · n, crossing
+    /// midnights as needed).
+    pub fn plus_hours(&self, hours: f64) -> Self {
+        let mut t = *self;
+        t.local_hours += hours;
+        while t.local_hours >= 24.0 {
+            t = Self {
+                local_hours: t.local_hours - 24.0,
+                ..t.next_day()
+            };
+        }
+        t
+    }
+
     /// Moon position + phase for this local instant at `loc`.
     pub fn moon_position(&self, loc: &NamedLocation) -> crate::lunar::MoonPosition {
         let (y, m, d, utc) = self.to_utc(loc);

@@ -255,32 +255,56 @@ plus the central band; open areas on a grid inside the inset polygon.
   optic, our numbers) + a demo floor plan, pinned by tests, used on the
   landing page.
 
-### Other regions (open, 2026-11-07; to check against the documents)
+### Standard profiles for emergency lighting (built 2026-11-08)
 
-Emergency lighting differs by region like road lighting does. What we
-know so far, from general knowledge, not yet checked against the texts:
-- EU / EFTA (incl. CH as SN EN 1838): EN 1838 is the lighting part;
-  around it: EN 50172 (systems, durations, tests), EN 60598-2-22
-  (luminaires), EN ISO 7010 (signs), and national rules on where emergency
-  lighting is required and for how long (DE workplace rule ASR A3.4/7,
-  UK BS 5266-1, FR rules for buildings open to the public, which count
-  lumens per m² rather than lux, AT TRVB E 102, CH the cantonal fire
-  protection directives (VKF / AEAI)).
-- International: ISO 30061 / CIE S 020 (the base EN 1838 follows).
-- US: NFPA 101 (Life Safety Code, emergency lighting section) and the IBC
-  (means of egress illumination): an *average* along the path of egress
-  (about 1 fc ≈ 10.8 lx initially, at least 0.1 fc at any point, max / min
-  40, allowed to fall over the 1.5 h duration), measured at the walking
-  surface; equipment UL 924. That is a different rule shape (average +
-  minimum along the path, a decline over the duration) from EN 1838's
-  centre-line minimum.
-- Others: AS/NZS 2293, China GB 51309, Canada NBC.
+Emergency lighting differs by region like road lighting does: the planner
+picks the standard (Interior designer, grouped Europe / Americas / Asia and
+Pacific; default from the UI language, else the browser region, else EN
+1838:2024 (CLI default: `en1838`); link `emstd=`; CLI `--standard`, `--standard list`), and every
+output follows it. A profile (`eulumdat::emergency::Limits`, all of them in
+`Limits::all()`) describes what its standard measures; `evaluate` turns it
+into `EmergencyReport::checks` (`Check { kind, subject, value, limit,
+at_most, pass, at }`), and the web table, the PDF section, the stand-alone
+"Emergency lighting report (PDF)", the CLI and the Light scene panel render
+exactly those rows (`EmergencyReport::describe` = the English text). Values,
+sources and open points: `crates/eulumdat/data/emergency_profiles.json`
+(test `profiles_match_their_data_file`), China in `cn_gb55037_limits.json`,
+EN 1838:2013 in `en1838_en17037_limits.json`. Every number comes from public
+secondary sources (2026-11-08 research), not from the standard texts: check
+against the texts before relying on a profile.
 
-Design consequence: `Limits` (already loadable with `from_json`) would
-become a profile with a rule shape per check (minimum / average / ratio,
-end of duration), a profile choice in the Interior section and the report
-naming the profile. Needs the user's limit tables per region (as for EN
-1838), not copied standard text.
+| id | Name | Rule shape |
+|---|---|---|
+| `en1838` | EN 1838:2013 | centre line 1 lx + central half 0.5 lx, 40 : 1 on the centre line; open areas > 60 m² 0.5 lx without 0.5 m; high-risk; 5 lx vertical at equipment; glare; Ra 40 (valid until 18 June 2027) |
+| `en1838-2024` | EN 1838:2024 | 1 lx over the width less min(W / 4, 0.5 m) per side (`edge_max_m`), 40 : 1 over that band (scope not stated: our reading), ≥ 2 luminaires per route and open area; more points of emphasis (door releases, escape plans, evacuation aids); rest as 2013 |
+| `bs5266` | BS 5266-1:2025 | EN 1838:2024 values, UK durations (3 h / 1 h) |
+| `cte-sua4` | CTE DB SUA 4 / REBT ITC-BT-28 (Spain) | 2013-style routes; 5 lx horizontal at equipment (`emphasis_horizontal`, at its height); anti-panic 0.5 lx on the floor and at 1 m (`planes_up_to_m`), any size, no border; no glare limit |
+| `fr-erp` | ERP EC 7–EC 15 (France) | no lux (`lux_informative`: shown for information): ≤ 15 m between route luminaires (and from the ends), ≥ 2 on routes > 15 m, ≥ 45 lm each; rooms ≥ 5 lm/m², nearest neighbour ≤ 4 h, ≥ 2 per room |
+| `sp52` | SP 52.13330.2016 (Russia) | 2013 shape + 5 lx on the floor 0.5 m in front of every exit (`exit_floor_min_lx`), escape plans 5 lx, 100 % in 10 s |
+| `nfpa101` | NFPA 101 / IBC (USA) | over the route width and the room floor: average ≥ 10.8 lx, minimum ≥ 1.1 lx, max / min ≤ 40; after 1.5 h 6.5 / 0.65 lx with the planner's output share (`EndOfDuration`, `Settings::end_output_share`, link `emend=`, CLI `--end-output`); externally lit signs 54 lx |
+| `nbcc` | NBC Canada 2020 | average ≥ 10 lx, minimum ≥ 1 lx, no ratio; 30 min / 1 h / 2 h |
+| `nbr10898` | ABNT NBR 10898 (Brazil) | per place: flat 3 lx, level changes 5 lx; max / min ≤ 20 over the band (route less min(W / 4, 0.5 m) per side: our reading) |
+| `gb55037` | GB 55037-2022 (China) | per place 10 / 3 / 3 / 1 lx over the central half, rooms over the whole floor |
+| `jp-bsl` | Building Standard Law (Japan) | 2 lx (LED / fluorescent) at every point of the floor, full width, direct light, 30 min |
+| `nbc-in` | NBC India 2016 | centre line 10 lx, central half 5 lx; rooms 5 lx (our choice); 1.5 h |
+| `as2293` | AS/NZS 2293.1:2018 (Australia) | 0.2 lx minimum and 0.5 lx average, stairs 1 lx; away from the walls (our reading); the 2026 edition is not checked |
+| `nz-f6` | NZBC F6/AS1 (New Zealand) | exitways and changes of level 1 lx, elsewhere 0.2 lx, 0.5 m wall border |
+
+Not built: ISO 30061 / CIE S 020 (no public numbers; GOST R 55842 = ISO
+30061 MOD suggests the EN 1838:2013 shape), Hong Kong FSD (2 lx on room
+floors, one source), Germany as its own profile (DIN EN 1838 = EN 1838; DIN
+VDE V 0108-100-1 durations and ASR A2.3 / A3.4 are national notes), the EN
+1838:2024 specific areas (toilets, pools, plant rooms), Russia's 5 lx for
+routes with people of limited mobility, NFPA's centre-line option.
+
+National notes (duration, switch-over, where it is required; lux unchanged):
+- DE: DIN EN 1838:2025-03 (= EN 1838:2024) + DIN VDE V 0108-100-1:2018-12
+  (building law in 13 Länder until 27.05.2027: 1 h / 3 h / 8 h, 1 s / 15 s by
+  building type; stages 3 lx) / DIN EN 50172:2024; workplaces ASR A2.3 §9
+  (1 lx centre line at ≤ 20 cm, 40 : 1, ≥ 30 min) and ASR A3.4 §8
+  (high-risk 15 lx, < 10 : 1, 0.5 s).
+- CH: VKF / AEAI fire protection directive 17-15; AT: ÖNORM EN 1838:2025,
+  OVE E 8101 / TRVB E 102.
 
 ## 3. EN 17037: limit values (from `crates/eulumdat/data/en1838_en17037_limits.json`)
 

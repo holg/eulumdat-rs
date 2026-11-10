@@ -192,6 +192,8 @@ fn main() -> Result<()> {
             variant,
             duration,
             plan,
+            standard,
+            end_output,
             json,
         } => emergency::run(emergency::Args {
             file,
@@ -202,6 +204,8 @@ fn main() -> Result<()> {
             variant,
             duration,
             plan,
+            standard,
+            end_output,
             json,
         }),
         Commands::Gldf {

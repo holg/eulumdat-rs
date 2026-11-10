@@ -434,7 +434,6 @@
       "bim": "BIM",
       "area_designer": "室外设计器",
       "zonal_designer": "室内设计器",
-      "maps_designer": "地图",
       "beam_angle": "光束角",
       "iso_view": "ISO视图",
       "street_design": "🛣️ 道路照明设计"
@@ -814,6 +813,9 @@
       "reset_moves": "物体复位",
       "status_detected": "已探测：{what} · {n} 个灯具中 {on} 个开启",
       "status_idle": "未探测到 · 灯具 {pct} %",
+      "sensor_dim": "传感器控制灯具",
+      "sensor_dim_off_note": "关闭：传感器只探测，灯具保持全功率（与设计器相同）。打开后移动人或汽车即可试用控制。",
+      "status_dim_off": "传感器控制已关闭 · 灯具全功率",
       "status_person": "人",
       "status_cars": "{n} 辆汽车",
       "status_no_area": "该传感器在 {h} m 高度探测不到任何物体。",
@@ -841,9 +843,9 @@
       "scene_saved": "已保存到“{project}”；更改会自动保存。",
       "scene_unsaved": "仅保存在此浏览器中；保存后才会写入项目文件。",
       "sensor_volume_3d": "以 3D 显示探测范围",
-      "em_title": "🚨 应急照明（EN 1838）",
+      "em_title": "🚨 应急照明",
       "em_mode": "应急模式（市电中断）",
-      "em_mode_desc": "正常照明关闭，应急灯具以应急光通量 × 维护系数点亮。画面从断电瞬间的黑暗开始，并像眼睛一样逐渐适应；测点只计直射光，与 EN 1838 一致；伪彩色 0–5 lx。",
+      "em_mode_desc": "正常照明关闭，应急灯具以应急光通量 × 维护系数点亮。画面从断电瞬间的黑暗开始，并像眼睛一样逐渐适应；测点只计直射光，与应急照明标准一致。",
       "em_marks": "显示平面标记（疏散路线、防恐慌区域、设备）",
       "em_marks_off": "以疏散人员的视角：无标记。",
       "em_walk": "以视线高度沿路线行走（1.6 m）",
@@ -857,13 +859,33 @@
       "em_check_points": "设备（垂直）",
       "em_check_min": "Emin {v} lx（≥ {req}）",
       "em_check_ratio": "Emax / Emin {v}（≤ {req}）",
-      "em_check_note": "光照场景中的检查：直射光，测点间距 0.5 m。以室内照明设计器的 EN 1838 结果为准。",
+      "em_check_note": "光照场景中的检查：直射光，测点间距 0.5 m。以室内照明设计器的结果为准。",
       "em_off_hint": "打开应急模式以测量路线。",
       "em_measure": "📍 测量（网格视图）",
       "em_adapting": "👁 眼睛正在适应黑暗… {pct} %",
       "em_adapted": "👁 已适应：比断电瞬间亮 {stops} 档。刻意低于完全适应，使应急照明看起来仍比正常照明暗。",
       "em_replay": "⚡ 再次断电",
-      "back_to_designer": "✏️ 返回{from}"
+      "back_to_designer": "✏️ 返回{from}",
+      "em_check_band": "疏散路线（中间一半）",
+      "em_check_stairs": "疏散楼梯间 / 避难区域（中间一半）",
+      "em_check_room": "房间（整个地面）",
+      "em_check_avg": "Eav {v} lx（≥ {req}）",
+      "moon_title": "☀️🌙 太阳与月亮",
+      "moon_on": "日光与月光",
+      "moon_desc": "晴空下指定日期、时间和地点的自然光：白天是带阴影的太阳和明亮的天空，黄昏是暮光天空，夜晚是月亮和星光；计入画面和照度值。标准不计入自然光，应急模式也不计入。",
+      "moon_date": "日期",
+      "moon_time": "当地时间",
+      "moon_full": "→ 下一个满月",
+      "moon_place": "地点：{place}",
+      "moon_pick": "🌍 在地球仪上选择",
+      "moon_north": "场景中的北方",
+      "moon_lamps_off": "灯具关闭（仅自然光）",
+      "moon_readout": "{phase} {pct} % · 高度 {alt}° · 开阔地面 {lx} lx（光束 {beam} lx，天空 {sky} lx）",
+      "moon_below": "此时月亮在地平线以下。",
+      "moon_indoor": "月亮照亮室外场景。",
+      "sun_readout": "☀️ 太阳高度 {alt}° · 开阔地面 {lx} lx（光束 {beam} lx，天空 {sky} lx）",
+      "twilight_readout": "🌆 暮光（太阳 {alt}°）· 开阔地面 {lx} lx",
+      "night_readout": "✨ 星光 · {lx} lx"
     },
     "sensor": {
       "tab": "传感器",
@@ -1274,7 +1296,30 @@
     "export_plan_svg": "导出平面图SVG",
     "export_room_svg": "导出房间SVG",
     "export_3d_svg": "导出3D SVG",
-    "export_optimizer": "导出优化器结果"
+    "export_optimizer": "导出优化器结果",
+    "moon": {
+      "desc": "所选日期和时间晴空下开阔地面上的自然光（白天是太阳，黄昏是暮光天空，夜晚是月亮），各处相同。照度结果仍为灯具自身的值（标准不计入自然光）；自然光单独列出。",
+      "with_moon": "加上此时的自然光（+{lx} lx）",
+      "dim": "为保持 {target} lx 的最小值（优化目标），今夜灯具可降至 {pct} % 输出。",
+      "dim_none": "仅靠灯具低于 {target} lx 的最小值；自然光增加 {lx} lx。",
+      "alone": "仅自然光即达到 {target} lx 最小值的 {pct} %。",
+      "not_needed": "此时无需灯具：仅自然光即有 {lx} lx（最小值 {target} lx）。"
+    },
+    "sitemap": {
+      "title": "🗺 场地地图",
+      "show": "在平面图下显示 OpenStreetMap 地图",
+      "desc": "在地球仪上找到场地（放大到能看到街道和建筑，然后点击“使用此地点”），在地图上绘制区域并放置灯杆。上方为北；场地位于区域中心。",
+      "pick": "🌍 在地球仪上查找场地",
+      "site": "场地：{place}",
+      "lat": "纬度",
+      "lon": "经度",
+      "opacity": "地图不透明度",
+      "move_map": "✋ 移动地图",
+      "move_hint": "在平面图上拖动以移动区域下方的地图。",
+      "done": "完成",
+      "no_site": "尚无场地：请在地球仪上查找或输入坐标。",
+      "style": "地图样式"
+    }
   },
   "zonal_designer": {
     "title": "室内照明设计器",
@@ -1423,7 +1468,7 @@
       "outline_area": "房间轮廓：地面 {a} m²，墙长 {p} m"
     },
     "emergency": {
-      "title": "应急照明（EN 1838）",
+      "title": "应急照明",
       "intro": "疏散路线、防恐慌区域和安全设备，仅由应急灯具照明：直射光、应急光通量、维护系数。",
       "enable": "规划应急照明",
       "luminaire": "应急灯具",
@@ -1446,7 +1491,7 @@
       "route_item": "路线 {n}：{len} m，宽 {w} m",
       "remove": "移除",
       "open_area": "房间作为防恐慌区域",
-      "open_area_hint": "超过 60 m² 时必需；房间面积 {a} m²。",
+      "open_area_hint": "超过 {limit} m² 时必需；房间面积 {a} m²。",
       "points": "重点位置",
       "place": "在平面图上放置：",
       "point_hint": "在平面图上设备所在墙边点击（设备朝向房间内）。",
@@ -1457,7 +1502,7 @@
       "kind_sign": "外部照明标志",
       "kind_exit": "出口",
       "point_item": "{kind} 位于（{x}, {y}）",
-      "results_title": "应急照明（EN 1838）",
+      "results_title": "应急照明",
       "pass": "✓ 满足全部要求",
       "fail": "✗ 未满足全部要求",
       "count": "{n} 个应急灯具，每个 {lm} lm，安装高度 {h} m",
@@ -1467,9 +1512,6 @@
       "route_centre": "{name}：中心线最小值",
       "route_band": "{name}：中心带最小值",
       "route_ratio": "{name}：Emax / Emin",
-      "open_min": "防恐慌区域最小值",
-      "open_ratio": "防恐慌区域 Emax / Emin",
-      "not_required": "不要求（≤ 60 m²）",
       "point_vertical": "{kind}：垂直",
       "glare": "眩光 60°–90°（最大值）",
       "ra": "显色指数 Ra",
@@ -1480,7 +1522,118 @@
       "view_normal": "💡 正常照明",
       "view_emergency": "🚨 应急模式",
       "floor_legend": "应急模式下的地面：应急灯具的直射光，维护系数 {mf}；最小 {min} lx，最大 {max} lx。",
-      "lum_off": "○ 正常照明，已关闭"
+      "lum_off": "○ 正常照明，已关闭",
+      "standard": "标准",
+      "place_corridor": "疏散走道",
+      "place_stairs": "疏散楼梯间、前室、避难区域",
+      "place_crowded": "人员密集的场所",
+      "place_other": "其他场所",
+      "room_place": "房间类型",
+      "no_requirement": "无要求",
+      "band_half": "中间一半宽度",
+      "band_full": "全宽",
+      "band_pct": "中间 {pct} %",
+      "route_name": "路线 {n}",
+      "route_band_min": "{name}：地面最小值（{band}）",
+      "route_avg": "{name}：平均值（{band}）",
+      "route_ratio_band": "{name}：Emax / Emin（{band}）",
+      "route_width": "{name}：宽度",
+      "route_width_req": "≤ {w} m：分成条带或按开敞区域检查",
+      "room_place_name": "房间（{place}）",
+      "open_name": "开敞区域",
+      "room_name": "房间",
+      "area_min_of": "{name}：地面最小值",
+      "area_avg_of": "{name}：平均值",
+      "area_ratio_of": "{name}：Emax / Emin",
+      "end_avg": "{name}：{h} h 后平均值（光通量 {pct} %）",
+      "end_min": "{name}：{h} h 后最小值（光通量 {pct} %）",
+      "not_required_above": "不要求（≤ {a} m²）",
+      "end_output": "持续时间结束时的光通量（%）",
+      "end_output_hint": "{std} 允许 {h} h 后降低：平均 {avg} lx，最小 {min} lx。请输入灯具届时仍有的光通量；恒定输出的 LED 应急灯保持 100 %。",
+      "room_floor_hint": "按整个地面检查；房间面积 {a} m²。",
+      "report_pdf": "🚨 应急照明报告（PDF）· {std}",
+      "point_horizontal": "{kind}：水平",
+      "exit_floor": "{name}：前方 0.5 m 处地面",
+      "lum_flux_min": "每个灯具的应急光通量（最小）",
+      "count_of": "{name}：灯具数量",
+      "route_gap": "{name}：灯具最大间距",
+      "area_flux": "{name}：每 m² 灯具光通量",
+      "area_spacing": "{name}：与最近灯具的距离 ÷ 安装高度",
+      "for_information": "仅供参考",
+      "kind_door_release": "门锁释放装置",
+      "kind_escape_plan": "疏散示意图",
+      "kind_evac_aid": "疏散辅助设备",
+      "group_europe": "欧洲",
+      "group_americas": "美洲",
+      "group_asia": "亚太地区",
+      "standards": {
+        "en1838": {
+          "label": "EN 1838:2013（欧洲）",
+          "note": "宽度不超过 2 m 的疏散路线：中心线上至少 1 lx，中间一半宽度上至少 0.5 lx，Emax / Emin ≤ 40。超过 60 m² 的防恐慌区域：不含 0.5 m 边缘带 0.5 lx，≤ 40。消防设备、急救点和报警按钮处垂直 5 lx；眩光限值；Ra ≥ 40。有效期至 2027 年 6 月 18 日。"
+        },
+        "en1838-2024": {
+          "label": "EN 1838:2024（欧洲）",
+          "note": "疏散路线：宽度扣除两侧各 min(W / 4, 0.5 m) 的条带后至少 1 lx（宽度不超过 2 m 时即中间一半），Emax / Emin ≤ 40，每条路线和每个防恐慌区域至少两个灯具。超过 60 m² 的防恐慌区域同前；门锁释放装置、疏散示意图和疏散辅助设备处也需垂直 5 lx；眩光限值；Ra ≥ 40。"
+        },
+        "bs5266": {
+          "label": "BS 5266-1:2025（英国）",
+          "note": "采用 BS EN 1838:2024 的数值（路线扣除边缘条带后 1 lx，防恐慌区域 0.5 lx，设备处 5 lx）。住宿场所、娱乐场所、分阶段疏散或需尽快重新使用时持续 3 h；仅在立即疏散时为 1 h。"
+        },
+        "cte-sua4": {
+          "label": "CTE DB SUA 4 / REBT（西班牙）",
+          "note": "宽度不超过 2 m 的疏散路线：轴线上 1 lx，中间一半宽度上 0.5 lx，Emax / Emin ≤ 40。安全设备和配电箱：水平 5 lx。防恐慌（REBT ITC-BT-28）：整个空间内直至 1 m 高度 0.5 lx，不限面积，不扣除边缘带。反射比按零计，Ra ≥ 40，1 h。"
+        },
+        "fr-erp": {
+          "label": "ERP, arrêté du 25 juin 1980（法国）",
+          "note": "无照度值要求：沿通道的疏散灯具间距不超过 15 m，每个不少于 45 lm，长于 15 m 的通道至少两个；容纳 100 人及以上房间的环境照明：每 m² 5 lm，相邻灯具间距不超过 4 倍安装高度，每个房间至少两个。照度仅供参考。"
+        },
+        "sp52": {
+          "label": "SP 52.13330.2016（俄罗斯）",
+          "note": "宽度不超过 2 m 的疏散路线：轴线上 1 lx，一半宽度上 0.5 lx，Emin / Emax ≥ 1 : 40。每个出口前地面以及设备和疏散示意图处 5 lx。超过 60 m²（且 30 人及以上）的防恐慌照明：不含 0.5 m 边缘带 0.5 lx。眩光限值，Ra ≥ 40；10 s 内达到 100 %，1 h。"
+        },
+        "nfpa101": {
+          "label": "NFPA 101 / IBC（美国）",
+          "note": "沿疏散路线的地面：平均至少 1 fc（10.8 lx），任一点至少 0.1 fc（1.1 lx），最大值 / 最小值 ≤ 40，按路线宽度和房间地面计算。1.5 h 后允许降至平均 6.5 lx、最小 0.65 lx：请输入届时的光通量。外部照明的出口标志 5 fc（54 lx）。"
+        },
+        "nbcc": {
+          "label": "NBC Canada 2020",
+          "note": "地面或踏步面：出口、公共走廊、主要路线和所列房间平均至少 10 lx，最小 1 lx；无均匀度要求。持续时间 30 min、1 h（护理、治疗、羁押场所）或 2 h（高层建筑）。"
+        },
+        "nbr10898": {
+          "label": "ABNT NBR 10898（巴西）",
+          "note": "地面水平照度：平坦区域至少 3 lx，有高差处（楼梯、坡道、障碍物）5 lx，沿路线最大值 / 最小值 ≤ 20。持续时间至少 1 h。",
+          "places": {
+            "corridor": "平坦区域（走廊、大厅、避难区域）",
+            "crowded": "平坦区域（房间）",
+            "stairs": "高差处（楼梯、坡道、障碍物）"
+          }
+        },
+        "gb55037": {
+          "label": "GB 55037-2022（中国）",
+          "note": "按场所的地面最低水平照度（GB 55037-2022 第10.1.10条）：疏散楼梯间、前室及避难区域 10 lx，疏散走道和人员密集的场所 3 lx，其他场所 1 lx；路线按宽度中间一半计算，房间按整个地面计算，无均匀度要求。持续工作时间和转换时间（GB 51309-2018）不作计算。"
+        },
+        "jp-bsl": {
+          "label": "建筑基准法（日本）",
+          "note": "仅计直射光：房间及其疏散走道和楼梯的地面每一点（含角落）至少 2 lx（荧光灯和 LED 光源；白炽灯为 1 lx）。30 min。"
+        },
+        "nbc-in": {
+          "label": "NBC India 2016",
+          "note": "宽度不超过 2 m 的疏散路线：中心线上至少 10 lx，一半宽度上 5 lx，无均匀度要求；房间按 5 lx 检查。持续时间 1.5 h，5 s 内点亮。"
+        },
+        "as2293": {
+          "label": "AS/NZS 2293.1:2018（澳大利亚）",
+          "note": "疏散路线：地面至少 0.2 lx，平均 0.5 lx，楼梯 1 lx；在远离墙面处测量。依据 2018 版的公开摘要（2026 版尚未核对）。使用中 90 min。"
+        },
+        "nz-f6": {
+          "label": "NZBC F6/AS1（新西兰）",
+          "note": "地面直射照度：受保护的疏散通道和高差处 1 lx，其他各处 0.2 lx；距墙 0.5 m 以内的测点不计。90 min。",
+          "places": {
+            "corridor": "受保护的疏散通道",
+            "stairs": "高差处",
+            "other": "疏散路线其他部分"
+          }
+        }
+      }
     }
   },
   "dashboard": {
@@ -1574,7 +1727,7 @@
       "scene_3d_title": "3D 场景",
       "area_title": "室外区域设计器",
       "interior_title": "室内设计器",
-      "maps_title": "地图设计器",
+      "maps_title": "场地地图",
       "street_title": "道路设计",
       "spectral_title": "光谱实验室",
       "greenhouse_title": "温室",
@@ -1595,7 +1748,7 @@
       "scene_3d_desc": "以游戏引擎光源在房间、道路或停车场中漫游",
       "area_desc": "在区域内布置多个灯具并读取地面照度",
       "interior_desc": "按 EN 12464-1 划分区域、工作面和均匀度的房间",
-      "maps_desc": "在真实地图上规划灯具并检查街道与广场的照明",
+      "maps_desc": "在场地的 OpenStreetMap 地图上规划：在地球仪上找到它，绘制区域，放置灯杆",
       "street_desc": "按 EN 13201、RP-8、CJJ 45 和 MLO 的多灯具道路照明",
       "spectral_desc": "由 SPD 数据得到光谱、CCT、CRI、TM-30、褪黑素效应和园艺 PPFD",
       "colour_quality_title": "颜色质量",
@@ -1642,38 +1795,6 @@
       "compare_hint": "点击传感器查看其图表 · Ctrl/⌘ + 点击第二个传感器，然后比较",
       "compare_selected": "⇄ 比较 {a} 与 {b}"
     }
-  },
-  "maps_designer": {
-    "title": "照明设计器",
-    "instructions_title": "说明:",
-    "instruction_polygon": "绘制多边形（停车场区域）",
-    "instruction_luminaires": "放置灯具（标记点）",
-    "instruction_calculate": "点击计算以查看热力图",
-    "area_defined": "已定义区域:",
-    "luminaires_count": "灯具数量:",
-    "calculate": "计算热力图",
-    "my_location": "我的位置",
-    "export_csv": "导出CSV",
-    "show_values": "显示数值",
-    "hide_values": "隐藏数值",
-    "clear_all": "全部清除",
-    "results_title": "计算结果",
-    "min": "最小",
-    "max": "最大",
-    "average": "平均",
-    "uniformity": "均匀度 (U₀)",
-    "good_uniformity": "均匀度良好 (U₀ ≥ 0.40)",
-    "acceptable_uniformity": "均匀度可接受 (U₀ ≥ 0.25)",
-    "poor_uniformity": "均匀度差 - 请增加灯具",
-    "legend_title": "热力图图例",
-    "legend_low": "低",
-    "legend_high": "高",
-    "loading_description": "在真实卫星地图上设计室外照明。绘制停车场区域，放置灯具，计算照度。",
-    "load_maps": "加载Google地图",
-    "loading_maps": "正在加载Google地图...",
-    "toolbar_hint": "使用工具栏：多边形绘制区域，标记点放置灯具",
-    "load_failed": "加载Google地图失败",
-    "try_again": "重试"
   },
   "goniosim": {
     "title": "虚拟配光曲线仪",
@@ -1772,7 +1893,25 @@
     "sky_empty_hint": "调整地点和时间，然后点击追迹以计算天空的照度和颜色。",
     "scene_road": "道路",
     "scene_room": "房间",
-    "scene_plaza": "广场"
+    "scene_plaza": "广场",
+    "globe_pick": "🌍 在地球仪上选择",
+    "globe_title": "选择地点",
+    "globe_hint": "搜索城市或点击地球仪，然后点“Use this place”：将采用其纬度、经度和时区。",
+    "globe_close": "关闭",
+    "moon_card_title": "🌙 今夜月光",
+    "moonlight_now": "月光 {lx} lx",
+    "moonlight_day": "月亮在地平线上 · 日光为主",
+    "moon_summary": "{phase} {pct} % · {km} km（{dist}）",
+    "moon_dist_close": "近：比平均距离亮 {pct} %",
+    "moon_dist_far": "远：比平均距离暗 {pct} %",
+    "moon_times": "月出 {rise} · 月落 {set} · 最高 {max} lx（{at}）",
+    "moon_hours": "在天黑期间，仅月光就有 {h2} h 达到 0.2 lx 以上，{h1} h 达到 0.1 lx 以上。",
+    "moon_dark": "天黑期间月亮一直在地平线以下。",
+    "moon_ref_note": "开阔地面上的水平照度，晴空。参考线：0.2 lx = AS/NZS 2293 与 NZBC F6 疏散路线最低值 · 0.5 lx = EN 1838 防恐慌区域 · 1 lx = EN 1838 疏散路线 · 2 lx = EN 13201 P6 平均值。云、树木和建筑会挡掉大部分。",
+    "moon_legend_total": "全部自然光",
+    "moon_legend_moon": "仅月光",
+    "moon_month_title": "未来 30 夜的月光（每夜最高值）",
+    "moon_month_hint": "点击某一夜，在上方显示。"
   },
   "street": {
     "title": "道路照明设计器",

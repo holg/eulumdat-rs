@@ -10,6 +10,7 @@
 //! ([`crate::components::spectrum_demo`]); both share
 //! [`crate::components::spectral_ui`].
 
+use crate::components::location_picker::{GlobePicker, PickedPlace};
 use crate::components::sky_viz::{self, SceneKind};
 use crate::components::spectral_ui::*;
 use crate::i18n::use_locale;
@@ -30,13 +31,21 @@ pub fn DaylightSky(
     let (photons, set_photons) = signal(200_000u64);
     let (road_luminance, set_road_luminance) = signal(1.0f64);
 
-    // Location & datetime.
-    let custom_idx = eulumdat_daylight::LOCATIONS.len();
-    let default_loc_idx = eulumdat_daylight::LOCATIONS
-        .iter()
-        .position(|l| l.name == "Berlin")
-        .unwrap_or(0);
+    // Location & datetime: a preset, the place picked on the globe (option
+    // after the presets, remembered in this browser) or custom coordinates.
+    let picked_idx = eulumdat_daylight::LOCATIONS.len();
+    let custom_idx = picked_idx + 1;
+    let picked = RwSignal::new(PickedPlace::load_last());
+    let default_loc_idx = if picked.get_untracked().is_some() {
+        picked_idx
+    } else {
+        eulumdat_daylight::LOCATIONS
+            .iter()
+            .position(|l| l.name == "Berlin")
+            .unwrap_or(0)
+    };
     let (loc_idx, set_loc_idx) = signal(default_loc_idx);
+    let globe_open = RwSignal::new(false);
     let (month, set_month) = signal(6u32);
     let (day, set_day) = signal(21u32);
     let (hour, set_hour) = signal(13.0f64);
@@ -47,8 +56,11 @@ pub fn DaylightSky(
 
     let resolve_location = move || -> eulumdat_daylight::NamedLocation {
         let i = loc_idx.get();
-        if i < custom_idx {
+        if i < picked_idx {
             eulumdat_daylight::LOCATIONS[i]
+        } else if let Some(p) = picked.get().filter(|_| i == picked_idx) {
+            let (utc, dst) = p.clock();
+            eulumdat_daylight::NamedLocation::with_dst("Globe", p.lat, p.lon, utc, dst)
         } else {
             eulumdat_daylight::NamedLocation::with_dst(
                 "Custom",
@@ -74,6 +86,53 @@ pub fn DaylightSky(
         let dt = eulumdat_daylight::LocalDateTime::new(2026, month.get(), day.get(), hour.get());
         dt.moon_position(&loc)
     });
+    // the night the chosen time belongs to: from noon to noon (a morning
+    // hour belongs to the night that began the day before)
+    let night_start = move || {
+        let dt = eulumdat_daylight::LocalDateTime::new(2026, month.get(), day.get(), 12.0);
+        if hour.get() < 12.0 {
+            dt.prev_day()
+        } else {
+            dt
+        }
+    };
+    let night = Memo::new(move |_| {
+        let loc = resolve_location();
+        eulumdat_daylight::NightSummary::of(night_start(), &loc, 2.5, 10.0)
+    });
+    // the most moonlight of each of the next 30 nights
+    let month_bars = Memo::new(move |_| {
+        let loc = resolve_location();
+        let mut d = night_start();
+        (0..30)
+            .map(|_| {
+                let n = eulumdat_daylight::NightSummary::of(d, &loc, 2.5, 30.0);
+                let bar = (
+                    d,
+                    sky_viz::NightBar {
+                        max_lux: n.moon_max_lux,
+                        illuminated: n.moon_at_midnight.illuminated_fraction,
+                        waxing: n.moon_at_midnight.waxing,
+                    },
+                );
+                d = d.next_day();
+                bar
+            })
+            .collect::<Vec<_>>()
+    });
+    let pick_night = move |i: usize| {
+        let Some(d) = month_bars.with_untracked(|b| b.get(i).map(|(d, _)| *d)) else {
+            return;
+        };
+        // keep the clock: a morning hour shows the night before its date
+        let d = if hour.get_untracked() < 12.0 {
+            d.next_day()
+        } else {
+            d
+        };
+        set_month.set(d.month);
+        set_day.set(d.day);
+    };
     let current_scene = move || {
         let loc = resolve_location();
         let dt = eulumdat_daylight::LocalDateTime::new(2026, month.get(), day.get(), hour.get());
@@ -113,11 +172,34 @@ pub fn DaylightSky(
                             prop:value=move || loc_idx.get().to_string()
                             on:change=move |ev| { if let Ok(i)=event_target_value(&ev).parse::<usize>() { set_loc_idx.set(i); } }
                         >
+                            // `selected` per option: the select's value is set
+                            // before its options exist, so it alone showed the
+                            // first entry
                             {eulumdat_daylight::LOCATIONS.iter().enumerate().map(|(i, l)| {
-                                view! { <option value=i.to_string()>{l.name}</option> }
+                                view! { <option value=i.to_string() selected=move || loc_idx.get() == i>{l.name}</option> }
                             }).collect::<Vec<_>>()}
-                            <option value=custom_idx.to_string()>{move || format!("✎ {}", locale.get().spectrum_lab.location_custom)}</option>
+                            {move || picked.get().map(|p| view! {
+                                <option value=picked_idx.to_string() selected=move || loc_idx.get() == picked_idx>{format!("📍 {}", p.label())}</option>
+                            })}
+                            <option value=custom_idx.to_string() selected=move || loc_idx.get() == custom_idx>{move || format!("✎ {}", locale.get().spectrum_lab.location_custom)}</option>
                         </select>
+                    </div>
+                    <div>
+                        <button
+                            style="padding: 6px 10px; background: var(--background, #0d1117); color: inherit; border: 1px solid var(--border, #30363d); border-radius: 6px; cursor: pointer;"
+                            on:click=move |_| globe_open.set(true)
+                        >{move || locale.get().spectrum_lab.globe_pick.clone()}</button>
+                        <GlobePicker
+                            open=globe_open
+                            at=Signal::derive(move || {
+                                let l = resolve_location();
+                                (l.latitude_deg, l.longitude_deg)
+                            })
+                            on_pick=Callback::new(move |p: PickedPlace| {
+                                picked.set(Some(p));
+                                set_loc_idx.set(picked_idx);
+                            })
+                        />
                     </div>
 
                     {move || (loc_idx.get() == custom_idx).then(|| view! {
@@ -193,6 +275,15 @@ pub fn DaylightSky(
                                 let up = if m.is_up() { format!(" · {:.0}°", m.altitude_deg()) } else { format!(" · {}", sl.moon_below.clone()) };
                                 format!("{} {} {:.0}%{}", m.phase_name().emoji(), moon_phase_label(&sl, m.phase_name()), m.illuminated_fraction * 100.0, up)
                             });
+                            // the moon's light on the ground, in lux
+                            let moon_lux = m.is_up().then(|| {
+                                if day {
+                                    sl.moonlight_day.clone()
+                                } else {
+                                    let e = eulumdat_daylight::Moonlight::of(&m, 2.5).global_horizontal_lux;
+                                    sl.moonlight_now.replace("{lx}", &fmt_lux(e))
+                                }
+                            });
                             view! {
                                 <div style=format!("display:inline-block; padding:2px 10px; border-radius:12px; background:{badge_bg}; color:{badge_txt}; font-size:0.8rem; font-weight:600; margin-bottom:4px;")>
                                     {format!("{icon} {regime}")}
@@ -201,6 +292,7 @@ pub fn DaylightSky(
                                     <div>{format!("{}: {:.1}°", sl.sun_altitude, s.altitude_deg())}</div>
                                     <div>{format!("{}: {:.0}°", sl.sun_azimuth, s.azimuth_deg())}</div>
                                     {moon_line.map(|ml| view! { <div style="color:#a9c4e8;">{ml}</div> })}
+                                    {moon_lux.map(|ml| view! { <div style="color:#79c0ff; font-weight:600;">{ml}</div> })}
                                     <div style="opacity:0.7;">{format!("{:.4}°, {:.4}° · UTC{:+.1}", loc.latitude_deg, loc.longitude_deg, loc.utc_offset_hours)}</div>
                                 </div>
                             }
@@ -241,6 +333,74 @@ pub fn DaylightSky(
                         <div style="font-size: 0.72rem; color: var(--text-muted, #8b949e); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">{move || locale.get().spectrum_lab.viz_timeline.clone()}</div>
                         <div inner_html=move || { let (loc, dt) = current_scene(); sky_viz::day_timeline_svg(&dt, &loc, 2.5, 600.0, 48.0) } />
                     </div>
+                </div>
+
+                // ── Moonlight tonight + the next 30 nights ──
+                <div style="background: var(--surface-elevated, #161b22); border: 1px solid var(--border, #30363d); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted, #8b949e); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">{move || locale.get().spectrum_lab.moon_card_title.clone()}</div>
+                    {move || {
+                        let sl = locale.get().spectrum_lab;
+                        let n = night.get();
+                        let m = n.moon_at_midnight;
+                        let ratio = (eulumdat_daylight::lunar::MEAN_DISTANCE_KM / m.distance_km).powi(2);
+                        let dist = if ratio >= 1.0 {
+                            sl.moon_dist_close.replace("{pct}", &format!("{:.0}", (ratio - 1.0) * 100.0))
+                        } else {
+                            sl.moon_dist_far.replace("{pct}", &format!("{:.0}", (1.0 - ratio) * 100.0))
+                        };
+                        let summary = sl.moon_summary
+                            .replace("{phase}", &format!("{} {}", m.phase_name().emoji(), moon_phase_label(&sl, m.phase_name())))
+                            .replace("{pct}", &format!("{:.0}", m.illuminated_fraction * 100.0))
+                            .replace("{km}", &group_thousands(m.distance_km))
+                            .replace("{dist}", &dist);
+                        let clock = |h: Option<f64>| h.map(sky_viz::clock_after_noon).unwrap_or_else(|| "–".into());
+                        let times = (n.moon_max_lux > 1e-4).then(|| sl.moon_times
+                            .replace("{rise}", &clock(n.moonrise))
+                            .replace("{set}", &clock(n.moonset))
+                            .replace("{max}", &fmt_lux(n.moon_max_lux))
+                            .replace("{at}", &clock(n.moon_max_at)));
+                        let hours = if n.moon_max_lux > 1e-4 {
+                            sl.moon_hours
+                                .replace("{h2}", &format!("{:.1}", n.moon_hours_above(0.2)))
+                                .replace("{h1}", &format!("{:.1}", n.moon_hours_above(0.1)))
+                        } else {
+                            sl.moon_dark.clone()
+                        };
+                        let labels = sky_viz::NightChartLabels { total: sl.moon_legend_total.clone(), moon: sl.moon_legend_moon.clone() };
+                        let now = (hour.get() - 12.0).rem_euclid(24.0);
+                        view! {
+                            <div style="font-size:0.85rem; line-height:1.5; margin-bottom:6px;">
+                                <div style="font-weight:600;">{summary}</div>
+                                {times.map(|t| view! { <div>{t}</div> })}
+                                <div style="color:#79c0ff;">{hours}</div>
+                            </div>
+                            <div inner_html=sky_viz::night_light_svg(&n, Some(now), &labels, 900.0, 230.0) />
+                            <p style="margin:6px 0 10px; font-size:0.75rem; color:var(--text-muted,#8b949e);">{sl.moon_ref_note.clone()}</p>
+                        }
+                    }}
+                    <div style="font-size: 0.72rem; color: var(--text-muted, #8b949e); text-transform: uppercase; letter-spacing: 0.5px; margin: 4px 0 4px;">{move || locale.get().spectrum_lab.moon_month_title.clone()}</div>
+                    <div
+                        title=move || locale.get().spectrum_lab.moon_month_hint.clone()
+                        on:click=move |ev| {
+                            use wasm_bindgen::JsCast;
+                            let hit = ev.target()
+                                .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+                                .and_then(|e| e.closest("[data-night]").ok().flatten())
+                                .and_then(|e| e.get_attribute("data-night"))
+                                .and_then(|v| v.parse::<usize>().ok());
+                            if let Some(i) = hit {
+                                pick_night(i);
+                            }
+                        }
+                        inner_html=move || month_bars.with(|bars| {
+                            let nights: Vec<sky_viz::NightBar> = bars.iter().map(|(_, b)| sky_viz::NightBar { max_lux: b.max_lux, illuminated: b.illuminated, waxing: b.waxing }).collect();
+                            let labels: Vec<String> = bars.iter().enumerate().map(|(i, (d, _))| {
+                                if i == 0 || d.day == 1 || d.day % 5 == 0 { format!("{}.{}", d.day, d.month) } else { String::new() }
+                            }).collect();
+                            sky_viz::moon_month_svg(&nights, 0, &labels, 900.0, 92.0)
+                        })
+                    />
+                    <div style="font-size:0.72rem; color:var(--text-muted,#8b949e); margin-top:2px;">{move || locale.get().spectrum_lab.moon_month_hint.clone()}</div>
                 </div>
 
                 // Controls row (photons + road luminance for the mesopic card + trace).
@@ -300,5 +460,36 @@ fn scene_label(sl: &eulumdat_i18n::SpectrumLabLocale, k: SceneKind) -> String {
         SceneKind::Road => sl.scene_road.clone(),
         SceneKind::Room => sl.scene_room.clone(),
         SceneKind::Plaza => sl.scene_plaza.clone(),
+    }
+}
+
+/// Lux with as many decimals as small values need.
+fn fmt_lux(e: f64) -> String {
+    if e >= 10.0 {
+        format!("{e:.0}")
+    } else if e >= 1.0 {
+        format!("{e:.1}")
+    } else if e >= 0.01 {
+        format!("{e:.2}")
+    } else {
+        format!("{e:.3}")
+    }
+}
+
+/// 384400 → "384 400".
+fn group_thousands(v: f64) -> String {
+    let n = v.round() as i64;
+    let s = n.abs().to_string();
+    let mut out = String::new();
+    for (i, c) in s.chars().enumerate() {
+        if i > 0 && (s.len() - i).is_multiple_of(3) {
+            out.push('\u{202f}');
+        }
+        out.push(c);
+    }
+    if n < 0 {
+        format!("-{out}")
+    } else {
+        out
     }
 }
