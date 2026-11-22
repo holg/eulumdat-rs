@@ -300,7 +300,7 @@
       "e003": "未定义光源组",
       "e004": "光强数据维度不匹配：{0} 个C平面，应为 {1} 个",
       "e005": "G角数量 ({0}) 与 num_g_planes ({1}) 不匹配",
-      "e006": "C角数量 ({0}) 与预期 Mc ({1}) 不匹配"
+      "e006": "C角数量 ({0}) 与 C 平面数 Nc ({1}) 不匹配"
     }
   },
   "comparison": {
@@ -792,6 +792,16 @@
       "photoperiod": "光周期",
       "ppfd_from_spd": "PPFD 由灯具光谱得出：每 lx·s {f} µmol",
       "ppfd_assumed": "文件中无光谱：PPFD 按白光 LED 假定，每 lx·s {f} µmol。加载 ATLA / TM-33 文件或附加 SPD 以获得真实系数。",
+      "mel_title": "眼位黑视素等效日光照度（melanopic EDI）",
+      "mel_values": "平均 {mean} lx · 最暗位置 {min} lx（眼睛高度 1.2 m 处的垂直照度 × 灯具光谱的黑视素日光效能比 DER {der}，依据 CIE S 026）",
+      "mel_day_ok": "每个眼位都达到了日间不低于 250 lx melanopic EDI 的建议值。",
+      "mel_day_low": "并非所有位置都达到日间不低于 250 lx melanopic EDI 的建议值：最暗位置为 {min} lx。",
+      "mel_no_spd": "文件中没有光谱，因此无法给出黑视素数值。眼睛高度的垂直照度：平均 {mean} lx，最小 {min} lx。请加载 TM-33 / ATLA 文件或附加光谱。",
+      "mel_note": "建议值（Brown 等，2022）：白天眼位 melanopic EDI 不低于 250 lx，傍晚不高于 10 lx，夜间不高于 1 lx。此处仅计电气照明，天然光另行叠加。",
+      "mel_card_der": "黑视素日光效能比 DER {der}（D65 日光 = 1）",
+      "mel_card_edi": "眼位 {lux} lx 相当于 {edi} lx melanopic EDI",
+      "mel_card_need": "要达到 250 lx melanopic EDI，眼位需要 {lux} lx",
+      "mel_card_estimate": "根据色温估算：文件中没有光谱。",
       "dli": "DLI",
       "dli_explain": "DLI = 平均 PPFD × 光周期，单位 mol/m²/天。叶菜需 12–17，果菜需 20–30。",
       "hint_ppfd": "颜色 = 各表面的 PPFD（µmol/m²/s，刻度见面板）· 等值线每 {step} 一条",
@@ -834,6 +844,7 @@
       "scene_planned": "📐 方案",
       "from_interior": "室内设计器",
       "from_outdoor": "室外区域设计器",
+      "from_street": "道路设计器",
       "desc_planned": "来自{from}：{name}。可在此移动灯具、传感器和人物以尝试不同方案；原方案保持不变。",
       "open_in_light_scene": "🎬 在光照场景中打开",
       "open_in_light_scene_tip": "用路径追踪检验此方案：房间或区域及其灯具和传感器。",
@@ -1634,6 +1645,29 @@
           }
         }
       }
+    },
+    "ifc": {
+      "title": "🏢 从 IFC 模型导入房间",
+      "intro": "打开建筑模型（IFC2x3、IFC4）并从中选取一个房间：轮廓、高度、其中的灯具和出口。文件在浏览器中读取。",
+      "open": "打开 IFC 文件…",
+      "reading": "正在读取 {name}…",
+      "failed": "无法读取此 IFC 文件：{error}",
+      "summary": "{storeys} 个楼层共 {rooms} 个房间 · {luminaires} 个灯具 · {doors} 扇门 · {windows} 扇窗",
+      "storey": "楼层",
+      "room": "房间",
+      "room_info": "{area} m² · 高 {height} m",
+      "in_room": "此房间内：{luminaires} 个灯具（{with} 个带光度数据）· {doors} 扇门（{exits} 个出口）· {windows} 扇窗",
+      "use_luminaires": "使用模型中的灯具位置（{n}）",
+      "use_photometry": "打开其光度数据：{name}",
+      "use_exits": "将出口作为应急照明点（{n}）",
+      "apply": "使用此房间",
+      "applied": "来自模型的房间：{name}",
+      "fixed_note": "已按 IFC 模型放置 {n} 个灯具。",
+      "back_to_grid": "改用计算出的布置",
+      "no_photometry": "此处的灯具没有光度数据；使用已加载的灯具。",
+      "notes": "说明",
+      "export_ifc": "🏢 IFC 模型（.ifc）",
+      "export_ifc_tip": "将房间导出为 IFC4 模型：轮廓、墙体、带光度数据的灯具（含应急灯具）和出口，供 BIM 软件、bimifc.de 和此处导入使用。"
     }
   },
   "dashboard": {

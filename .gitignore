@@ -204,3 +204,6 @@ scripts/video_scenes/
 # see crates/eulumdat/tests/fixtures/beam_field/README.md)
 crates/eulumdat/tests/fixtures/beam_field/sample*.ldt
 crates/eulumdat/tests/fixtures/beam_field/[1-4].IES
+
+# Local [patch] onto the sibling checkouts (see .cargo/local-siblings.example.toml)
+.cargo/local-siblings.toml

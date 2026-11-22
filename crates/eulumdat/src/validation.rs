@@ -146,7 +146,7 @@ fn english_message(code: &str, args: &[&dyn core::fmt::Display]) -> String {
             args[0], args[1]
         ),
         "E006" => format!(
-            "C-angles count ({}) doesn't match expected Mc ({})",
+            "C-angles count ({}) doesn't match the number of C-planes Nc ({})",
             args[0], args[1]
         ),
         _ => format!("[{}]", code),
@@ -177,6 +177,7 @@ fn rms_percent_difference(a: &[f64], b: &[f64]) -> f64 {
 /// Check whether declared symmetry matches the actual intensity data.
 /// Returns `Some((rms_pct, plane_description))` when the data shows significant
 /// asymmetry that contradicts the declared symmetry type.
+#[allow(dead_code)] // W047 is no longer reported (see validate_inner)
 fn check_symmetry_correctness(ldt: &Eulumdat) -> Option<(f64, String)> {
     match ldt.symmetry {
         Symmetry::BothPlanes => {
@@ -349,18 +350,13 @@ fn validate_inner(
         });
     }
 
-    if ldt.length == 0.0 {
-        warnings.push(ValidationWarning {
-            code: "W045",
-            message: msg("W045", &[]),
-        });
-    }
-    if ldt.height == 0.0 {
-        warnings.push(ValidationWarning {
-            code: "W046",
-            message: msg("W046", &[]),
-        });
-    }
+    // W045 / W046 ("length / height is zero") are no longer reported: zero
+    // is valid in both formats. EULUMDAT: width 0 = a round luminaire (the
+    // length is its diameter), height 0 = flat or not given. IES LM-63-19
+    // Table 1: 0 / 0 / 0 = a point source, height 0 = a flat opening, and a
+    // vertical disc has length 0. Only negative values are wrong in an LDT
+    // (W012–W016); IES writes round shapes as negative numbers, which the
+    // importer turns into the EULUMDAT form.
 
     if ldt.luminous_area_length < 0.0 {
         warnings.push(ValidationWarning {
@@ -622,15 +618,14 @@ fn validate_inner(
     }
 
     // === Symmetry Correctness Validation ===
-
-    if let Some((rms, planes)) = check_symmetry_correctness(ldt) {
-        let isym = ldt.symmetry.as_int();
-        let rms_str = format!("{:.1}", rms);
-        warnings.push(ValidationWarning {
-            code: "W047",
-            message: msg("W047", &[&isym, &rms_str, &planes]),
-        });
-    }
+    //
+    // W047 is no longer reported. A file with symmetry stores only its
+    // independent part (Isym 2: C0–C180, Isym 3: C90–C270, Isym 4:
+    // C0–C90); the mirrored half is implied, so the stored data cannot
+    // show whether the declared symmetry holds. The check compared C0 with
+    // C180 (Isym 2), C90 with C270 (Isym 3) and C0 with C90 (Isym 4), which
+    // legitimately differ for projectors, road luminaires and linear
+    // luminaires: it flagged valid files.
 
     warnings
 }
@@ -677,10 +672,13 @@ fn validate_strict_inner(
         });
     }
 
-    if ldt.c_angles.len() != expected_mc {
+    // EULUMDAT lists every C-angle (Nc of them); only the intensity rows
+    // are reduced to Mc by the symmetry (E004). Comparing the angles with
+    // Mc failed every file with symmetry.
+    if ldt.c_angles.len() != ldt.num_c_planes {
         errors.push(ValidationError {
             code: "E006",
-            message: msg("E006", &[&ldt.c_angles.len(), &expected_mc]),
+            message: msg("E006", &[&ldt.c_angles.len(), &ldt.num_c_planes]),
         });
     }
 
@@ -793,13 +791,41 @@ mod tests {
     }
 
     #[test]
-    fn test_zero_dimensions() {
-        let mut ldt = create_valid_ldt();
-        ldt.length = 0.0;
-        ldt.height = 0.0;
-        let warnings = validate(&ldt);
-        assert!(warnings.iter().any(|w| w.code == "W045"));
-        assert!(warnings.iter().any(|w| w.code == "W046"));
+    fn zero_dimensions_are_valid() {
+        let dims = |w: &[ValidationWarning]| -> Vec<&str> {
+            w.iter()
+                .map(|w| w.code)
+                .filter(|c| ["W012", "W013", "W014", "W045", "W046", "W017", "W018"].contains(c))
+                .collect()
+        };
+        // a point source (IES LM-63-19: 0 / 0 / 0)
+        let mut point = create_valid_ldt();
+        (point.length, point.width, point.height) = (0.0, 0.0, 0.0);
+        assert!(
+            dims(&validate(&point)).is_empty(),
+            "{:?}",
+            dims(&validate(&point))
+        );
+        // a round flat luminaire: width 0 = circular, length = diameter
+        let mut round = create_valid_ldt();
+        (round.length, round.width, round.height) = (200.0, 0.0, 0.0);
+        assert!(
+            dims(&validate(&round)).is_empty(),
+            "{:?}",
+            dims(&validate(&round))
+        );
+        // a vertical disc (length 0, width and height = diameter)
+        let mut disc = create_valid_ldt();
+        (disc.length, disc.width, disc.height) = (0.0, 150.0, 150.0);
+        assert!(
+            dims(&validate(&disc)).is_empty(),
+            "{:?}",
+            dims(&validate(&disc))
+        );
+        // negative values stay wrong in an LDT
+        let mut neg = create_valid_ldt();
+        neg.length = -200.0;
+        assert_eq!(dims(&validate(&neg)), ["W012"]);
     }
 
     #[test]
@@ -846,8 +872,9 @@ mod tests {
     }
 
     #[test]
-    fn test_symmetry_correctness_isym4_mismatched() {
-        // Isym=4 with C0 ≠ C90 (2x difference) — should produce W047
+    fn test_symmetry_isym4_linear_luminaire_is_valid() {
+        // Isym=4 with C0 ≠ C90 (2x difference): a linear luminaire, valid;
+        // the stored quarter cannot contradict the declared symmetry
         let mut ldt = Eulumdat::new();
         ldt.symmetry = Symmetry::BothPlanes;
         ldt.num_c_planes = 36;
@@ -872,8 +899,8 @@ mod tests {
         });
         let warnings = validate(&ldt);
         assert!(
-            warnings.iter().any(|w| w.code == "W047"),
-            "Isym=4 with mismatched C0/C90 should produce W047"
+            !warnings.iter().any(|w| w.code == "W047"),
+            "an Isym=4 luminaire with different C0 / C90 is valid"
         );
     }
 

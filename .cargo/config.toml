@@ -1,3 +1,8 @@
+# Local builds use the sibling checkouts (../bimifc …) when
+# `.cargo/local-siblings.toml` exists (git-ignored; template:
+# `.cargo/local-siblings.example.toml`). Without it, crates.io.
+include = [{ path = "local-siblings.toml", optional = true }]
+
 # Cargo configuration for cross-compilation
 
 # WASM: allow up to 4 GB memory (Bistro GLB is ~180 MB, decoded textures need more).

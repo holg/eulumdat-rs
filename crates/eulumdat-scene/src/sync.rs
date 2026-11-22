@@ -40,6 +40,10 @@ pub struct SyncSettings {
     /// µmol per (lx·s) of the loaded spectrum; `None` = assume a white LED.
     #[serde(default)]
     pub ppfd_factor: Option<f32>,
+    /// Melanopic DER (CIE S 026) of the loaded spectrum; `None` = no spectrum,
+    /// no melanopic values.
+    #[serde(default)]
+    pub mel_der: Option<f32>,
     /// `None` takes the colour temperature from the file.
     pub cct: Option<f32>,
     pub haze: f32,
@@ -240,6 +244,7 @@ impl SyncSettings {
                 "canopy" | "canopy_height" => f(v).map(|x| self.canopy_height = x).is_some(),
                 "photoperiod" | "hours" => f(v).map(|x| self.photoperiod = x).is_some(),
                 "ppfd" | "ppfd_factor" => f(v).map(|x| self.ppfd_factor = Some(x)).is_some(),
+                "melder" | "mel_der" => f(v).map(|x| self.mel_der = Some(x)).is_some(),
                 "cct" => f(v).map(|x| self.cct = Some(x)).is_some(),
                 "haze" => f(v).map(|x| self.haze = x.clamp(0.0, 1.0)).is_some(),
                 "glare" => {
@@ -406,6 +411,7 @@ impl SyncSettings {
             canopy_height: p.canopy_height,
             photoperiod: p.photoperiod,
             ppfd_factor: None,
+            mel_der: None,
             cct: None,
             haze: 0.05,
             glare: true,
@@ -528,6 +534,8 @@ pub struct Status {
     pub ppfd_factor: f32,
     /// True when `ppfd_factor` came from the luminaire's spectrum.
     pub ppfd_from_spectrum: bool,
+    /// Melanopic DER of the luminaire's spectrum, 0 when it has none.
+    pub mel_der: f32,
     pub photoperiod: f32,
     pub lux_max: f32,
     pub iso_step: f32,

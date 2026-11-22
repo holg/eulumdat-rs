@@ -129,6 +129,10 @@ pub fn validate(doc: &LuminaireOpticalData) -> ValidationResult {
 /// - TM32-W001: Missing recommended BIM parameters
 /// - TM32-W002: CCT should be specified for BIM
 /// - TM32-W003: CRI should be specified for BIM
+/// - TM32-E003: Luminaire dimensions required for BIM
+/// - TM32-E004: Luminaire without any size (length and width 0); width 0
+///   alone is a round luminaire (Diameter = length)
+/// - TM32-W006: Housing height not given (0 = flat / not given)
 pub fn validate_with_schema(
     doc: &LuminaireOpticalData,
     schema: ValidationSchema,
@@ -402,23 +406,26 @@ fn validate_tm32_24(doc: &LuminaireOpticalData, result: &mut ValidationResult) {
             });
         }
         Some(dims) => {
-            if dims.length == 0.0 || dims.width == 0.0 || dims.height == 0.0 {
-                let mut zero_fields = Vec::new();
-                if dims.length == 0.0 {
-                    zero_fields.push("length");
-                }
-                if dims.width == 0.0 {
-                    zero_fields.push("width");
-                }
-                if dims.height == 0.0 {
-                    zero_fields.push("height");
-                }
+            // TM-32-24 has a Diameter next to Length / Width: width 0 is a
+            // round luminaire (EULUMDAT: length = diameter) and fine. Only a
+            // luminaire without any size has no body for BIM.
+            if dims.length == 0.0 && dims.width == 0.0 {
                 result.errors.push(ValidationMessage {
                     code: "TM32-E004".to_string(),
-                    message: format!(
-                        "TM-32-24: Luminaire {} must be non-zero for BIM integration",
-                        zero_fields.join(", ")
-                    ),
+                    message: "TM-32-24: Luminaire length or diameter must be non-zero for BIM integration"
+                        .to_string(),
+                    line: None,
+                    column: None,
+                });
+            }
+            // height 0 = flat / not given in EULUMDAT and IES; BIM wants
+            // the housing height
+            if dims.height == 0.0 {
+                result.warnings.push(ValidationMessage {
+                    code: "TM32-W006".to_string(),
+                    message:
+                        "TM-32-24: Housing height is not given (0); BIM content should carry it"
+                            .to_string(),
                     line: None,
                     column: None,
                 });
@@ -1455,18 +1462,24 @@ mod tests {
     }
 
     #[test]
-    fn test_tm32_24_rejects_zero_dimensions() {
-        let mut doc = create_tm32_24_valid_doc();
-        doc.luminaire
-            .as_mut()
-            .unwrap()
-            .dimensions
-            .as_mut()
-            .unwrap()
-            .height = 0.0;
-
-        let result = validate_with_schema(&doc, ValidationSchema::Tm3224);
-        assert!(!result.is_valid());
-        assert!(result.errors.iter().any(|e| e.code == "TM32-E004"));
+    fn test_tm32_24_zero_dimensions() {
+        let with = |length: f64, width: f64, height: f64| {
+            let mut doc = create_tm32_24_valid_doc();
+            let dims = doc.luminaire.as_mut().unwrap().dimensions.as_mut().unwrap();
+            (dims.length, dims.width, dims.height) = (length, width, height);
+            validate_with_schema(&doc, ValidationSchema::Tm3224)
+        };
+        // round (width 0: length = diameter) is a valid luminaire
+        let round = with(300.0, 0.0, 80.0);
+        assert!(round.errors.iter().all(|e| e.code != "TM32-E004"));
+        assert!(round.warnings.iter().all(|w| w.code != "TM32-W006"));
+        // flat / height not given: a warning, not an error
+        let flat = with(300.0, 200.0, 0.0);
+        assert!(flat.errors.iter().all(|e| e.code != "TM32-E004"));
+        assert!(flat.warnings.iter().any(|w| w.code == "TM32-W006"));
+        // no size at all: no body for BIM
+        let point = with(0.0, 0.0, 0.0);
+        assert!(!point.is_valid());
+        assert!(point.errors.iter().any(|e| e.code == "TM32-E004"));
     }
 }

@@ -5,6 +5,7 @@
 
 use crate::atla::types::*;
 
+use crate::symmetry::SymmetryHandler;
 use crate::{Eulumdat, LampSet, Symmetry as EulumdatSymmetry, TypeIndicator};
 
 /// Map an EULUMDAT lamp count to a valid TM-33 `Quantity` (a non-negative
@@ -20,100 +21,113 @@ fn lamp_count_to_quantity(num_lamps: i32) -> u32 {
 }
 
 impl From<&Eulumdat> for LuminaireOpticalData {
+    /// The ATLA form of `ldt`, keeping `ldt` itself for the way back
+    /// ([`LuminaireOpticalData::source_ldt`]).
     fn from(ldt: &Eulumdat) -> Self {
-        let mut doc = LuminaireOpticalData::new();
-
-        // Header
-        doc.header = Header {
-            manufacturer: if ldt.identification.is_empty() {
-                None
-            } else {
-                Some(ldt.identification.clone())
-            },
-            catalog_number: if ldt.luminaire_number.is_empty() {
-                None
-            } else {
-                Some(ldt.luminaire_number.clone())
-            },
-            description: if ldt.luminaire_name.is_empty() {
-                None
-            } else {
-                Some(ldt.luminaire_name.clone())
-            },
-            laboratory: if ldt.identification.is_empty() {
-                None
-            } else {
-                Some(ldt.identification.clone())
-            },
-            report_number: if ldt.measurement_report_number.is_empty() {
-                None
-            } else {
-                Some(ldt.measurement_report_number.clone())
-            },
-            test_date: if ldt.date_user.is_empty() {
-                None
-            } else {
-                Some(ldt.date_user.clone())
-            },
-            report_date: if ldt.date_user.is_empty() {
-                None
-            } else {
-                Some(ldt.date_user.clone())
-            },
-            ..Default::default()
-        };
-
-        // Luminaire dimensions
-        if ldt.length > 0.0 || ldt.width > 0.0 || ldt.height > 0.0 {
-            let shape = if ldt.width == 0.0 {
-                LuminousOpeningShape::Circular
-            } else {
-                LuminousOpeningShape::Rectangular
-            };
-
-            doc.luminaire = Some(Luminaire {
-                dimensions: Some(Dimensions {
-                    length: ldt.length,
-                    width: ldt.width,
-                    height: ldt.height,
-                }),
-                luminous_openings: vec![LuminousOpening {
-                    shape,
-                    dimensions: OpeningDimensions {
-                        length: ldt.luminous_area_length,
-                        width: if ldt.luminous_area_width > 0.0 {
-                            Some(ldt.luminous_area_width)
-                        } else {
-                            None
-                        },
-                    },
-                    position: None,
-                }],
-                mounting: None,
-                num_emitters: Some(
-                    ldt.primary_lamp_set()
-                        .map_or(0, |ls| lamp_count_to_quantity(ls.num_lamps)),
-                ),
-            });
-        }
-
-        // The primary lamp set becomes the emitter. Further lamp sets are
-        // alternative fittings (EULUMDAT line 26), not additional light
-        // sources, so they must not become additive ATLA emitters; they are
-        // kept aside for the round trip back to LDT.
-        if ldt.lamp_sets.len() <= 1 {
-            doc.emitters.push(create_emitter_from_ldt(ldt));
-        } else {
-            doc.emitters
-                .push(create_emitter_from_lamp_set(&ldt.lamp_sets[0], Some(ldt)));
-            doc.alternative_lamp_sets = ldt.lamp_sets[1..]
-                .iter()
-                .map(|ls| create_emitter_from_lamp_set(ls, None))
-                .collect();
-        }
-
+        let mut doc = doc_from_ldt(ldt);
+        let key = ldt_from_doc(&doc).to_ldt();
+        doc.source_ldt = Some(Box::new(SourceLdt {
+            ldt: ldt.clone(),
+            key,
+        }));
         doc
     }
+}
+
+/// LDT → ATLA with the fields ATLA has.
+fn doc_from_ldt(ldt: &Eulumdat) -> LuminaireOpticalData {
+    let mut doc = LuminaireOpticalData::new();
+
+    // Header
+    doc.header = Header {
+        manufacturer: if ldt.identification.is_empty() {
+            None
+        } else {
+            Some(ldt.identification.clone())
+        },
+        catalog_number: if ldt.luminaire_number.is_empty() {
+            None
+        } else {
+            Some(ldt.luminaire_number.clone())
+        },
+        description: if ldt.luminaire_name.is_empty() {
+            None
+        } else {
+            Some(ldt.luminaire_name.clone())
+        },
+        laboratory: if ldt.identification.is_empty() {
+            None
+        } else {
+            Some(ldt.identification.clone())
+        },
+        report_number: if ldt.measurement_report_number.is_empty() {
+            None
+        } else {
+            Some(ldt.measurement_report_number.clone())
+        },
+        test_date: if ldt.date_user.is_empty() {
+            None
+        } else {
+            Some(ldt.date_user.clone())
+        },
+        report_date: if ldt.date_user.is_empty() {
+            None
+        } else {
+            Some(ldt.date_user.clone())
+        },
+        ..Default::default()
+    };
+
+    // Luminaire dimensions
+    if ldt.length > 0.0 || ldt.width > 0.0 || ldt.height > 0.0 {
+        let shape = if ldt.width == 0.0 {
+            LuminousOpeningShape::Circular
+        } else {
+            LuminousOpeningShape::Rectangular
+        };
+
+        doc.luminaire = Some(Luminaire {
+            dimensions: Some(Dimensions {
+                length: ldt.length,
+                width: ldt.width,
+                height: ldt.height,
+            }),
+            luminous_openings: vec![LuminousOpening {
+                shape,
+                dimensions: OpeningDimensions {
+                    length: ldt.luminous_area_length,
+                    width: if ldt.luminous_area_width > 0.0 {
+                        Some(ldt.luminous_area_width)
+                    } else {
+                        None
+                    },
+                },
+                position: None,
+            }],
+            mounting: None,
+            num_emitters: Some(
+                ldt.primary_lamp_set()
+                    .map_or(0, |ls| lamp_count_to_quantity(ls.num_lamps)),
+            ),
+        });
+    }
+
+    // The primary lamp set becomes the emitter. Further lamp sets are
+    // alternative fittings (EULUMDAT line 26), not additional light
+    // sources, so they must not become additive ATLA emitters; they are
+    // kept aside for the round trip back to LDT.
+    if ldt.lamp_sets.len() <= 1 {
+        doc.emitters.push(create_emitter_from_ldt(ldt));
+    } else {
+        doc.emitters
+            .push(create_emitter_from_lamp_set(&ldt.lamp_sets[0], Some(ldt)));
+        doc.alternative_lamp_sets = ldt.lamp_sets[1..]
+            .iter()
+            .map(|ls| create_emitter_from_lamp_set(ls, None))
+            .collect();
+    }
+
+    doc
 }
 
 /// One EULUMDAT lamp set from an ATLA emitter.
@@ -164,12 +178,8 @@ fn create_emitter_from_lamp_set(ls: &LampSet, ldt_for_intensity: Option<&Eulumda
         if ldt.intensities.is_empty() {
             None
         } else {
-            let num_intensity_rows = ldt.intensities.len();
-            let horizontal_angles = if ldt.c_angles.len() == num_intensity_rows {
-                ldt.c_angles.clone()
-            } else {
-                ldt.c_angles[..num_intensity_rows.min(ldt.c_angles.len())].to_vec()
-            };
+            // the angles of the stored rows: C0–C180, C90–C270 or C0–C90
+            let horizontal_angles = SymmetryHandler::stored_c_angles(ldt);
             Some(IntensityDistribution {
                 photometry_type: PhotometryType::TypeC,
                 metric: IntensityMetric::Luminous,
@@ -222,17 +232,11 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
         })
     });
 
-    // Build intensity distribution
-    // Note: LDT files with symmetry store all C-angles but only a subset of intensity rows
-    // (e.g., PlaneC90C270 stores 27 rows for 52 angles). We must match angles to intensity rows.
+    // Build intensity distribution. LDT files with symmetry list all C
+    // angles but store only the rows of the symmetric part (C90–C270 for
+    // a road light: 27 rows for 52 angles); each row gets its own angle.
     let intensity_distribution = if !ldt.intensities.is_empty() {
-        let num_intensity_rows = ldt.intensities.len();
-        let horizontal_angles = if ldt.c_angles.len() == num_intensity_rows {
-            ldt.c_angles.clone()
-        } else {
-            // Only take the C-angles that correspond to stored intensity data
-            ldt.c_angles[..num_intensity_rows.min(ldt.c_angles.len())].to_vec()
-        };
+        let horizontal_angles = SymmetryHandler::stored_c_angles(ldt);
         // num_lamps == -1 in any lamp set signals absolute photometry.
         let is_absolute = ldt.lamp_sets.iter().any(|ls| ls.num_lamps < 0);
         Some(IntensityDistribution {
@@ -257,15 +261,9 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
             .lamp_sets
             .iter()
             .filter(|ls| !ls.lamp_type.is_empty())
-            .map(|ls| {
-                // num_lamps == -1 is the absolute-photometry sentinel, not a
-                // real count — don't print "-1x LED". Omit the count prefix.
-                if ls.num_lamps > 0 {
-                    format!("{}x {}", ls.num_lamps, ls.lamp_type)
-                } else {
-                    ls.lamp_type.clone()
-                }
-            })
+            // the count is the emitter's quantity; a "2x " prefix here came
+            // back as part of the lamp type and grew on every round trip
+            .map(|ls| ls.lamp_type.clone())
             .collect();
         if lamp_desc.is_empty() {
             None
@@ -312,135 +310,162 @@ fn create_emitter_from_ldt(ldt: &Eulumdat) -> Emitter {
 }
 
 impl From<&LuminaireOpticalData> for Eulumdat {
+    /// The EULUMDAT form. A document made from an LDT gives that LDT back
+    /// while it still describes the same luminaire; after an edit on the
+    /// ATLA side it keeps the LDT's values ATLA has no place for.
     fn from(doc: &LuminaireOpticalData) -> Self {
-        let mut ldt = Eulumdat::default();
-
-        // Header -> identification fields
-        if let Some(ref mfr) = doc.header.manufacturer {
-            ldt.identification = mfr.clone();
+        let ldt = ldt_from_doc(doc);
+        match doc.source_ldt.as_deref() {
+            Some(src) if ldt.to_ldt() == src.key => src.ldt.clone(),
+            Some(src) => keep_ldt_only_values(ldt, &src.ldt),
+            None => ldt,
         }
-        if let Some(ref cat) = doc.header.catalog_number {
-            ldt.luminaire_number = cat.clone();
-        }
-        if let Some(ref desc) = doc.header.description {
-            ldt.luminaire_name = desc.clone();
-        }
-        if let Some(ref report) = doc.header.report_number {
-            ldt.measurement_report_number = report.clone();
-        }
-        if let Some(ref date) = doc.header.test_date {
-            ldt.date_user = date.clone();
-        }
-
-        // Luminaire dimensions
-        if let Some(ref luminaire) = doc.luminaire {
-            if let Some(ref dims) = luminaire.dimensions {
-                ldt.length = dims.length;
-                ldt.width = dims.width;
-                ldt.height = dims.height;
-            }
-
-            // Luminous opening -> luminous area
-            if let Some(opening) = luminaire.luminous_openings.first() {
-                ldt.luminous_area_length = opening.dimensions.length;
-                ldt.luminous_area_width = opening.dimensions.width.unwrap_or(0.0);
-            }
-        }
-
-        // Emitters -> lamp sets. ATLA emitters are installed together while
-        // EULUMDAT lamp sets are alternatives, so several emitters become one
-        // lamp set with summed lamps, flux and power. Alternative fittings
-        // kept from an LDT import follow as further lamp sets.
-        let mut sets = doc.emitters.iter().map(lamp_set_from_emitter);
-        if let Some(mut primary) = sets.next() {
-            for other in sets {
-                primary.num_lamps = if primary.num_lamps < 0 || other.num_lamps < 0 {
-                    -1
-                } else {
-                    primary.num_lamps + other.num_lamps
-                };
-                primary.total_luminous_flux += other.total_luminous_flux;
-                primary.wattage_with_ballast += other.wattage_with_ballast;
-                if !other.lamp_type.is_empty() && other.lamp_type != primary.lamp_type {
-                    primary.lamp_type = if primary.lamp_type.is_empty() {
-                        other.lamp_type
-                    } else {
-                        format!("{} + {}", primary.lamp_type, other.lamp_type)
-                    };
-                }
-            }
-            ldt.lamp_sets.push(primary);
-        }
-        ldt.lamp_sets
-            .extend(doc.alternative_lamp_sets.iter().map(lamp_set_from_emitter));
-
-        // Intensity distribution — from first emitter that has it
-        if let Some(emitter) = doc
-            .emitters
-            .iter()
-            .find(|e| e.intensity_distribution.is_some())
-        {
-            if let Some(ref dist) = emitter.intensity_distribution {
-                ldt.c_angles = dist.horizontal_angles.clone();
-                ldt.g_angles = dist.vertical_angles.clone();
-                ldt.intensities = dist.intensities.clone();
-
-                // Calculate grid parameters
-                ldt.num_c_planes = if dist.horizontal_angles.len() > 1 {
-                    dist.horizontal_angles.len()
-                } else {
-                    1
-                };
-                ldt.num_g_planes = dist.vertical_angles.len();
-
-                if dist.horizontal_angles.len() > 1 {
-                    ldt.c_plane_distance = dist.horizontal_angles[1] - dist.horizontal_angles[0];
-                }
-                if dist.vertical_angles.len() > 1 {
-                    ldt.g_plane_distance = dist.vertical_angles[1] - dist.vertical_angles[0];
-                }
-
-                // Determine symmetry from data and expand c_angles to full range
-                ldt.symmetry = determine_symmetry(&dist.horizontal_angles);
-                let step = ldt.c_plane_distance;
-                if step > 0.0 {
-                    let full_count = match ldt.symmetry {
-                        EulumdatSymmetry::BothPlanes => (360.0 / step) as usize,
-                        EulumdatSymmetry::PlaneC0C180 | EulumdatSymmetry::PlaneC90C270 => {
-                            (360.0 / step) as usize
-                        }
-                        _ => dist.horizontal_angles.len(),
-                    };
-                    if full_count > dist.horizontal_angles.len() {
-                        ldt.c_angles = (0..full_count).map(|i| i as f64 * step).collect();
-                        ldt.num_c_planes = full_count;
-                    }
-                }
-            }
-        }
-
-        // Calculate light output ratio and downward flux fraction
-        if !ldt.intensities.is_empty() && !ldt.g_angles.is_empty() {
-            let (dff, lor) = calculate_flux_fractions(&ldt);
-            ldt.downward_flux_fraction = dff;
-            ldt.light_output_ratio = lor;
-
-            // Recalculate direct ratios from intensity data (SHR 1.25 is standard)
-            ldt.direct_ratios =
-                crate::PhotometricCalculations::calculate_direct_ratios(&ldt, "1.25");
-        }
-
-        // Set type indicator based on dimensions
-        ldt.type_indicator = if ldt.width == 0.0 {
-            TypeIndicator::PointSourceSymmetric
-        } else if ldt.length > ldt.width * 2.0 {
-            TypeIndicator::Linear
-        } else {
-            TypeIndicator::PointSourceOther
-        };
-
-        ldt
     }
+}
+
+/// The values of the source LDT that ATLA cannot hold, put into the
+/// conversion of an edited document. Symmetry, angle list and the values
+/// derived from the table only while the table is unchanged.
+fn keep_ldt_only_values(mut ldt: Eulumdat, src: &Eulumdat) -> Eulumdat {
+    ldt.file_name = src.file_name.clone();
+    ldt.light_output_ratio = src.light_output_ratio;
+    ldt.conversion_factor = src.conversion_factor;
+    ldt.tilt_angle = src.tilt_angle;
+    ldt.height_c0 = src.height_c0;
+    ldt.height_c90 = src.height_c90;
+    ldt.height_c180 = src.height_c180;
+    ldt.height_c270 = src.height_c270;
+    if ldt.length == src.length && ldt.width == src.width {
+        ldt.type_indicator = src.type_indicator;
+    }
+    if ldt.intensities == src.intensities && ldt.g_angles == src.g_angles {
+        ldt.symmetry = src.symmetry;
+        ldt.c_angles = src.c_angles.clone();
+        ldt.num_c_planes = src.num_c_planes;
+        ldt.c_plane_distance = src.c_plane_distance;
+        ldt.num_g_planes = src.num_g_planes;
+        ldt.g_plane_distance = src.g_plane_distance;
+        ldt.downward_flux_fraction = src.downward_flux_fraction;
+        ldt.direct_ratios = src.direct_ratios;
+    }
+    // the file's own wording while it says the same ("tw/6500" = 6500 K)
+    for (set, orig) in ldt.lamp_sets.iter_mut().zip(&src.lamp_sets) {
+        if parse_cct(&set.color_appearance) == parse_cct(&orig.color_appearance) {
+            set.color_appearance = orig.color_appearance.clone();
+        }
+        let group = |g: &str| parse_cri(g).map(cri_to_group);
+        if group(&set.color_rendering_group) == group(&orig.color_rendering_group) {
+            set.color_rendering_group = orig.color_rendering_group.clone();
+        }
+    }
+    ldt
+}
+
+/// ATLA → LDT with the fields ATLA has.
+fn ldt_from_doc(doc: &LuminaireOpticalData) -> Eulumdat {
+    let mut ldt = Eulumdat::default();
+
+    // Header -> identification fields
+    if let Some(ref mfr) = doc.header.manufacturer {
+        ldt.identification = mfr.clone();
+    }
+    if let Some(ref cat) = doc.header.catalog_number {
+        ldt.luminaire_number = cat.clone();
+    }
+    if let Some(ref desc) = doc.header.description {
+        ldt.luminaire_name = desc.clone();
+    }
+    if let Some(ref report) = doc.header.report_number {
+        ldt.measurement_report_number = report.clone();
+    }
+    if let Some(ref date) = doc.header.test_date {
+        ldt.date_user = date.clone();
+    }
+
+    // Luminaire dimensions
+    if let Some(ref luminaire) = doc.luminaire {
+        if let Some(ref dims) = luminaire.dimensions {
+            ldt.length = dims.length;
+            ldt.width = dims.width;
+            ldt.height = dims.height;
+        }
+
+        // Luminous opening -> luminous area
+        if let Some(opening) = luminaire.luminous_openings.first() {
+            ldt.luminous_area_length = opening.dimensions.length;
+            ldt.luminous_area_width = opening.dimensions.width.unwrap_or(0.0);
+        }
+    }
+
+    // Emitters -> lamp sets. ATLA emitters are installed together while
+    // EULUMDAT lamp sets are alternatives, so several emitters become one
+    // lamp set with summed lamps, flux and power. Alternative fittings
+    // kept from an LDT import follow as further lamp sets.
+    let mut sets = doc.emitters.iter().map(lamp_set_from_emitter);
+    if let Some(mut primary) = sets.next() {
+        for other in sets {
+            primary.num_lamps = if primary.num_lamps < 0 || other.num_lamps < 0 {
+                -1
+            } else {
+                primary.num_lamps + other.num_lamps
+            };
+            primary.total_luminous_flux += other.total_luminous_flux;
+            primary.wattage_with_ballast += other.wattage_with_ballast;
+            if !other.lamp_type.is_empty() && other.lamp_type != primary.lamp_type {
+                primary.lamp_type = if primary.lamp_type.is_empty() {
+                    other.lamp_type
+                } else {
+                    format!("{} + {}", primary.lamp_type, other.lamp_type)
+                };
+            }
+        }
+        ldt.lamp_sets.push(primary);
+    }
+    ldt.lamp_sets
+        .extend(doc.alternative_lamp_sets.iter().map(lamp_set_from_emitter));
+
+    // Intensity distribution — from first emitter that has it
+    if let Some(emitter) = doc
+        .emitters
+        .iter()
+        .find(|e| e.intensity_distribution.is_some())
+    {
+        if let Some(ref dist) = emitter.intensity_distribution {
+            ldt.g_angles = dist.vertical_angles.clone();
+            ldt.intensities = dist.intensities.clone();
+            ldt.num_g_planes = dist.vertical_angles.len();
+            ldt.g_plane_distance = even_step(&dist.vertical_angles);
+
+            // The rows are the stored planes of the symmetry their
+            // angles cover; EULUMDAT lists every C angle (Nc), mirrored
+            // from them, and Dc = 0 when they are not equidistant.
+            ldt.symmetry = determine_symmetry(&dist.horizontal_angles);
+            ldt.c_angles = SymmetryHandler::mirror_c_angles(ldt.symmetry, &dist.horizontal_angles);
+            ldt.num_c_planes = ldt.c_angles.len().max(1);
+            ldt.c_plane_distance = even_step(&ldt.c_angles);
+        }
+    }
+
+    // Calculate light output ratio and downward flux fraction
+    if !ldt.intensities.is_empty() && !ldt.g_angles.is_empty() {
+        let (dff, lor) = calculate_flux_fractions(&ldt);
+        ldt.downward_flux_fraction = dff;
+        ldt.light_output_ratio = lor;
+
+        // Recalculate direct ratios from intensity data (SHR 1.25 is standard)
+        ldt.direct_ratios = crate::PhotometricCalculations::calculate_direct_ratios(&ldt, "1.25");
+    }
+
+    // Set type indicator based on dimensions
+    ldt.type_indicator = if ldt.width == 0.0 {
+        TypeIndicator::PointSourceSymmetric
+    } else if ldt.length > ldt.width * 2.0 {
+        TypeIndicator::Linear
+    } else {
+        TypeIndicator::PointSourceOther
+    };
+
+    ldt
 }
 
 /// Parse CCT from color appearance string
@@ -611,7 +636,8 @@ fn cri_to_group(cri: f64) -> String {
     }
 }
 
-/// Determine symmetry from horizontal angles
+/// Symmetry of a table from the angles of its rows: one plane, C0–C90,
+/// C0–C180, C90–C270, else none.
 fn determine_symmetry(horizontal_angles: &[f64]) -> EulumdatSymmetry {
     if horizontal_angles.len() <= 1 {
         return EulumdatSymmetry::VerticalAxis;
@@ -620,19 +646,32 @@ fn determine_symmetry(horizontal_angles: &[f64]) -> EulumdatSymmetry {
     let max_angle = horizontal_angles.iter().copied().fold(0.0_f64, f64::max);
     let min_angle = horizontal_angles.iter().copied().fold(360.0_f64, f64::min);
 
-    // Check range of angles
     if (max_angle - min_angle) < 1.0 {
         EulumdatSymmetry::VerticalAxis
-    } else if max_angle <= 90.5 {
+    } else if min_angle < 0.5 && max_angle <= 90.5 {
         EulumdatSymmetry::BothPlanes
-    } else if max_angle <= 180.5 {
-        if min_angle < 0.5 {
-            EulumdatSymmetry::PlaneC0C180
-        } else {
-            EulumdatSymmetry::PlaneC90C270
-        }
+    } else if min_angle < 0.5 && max_angle <= 180.5 {
+        EulumdatSymmetry::PlaneC0C180
+    } else if min_angle > 89.5 && max_angle <= 270.5 {
+        EulumdatSymmetry::PlaneC90C270
     } else {
         EulumdatSymmetry::None
+    }
+}
+
+/// The step of equidistant angles, 0 when they are not (EULUMDAT Dc / Dg).
+fn even_step(angles: &[f64]) -> f64 {
+    if angles.len() < 2 {
+        return 0.0;
+    }
+    let step = angles[1] - angles[0];
+    let even = angles
+        .windows(2)
+        .all(|w| ((w[1] - w[0]) - step).abs() < 1e-3);
+    if even && step > 0.0 {
+        step
+    } else {
+        0.0
     }
 }
 

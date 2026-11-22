@@ -445,6 +445,12 @@ pub const GRID_STAIRS: &str = "stairs / refuge";
 pub const GRID_STAIRS_BAND: &str = "stairs / refuge band";
 pub const GRID_OPEN_AREA: &str = "open area (floor)";
 pub const GRID_EMPHASIS: &str = "point of emphasis (vertical)";
+/// Vertical illuminance at eye height, the quantity melanopic lighting is
+/// judged by (melanopic EDI = this × the spectrum's melanopic DER).
+pub const GRID_EYE: &str = "eye level 1.2 m (vertical)";
+/// Eye height of a seated person (m): where CIE S 026 based recommendations
+/// (Brown et al. 2022, WELL) ask for the melanopic EDI.
+pub const EYE_HEIGHT: f32 = 1.2;
 
 /// A calculation grid with `nu × nv` measurement points at the cell centres.
 #[derive(Clone, Debug)]
@@ -645,6 +651,58 @@ pub struct ScenePlan {
     /// Show it in emergency mode (the designer showed emergency conditions).
     #[serde(default)]
     pub emergency_mode: bool,
+    /// From the Street designer (an open area otherwise from the Outdoor
+    /// designer): the "back" button goes there.
+    #[serde(default)]
+    pub street: bool,
+}
+
+/// A street from the Street designer as a planned scene: the roadway
+/// (lanes × up to the last pole) as the outline, a kerb along it, every pole with its
+/// arm and luminaire where [`StreetLayout::placements`] puts them
+/// (overhang, mounting height, tilt, C0 along the designer's rotation).
+/// Plan x = the road's x, plan z = its y (across the road).
+///
+/// [`StreetLayout::placements`]: eulumdat::street::StreetLayout::placements
+pub fn plan_from_street(layout: &eulumdat::street::StreetLayout, name: String) -> ScenePlan {
+    let placements = layout.placements();
+    // the road ends at the last pole: a stretch past it is unlit and would
+    // drag Emin / Uo below what the designer evaluates (a span between poles)
+    let last = placements.iter().map(|p| p.x).fold(0.0f64, f64::max);
+    let l = if last > 1.0 { last } else { layout.length_m } as f32;
+    let w = layout.roadway_width_m() as f32;
+    let luminaires = placements
+        .iter()
+        .map(|p| {
+            let (ex, ey) = p.effective_position();
+            PlanLuminaire {
+                position: Vec3::new(ex as f32, p.mounting_height as f32, ey as f32),
+                rotation_deg: p.rotation as f32,
+                tilt_deg: p.tilt_angle as f32,
+                pole: Some(Vec2::new(p.x as f32, p.y as f32)),
+                pendant: false,
+                photometry: 0,
+                role: LampRole::Normal,
+            }
+        })
+        .collect();
+    ScenePlan {
+        name,
+        indoor: false,
+        outline: vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(l, 0.0),
+            Vec2::new(l, w),
+            Vec2::new(0.0, w),
+        ],
+        height: 0.0,
+        // asphalt
+        reflectances: [0.0, 0.0, 0.07],
+        plane: 0.0,
+        luminaires,
+        street: true,
+        ..Default::default()
+    }
 }
 
 /// A further luminaire type of a plan (self-contained: the file's text).
@@ -796,6 +854,7 @@ impl ScenePlan {
             photometries: Vec::new(),
             emergency: None,
             emergency_mode: false,
+            street: false,
         }
     }
 }
@@ -1123,6 +1182,9 @@ fn build_planned(p: &SceneParams, plan: &ScenePlan) -> BuiltScene {
     let mut grid = norm_grid(if plan.indoor { "workplane" } else { "ground" }, r.clone());
     grid.outline = Some(outline.clone());
     let mut grids = vec![grid];
+    if plan.indoor {
+        grids.extend(eye_grids(lo, size, Some(&outline)));
+    }
     if let Some(em) = plan.emergency.as_ref().filter(|_| p.emergency) {
         // EN 1838 measures on the floor: points every 0.5 m along each
         // route's centre line, and the open area
@@ -1640,6 +1702,36 @@ fn strip_grid(name: &'static str, r: Receiver, nu: usize, step: f32) -> MeasureG
         outline: None,
         border: 0.0,
     }
+}
+
+/// Eye positions over a room, about 1 m apart and 0.5 m off the walls, each
+/// measured vertically in four viewing directions (±X, ±Z). The four grids
+/// carry one name, so they are evaluated as one row: the mean is the mean
+/// vertical illuminance at eye height over positions and directions, the
+/// minimum the darkest position / direction.
+fn eye_grids(lo: Vec2, size: Vec2, outline: Option<&Vec<Vec2>>) -> Vec<MeasureGrid> {
+    const MARGIN: f32 = 0.5;
+    let w = (size.x - 2.0 * MARGIN).max(0.2);
+    let d = (size.y - 2.0 * MARGIN).max(0.2);
+    let n = |l: f32| (l.round() as usize).clamp(1, 12);
+    [Vec3::X, Vec3::NEG_X, Vec3::Z, Vec3::NEG_Z]
+        .into_iter()
+        .map(|facing| MeasureGrid {
+            name: GRID_EYE,
+            // the points lie in a horizontal plane at eye height; the normal is
+            // the viewing direction (measurement lifts them 2 cm along it)
+            receiver: receiver(
+                v3(lo.x + MARGIN, EYE_HEIGHT, lo.y + MARGIN),
+                v3(w, 0.0, 0.0),
+                v3(0.0, 0.0, d),
+                facing,
+            ),
+            nu: n(w),
+            nv: n(d),
+            outline: outline.cloned(),
+            border: if outline.is_some() { MARGIN } else { 0.0 },
+        })
+        .collect()
 }
 
 fn receiver(origin: Vec3, u: Vec3, v: Vec3, normal: Vec3) -> Receiver {
@@ -2208,6 +2300,11 @@ fn build_base(p: &SceneParams) -> BuiltScene {
                 ),
             ];
             let mut grids = vec![norm_grid("workplane 0.75 m", workplane.clone())];
+            grids.extend(eye_grids(
+                Vec2::new(-hw, -hd),
+                Vec2::new(OFFICE_W, OFFICE_D),
+                None,
+            ));
             for (name, r) in walls.iter() {
                 grids.push(norm_grid(name, r.clone()));
             }
@@ -2812,8 +2909,15 @@ mod tests {
                 outline,
                 Vec2::new(pt.position.x, pt.position.z)
             ));
-            assert!((pt.position.y - 0.8).abs() < 0.05);
+            // workplane points, and the eye-level points (vertical, 1.2 m)
+            let eye = s.grids[pt.grid].name == GRID_EYE;
+            let h = if eye { EYE_HEIGHT } else { 0.8 };
+            assert!((pt.position.y - h).abs() < 0.05);
+            assert_eq!(pt.normal.y.abs() < 1e-6, eye);
         }
+        // four viewing directions at every eye position
+        let eye: Vec<_> = s.grids.iter().filter(|g| g.name == GRID_EYE).collect();
+        assert_eq!(eye.len(), 4);
         // the notch (x 4..10, z 4..8) has no points
         assert!(!layout
             .points

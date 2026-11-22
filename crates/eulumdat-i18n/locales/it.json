@@ -300,7 +300,7 @@
       "e003": "Nessun set di lampade definito",
       "e004": "Dimensione dati di intensità non corrispondente: {0} piani C, previsti {1}",
       "e005": "Il conteggio degli angoli G ({0}) non corrisponde a num_g_planes ({1})",
-      "e006": "Il conteggio degli angoli C ({0}) non corrisponde al Mc previsto ({1})"
+      "e006": "Il conteggio degli angoli C ({0}) non corrisponde al numero di piani C Nc ({1})"
     }
   },
   "comparison": {
@@ -792,6 +792,16 @@
       "photoperiod": "Fotoperiodo",
       "ppfd_from_spd": "PPFD dallo spettro dell'apparecchio: {f} µmol per lx·s",
       "ppfd_assumed": "Nessuno spettro nel file: il PPFD assume un LED bianco, {f} µmol per lx·s. Caricare un file ATLA / TM-33 o allegare un SPD per il fattore reale.",
+      "mel_title": "EDI melanopico all'occhio",
+      "mel_values": "{mean} lx in media · {min} lx nella posizione più buia (illuminamento verticale all'altezza degli occhi, 1,2 m, × DER melanopico {der} dello spettro dell'apparecchio, CIE S 026)",
+      "mel_day_ok": "La raccomandazione diurna di almeno 250 lx di EDI melanopico è rispettata in ogni posizione.",
+      "mel_day_low": "La raccomandazione diurna di almeno 250 lx di EDI melanopico non è rispettata ovunque: {min} lx nella posizione più buia.",
+      "mel_no_spd": "Il file non contiene uno spettro, quindi nessun valore melanopico. Illuminamento verticale all'altezza degli occhi: {mean} lx in media, {min} lx minimo. Caricare un file TM-33 / ATLA o allegare uno spettro.",
+      "mel_note": "Raccomandazioni (Brown et al. 2022): di giorno almeno 250 lx, la sera al massimo 10 lx, di notte al massimo 1 lx di EDI melanopico all'occhio. Solo luce elettrica; la luce diurna si aggiunge.",
+      "mel_card_der": "DER melanopico {der} (luce diurna D65 = 1)",
+      "mel_card_edi": "{lux} lx all'occhio danno {edi} lx di EDI melanopico",
+      "mel_card_need": "250 lx di EDI melanopico richiedono {lux} lx all'occhio",
+      "mel_card_estimate": "Stimato dalla temperatura di colore: il file non contiene uno spettro.",
       "dli": "DLI",
       "dli_explain": "DLI = PPFD medio × fotoperiodo, in mol/m²/giorno. Ortaggi a foglia 12–17, colture da frutto 20–30.",
       "hint_ppfd": "Colore = PPFD in µmol/m²/s su ogni superficie (scala nel pannello) · linee ogni {step}",
@@ -834,6 +844,7 @@
       "scene_planned": "📐 Piano",
       "from_interior": "Progettista interni",
       "from_outdoor": "Progettista esterni",
+      "from_street": "Progettista stradale",
       "desc_planned": "Dal {from}: {name}. Sposta qui apparecchi, sensori e persona per provare varianti; il piano stesso resta invariato.",
       "open_in_light_scene": "🎬 Apri nella scena luminosa",
       "open_in_light_scene_tip": "Verifica questo piano in path tracing: il locale o l'area con apparecchi e sensori.",
@@ -1634,6 +1645,29 @@
           }
         }
       }
+    },
+    "ifc": {
+      "title": "🏢 Locale da un modello IFC",
+      "intro": "Apri un modello di edificio (IFC2x3, IFC4) e prendi un locale: contorno, altezza, gli apparecchi che contiene e le uscite. Il file viene letto nel browser.",
+      "open": "Apri file IFC…",
+      "reading": "Lettura di {name}…",
+      "failed": "Impossibile leggere questo file IFC: {error}",
+      "summary": "{rooms} locali su {storeys} piani · {luminaires} apparecchi · {doors} porte · {windows} finestre",
+      "storey": "Piano",
+      "room": "Locale",
+      "room_info": "{area} m² · {height} m di altezza",
+      "in_room": "In questo locale: {luminaires} apparecchi ({with} con fotometria) · {doors} porte ({exits} uscite) · {windows} finestre",
+      "use_luminaires": "Posizioni degli apparecchi dal modello ({n})",
+      "use_photometry": "Apri la loro fotometria: {name}",
+      "use_exits": "Uscite come punti di illuminazione di emergenza ({n})",
+      "apply": "Usa questo locale",
+      "applied": "Locale dal modello: {name}",
+      "fixed_note": "{n} apparecchi posizionati come nel modello IFC.",
+      "back_to_grid": "Usa invece la disposizione calcolata",
+      "no_photometry": "Gli apparecchi qui non hanno fotometria; si usa l'apparecchio caricato.",
+      "notes": "Note",
+      "export_ifc": "🏢 Modello IFC (.ifc)",
+      "export_ifc_tip": "Il locale come modello IFC4: contorno, pareti, apparecchi con la loro fotometria (anche di emergenza) e le uscite, per strumenti BIM, bimifc.de e l'importazione qui."
     }
   },
   "dashboard": {

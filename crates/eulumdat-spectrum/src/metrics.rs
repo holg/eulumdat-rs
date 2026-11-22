@@ -146,7 +146,23 @@ mod tests {
         // D65 ≈ 6500 K daylight; DER is defined so D65 ≈ 1.0.
         let d65 = crate::daylight::d_illuminant(6500.0);
         let der = melanopic_der(&d65);
-        assert_relative_eq!(der, 1.0, epsilon = 0.06);
+        assert_relative_eq!(der, 1.0, epsilon = 0.01);
+    }
+
+    /// Reference values: CIE S 026 gives a melanopic DER of 0.4958 for
+    /// illuminant A (2856 K) and, with the same data, 0.9058 for the
+    /// equal-energy spectrum; the S/P ratios of illuminant A and D65 are the
+    /// commonly quoted 1.41 and 2.47.
+    #[test]
+    fn melanopic_der_and_sp_of_standard_illuminants() {
+        let a = planck_spd(2856.0);
+        let grid: Vec<f64> = (0..=80).map(|i| 380.0 + 5.0 * i as f64).collect();
+        let e = Spd::new(&grid, &vec![1.0; grid.len()]);
+        let d65 = crate::daylight::d_illuminant(6500.0);
+        assert_relative_eq!(melanopic_der(&a), 0.4958, epsilon = 0.003);
+        assert_relative_eq!(melanopic_der(&e), 0.9058, epsilon = 0.003);
+        assert_relative_eq!(sp_ratio(&a), 1.41, epsilon = 0.02);
+        assert_relative_eq!(sp_ratio(&d65), 2.47, epsilon = 0.03);
     }
 
     #[test]

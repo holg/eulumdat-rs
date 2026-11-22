@@ -22,6 +22,7 @@ eulumdat-digitize = { path = "crates/eulumdat-digitize", version = "0.8.0" }
 # ignored and wasm builds get rayon (goniosim) / pollster + env_logger (rt).
 eulumdat-goniosim = { path = "crates/eulumdat-goniosim", version = "0.8.0", default-features = false }
 eulumdat-i18n = { path = "crates/eulumdat-i18n", version = "0.8.0" }
+eulumdat-ifc = { path = "crates/eulumdat-ifc", version = "0.8.0" }
 eulumdat-photweb = { path = "crates/eulumdat-photweb", version = "0.8.0" }
 eulumdat-rt = { path = "crates/eulumdat-rt", version = "0.8.0", default-features = false }
 eulumdat-scene = { path = "crates/eulumdat-scene", version = "0.8.0" }

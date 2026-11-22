@@ -300,7 +300,7 @@
       "e003": "No hay conjuntos de lámparas definidos",
       "e004": "Dimensión de datos de intensidad no coincidente: {0} planos C, se esperaban {1}",
       "e005": "El número de ángulos G ({0}) no coincide con num_g_planes ({1})",
-      "e006": "El número de ángulos C ({0}) no coincide con el Mc esperado ({1})"
+      "e006": "El número de ángulos C ({0}) no coincide con el número de planos C Nc ({1})"
     }
   },
   "comparison": {
@@ -792,6 +792,16 @@
       "photoperiod": "Fotoperiodo",
       "ppfd_from_spd": "PPFD a partir del espectro de la luminaria: {f} µmol por lx·s",
       "ppfd_assumed": "Sin espectro en el archivo: el PPFD supone un LED blanco, {f} µmol por lx·s. Cargue un archivo ATLA / TM-33 o adjunte un SPD para el factor real.",
+      "mel_title": "EDI melanópica en el ojo",
+      "mel_values": "{mean} lx de media · {min} lx en la posición más oscura (iluminancia vertical a la altura de los ojos, 1,2 m, × DER melanópico {der} del espectro de la luminaria, CIE S 026)",
+      "mel_day_ok": "La recomendación diurna de al menos 250 lx de EDI melanópica se cumple en todas las posiciones.",
+      "mel_day_low": "La recomendación diurna de al menos 250 lx de EDI melanópica no se cumple en todas partes: {min} lx en la posición más oscura.",
+      "mel_no_spd": "El archivo no contiene espectro, por lo que no hay valores melanópicos. Iluminancia vertical a la altura de los ojos: {mean} lx de media, {min} lx mínima. Cargue un archivo TM-33 / ATLA o adjunte un espectro.",
+      "mel_note": "Recomendaciones (Brown et al. 2022): de día al menos 250 lx, por la tarde como máximo 10 lx, de noche como máximo 1 lx de EDI melanópica en el ojo. Solo luz eléctrica; la luz natural se suma.",
+      "mel_card_der": "DER melanópico {der} (luz diurna D65 = 1)",
+      "mel_card_edi": "{lux} lx en el ojo dan {edi} lx de EDI melanópica",
+      "mel_card_need": "250 lx de EDI melanópica requieren {lux} lx en el ojo",
+      "mel_card_estimate": "Estimado a partir de la temperatura de color: el archivo no contiene espectro.",
       "dli": "DLI",
       "dli_explain": "DLI = PPFD medio × fotoperiodo, en mol/m²/día. Hojas verdes 12–17, cultivos de fruto 20–30.",
       "hint_ppfd": "Color = PPFD en µmol/m²/s en cada superficie (escala en el panel) · líneas cada {step}",
@@ -834,6 +844,7 @@
       "scene_planned": "📐 Plan",
       "from_interior": "Diseñador de interiores",
       "from_outdoor": "Diseñador de exteriores",
+      "from_street": "Diseñador de calles",
       "desc_planned": "Desde el {from}: {name}. Mueva aquí luminarias, sensores y la persona para probar variantes; el plan en sí no cambia.",
       "open_in_light_scene": "🎬 Abrir en la escena de luz",
       "open_in_light_scene_tip": "Comprobar este plan con path tracing: la sala o el área con sus luminarias y sensores.",
@@ -1634,6 +1645,29 @@
           }
         }
       }
+    },
+    "ifc": {
+      "title": "🏢 Local de un modelo IFC",
+      "intro": "Abra un modelo de edificio (IFC2x3, IFC4) y tome un local de él: contorno, altura, las luminarias que contiene y las salidas. El archivo se lee en su navegador.",
+      "open": "Abrir archivo IFC…",
+      "reading": "Leyendo {name}…",
+      "failed": "No se pudo leer este archivo IFC: {error}",
+      "summary": "{rooms} locales en {storeys} plantas · {luminaires} luminarias · {doors} puertas · {windows} ventanas",
+      "storey": "Planta",
+      "room": "Local",
+      "room_info": "{area} m² · {height} m de alto",
+      "in_room": "En este local: {luminaires} luminarias ({with} con fotometría) · {doors} puertas ({exits} salidas) · {windows} ventanas",
+      "use_luminaires": "Posiciones de luminarias del modelo ({n})",
+      "use_photometry": "Abrir su fotometría: {name}",
+      "use_exits": "Salidas como puntos de alumbrado de emergencia ({n})",
+      "apply": "Usar este local",
+      "applied": "Local del modelo: {name}",
+      "fixed_note": "{n} luminarias colocadas como en el modelo IFC.",
+      "back_to_grid": "Usar en su lugar la disposición calculada",
+      "no_photometry": "Las luminarias aquí no tienen fotometría; se usa la luminaria cargada.",
+      "notes": "Notas",
+      "export_ifc": "🏢 Modelo IFC (.ifc)",
+      "export_ifc_tip": "El local como modelo IFC4: contorno, muros, luminarias con su fotometría (también las de emergencia) y las salidas, para herramientas BIM, bimifc.de y la importación aquí."
     }
   },
   "dashboard": {

@@ -1425,6 +1425,8 @@ pub struct ZonalDesignerLocale {
     pub sensors: ZonalSensors,
     #[serde(default)]
     pub emergency: ZonalEmergency,
+    #[serde(default)]
+    pub ifc: ZonalIfc,
 }
 
 /// Emergency lighting (EN 1838) in the designers. Missing keys fall back to English.
@@ -1730,6 +1732,63 @@ impl Default for ZonalEmergency {
             group_americas: s("Americas"),
             group_asia: s("Asia and Pacific"),
             standards: default_emergency_standards(),
+        }
+    }
+}
+
+/// Interior designer: a room from an IFC building model. Missing keys
+/// fall back to English.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ZonalIfc {
+    pub title: String,
+    pub intro: String,
+    pub open: String,
+    pub reading: String,
+    pub failed: String,
+    pub summary: String,
+    pub storey: String,
+    pub room: String,
+    pub room_info: String,
+    pub in_room: String,
+    pub use_luminaires: String,
+    pub use_photometry: String,
+    pub use_exits: String,
+    pub apply: String,
+    pub applied: String,
+    pub fixed_note: String,
+    pub back_to_grid: String,
+    pub no_photometry: String,
+    pub notes: String,
+    pub export_ifc: String,
+    pub export_ifc_tip: String,
+}
+
+impl Default for ZonalIfc {
+    fn default() -> Self {
+        let s = |v: &str| v.to_string();
+        Self {
+            title: s("🏢 Room from an IFC model"),
+            intro: s("Open a building model (IFC2x3, IFC4) and take a room from it: outline, height, the luminaires in it and the exits. The file is read in your browser."),
+            open: s("Open IFC file…"),
+            reading: s("Reading {name}…"),
+            failed: s("Could not read this IFC file: {error}"),
+            summary: s("{rooms} rooms on {storeys} storeys · {luminaires} luminaires · {doors} doors · {windows} windows"),
+            storey: s("Storey"),
+            room: s("Room"),
+            room_info: s("{area} m² · {height} m high"),
+            in_room: s("In this room: {luminaires} luminaires ({with} with photometry) · {doors} doors ({exits} exits) · {windows} windows"),
+            use_luminaires: s("Luminaire positions from the model ({n})"),
+            use_photometry: s("Open their photometry: {name}"),
+            use_exits: s("Exits as emergency points ({n})"),
+            apply: s("Use this room"),
+            applied: s("Room from the model: {name}"),
+            fixed_note: s("{n} luminaires placed as in the IFC model."),
+            back_to_grid: s("Use the calculated layout instead"),
+            no_photometry: s("The luminaires here carry no photometry; the loaded luminaire is used."),
+            notes: s("Notes"),
+            export_ifc: s("🏢 IFC model (.ifc)"),
+            export_ifc_tip: s("The room as an IFC4 model: outline, walls, luminaires with their photometry (emergency luminaires too) and the exits, for BIM tools, bimifc.de and the import here."),
         }
     }
 }
@@ -3955,6 +4014,26 @@ pub struct UiLightScene {
     pub ppfd_from_spd: String,
     #[serde(default = "ls_ppfd_assumed")]
     pub ppfd_assumed: String,
+    #[serde(default = "ls_mel_title")]
+    pub mel_title: String,
+    #[serde(default = "ls_mel_values")]
+    pub mel_values: String,
+    #[serde(default = "ls_mel_day_ok")]
+    pub mel_day_ok: String,
+    #[serde(default = "ls_mel_day_low")]
+    pub mel_day_low: String,
+    #[serde(default = "ls_mel_no_spd")]
+    pub mel_no_spd: String,
+    #[serde(default = "ls_mel_note")]
+    pub mel_note: String,
+    #[serde(default = "ls_mel_card_der")]
+    pub mel_card_der: String,
+    #[serde(default = "ls_mel_card_edi")]
+    pub mel_card_edi: String,
+    #[serde(default = "ls_mel_card_need")]
+    pub mel_card_need: String,
+    #[serde(default = "ls_mel_card_estimate")]
+    pub mel_card_estimate: String,
     #[serde(default = "ls_dli")]
     pub dli: String,
     #[serde(default = "ls_dli_explain")]
@@ -4042,6 +4121,8 @@ pub struct UiLightScene {
     pub from_interior: String,
     #[serde(default = "ls_from_outdoor")]
     pub from_outdoor: String,
+    #[serde(default = "ls_from_street")]
+    pub from_street: String,
     #[serde(default = "ls_desc_planned")]
     pub desc_planned: String,
     #[serde(default = "ls_open_in_light_scene")]
@@ -4799,6 +4880,16 @@ impl Default for UiLightScene {
             photoperiod: ls_photoperiod(),
             ppfd_from_spd: ls_ppfd_from_spd(),
             ppfd_assumed: ls_ppfd_assumed(),
+            mel_title: ls_mel_title(),
+            mel_values: ls_mel_values(),
+            mel_day_ok: ls_mel_day_ok(),
+            mel_day_low: ls_mel_day_low(),
+            mel_no_spd: ls_mel_no_spd(),
+            mel_note: ls_mel_note(),
+            mel_card_der: ls_mel_card_der(),
+            mel_card_edi: ls_mel_card_edi(),
+            mel_card_need: ls_mel_card_need(),
+            mel_card_estimate: ls_mel_card_estimate(),
             dli: ls_dli(),
             dli_explain: ls_dli_explain(),
             hint_ppfd: ls_hint_ppfd(),
@@ -4841,6 +4932,7 @@ impl Default for UiLightScene {
             scene_planned: ls_scene_planned(),
             from_interior: ls_from_interior(),
             from_outdoor: ls_from_outdoor(),
+            from_street: ls_from_street(),
             desc_planned: ls_desc_planned(),
             open_in_light_scene: ls_open_in_light_scene(),
             open_in_light_scene_tip: ls_open_in_light_scene_tip(),
@@ -5227,6 +5319,9 @@ fn ls_scene_planned() -> String {
 }
 fn ls_from_interior() -> String {
     "Interior designer".into()
+}
+fn ls_from_street() -> String {
+    "Street designer".into()
 }
 fn ls_from_outdoor() -> String {
     "Outdoor designer".into()
@@ -5863,6 +5958,37 @@ fn ls_photoperiod() -> String {
 }
 fn ls_ppfd_from_spd() -> String {
     "PPFD from the luminaire's spectrum: {f} µmol per lx·s".into()
+}
+fn ls_mel_title() -> String {
+    "Melanopic EDI at the eye".into()
+}
+fn ls_mel_values() -> String {
+    "{mean} lx mean · {min} lx at the darkest position (vertical illuminance at eye height, 1.2 m, × melanopic DER {der} of the luminaire's spectrum, CIE S 026)".into()
+}
+fn ls_mel_day_ok() -> String {
+    "The daytime recommendation of at least 250 lx melanopic EDI is met at every eye position."
+        .into()
+}
+fn ls_mel_day_low() -> String {
+    "The daytime recommendation of at least 250 lx melanopic EDI is not met everywhere: {min} lx at the darkest position.".into()
+}
+fn ls_mel_no_spd() -> String {
+    "No spectrum in the file, so no melanopic values. Vertical illuminance at eye height: {mean} lx mean, {min} lx minimum. Load a TM-33 / ATLA file or attach a spectrum.".into()
+}
+fn ls_mel_note() -> String {
+    "Recommendations (Brown et al. 2022): by day at least 250 lx, in the evening at most 10 lx, at night at most 1 lx melanopic EDI at the eye. Electric light only; daylight adds to it.".into()
+}
+fn ls_mel_card_der() -> String {
+    "Melanopic DER {der} (D65 daylight = 1)".into()
+}
+fn ls_mel_card_edi() -> String {
+    "{lux} lx at the eye give {edi} lx melanopic EDI".into()
+}
+fn ls_mel_card_need() -> String {
+    "250 lx melanopic EDI need {lux} lx at the eye".into()
+}
+fn ls_mel_card_estimate() -> String {
+    "Estimated from the colour temperature: this file has no spectrum.".into()
 }
 fn ls_ppfd_assumed() -> String {
     "No spectrum in the file: PPFD assumes a white LED, {f} µmol per lx·s. Load an ATLA / TM-33 file or attach an SPD for the real factor.".into()

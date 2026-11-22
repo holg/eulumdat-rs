@@ -206,7 +206,13 @@
   "eco_f3s": "Die .gldf auf Candelabra ziehen: Die hellste Photometrie wird zur Leuchte, das L3D-Modell zu ihrem Körper in der Lichtszene, und Sensoren und Notlicht-Emitter kommen ins Projekt.",
   "eco_f4s": "„Export IFC“ auf gldf.icu schreibt die Leuchte mit ihrer Photometrie; auf bimifc.de geöffnet zeigt die Leuchte ihr Polardiagramm und ihre Daten.",
   "eco_k": "Darunter dieselben Crates",
-  "eco_kp": "Auf jeder Seite arbeiten dieselben Rust-Crates: eulumdat liest und zeichnet die Photometrie in Candelabra, gldf.icu und bimifc.de, tm25ray liest die Strahlendateien für tm25.eu und Candelabra, l3d-rs liest die 3D-Körper. Auf keiner der vier wird etwas hochgeladen. Candelabra, gldf.icu und tm25.eu stehen unter AGPL-3.0, bimifc unter MPL-2.0."
+  "eco_kp": "Auf jeder Seite arbeiten dieselben Rust-Crates: eulumdat liest und zeichnet die Photometrie in Candelabra, gldf.icu und bimifc.de, tm25ray liest die Strahlendateien für tm25.eu und Candelabra, l3d-rs liest die 3D-Körper. Auf keiner der vier wird etwas hochgeladen. Candelabra, gldf.icu und tm25.eu stehen unter AGPL-3.0, bimifc unter MPL-2.0.",
+  "nav_vid": "Videos",
+  "vid_h": "So sieht es aus: Video-Anleitungen in acht Sprachen",
+  "vid_sub": "Kurze Videos auf YouTube führen durch jedes Werkzeug, vom Öffnen einer photometrischen Datei über Innenraum- und Straßenplanung bis zu Sicherheitsbeleuchtung, Sensoren und Lichtverschmutzung. Jedes ist in acht Sprachen vertont, und auch die App im Bild läuft in der jeweiligen Sprache.",
+  "vid_pick": "Sprache wählen:",
+  "vid_channel": "Zum YouTube-Kanal",
+  "vid_note": "Jedes Video hat zuschaltbare Untertitel und Kapitel, um direkt zum gesuchten Schritt zu springen."
  },
  "fr": {
   "title": "Candelabra – voyez n'importe quel luminaire à l'œuvre, dans votre navigateur",
@@ -415,7 +421,13 @@
   "eco_f3s": "Déposez le .gldf sur Candelabra : la photométrie la plus lumineuse devient le luminaire, le modèle L3D son corps dans la scène lumineuse, et ses détecteurs et émetteurs de secours rejoignent le projet.",
   "eco_f4s": "« Export IFC » sur gldf.icu écrit le luminaire avec sa photométrie ; ouvert sur bimifc.de, il affiche son diagramme polaire et ses données.",
   "eco_k": "Les mêmes crates en dessous",
-  "eco_kp": "Les mêmes crates Rust travaillent sur chaque site : eulumdat lit et dessine la photométrie dans Candelabra, gldf.icu et bimifc.de, tm25ray lit les fichiers de rayons pour tm25.eu et Candelabra, l3d-rs lit les corps 3D. Rien n'est téléversé sur aucun des quatre. Candelabra, gldf.icu et tm25.eu sont sous AGPL-3.0, bimifc sous MPL-2.0."
+  "eco_kp": "Les mêmes crates Rust travaillent sur chaque site : eulumdat lit et dessine la photométrie dans Candelabra, gldf.icu et bimifc.de, tm25ray lit les fichiers de rayons pour tm25.eu et Candelabra, l3d-rs lit les corps 3D. Rien n'est téléversé sur aucun des quatre. Candelabra, gldf.icu et tm25.eu sont sous AGPL-3.0, bimifc sous MPL-2.0.",
+  "nav_vid": "Vidéos",
+  "vid_h": "À voir en action : des tutoriels vidéo en huit langues",
+  "vid_sub": "De courtes vidéos sur YouTube présentent chaque outil, de l'ouverture d'un fichier photométrique à l'éclairage intérieur et routier, l'éclairage de sécurité, les détecteurs et la pollution lumineuse. Chacune est commentée en huit langues, et l'application à l'écran est affichée dans cette langue.",
+  "vid_pick": "Choisissez votre langue :",
+  "vid_channel": "Ouvrir la chaîne YouTube",
+  "vid_note": "Chaque vidéo propose des sous-titres activables et des chapitres pour aller directement à l'étape voulue."
  },
  "es": {
   "title": "Candelabra – vea cualquier luminaria en acción, en su navegador",
@@ -624,7 +636,13 @@
   "eco_f3s": "Suelte el .gldf en Candelabra: la fotometría más brillante se convierte en la luminaria, el modelo L3D en su cuerpo en la escena de luz, y sus sensores y emisores de emergencia se suman al proyecto.",
   "eco_f4s": "«Export IFC» en gldf.icu escribe la luminaria con su fotometría; al abrir el archivo en bimifc.de, la luminaria muestra su diagrama polar y sus datos.",
   "eco_k": "Los mismos crates debajo",
-  "eco_kp": "Los mismos crates de Rust trabajan en cada sitio: eulumdat lee y dibuja la fotometría en Candelabra, gldf.icu y bimifc.de, tm25ray lee los archivos de rayos para tm25.eu y Candelabra, l3d-rs lee los cuerpos 3D. Ninguno de los cuatro sube nada. Candelabra, gldf.icu y tm25.eu tienen licencia AGPL-3.0, bimifc MPL-2.0."
+  "eco_kp": "Los mismos crates de Rust trabajan en cada sitio: eulumdat lee y dibuja la fotometría en Candelabra, gldf.icu y bimifc.de, tm25ray lee los archivos de rayos para tm25.eu y Candelabra, l3d-rs lee los cuerpos 3D. Ninguno de los cuatro sube nada. Candelabra, gldf.icu y tm25.eu tienen licencia AGPL-3.0, bimifc MPL-2.0.",
+  "nav_vid": "Vídeos",
+  "vid_h": "Véalo en acción: tutoriales en vídeo en ocho idiomas",
+  "vid_sub": "Vídeos breves en YouTube recorren cada herramienta, desde abrir un archivo fotométrico hasta el diseño interior y vial, el alumbrado de emergencia, los sensores y la contaminación lumínica. Cada uno está narrado en ocho idiomas, y la aplicación en pantalla se muestra también en ese idioma.",
+  "vid_pick": "Elija su idioma:",
+  "vid_channel": "Abrir el canal de YouTube",
+  "vid_note": "Cada vídeo tiene subtítulos que se pueden activar y capítulos para ir directamente al paso que busca."
  },
  "it": {
   "title": "Candelabra – vedi qualsiasi apparecchio all'opera, nel browser",
@@ -833,7 +851,13 @@
   "eco_f3s": "Trascina il .gldf su Candelabra: la fotometria più luminosa diventa l'apparecchio, il modello L3D il suo corpo nella scena luminosa, e sensori ed emettitori di emergenza entrano nel progetto.",
   "eco_f4s": "«Export IFC» su gldf.icu scrive l'apparecchio con la sua fotometria; aperto su bimifc.de, l'apparecchio mostra il diagramma polare e i dati.",
   "eco_k": "Sotto, gli stessi crate",
-  "eco_kp": "Gli stessi crate Rust lavorano su ogni sito: eulumdat legge e disegna la fotometria in Candelabra, gldf.icu e bimifc.de, tm25ray legge i file di raggi per tm25.eu e Candelabra, l3d-rs legge i corpi 3D. Nessuno dei quattro carica nulla. Candelabra, gldf.icu e tm25.eu sono AGPL-3.0, bimifc MPL-2.0."
+  "eco_kp": "Gli stessi crate Rust lavorano su ogni sito: eulumdat legge e disegna la fotometria in Candelabra, gldf.icu e bimifc.de, tm25ray legge i file di raggi per tm25.eu e Candelabra, l3d-rs legge i corpi 3D. Nessuno dei quattro carica nulla. Candelabra, gldf.icu e tm25.eu sono AGPL-3.0, bimifc MPL-2.0.",
+  "nav_vid": "Video",
+  "vid_h": "Guardalo all'opera: video tutorial in otto lingue",
+  "vid_sub": "Brevi video su YouTube illustrano ogni strumento, dall'apertura di un file fotometrico alla progettazione di interni e strade, all'illuminazione di emergenza, ai sensori e all'inquinamento luminoso. Ognuno è narrato in otto lingue, e anche l'app sullo schermo è mostrata in quella lingua.",
+  "vid_pick": "Scegli la lingua:",
+  "vid_channel": "Apri il canale YouTube",
+  "vid_note": "Ogni video ha sottotitoli attivabili e capitoli per andare direttamente al passaggio che serve."
  },
  "ru": {
   "title": "Candelabra – любой светильник в работе, прямо в браузере",
@@ -1042,7 +1066,13 @@
   "eco_f3s": "Перетащите .gldf в Candelabra: самая яркая фотометрия станет светильником, модель L3D — его корпусом в световой сцене, а датчики и аварийные излучатели войдут в проект.",
   "eco_f4s": "«Export IFC» на gldf.icu записывает светильник вместе с фотометрией; откройте файл на bimifc.de, и светильник покажет полярную диаграмму и данные.",
   "eco_k": "Внизу — одни и те же крейты",
-  "eco_kp": "На каждом сайте работают одни и те же крейты Rust: eulumdat читает и рисует фотометрию в Candelabra, gldf.icu и bimifc.de, tm25ray читает файлы лучей для tm25.eu и Candelabra, l3d-rs читает 3D-корпуса. Ни один из четырёх ничего не загружает на сервер. Candelabra, gldf.icu и tm25.eu — AGPL-3.0, bimifc — MPL-2.0."
+  "eco_kp": "На каждом сайте работают одни и те же крейты Rust: eulumdat читает и рисует фотометрию в Candelabra, gldf.icu и bimifc.de, tm25ray читает файлы лучей для tm25.eu и Candelabra, l3d-rs читает 3D-корпуса. Ни один из четырёх ничего не загружает на сервер. Candelabra, gldf.icu и tm25.eu — AGPL-3.0, bimifc — MPL-2.0.",
+  "nav_vid": "Видео",
+  "vid_h": "Посмотрите в работе: видеоуроки на восьми языках",
+  "vid_sub": "Короткие видео на YouTube показывают каждый инструмент: от открытия фотометрического файла до проектирования помещений и улиц, аварийного освещения, датчиков и светового загрязнения. Каждое озвучено на восьми языках, и приложение на экране показано на том же языке.",
+  "vid_pick": "Выберите язык:",
+  "vid_channel": "Открыть канал на YouTube",
+  "vid_note": "В каждом видео есть включаемые субтитры и главы, чтобы сразу перейти к нужному шагу."
  },
  "pt-BR": {
   "title": "Candelabra – veja qualquer luminária em ação, no seu navegador",
@@ -1251,7 +1281,13 @@
   "eco_f3s": "Solte o .gldf no Candelabra: a fotometria mais brilhante vira a luminária, o modelo L3D seu corpo na cena de luz, e seus sensores e emissores de emergência entram no projeto.",
   "eco_f4s": "“Export IFC” no gldf.icu grava a luminária com sua fotometria; aberto no bimifc.de, a luminária mostra o diagrama polar e os dados.",
   "eco_k": "Os mesmos crates por baixo",
-  "eco_kp": "Os mesmos crates Rust trabalham em cada site: eulumdat lê e desenha a fotometria no Candelabra, gldf.icu e bimifc.de, tm25ray lê os arquivos de raios para o tm25.eu e o Candelabra, l3d-rs lê os corpos 3D. Nenhum dos quatro envia nada. Candelabra, gldf.icu e tm25.eu são AGPL-3.0, bimifc é MPL-2.0."
+  "eco_kp": "Os mesmos crates Rust trabalham em cada site: eulumdat lê e desenha a fotometria no Candelabra, gldf.icu e bimifc.de, tm25ray lê os arquivos de raios para o tm25.eu e o Candelabra, l3d-rs lê os corpos 3D. Nenhum dos quatro envia nada. Candelabra, gldf.icu e tm25.eu são AGPL-3.0, bimifc é MPL-2.0.",
+  "nav_vid": "Vídeos",
+  "vid_h": "Veja em ação: tutoriais em vídeo em oito idiomas",
+  "vid_sub": "Vídeos curtos no YouTube percorrem cada ferramenta, desde abrir um arquivo fotométrico até o projeto de interiores e de vias, a iluminação de emergência, os sensores e a poluição luminosa. Cada um é narrado em oito idiomas, e o aplicativo na tela também aparece nesse idioma.",
+  "vid_pick": "Escolha seu idioma:",
+  "vid_channel": "Abrir o canal no YouTube",
+  "vid_note": "Cada vídeo tem legendas que podem ser ativadas e capítulos para ir direto ao passo que você procura."
  },
  "zh": {
   "title": "Candelabra – 在浏览器中查看任何灯具的实际效果",
@@ -1460,6 +1496,12 @@
   "eco_f3s": "把 .gldf 拖到 Candelabra 上：最亮的光度数据成为灯具，L3D 模型成为它在光照场景中的外形，传感器和应急发光体加入项目。",
   "eco_f4s": "gldf.icu 的“Export IFC”写出带光度数据的灯具；在 bimifc.de 打开该文件，灯具会显示配光曲线和数据。",
   "eco_k": "底层是同一套 crate",
-  "eco_kp": "每个网站都由同一套 Rust crate 完成工作：eulumdat 在 Candelabra、gldf.icu 和 bimifc.de 中读取和绘制光度数据，tm25ray 为 tm25.eu 和 Candelabra 读取光线文件，l3d-rs 读取 3D 外形。四个网站都不上传任何内容。Candelabra、gldf.icu 和 tm25.eu 采用 AGPL-3.0，bimifc 采用 MPL-2.0。"
+  "eco_kp": "每个网站都由同一套 Rust crate 完成工作：eulumdat 在 Candelabra、gldf.icu 和 bimifc.de 中读取和绘制光度数据，tm25ray 为 tm25.eu 和 Candelabra 读取光线文件，l3d-rs 读取 3D 外形。四个网站都不上传任何内容。Candelabra、gldf.icu 和 tm25.eu 采用 AGPL-3.0，bimifc 采用 MPL-2.0。",
+  "nav_vid": "视频",
+  "vid_h": "看它如何工作：八种语言的视频教程",
+  "vid_sub": "YouTube 上的短视频逐一讲解每个工具：从打开配光文件，到室内与道路照明设计、应急照明、传感器和光污染。每个视频都有八种语言的讲解，画面中的应用界面也是对应的语言。",
+  "vid_pick": "选择语言：",
+  "vid_channel": "打开 YouTube 频道",
+  "vid_note": "每个视频都有可开关的字幕，并分为章节，可直接跳到需要的步骤。"
  }
 }

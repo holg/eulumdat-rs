@@ -6,17 +6,17 @@ pub const KM_PHOTOPIC: f64 = 683.0;
 /// Maximum luminous efficacy of radiation, scotopic (lm/W at 507 nm).
 pub const KM_SCOTOPIC: f64 = 1700.0;
 
-/// Melanopic-to-photopic ratio of the D65 reference illuminant, as produced by
-/// this crate's [`crate::lut`] tables (∫D65·s_mel / ∫D65·V).
+/// Melanopic-to-photopic ratio of the D65 reference illuminant,
+/// ∫D65·s_mel dλ / ∫D65·V dλ.
 ///
-/// Multiplying photopic lux by the melanopic DER of a source gives melanopic
-/// EDI (equivalent daylight illuminance) lux, per CIE S 026. Dividing a
-/// source's own mel/photopic ratio by this constant normalises the DER so that
-/// D65 has DER = 1.0 by construction. The value is self-consistent with the
-/// approximate melanopic action spectrum tabulated here (the exact CIE S 026
-/// figure is ≈0.906 mel-lm/lm on the toolbox tables); anchoring to our own D65
-/// keeps the whole pipeline internally coherent.
-pub const MEL_PER_LUM_D65: f64 = 0.978_735;
+/// CIE S 026:2018 gives the melanopic efficacy of luminous radiation for D65 as
+/// 1.3262 mW/lm; times K_m = 683 lm/W that is this ratio. Dividing a source's
+/// own mel/photopic ratio by it gives the melanopic daylight efficacy ratio
+/// (DER): 1.0 for D65 by definition, 0.4958 for illuminant A. Multiplying
+/// photopic lux by the DER gives melanopic equivalent daylight illuminance
+/// (melanopic EDI, lux). Our own 5 nm integration of D65 reproduces the
+/// constant (test `d65_melanopic_der_is_about_one`).
+pub const MEL_PER_LUM_D65: f64 = 0.905_8;
 
 /// Visible band lower/upper bound used for "blue content" and integrations (nm).
 pub const VISIBLE_START_NM: f64 = 380.0;

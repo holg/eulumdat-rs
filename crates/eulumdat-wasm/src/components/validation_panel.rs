@@ -9,7 +9,13 @@ pub fn ValidationPanel(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     let locale = use_locale();
 
     move || {
-        let ldc = ldc.get();
+        // the file as loaded when the editor holds it unchanged: the ATLA
+        // round trip stores the intensities for more C-planes than the
+        // declared symmetry, which read as E004 / E006 / W040 on every file
+        let ldc = {
+            let d = ldc.get();
+            super::app::lossless_ldc(&d).unwrap_or(d)
+        };
         let l = locale.get();
         let warnings = eulumdat::validate_with_locale(&ldc, &l);
         let strict_result = eulumdat::validate_strict_with_locale(&ldc, &l);

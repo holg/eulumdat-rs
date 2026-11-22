@@ -366,6 +366,12 @@ struct DebugFlags {
 // Main
 // ---------------------------------------------------------------------------
 
+/// `x,y,z,lx,ly,lz` → camera position and look-at point.
+fn parse_cam(v: &str) -> Option<(Vec3, Vec3)> {
+    let n: Vec<f32> = v.split(',').filter_map(|t| t.trim().parse().ok()).collect();
+    (n.len() == 6).then(|| (Vec3::new(n[0], n[1], n[2]), Vec3::new(n[3], n[4], n[5])))
+}
+
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     let (debug_flags, scene) = {
@@ -379,10 +385,7 @@ fn main() {
             no_matfix: args.iter().any(|a| a == "--no-matfix"),
             no_lights: args.iter().any(|a| a == "--no-lights"),
             shot: value("--shot="),
-            cam: value("--cam=").and_then(|v| {
-                let n: Vec<f32> = v.split(',').filter_map(|t| t.trim().parse().ok()).collect();
-                (n.len() == 6).then(|| (Vec3::new(n[0], n[1], n[2]), Vec3::new(n[3], n[4], n[5])))
-            }),
+            cam: value("--cam=").and_then(|v| parse_cam(&v)),
         };
         let scene = args.iter().skip(1).find(|a| !a.starts_with("--")).cloned();
         if flags.no_sky {
@@ -406,13 +409,22 @@ fn main() {
                 .and_then(|v| v.as_string());
         #[cfg(not(feature = "wasm-bindgen"))]
         let scene: Option<String> = None;
+        // Camera from the link: &cam=x,y,z,lx,ly,lz (position, look-at), the
+        // same six numbers as the native --cam=
+        #[cfg(feature = "wasm-bindgen")]
+        let cam = js_sys::eval("new URLSearchParams(window.location.search).get('cam')")
+            .ok()
+            .and_then(|v| v.as_string())
+            .and_then(|v| parse_cam(&v));
+        #[cfg(not(feature = "wasm-bindgen"))]
+        let cam = None;
         (
             DebugFlags {
                 no_sky: false,
                 no_matfix: false,
                 no_lights: false,
                 shot: None,
-                cam: None,
+                cam,
             },
             scene,
         )
@@ -1511,7 +1523,8 @@ fn toggle_mode(
     };
 
     for entity in lamps.iter() {
-        commands.entity(entity).despawn();
+        // try_despawn: harmless when the entity is already gone.
+        commands.entity(entity).try_despawn();
     }
 
     if !flags.no_lights {
@@ -1642,10 +1655,10 @@ fn sync_lights(
         fix_state.0 = None;
 
         for entity in scene_geo.iter() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).try_despawn();
         }
         for entity in all_lamps.iter() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).try_despawn();
         }
 
         if prev_scene.0.is_some_and(|s| s != SceneChoice::UrbanStreet) {
@@ -1694,9 +1707,12 @@ fn sync_lights(
     for (light, entity, lamp_scale) in lights.iter() {
         let target = state.intensity_scale * lamp_scale.map_or(1.0, |s| s.0);
         if (light.intensity_scale - target).abs() > 0.001 * target.max(1.0) {
+            // try_insert: a mode switch (Space) removes the lamps in this
+            // same frame; a plain insert on a lamp that is gone by then is a
+            // fatal error in Bevy 0.19.
             commands
                 .entity(entity)
-                .insert(eulumdat_bevy::photometric::PhotometricLight {
+                .try_insert(eulumdat_bevy::photometric::PhotometricLight {
                     intensity_scale: target,
                     ..light.clone()
                 });

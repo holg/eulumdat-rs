@@ -26,6 +26,8 @@ eulumdat = { workspace = true, features = ["serde"] }
 eulumdat-i18n.workspace = true
 js-sys.workspace = true
 leptos.workspace = true
+# the layout handed to the Light scene ("Open in Light scene")
+serde_json = "1"
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 

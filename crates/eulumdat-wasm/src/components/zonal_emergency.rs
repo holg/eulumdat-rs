@@ -1577,7 +1577,7 @@ pub fn report_typst(r: &EmResult, room: &eulumdat::zonal::Room, section: &str) -
     t
 }
 
-/// "Emergency Lighting (<standard>)" section of the interior PDF (English
+/// `"Emergency Lighting (<standard>)"` section of the interior PDF (English
 /// like the rest of that report).
 pub fn typst_section(
     r: &EmResult,

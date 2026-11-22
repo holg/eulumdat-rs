@@ -19,6 +19,7 @@ pub mod form;
 pub mod goniosim;
 pub mod greenhouse_demo;
 mod greenhouse_diagram;
+mod ifc_import;
 mod intensity_heatmap;
 mod isocandela_diagram;
 mod isolux_aec;

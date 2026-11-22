@@ -58,17 +58,17 @@ pub fn update_photometric_lights<T: PhotometricData>(
         // Despawn old lights, solids, and models for this entity
         for (light_entity, marker) in bevy_lights.iter() {
             if marker.parent == entity {
-                commands.entity(light_entity).despawn();
+                commands.entity(light_entity).try_despawn();
             }
         }
         for (solid_entity, marker) in solids.iter() {
             if marker.parent == entity {
-                commands.entity(solid_entity).despawn();
+                commands.entity(solid_entity).try_despawn();
             }
         }
         for (model_entity, marker) in models.iter() {
             if marker.parent == entity {
-                commands.entity(model_entity).despawn();
+                commands.entity(model_entity).try_despawn();
             }
         }
 
@@ -93,20 +93,23 @@ pub fn cleanup_photometric_lights<T: PhotometricData>(
     models: Query<(Entity, &LuminaireModel<T>)>,
 ) {
     for removed_entity in removed.read() {
-        // Despawn all related entities
+        // Despawn all related entities. `try_despawn`: they are usually
+        // children of the removed light and went with it; a plain `despawn`
+        // of an entity that is already gone is a fatal error in Bevy 0.19
+        // (seen as a crash when the skyglow demo switched its mode).
         for (light_entity, marker) in bevy_lights.iter() {
             if marker.parent == removed_entity {
-                commands.entity(light_entity).despawn();
+                commands.entity(light_entity).try_despawn();
             }
         }
         for (solid_entity, marker) in solids.iter() {
             if marker.parent == removed_entity {
-                commands.entity(solid_entity).despawn();
+                commands.entity(solid_entity).try_despawn();
             }
         }
         for (model_entity, marker) in models.iter() {
             if marker.parent == removed_entity {
-                commands.entity(model_entity).despawn();
+                commands.entity(model_entity).try_despawn();
             }
         }
     }

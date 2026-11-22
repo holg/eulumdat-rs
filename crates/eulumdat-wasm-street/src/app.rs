@@ -179,11 +179,11 @@ pub fn StreetApp() -> impl IntoView {
     // Two grids as before — roadway-only for compliance, widened for viz.
     let area_result = Memo::new(move |_| -> Option<AreaResult> {
         let ldc_val = ldc.get()?;
-        Some(layout.get().compute(&ldc_val, 0.8))
+        Some(layout.get().compute(&ldc_val, STREET_MF))
     });
     let area_result_with_walk = Memo::new(move |_| -> Option<AreaResult> {
         let ldc_val = ldc.get()?;
-        Some(layout.get().compute_with_sidewalks(&ldc_val, 0.8))
+        Some(layout.get().compute_with_sidewalks(&ldc_val, STREET_MF))
     });
 
     // Compliance: always MLO (env zone check), plus the *selected*
@@ -248,6 +248,15 @@ pub fn StreetApp() -> impl IntoView {
             }}
 
             <LayoutForm layout=layout set_layout=set_layout locale=locale units=units />
+
+            // The designed street in the main app's Light scene (as the
+            // Interior / Outdoor designers do), maintained values like here.
+            <div class="street-actions">
+                <button class="btn btn-primary"
+                    title=move || locale.get().ui.light_scene.open_in_light_scene_tip.clone()
+                    on:click=move |_| open_in_light_scene(&layout.get_untracked(), STREET_MF)
+                >{move || locale.get().ui.light_scene.open_in_light_scene.clone()}</button>
+            </div>
 
             {move || area_result.get().map(|road_area| {
                 let layout_val = layout.get();
@@ -2134,5 +2143,28 @@ fn ResultsTable(results: Vec<ComplianceResult>, locale: Memo<Locale>) -> impl In
                 }
             }).collect_view()}
         </div>
+    }
+}
+
+/// Maintenance factor of every calculation here (compliance, heatmap,
+/// optimizer); the Light scene shows the same maintained values.
+const STREET_MF: f64 = 0.8;
+
+/// Hand the layout to the main app, which opens it as a planned scene in
+/// the Light scene tab (`window.candelabraOpenStreetScene`, registered by
+/// the editor; this bundle cannot reach its contexts).
+fn open_in_light_scene(layout: &StreetLayout, mf: f64) {
+    let msg = serde_json::json!({ "layout": layout, "mf": mf }).to_string();
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    match js_sys::Reflect::get(&window, &JsValue::from_str("candelabraOpenStreetScene"))
+        .ok()
+        .and_then(|f| f.dyn_into::<js_sys::Function>().ok())
+    {
+        Some(f) => {
+            let _ = f.call1(&JsValue::NULL, &JsValue::from_str(&msg));
+        }
+        None => web_sys::console::warn_1(&"[Street] the editor has no Light scene hook".into()),
     }
 }

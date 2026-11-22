@@ -32,11 +32,14 @@ pub fn StreetLauncher() -> impl IntoView {
     // the tab and back), re-invoke loadStreetDesigner — the loader detects
     // the cached module and just calls mount() again to re-populate the
     // (freshly rendered) #street-root div.
+    // An effect runs once the view (with #street-root) is in the page.
     if initial {
-        let promise = load_street_designer();
-        let future = wasm_bindgen_futures::JsFuture::from(promise);
-        wasm_bindgen_futures::spawn_local(async move {
-            let _ = future.await;
+        Effect::new(move |_| {
+            let promise = load_street_designer();
+            let future = wasm_bindgen_futures::JsFuture::from(promise);
+            wasm_bindgen_futures::spawn_local(async move {
+                let _ = future.await;
+            });
         });
     }
 

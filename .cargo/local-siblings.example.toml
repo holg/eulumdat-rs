@@ -1,0 +1,13 @@
+# Local builds against the sibling checkouts (crates.io for everyone else).
+# Copy to `.cargo/local-siblings.toml` (git-ignored); `.cargo/config.toml`
+# includes it when it exists, so CI and `cargo publish` never see it.
+# Paths are relative to the eulumdat-rs folder.
+[patch.crates-io]
+# bimifc's own `eulumdat = "0.8"` is this workspace's eulumdat (one copy)
+eulumdat = { path = "crates/eulumdat" }
+# IFC import (crates/eulumdat-ifc)
+bimifc-model = { path = "../bimifc/crates/bimifc-model" }
+bimifc-parser = { path = "../bimifc/crates/bimifc-parser" }
+bimifc-geometry = { path = "../bimifc/crates/bimifc-geometry" }
+# IFC export (eulumdat-ifc feature `export`)
+bimifc-writer = { path = "../bimifc/crates/bimifc-writer" }

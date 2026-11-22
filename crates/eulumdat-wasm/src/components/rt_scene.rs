@@ -877,11 +877,13 @@ pub fn RtSceneViewer(active: Signal<bool>, ldc: ReadSignal<Eulumdat>) -> impl In
 
     // Panel settings → viewer; the compute choice stays in the tab.
     let ppfd = use_context::<super::app::PpfdFactor>();
+    let mel = use_context::<super::app::MelanopicDer>();
     Effect::new(move |_| {
         let mut s = settings.get();
         s.overlay = false;
         s.active = true;
         s.ppfd_factor = ppfd.and_then(|c| c.0.get());
+        s.mel_der = mel.and_then(|c| c.0.get());
         let cpu = s.compute == "cpu" || !webgpu.get();
         shared_sv.with_value(|sh| {
             let Ok(mut sh) = sh.try_borrow_mut() else {
@@ -1710,7 +1712,7 @@ fn RtControlPanel(
                                     "office" => tt.desc_office,
                                     "greenhouse" => tt.desc_greenhouse,
                                     "planned" => plan.get().map(|pl| {
-                                        let from = if pl.indoor { tt.from_interior.clone() } else { tt.from_outdoor.clone() };
+                                        let from = if pl.street { tt.from_street.clone() } else if pl.indoor { tt.from_interior.clone() } else { tt.from_outdoor.clone() };
                                         let mut d = fill(&tt.desc_planned, &[("{from}", from), ("{name}", pl.name.clone())]);
                                         if let Some(note) = pl.note.as_ref() {
                                             d.push(' ');
@@ -1726,13 +1728,23 @@ fn RtControlPanel(
                         {move || {
                             let pl = plan.get().filter(|_| settings.get().scene == "planned")?;
                             let back = use_context::<super::app::OpenDesigner>()?;
-                            let indoor = pl.indoor;
+                            let designer = if pl.street {
+                                super::app::Designer::Street
+                            } else if pl.indoor {
+                                super::app::Designer::Interior
+                            } else {
+                                super::app::Designer::Outdoor
+                            };
                             Some(view! {
                                 <button style="padding: 5px 8px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text-primary); border-radius: 4px; text-align: left;"
-                                    on:click=move |_| back.0.run(indoor)>
+                                    on:click=move |_| back.0.run(designer)>
                                     {move || {
                                         let tt = t.get();
-                                        let from = if indoor { tt.from_interior.clone() } else { tt.from_outdoor.clone() };
+                                        let from = match designer {
+                                            super::app::Designer::Interior => tt.from_interior.clone(),
+                                            super::app::Designer::Outdoor => tt.from_outdoor.clone(),
+                                            super::app::Designer::Street => tt.from_street.clone(),
+                                        };
                                         fill(&tt.back_to_designer, &[("{from}", from)])
                                     }}
                                 </button>
@@ -1819,6 +1831,28 @@ fn RtControlPanel(
                                         format!("{} {} {}", tt.unit_ppfd, note, tt.dli_explain)
                                     } else { tt.stats_explain.clone() }}
                                 </div>
+                                // melanopic EDI = vertical illuminance at eye height × melanopic DER
+                                {s.grids.iter().find(|g| g.name == eulumdat_scene::scene::GRID_EYE).filter(|_| s.ppfd_factor <= 0.0).map(|g| {
+                                    let (mean, min, der) = (g.em, g.emin, s.mel_der);
+                                    let lines = if der > 0.0 {
+                                        let verdict = if min * der >= 250.0 { tt.mel_day_ok.clone() } else { fill(&tt.mel_day_low, &[("{min}", fmt_lux(min * der))]) };
+                                        vec![
+                                            fill(&tt.mel_values, &[("{mean}", fmt_lux(mean * der)), ("{min}", fmt_lux(min * der)), ("{der}", format!("{der:.2}"))]),
+                                            verdict,
+                                            tt.mel_note.clone(),
+                                        ]
+                                    } else {
+                                        vec![fill(&tt.mel_no_spd, &[("{mean}", fmt_lux(mean)), ("{min}", fmt_lux(min))]), tt.mel_note.clone()]
+                                    };
+                                    let ok = der > 0.0 && min * der >= 250.0;
+                                    view! {
+                                        <div class="melanopic-edi" data-mean=format!("{:.1}", mean * der.max(0.0)) data-min=format!("{:.1}", min * der.max(0.0)) data-der=format!("{der:.3}")
+                                             style="margin-top: 8px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 11px; line-height: 1.45;">
+                                            <div style="font-weight: 600; margin-bottom: 3px;">{format!("{} {}", if der <= 0.0 { "◌" } else if ok { "✓" } else { "✗" }, tt.mel_title)}</div>
+                                            {lines.into_iter().map(|l| view! { <div style="color: var(--text-secondary);">{l}</div> }).collect_view()}
+                                        </div>
+                                    }
+                                })}
                             }
                         })}
                     </Section>

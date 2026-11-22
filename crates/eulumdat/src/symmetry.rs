@@ -101,25 +101,35 @@ impl SymmetryHandler {
                 if complete(ca) {
                     return ca.clone();
                 }
-                let stored = Self::stored_c_angles(eulumdat);
-                let mut all: Vec<f64> = Vec::new();
-                for &q in &stored {
-                    let images: &[f64] = match sym {
-                        Symmetry::PlaneC0C180 => &[q, 360.0 - q],
-                        Symmetry::PlaneC90C270 => &[q, 180.0 - q],
-                        _ => &[q, 180.0 - q, 180.0 + q, 360.0 - q],
-                    };
-                    for &a in images {
-                        let a = a.rem_euclid(360.0);
-                        if !all.iter().any(|x| (x - a).abs() < 1e-6) {
-                            all.push(a);
-                        }
-                    }
-                }
-                all.sort_by(|x, y| x.partial_cmp(y).unwrap());
-                all
+                Self::mirror_c_angles(sym, &Self::stored_c_angles(eulumdat))
             }
         }
+    }
+
+    /// All C angles (0 ≤ C < 360, ascending, no duplicates) of a
+    /// distribution whose stored planes are `stored` (0–180 for C0–C180,
+    /// 90–270 for C90–C270, 0–90 for both planes). `None` and the vertical
+    /// axis return the list as given.
+    pub fn mirror_c_angles(symmetry: Symmetry, stored: &[f64]) -> Vec<f64> {
+        if matches!(symmetry, Symmetry::None | Symmetry::VerticalAxis) {
+            return stored.to_vec();
+        }
+        let mut all: Vec<f64> = Vec::new();
+        for &q in stored {
+            let images: &[f64] = match symmetry {
+                Symmetry::PlaneC0C180 => &[q, 360.0 - q],
+                Symmetry::PlaneC90C270 => &[q, 180.0 - q],
+                _ => &[q, 180.0 - q, 180.0 + q, 360.0 - q],
+            };
+            for &a in images {
+                let a = a.rem_euclid(360.0);
+                if !all.iter().any(|x| (x - a).abs() < 1e-6) {
+                    all.push(a);
+                }
+            }
+        }
+        all.sort_by(|x, y| x.partial_cmp(y).unwrap());
+        all
     }
 
     /// Expand symmetric data to the full 360° distribution.

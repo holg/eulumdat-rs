@@ -115,6 +115,12 @@ fn main() {
                     println!("spectrum: {f:.4} umol per lx*s");
                     viewer.settings.ppfd_factor = Some(f);
                 }
+                if let Some(der) =
+                    eulumdat_scene::photometry::melanopic_der(&spd.wavelengths, &spd.values)
+                {
+                    println!("spectrum: melanopic DER {der:.3}");
+                    viewer.settings.mel_der = Some(der);
+                }
             }
             viewer.load(&path, doc.to_eulumdat(), None);
         }
@@ -296,6 +302,19 @@ fn main() {
             g.emin * k,
             g.uo
         );
+        // melanopic EDI = vertical illuminance at eye height x melanopic DER (CIE S 026)
+        if let Some(der) = viewer
+            .settings
+            .mel_der
+            .filter(|_| g.name == eulumdat_scene::scene::GRID_EYE && f <= 0.0)
+        {
+            println!(
+                "{:<18} mean {:>5.1}  min  {:>7.1}  [lx melanopic EDI, DER {der:.2}]",
+                "melanopic EDI",
+                g.em * der,
+                g.emin * der
+            );
+        }
     }
 
     // Read the target back and write a PPM.

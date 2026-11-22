@@ -667,11 +667,12 @@ if [[ "$BUILD_STREET" == "true" ]]; then
         # wasm-bindgen outputs use underscores (eulumdat_wasm_street.js);
         # normalize to hyphenated name so downstream steps can assume a
         # consistent filename.
-        if [[ -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}.js" ]] && \
-           [[ ! -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" ]]; then
-            mv "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}.js" \
+        # Always replace: a hyphenated copy from an earlier build used to
+        # block the move, so every build shipped the stale glue and wasm.
+        if [[ -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}.js" ]]; then
+            mv -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}.js" \
                 "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js"
-            mv "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}_bg.wasm" \
+            mv -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_UNDER}_bg.wasm" \
                 "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm"
             # Rewrite the JS to match the renamed WASM
             if [[ "$(uname)" == "Darwin" ]]; then
@@ -887,7 +888,7 @@ if [[ "$BUILD_LEPTOS" == "true" ]]; then
         # `benchmark` is opt-in (default-off in published crate; the
         # `include_str!` IES test file isn't shipped to crates.io).
         # Build script always enables it for the bundled WASM app.
-        trunk build --release --features benchmark
+        trunk build --release --features benchmark,ifc-export
 
         # Save hash after successful build
         save_hash "leptos" "$(calculate_source_hash "$WASM_DIR")"
@@ -1020,12 +1021,15 @@ echo ""
 STREET_JS_HASH=""
 STREET_WASM_HASH=""
 if [[ "$BUILD_STREET" == "true" ]] && [[ -f "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" ]]; then
+    # The JS name hashes its own text AND the wasm hash: the glue can stay
+    # byte-identical while the wasm changes, and the JS (served immutable)
+    # names the wasm, so it must get a new name too.
     if command -v md5sum &> /dev/null; then
-        STREET_JS_HASH=$(md5sum "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" | cut -c1-16)
         STREET_WASM_HASH=$(md5sum "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" | cut -c1-16)
+        STREET_JS_HASH=$({ cat "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js"; echo "$STREET_WASM_HASH"; } | md5sum | cut -c1-16)
     else
-        STREET_JS_HASH=$(md5 -q "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js" | cut -c1-16)
         STREET_WASM_HASH=$(md5 -q "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}_bg.wasm" | cut -c1-16)
+        STREET_JS_HASH=$({ cat "$STREET_BINDGEN_OUTPUT/${STREET_CRATE_NAME}.js"; echo "$STREET_WASM_HASH"; } | md5 -q | cut -c1-16)
     fi
 
     STREET_JS_TARGET="$DIST_DIR/street/${STREET_CRATE_NAME}-${STREET_JS_HASH}.js"

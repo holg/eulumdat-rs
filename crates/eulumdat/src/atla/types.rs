@@ -226,6 +226,28 @@ pub struct LuminaireOpticalData {
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
     pub alternative_lamp_sets: Vec<Emitter>,
+
+    /// The EULUMDAT this document was converted from (never serialised).
+    ///
+    /// EULUMDAT holds values ATLA has no place for: the declared light
+    /// output ratio, conversion factor, tilt, luminous-area heights, the
+    /// full C-angle list of a symmetric file, the file name. While the
+    /// document still describes the same luminaire, `to_eulumdat` returns
+    /// this copy, so LDT → ATLA → LDT is exact.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub source_ldt: Option<Box<SourceLdt>>,
+}
+
+/// The EULUMDAT a document was made from, see
+/// [`LuminaireOpticalData::source_ldt`].
+#[derive(Debug, Clone)]
+pub struct SourceLdt {
+    /// The luminaire as loaded.
+    pub ldt: crate::Eulumdat,
+    /// LDT text of the plain conversion of the document when it was made:
+    /// while the document converts to the same text, nothing EULUMDAT can
+    /// hold has changed.
+    pub key: String,
 }
 
 /// Header section containing general luminaire identification

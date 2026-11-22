@@ -300,7 +300,7 @@
       "e003": "Aucun ensemble de lampes défini",
       "e004": "Incohérence des dimensions des données d'intensité : {0} plans C, {1} attendus",
       "e005": "Le nombre d'angles G ({0}) ne correspond pas à num_g_planes ({1})",
-      "e006": "Le nombre d'angles C ({0}) ne correspond pas au Mc attendu ({1})"
+      "e006": "Le nombre d'angles C ({0}) ne correspond pas au nombre de plans C Nc ({1})"
     }
   },
   "comparison": {
@@ -792,6 +792,16 @@
       "photoperiod": "Photopériode",
       "ppfd_from_spd": "PPFD d'après le spectre du luminaire : {f} µmol par lx·s",
       "ppfd_assumed": "Pas de spectre dans le fichier : le PPFD suppose une LED blanche, {f} µmol par lx·s. Chargez un fichier ATLA / TM-33 ou joignez un SPD pour le vrai facteur.",
+      "mel_title": "EDI mélanopique au niveau de l'œil",
+      "mel_values": "{mean} lx en moyenne · {min} lx à la position la plus sombre (éclairement vertical à hauteur des yeux, 1,2 m, × DER mélanopique {der} du spectre du luminaire, CIE S 026)",
+      "mel_day_ok": "La recommandation de jour d'au moins 250 lx d'EDI mélanopique est atteinte à chaque position.",
+      "mel_day_low": "La recommandation de jour d'au moins 250 lx d'EDI mélanopique n'est pas atteinte partout : {min} lx à la position la plus sombre.",
+      "mel_no_spd": "Le fichier ne contient pas de spectre, donc pas de valeurs mélanopiques. Éclairement vertical à hauteur des yeux : {mean} lx en moyenne, {min} lx au minimum. Chargez un fichier TM-33 / ATLA ou joignez un spectre.",
+      "mel_note": "Recommandations (Brown et al. 2022) : le jour au moins 250 lx, le soir au plus 10 lx, la nuit au plus 1 lx d'EDI mélanopique au niveau de l'œil. Éclairage électrique seul ; la lumière du jour s'y ajoute.",
+      "mel_card_der": "DER mélanopique {der} (lumière du jour D65 = 1)",
+      "mel_card_edi": "{lux} lx au niveau de l'œil donnent {edi} lx d'EDI mélanopique",
+      "mel_card_need": "250 lx d'EDI mélanopique demandent {lux} lx au niveau de l'œil",
+      "mel_card_estimate": "Estimé à partir de la température de couleur : ce fichier ne contient pas de spectre.",
       "dli": "DLI",
       "dli_explain": "DLI = PPFD moyen × photopériode, en mol/m²/jour. Légumes-feuilles : 12–17, cultures fruitières : 20–30.",
       "hint_ppfd": "Couleur = PPFD en µmol/m²/s sur chaque surface (échelle dans le panneau) · lignes tous les {step}",
@@ -834,6 +844,7 @@
       "scene_planned": "📐 Plan",
       "from_interior": "Concepteur intérieur",
       "from_outdoor": "Concepteur extérieur",
+      "from_street": "Concepteur de rues",
       "desc_planned": "Depuis le {from} : {name}. Déplacez ici luminaires, capteurs et personne pour essayer des variantes ; le plan lui-même reste inchangé.",
       "open_in_light_scene": "🎬 Ouvrir dans la scène lumineuse",
       "open_in_light_scene_tip": "Vérifier ce plan en path tracing : la pièce ou la zone avec ses luminaires et capteurs.",
@@ -1634,6 +1645,29 @@
           }
         }
       }
+    },
+    "ifc": {
+      "title": "🏢 Pièce d'une maquette IFC",
+      "intro": "Ouvrez une maquette de bâtiment (IFC2x3, IFC4) et reprenez-en une pièce : contour, hauteur, les luminaires qu'elle contient et les sorties. Le fichier est lu dans votre navigateur.",
+      "open": "Ouvrir un fichier IFC…",
+      "reading": "Lecture de {name}…",
+      "failed": "Impossible de lire ce fichier IFC : {error}",
+      "summary": "{rooms} pièces sur {storeys} niveaux · {luminaires} luminaires · {doors} portes · {windows} fenêtres",
+      "storey": "Niveau",
+      "room": "Pièce",
+      "room_info": "{area} m² · {height} m de haut",
+      "in_room": "Dans cette pièce : {luminaires} luminaires ({with} avec photométrie) · {doors} portes ({exits} sorties) · {windows} fenêtres",
+      "use_luminaires": "Positions des luminaires de la maquette ({n})",
+      "use_photometry": "Ouvrir leur photométrie : {name}",
+      "use_exits": "Sorties comme points d'éclairage de sécurité ({n})",
+      "apply": "Reprendre cette pièce",
+      "applied": "Pièce de la maquette : {name}",
+      "fixed_note": "{n} luminaires placés comme dans la maquette IFC.",
+      "back_to_grid": "Utiliser plutôt l'implantation calculée",
+      "no_photometry": "Les luminaires ici n'ont pas de photométrie ; le luminaire chargé est utilisé.",
+      "notes": "Remarques",
+      "export_ifc": "🏢 Maquette IFC (.ifc)",
+      "export_ifc_tip": "La pièce en maquette IFC4 : contour, murs, luminaires avec leur photométrie (y compris de sécurité) et les sorties, pour les outils BIM, bimifc.de et l'import ici."
     }
   },
   "dashboard": {

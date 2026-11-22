@@ -234,6 +234,31 @@ impl LuminaireLayout {
     pub fn is_moved(&self) -> bool {
         self.moved.iter().any(|&(i, _, _)| i < self.count)
     }
+
+    /// A layout of given positions (m), e.g. luminaires from a building
+    /// model: one row of `positions.len()`, each one placed by `moved`, so
+    /// hand moves keyed `1xN:N` still apply on top. No spacing check.
+    pub fn fixed(positions: &[(f64, f64)]) -> Self {
+        let n = positions.len();
+        Self {
+            rows: 1,
+            cols: n,
+            count: n,
+            spacing_x: 0.0,
+            spacing_y: 0.0,
+            offset_x: 0.0,
+            offset_y: 0.0,
+            s_mh_x: 0.0,
+            s_mh_y: 0.0,
+            spacing_ok: true,
+            moved: positions
+                .iter()
+                .enumerate()
+                .map(|(i, &(x, y))| (i, x, y))
+                .collect(),
+            keep: None,
+        }
+    }
 }
 
 /// Solve mode for the zonal calculation.
@@ -292,6 +317,20 @@ pub struct ZonalResult {
     pub spacing_criterion: f64,
     /// Optional point-by-point overlay
     pub ppb: Option<PpbResult>,
+}
+
+impl ZonalResult {
+    /// The same room with luminaires at these positions (m) instead of the
+    /// solved grid: illuminance and LPD follow the count (lumen method).
+    pub fn with_positions(mut self, positions: &[(f64, f64)], area: f64) -> Self {
+        self.layout = LuminaireLayout::fixed(positions);
+        let n = positions.len() as f64;
+        if area > 0.0 {
+            self.achieved_illuminance = n * self.luminaire_lumens * self.cu * self.llf_total / area;
+            self.lpd = n * self.luminaire_watts / area;
+        }
+        self
+    }
 }
 
 // ─── Cavity ratio computation ───────────────────────────────────────────────
@@ -1022,6 +1061,41 @@ mod tests {
         v.as_object_mut().unwrap().remove("moved");
         let back: LuminaireLayout = serde_json::from_value(v).unwrap();
         assert_eq!(back, layout);
+    }
+
+    #[test]
+    fn fixed_positions_replace_the_grid() {
+        let ldt = crate::Eulumdat::from_file(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../eulumdat-wasm/templates/fluorescent_luminaire.ldt"
+        ))
+        .unwrap();
+        let room = Room::new(6.0, 3.0, 2.8, 0.8, 0.0);
+        let refl = Reflectances::new(0.7, 0.5, 0.2);
+        let llf = LightLossFactor::new(0.9, 0.95, 1.0, 0.98);
+        let ct = CuTable::calculate(&ldt);
+        let solved = compute_zonal(
+            &ldt,
+            &room,
+            &refl,
+            &llf,
+            500.0,
+            &ct,
+            SolveMode::TargetToCount,
+            None,
+            None,
+        );
+        let per = solved.achieved_illuminance / solved.layout.count as f64;
+        // five luminaires from a building model
+        let pos = [(1.0, 1.5), (2.0, 1.5), (3.0, 1.5), (4.0, 1.5), (5.0, 1.5)];
+        let r = solved.with_positions(&pos, room.area());
+        assert_eq!(r.layout.positions(), pos);
+        assert_eq!(r.layout.count, 5);
+        assert!((r.achieved_illuminance - 5.0 * per).abs() < 1e-6);
+        // a hand move still applies on top (key 1x5:5)
+        let mut l = r.layout.clone();
+        l.moved[2] = (2, 3.0, 2.0);
+        assert_eq!(l.positions()[2], (3.0, 2.0));
     }
 
     #[test]

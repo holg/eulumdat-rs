@@ -253,7 +253,10 @@ fn full_night_mesopic_road_sweep() {
     }
     assert!(any_night);
 
-    // Warm source at the same road level reads *dimmer* than photopic.
+    // A warm source at the same road level gains much less: a 2200 K thermal
+    // spectrum has an S/P ratio only a little above 1 (illuminant A, 2856 K, has
+    // 1.41), so its mesopic luminance stays close to the photopic value. (With
+    // the approximate V′ table used until 2026-11-21 its S/P came out below 1.)
     let mut warm_scene = Scene::new();
     warm_scene.add_source_with_spectrum(
         Source::Isotropic {
@@ -268,8 +271,12 @@ fn full_night_mesopic_road_sweep() {
         .integrated_sp_ratio();
     let l_warm = mesopic_luminance(l_photopic, sp_warm);
     assert!(
-        l_warm < l_photopic,
-        "warm source at night reads dimmer than photopic: {l_warm:.3}"
+        (0.95..1.35).contains(&sp_warm),
+        "2200 K thermal source: S/P a little above 1, got {sp_warm:.2}"
+    );
+    assert!(
+        l_warm < mesopic_luminance(l_photopic, sp) && (l_warm - l_photopic).abs() < 0.05,
+        "warm source at night stays near photopic and below the cool source: {l_warm:.3}"
     );
 }
 

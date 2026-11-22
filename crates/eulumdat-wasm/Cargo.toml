@@ -47,6 +47,9 @@ hydrate = ["leptos/hydrate"]
 # (would push the package over crates.io's 10 MiB upload cap). The
 # build-wasm-split.sh and local dev builds opt in explicitly.
 benchmark = []
+# "IFC model" export in the Interior designer (bimifc-writer from the local
+# ../bimifc checkout; build-wasm-split.sh turns it on, CI builds without).
+ifc-export = ["eulumdat-ifc/export", "dep:uuid"]
 # Note: the historical `bevy-viewer` feature is gone. The 3D viewer
 # now lives in eulumdat-bevy and is lazy-loaded as a separate WASM
 # bundle via build-wasm-split.sh (see crates/eulumdat-bevy and the
@@ -62,6 +65,8 @@ eulumdat-daylight.workspace = true
 eulumdat-digitize.workspace = true
 eulumdat-goniosim = { workspace = true, default-features = false }
 eulumdat-i18n.workspace = true
+# Rooms from IFC building models (Interior designer)
+eulumdat-ifc.workspace = true
 eulumdat-rt = { workspace = true, default-features = false }
 eulumdat-scene = { workspace = true, features = ["l3d", "spectrum"] }
 eulumdat-spectrum.workspace = true
@@ -72,6 +77,8 @@ getrandom = { version = "0.3", features = ["wasm_js"] }
 gloo.workspace = true
 gloo-file.workspace = true
 js-sys.workspace = true
+# bimifc-writer's GlobalIds (uuid v4) need the browser's randomness
+uuid = { version = "1", features = ["js"], optional = true }
 wgpu = { version = "29", default-features = false, features = ["wgsl", "webgpu"] }
 
 # Web framework (Leptos)

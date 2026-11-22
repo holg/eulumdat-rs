@@ -252,6 +252,26 @@ pub fn SpectralDiagramView(
     };
 
     let is_hort_display = move || is_horticultural(&atla_doc.get());
+    // Melanopic daylight efficacy ratio (CIE S 026) of the same spectrum
+    let melanopic_der = move || -> Option<f32> {
+        let doc = atla_doc.get();
+        let of = |spd: &eulumdat::atla::SpectralDistribution| {
+            eulumdat_scene::photometry::melanopic_der(&spd.wavelengths, &spd.values)
+        };
+        match detect_spectral_source(&doc) {
+            SpectralSource::Direct => doc
+                .emitters
+                .iter()
+                .filter_map(|e| e.spectral_distribution.as_ref())
+                .next()
+                .and_then(of),
+            SpectralSource::Synthesized => {
+                get_cct_cri(&doc).and_then(|(cct, cri)| of(&synthesize_spectrum(cct, cri)))
+            }
+            SpectralSource::Sample => of(&create_sample_led_spectrum()),
+        }
+    };
+
     let has_ir = move || spectral_metrics().map(|m| m.has_ir).unwrap_or(false);
     let has_uv = move || spectral_metrics().map(|m| m.has_uv).unwrap_or(false);
     let thermal_warning = move || {
@@ -485,6 +505,24 @@ pub fn SpectralDiagramView(
                                         </div>
                                         <div class="metric-detail">{move || format!("{}: {:.1}%", locale.get().ui.spectral.par_total.clone(), m.par_percent)}</div>
                                     </div>
+
+                                    // Melanopic (CIE S 026): DER and what it means in lux at the eye
+                                    {move || melanopic_der().map(|der| {
+                                        let l = locale.get().ui.light_scene.clone();
+                                        let fill = |t: &str, pairs: &[(&str, String)]| pairs.iter().fold(t.to_string(), |s, (k, v)| s.replace(k, v));
+                                        view! {
+                                            <div class="metric-card melanopic-card" data-der=format!("{der:.3}")>
+                                                <h4>{l.mel_title.clone()}</h4>
+                                                <div class="metric-value">{format!("DER {der:.2}")}</div>
+                                                <div class="metric-detail">{fill(&l.mel_card_der, &[("{der}", format!("{der:.2}"))])}</div>
+                                                <div class="metric-detail">{fill(&l.mel_card_edi, &[("{lux}", "500".into()), ("{edi}", format!("{:.0}", 500.0 * der))])}</div>
+                                                <div class="metric-detail">{fill(&l.mel_card_need, &[("{lux}", format!("{:.0}", 250.0 / der))])}</div>
+                                                {(!matches!(detect_spectral_source(&atla_doc.get()), SpectralSource::Direct)).then(|| view! {
+                                                    <div class="metric-detail" style="font-style: italic;">{l.mel_card_estimate.clone()}</div>
+                                                })}
+                                            </div>
+                                        }
+                                    })}
 
                                     // Horticultural metrics
                                     <div class="metric-card">

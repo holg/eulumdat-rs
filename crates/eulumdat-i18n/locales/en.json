@@ -300,7 +300,7 @@
       "e003": "No lamp sets defined",
       "e004": "Intensity data dimension mismatch: {0} C-planes, expected {1}",
       "e005": "G-angles count ({0}) doesn't match num_g_planes ({1})",
-      "e006": "C-angles count ({0}) doesn't match expected Mc ({1})"
+      "e006": "C-angles count ({0}) doesn't match the number of C-planes Nc ({1})"
     }
   },
   "comparison": {
@@ -792,6 +792,16 @@
       "photoperiod": "Photoperiod",
       "ppfd_from_spd": "PPFD from the luminaire's spectrum: {f} µmol per lx·s",
       "ppfd_assumed": "No spectrum in the file: PPFD assumes a white LED, {f} µmol per lx·s. Load an ATLA / TM-33 file or attach an SPD for the real factor.",
+      "mel_title": "Melanopic EDI at the eye",
+      "mel_values": "{mean} lx mean · {min} lx at the darkest position (vertical illuminance at eye height, 1.2 m, × melanopic DER {der} of the luminaire's spectrum, CIE S 026)",
+      "mel_day_ok": "The daytime recommendation of at least 250 lx melanopic EDI is met at every eye position.",
+      "mel_day_low": "The daytime recommendation of at least 250 lx melanopic EDI is not met everywhere: {min} lx at the darkest position.",
+      "mel_no_spd": "No spectrum in the file, so no melanopic values. Vertical illuminance at eye height: {mean} lx mean, {min} lx minimum. Load a TM-33 / ATLA file or attach a spectrum.",
+      "mel_note": "Recommendations (Brown et al. 2022): by day at least 250 lx, in the evening at most 10 lx, at night at most 1 lx melanopic EDI at the eye. Electric light only; daylight adds to it.",
+      "mel_card_der": "Melanopic DER {der} (D65 daylight = 1)",
+      "mel_card_edi": "{lux} lx at the eye give {edi} lx melanopic EDI",
+      "mel_card_need": "250 lx melanopic EDI need {lux} lx at the eye",
+      "mel_card_estimate": "Estimated from the colour temperature: this file has no spectrum.",
       "dli": "DLI",
       "dli_explain": "DLI = PPFD average × photoperiod, in mol/m²/day. Leafy greens want 12–17, fruiting crops 20–30.",
       "hint_ppfd": "Colour = PPFD in µmol/m²/s on every surface (scale in the panel) · lines every {step}",
@@ -834,6 +844,7 @@
       "scene_planned": "📐 Plan",
       "from_interior": "Interior designer",
       "from_outdoor": "Outdoor designer",
+      "from_street": "Street designer",
       "desc_planned": "From the {from}: {name}. Move luminaires, sensors and the person here to try alternatives; the plan itself stays as it is.",
       "open_in_light_scene": "🎬 Open in Light scene",
       "open_in_light_scene_tip": "Check this plan path traced: the room or area with its luminaires and sensors.",
@@ -1634,6 +1645,29 @@
           }
         }
       }
+    },
+    "ifc": {
+      "title": "🏢 Room from an IFC model",
+      "intro": "Open a building model (IFC2x3, IFC4) and take a room from it: outline, height, the luminaires in it and the exits. The file is read in your browser.",
+      "open": "Open IFC file…",
+      "reading": "Reading {name}…",
+      "failed": "Could not read this IFC file: {error}",
+      "summary": "{rooms} rooms on {storeys} storeys · {luminaires} luminaires · {doors} doors · {windows} windows",
+      "storey": "Storey",
+      "room": "Room",
+      "room_info": "{area} m² · {height} m high",
+      "in_room": "In this room: {luminaires} luminaires ({with} with photometry) · {doors} doors ({exits} exits) · {windows} windows",
+      "use_luminaires": "Luminaire positions from the model ({n})",
+      "use_photometry": "Open their photometry: {name}",
+      "use_exits": "Exits as emergency points ({n})",
+      "apply": "Use this room",
+      "applied": "Room from the model: {name}",
+      "fixed_note": "{n} luminaires placed as in the IFC model.",
+      "back_to_grid": "Use the calculated layout instead",
+      "no_photometry": "The luminaires here carry no photometry; the loaded luminaire is used.",
+      "notes": "Notes",
+      "export_ifc": "🏢 IFC model (.ifc)",
+      "export_ifc_tip": "The room as an IFC4 model: outline, walls, luminaires with their photometry (emergency luminaires too) and the exits, for BIM tools, bimifc.de and the import here."
     }
   },
   "dashboard": {

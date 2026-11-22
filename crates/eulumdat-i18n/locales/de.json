@@ -300,7 +300,7 @@
       "e003": "Keine Leuchtmittelsets definiert",
       "e004": "Lichtstärkedaten-Dimensionsfehler: {0} C-Ebenen, erwartet {1}",
       "e005": "G-Winkel-Anzahl ({0}) stimmt nicht mit num_g_planes ({1}) überein",
-      "e006": "C-Winkel-Anzahl ({0}) stimmt nicht mit erwartetem Mc ({1}) überein"
+      "e006": "C-Winkel-Anzahl ({0}) stimmt nicht mit der Zahl der C-Ebenen Nc ({1}) überein"
     }
   },
   "comparison": {
@@ -792,6 +792,16 @@
       "photoperiod": "Photoperiode",
       "ppfd_from_spd": "PPFD aus dem Spektrum der Leuchte: {f} µmol pro lx·s",
       "ppfd_assumed": "Die Datei enthält kein Spektrum; für die PPFD wird eine weiße LED angenommen ({f} µmol pro lx·s). Für den echten Faktor eine ATLA/TM-33-Datei laden oder ein Spektrum (SPD) anhängen.",
+      "mel_title": "Melanopische EDI am Auge",
+      "mel_values": "{mean} lx im Mittel · {min} lx an der dunkelsten Position (vertikale Beleuchtungsstärke in Augenhöhe, 1,2 m, × melanopischer DER {der} des Leuchtenspektrums, CIE S 026)",
+      "mel_day_ok": "Die Tagesempfehlung von mindestens 250 lx melanopischer EDI wird an jeder Augenposition erreicht.",
+      "mel_day_low": "Die Tagesempfehlung von mindestens 250 lx melanopischer EDI wird nicht überall erreicht: {min} lx an der dunkelsten Position.",
+      "mel_no_spd": "Die Datei enthält kein Spektrum, daher keine melanopischen Werte. Vertikale Beleuchtungsstärke in Augenhöhe: {mean} lx im Mittel, {min} lx minimal. Eine TM-33-/ATLA-Datei laden oder ein Spektrum anhängen.",
+      "mel_note": "Empfehlungen (Brown et al. 2022): tagsüber mindestens 250 lx, abends höchstens 10 lx, nachts höchstens 1 lx melanopische EDI am Auge. Nur Kunstlicht; Tageslicht kommt hinzu.",
+      "mel_card_der": "Melanopischer DER {der} (Tageslicht D65 = 1)",
+      "mel_card_edi": "{lux} lx am Auge ergeben {edi} lx melanopische EDI",
+      "mel_card_need": "250 lx melanopische EDI erfordern {lux} lx am Auge",
+      "mel_card_estimate": "Aus der Farbtemperatur geschätzt: Die Datei enthält kein Spektrum.",
       "dli": "DLI",
       "dli_explain": "DLI = mittlere PPFD × Photoperiode, in mol/m² und Tag. Blattgemüse braucht etwa 12–17, Fruchtgemüse 20–30.",
       "hint_ppfd": "Farbe = PPFD in µmol/m²/s auf jeder Fläche (Skala links) · Linien alle {step}",
@@ -834,6 +844,7 @@
       "scene_planned": "📐 Plan",
       "from_interior": "Innenraumplaner",
       "from_outdoor": "Außenbereichsplaner",
+      "from_street": "Straßenplaner",
       "desc_planned": "Aus dem {from}: {name}. Leuchten, Sensoren und Person hier verschieben, um Varianten zu prüfen; der Plan selbst bleibt unverändert.",
       "open_in_light_scene": "🎬 In Lichtszene öffnen",
       "open_in_light_scene_tip": "Diesen Plan per Path Tracing prüfen: Raum oder Fläche mit Leuchten und Sensoren.",
@@ -1634,6 +1645,29 @@
           }
         }
       }
+    },
+    "ifc": {
+      "title": "🏢 Raum aus einem IFC-Modell",
+      "intro": "Ein Gebäudemodell (IFC2x3, IFC4) öffnen und einen Raum daraus übernehmen: Umriss, Höhe, die Leuchten darin und die Ausgänge. Die Datei wird im Browser gelesen.",
+      "open": "IFC-Datei öffnen…",
+      "reading": "{name} wird gelesen…",
+      "failed": "Diese IFC-Datei konnte nicht gelesen werden: {error}",
+      "summary": "{rooms} Räume in {storeys} Geschossen · {luminaires} Leuchten · {doors} Türen · {windows} Fenster",
+      "storey": "Geschoss",
+      "room": "Raum",
+      "room_info": "{area} m² · {height} m hoch",
+      "in_room": "In diesem Raum: {luminaires} Leuchten ({with} mit Photometrie) · {doors} Türen ({exits} Ausgänge) · {windows} Fenster",
+      "use_luminaires": "Leuchtenpositionen aus dem Modell ({n})",
+      "use_photometry": "Ihre Photometrie öffnen: {name}",
+      "use_exits": "Ausgänge als Notbeleuchtungspunkte ({n})",
+      "apply": "Diesen Raum übernehmen",
+      "applied": "Raum aus dem Modell: {name}",
+      "fixed_note": "{n} Leuchten wie im IFC-Modell platziert.",
+      "back_to_grid": "Stattdessen die berechnete Anordnung verwenden",
+      "no_photometry": "Die Leuchten hier haben keine Photometrie; die geladene Leuchte wird verwendet.",
+      "notes": "Hinweise",
+      "export_ifc": "🏢 IFC-Modell (.ifc)",
+      "export_ifc_tip": "Der Raum als IFC4-Modell: Umriss, Wände, Leuchten mit ihrer Photometrie (auch Notleuchten) und die Ausgänge, für BIM-Programme, bimifc.de und den Import hier."
     }
   },
   "dashboard": {

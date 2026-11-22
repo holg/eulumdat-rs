@@ -272,6 +272,8 @@ pub struct Settings {
     /// µmol per (lx·s) of the loaded spectrum, from the host; `None` assumes
     /// a white LED in PPFD scenes.
     pub ppfd_factor: Option<f32>,
+    /// Melanopic DER of the luminaire's spectrum (melanopic EDI = lux × DER).
+    pub mel_der: Option<f32>,
     /// How the sensors switch the lamps.
     pub control: SensorControl,
     pub quality: Quality,
@@ -317,6 +319,7 @@ impl Default for Settings {
             probe_max_samples: PROBE_MAX_SAMPLES,
             passes_per_frame: 1,
             ppfd_factor: None,
+            mel_der: None,
             control: SensorControl::default(),
             quality: Quality::default(),
             denoise: true,
@@ -2321,6 +2324,7 @@ impl Viewer {
             body_tris: self.mesh.as_ref().map_or(0, |m| m.tris.len() as u32),
             ppfd_factor: self.display_factor(),
             ppfd_from_spectrum: self.settings.ppfd_factor.is_some(),
+            mel_der: self.settings.mel_der.unwrap_or(0.0),
             photoperiod: self.settings.params.photoperiod,
             lux_max: self.lux_max,
             iso_step: self.iso_step,
@@ -2400,6 +2404,7 @@ impl Viewer {
         p.canopy_height = sync.canopy_height.clamp(0.5, 2.2);
         p.photoperiod = sync.photoperiod.clamp(1.0, 24.0);
         self.settings.ppfd_factor = sync.ppfd_factor.filter(|f| *f > 0.0);
+        self.settings.mel_der = sync.mel_der.filter(|f| *f > 0.0);
         p.wall_finish = if sync.wall_finish == "brick" {
             WallFinish::Brick
         } else {
@@ -3057,7 +3062,11 @@ mod tests {
         // normal operation: the emergency luminaire is off
         assert_eq!(f.lamps[0].r0[3], 0.0);
         assert_eq!(f.lamps[1].r0[3], 1.0);
-        assert!(v.scene.grids.iter().all(|g| g.name == "workplane"));
+        assert!(v
+            .scene
+            .grids
+            .iter()
+            .all(|g| g.name == "workplane" || g.name == crate::scene::GRID_EYE));
 
         let mut sync = SyncSettings::for_scene(SceneKind::Planned);
         sync.mode = "points".into();
@@ -3386,6 +3395,71 @@ mod tests {
                 "core {core:.2?} scene {scene:.2?}"
             );
         }
+    }
+
+    #[test]
+    fn street_plan_matches_the_street_designer() {
+        // the Street designer's default road with the road luminaire,
+        // opposite poles: its middle span against the same span traced
+        use eulumdat::street::{Arrangement, StreetLayout};
+        let ldt = Eulumdat::parse(include_str!(
+            "../../eulumdat-wasm/templates/road_luminaire.ldt"
+        ))
+        .unwrap();
+        let layout = StreetLayout {
+            arrangement: Arrangement::Opposite,
+            ..StreetLayout::default()
+        };
+        let core = layout.compute(&ldt, 1.0);
+        // three spans, as the designer computes; the grid over the middle
+        // one comes from cropping the traced points to it
+        let s = layout.pole_spacing_m as f32;
+        let strip = StreetLayout {
+            length_m: 3.0 * layout.pole_spacing_m,
+            ..layout.clone()
+        };
+        let plan = crate::scene::plan_from_street(&strip, "street".into());
+        assert!(plan.street);
+        assert_eq!(plan.luminaires.len(), 8, "4 positions × 2 sides");
+        let mut v = Viewer::default();
+        v.load("road", ldt, Some(SceneKind::Planned));
+        v.set_plan(Some(Arc::new(plan)));
+        let mut sync = SyncSettings::for_scene(SceneKind::Planned);
+        sync.mode = "points".into();
+        sync.auto_quick = false;
+        sync.bounces = 1;
+        v.apply_sync(&sync);
+        v.resize(64.0, 40.0, 1.0);
+        v.update(0.016);
+        let f = v.frame_input();
+        let table = v.ies_table().unwrap().clone();
+        let mut cpu = crate::cpu::CpuTracer::new();
+        for _ in 0..2 {
+            cpu.probe_pass(&f, &table, 8);
+        }
+        v.probe_values = cpu.probe_values().to_vec();
+        let mid: Vec<f32> = v
+            .layout
+            .points
+            .iter()
+            .zip(&v.probe_values)
+            .filter(|(p, _)| p.position.x >= s && p.position.x <= 2.0 * s)
+            .map(|(_, e)| *e)
+            .collect();
+        let em = mid.iter().sum::<f32>() / mid.len() as f32;
+        eprintln!(
+            "street: designer avg {:.1} min {:.1} | scene middle span Em {:.1} ({} points)",
+            core.avg_lux,
+            core.min_lux,
+            em,
+            mid.len()
+        );
+        assert!(
+            (em as f64 - core.avg_lux).abs() / core.avg_lux < 0.1,
+            "designer {:.1} scene {:.1}",
+            core.avg_lux,
+            em
+        );
     }
 
     #[test]

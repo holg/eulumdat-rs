@@ -298,6 +298,18 @@ pub fn exposure_for(key_lux: f32, ev: f32) -> f32 {
     (0.45 * std::f32::consts::PI) / (0.3 * key_lux) * 2f32.powf(ev)
 }
 
+/// Melanopic daylight efficacy ratio (CIE S 026) of a spectrum given as (nm,
+/// value) samples: melanopic EDI = photopic lux × this. 1.0 for D65.
+#[cfg(feature = "spectrum")]
+pub fn melanopic_der(wavelengths_nm: &[f64], values: &[f64]) -> Option<f32> {
+    if wavelengths_nm.len() < 2 || wavelengths_nm.len() != values.len() {
+        return None;
+    }
+    let spd = eulumdat_spectrum::spd::Spd::new(wavelengths_nm, values);
+    let der = eulumdat_spectrum::melanopic_der(&spd);
+    (der.is_finite() && der > 0.0).then_some(der as f32)
+}
+
 /// µmol of PAR photons per lux-second for a spectrum given as (nm, value)
 /// samples (relative or absolute units; the ratio cancels the scale).
 #[cfg(feature = "spectrum")]

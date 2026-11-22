@@ -934,11 +934,22 @@ impl IesParser {
             ldt.g_plane_distance = ldt.g_angles[1] - ldt.g_angles[0];
         }
 
-        // Convert dimensions to mm
+        // Convert dimensions to mm. IES LM-63-19 Table 1 writes rounded
+        // shapes as negative numbers (circle -d, -d, 0; vertical cylinder
+        // -d, -d, h; sphere -d, -d, -d); EULUMDAT writes a round luminaire
+        // as width 0 with the diameter as length. Everything else keeps its
+        // size (absolute value: ellipses and horizontal cylinders become
+        // their bounding box).
         let mm_factor = ies.unit_type.to_mm_factor();
-        ldt.length = ies.length * mm_factor;
-        ldt.width = ies.width * mm_factor;
-        ldt.height = ies.height * mm_factor;
+        let (w, l, h) = (
+            ies.width * mm_factor,
+            ies.length * mm_factor,
+            ies.height * mm_factor,
+        );
+        let round = w < 0.0 && l < 0.0 && (w - l).abs() <= 1e-6 * w.abs().max(1.0);
+        ldt.length = l.abs();
+        ldt.width = if round { 0.0 } else { w.abs() };
+        ldt.height = h.abs();
 
         // Luminous area (assume same as luminaire for now)
         ldt.luminous_area_length = ldt.length;
@@ -1254,9 +1265,15 @@ impl IesExporter {
         // Units: 1 = feet, 2 = meters
         let units_type = 2;
 
-        // Dimensions in meters (convert from mm)
-        let width = ldt.width / 1000.0;
-        let length = ldt.length / 1000.0;
+        // Dimensions in meters (convert from mm). A round EULUMDAT
+        // luminaire (width 0, length = diameter) is an IES circle (height 0)
+        // or vertical cylinder: -d, -d, h (LM-63-19 Table 1).
+        let round = ldt.width.abs() < 1e-9 && ldt.length > 0.0;
+        let (width, length) = if round {
+            (-ldt.length / 1000.0, -ldt.length / 1000.0)
+        } else {
+            (ldt.width / 1000.0, ldt.length / 1000.0)
+        };
         let height = ldt.height / 1000.0;
 
         // For IES output, num_lamps should always be positive (1 for absolute mode)
@@ -1430,6 +1447,92 @@ mod tests {
         let ies_2002 = IesExporter::export_2002(&ldt);
         assert!(ies_2002.contains("IESNA:LM-63-2002"));
         assert!(!ies_2002.contains("[ISSUEDATE]")); // Not required in 2002
+    }
+
+    /// A minimal IES file with these luminous dimensions (m).
+    fn ies_with_dims(w: f64, l: f64, h: f64) -> String {
+        format!(
+            "IESNA:LM-63-2002\n[TEST] T\n[MANUFAC] M\n[LUMINAIRE] L\nTILT=NONE\n\
+             1 1000.0 1.0 5 1 1 2 {w} {l} {h}\n1.0 1.0 10.0\n\
+             0.0 22.5 45.0 67.5 90.0\n0.0\n1000.0 900.0 700.0 400.0 100.0\n"
+        )
+    }
+
+    #[test]
+    fn round_ies_openings_become_round_ldt() {
+        // LM-63-19 Table 1 → EULUMDAT (width 0 = round, length = diameter)
+        let dims = |w, l, h| {
+            let ldt = IesParser::parse(&ies_with_dims(w, l, h)).unwrap();
+            (ldt.length, ldt.width, ldt.height)
+        };
+        assert_eq!(dims(0.0, 0.0, 0.0), (0.0, 0.0, 0.0), "point");
+        assert_eq!(dims(0.6, 0.3, 0.0), (300.0, 600.0, 0.0), "rectangular");
+        assert_eq!(dims(-0.3, -0.3, 0.0), (300.0, 0.0, 0.0), "circular");
+        assert_eq!(
+            dims(-0.3, -0.3, 0.1),
+            (300.0, 0.0, 100.0),
+            "vertical cylinder"
+        );
+        assert_eq!(dims(-0.2, -0.2, -0.2), (200.0, 0.0, 200.0), "sphere");
+        assert_eq!(
+            dims(-0.4, -0.2, 0.0),
+            (200.0, 400.0, 0.0),
+            "ellipse → its box"
+        );
+        assert_eq!(
+            dims(-0.1, 1.2, -0.1),
+            (1200.0, 100.0, 100.0),
+            "horizontal cylinder"
+        );
+        // and none of them warns about its dimensions
+        for (w, l, h) in [
+            (0.0, 0.0, 0.0),
+            (-0.3, -0.3, 0.0),
+            (-0.2, -0.2, -0.2),
+            (-0.1, 1.2, -0.1),
+        ] {
+            let ldt = IesParser::parse(&ies_with_dims(w, l, h)).unwrap();
+            let bad: Vec<_> = crate::validation::validate(&ldt)
+                .into_iter()
+                .filter(|v| ["W012", "W013", "W014", "W045", "W046"].contains(&v.code))
+                .map(|v| v.code)
+                .collect();
+            assert!(bad.is_empty(), "({w}, {l}, {h}): {bad:?}");
+        }
+    }
+
+    #[test]
+    fn round_ldt_exports_as_an_ies_circle() {
+        let mut ldt = IesParser::parse(&ies_with_dims(-0.3, -0.3, 0.1)).unwrap();
+        assert_eq!((ldt.length, ldt.width), (300.0, 0.0));
+        let ies = IesExporter::export(&ldt);
+        let line = ies
+            .lines()
+            .find(|l| l.split_whitespace().count() == 10 && l.starts_with("1 "))
+            .unwrap();
+        let v: Vec<f64> = line
+            .split_whitespace()
+            .map(|t| t.parse().unwrap())
+            .collect();
+        assert_eq!(
+            (v[7], v[8], v[9]),
+            (-0.3, -0.3, 0.1),
+            "vertical cylinder: -d, -d, h"
+        );
+        // and back: still round
+        let again = IesParser::parse(&ies).unwrap();
+        assert_eq!(
+            (again.length, again.width, again.height),
+            (300.0, 0.0, 100.0)
+        );
+        // a rectangular one stays positive
+        ldt.width = 200.0;
+        let line2 = IesExporter::export(&ldt)
+            .lines()
+            .find(|l| l.split_whitespace().count() == 10 && l.starts_with("1 "))
+            .map(String::from)
+            .unwrap();
+        assert!(!line2.contains('-'), "{line2}");
     }
 
     #[test]

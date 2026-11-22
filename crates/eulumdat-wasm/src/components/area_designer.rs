@@ -750,6 +750,7 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             photometries: Vec::new(),
             emergency: None,
             emergency_mode: false,
+            street: false,
         }
     };
 

@@ -96,6 +96,12 @@ EN = collections.OrderedDict([
 ("sky_sub","A moated castle in Lüdinghausen, rebuilt from the open survey data of Geobasis NRW: the 3D mesh and laser scan for the park and the moat, the building model for the walls, with façades projected from photographs. Floodlights wash the walls, lanterns stand on the bridges. Press Space to switch between lighting that brightens the night sky and lighting that keeps it dark, Z to raise the drawbridge; fly with WASD and the mouse."),
 ("sky_cap","Dark-sky mode, seen from the east bank. Survey data © Geobasis NRW (dl-de/zero-2.0); façades from 67 Wikimedia Commons photographs, CC BY-SA. <a href=\"vischering-credits.html\">Photo credits</a>"),
 ("sky_link","Open Burg Vischering"),
+("nav_vid","Videos"),
+("vid_h","See it at work: video tutorials in eight languages"),
+("vid_sub","Short videos on YouTube walk through every tool, from opening a photometric file to interior and street design, emergency lighting, sensors and light pollution. Each one is narrated in eight languages, and the app on screen is shown in that language too."),
+("vid_pick","Pick your language:"),
+("vid_channel","Open the YouTube channel"),
+("vid_note","Every video has subtitles you can switch on, and chapters to jump to the step you need."),
 ("nav_eco","Sister sites"),
 ("eco_h","Four sites, one path from the LED to the building"),
 ("eco_sub","Candelabra has three sister sites. Each does one job, all four run in your browser on the same open-source Rust crates, and a file carries the luminaire from one to the next: from the LED's ray file to the luminaire at work, into its product data, and into the building model."),
@@ -156,7 +162,7 @@ for code, d in TR.items():
 # Newer sections must be translated, not copies of the English text, and the
 # colour-quality intro quotes the demo LED (pinned in
 # crates/eulumdat/tests/colour_quality_demo.rs) in every language.
-MUST_TRANSLATE = [k for k in EN if k.startswith(("cq_", "sens_", "em_", "eco_")) or k in ("nav_colour", "nav_sensors", "fmt_sensor", "nav_emergency", "nav_eco")]
+MUST_TRANSLATE = [k for k in EN if k.startswith(("cq_", "sens_", "em_", "eco_", "vid_")) or k in ("nav_colour", "nav_sensors", "fmt_sensor", "nav_emergency", "nav_eco")]
 for code, d in TR.items():
     same = [k for k in MUST_TRANSLATE if d[k] == EN[k]]
     assert not same, (code, "untranslated", same)
@@ -328,6 +334,7 @@ page = f'''<!doctype html>
     <nav class="top">
       <a class="hide-sm" href="#views" data-i18n="nav_views">{t("nav_views")}</a>
       <a class="hide-sm" href="#formats" data-i18n="nav_formats">{t("nav_formats")}</a>
+      <a class="hide-sm" href="#videos" data-i18n="nav_vid">{t("nav_vid")}</a>
       <a class="hide-sm" href="#family" data-i18n="nav_eco">{t("nav_eco")}</a>
       <a class="hide-sm" href="#lab">Spectrum Lab</a>
       <a class="hide-sm" href="#colour" data-i18n="nav_colour">{t("nav_colour")}</a>
@@ -414,6 +421,24 @@ page = f'''<!doctype html>
         <figure><a href="app/#tab=compare&amp;sample=aec-maxwell-8-t4-luxeon-5050-square-with-glass-measured-cie&amp;compare=aec-maxwell-8-t4-luxeon-5050-square-with-glass-measured-iesna&amp;diagram=isocandela"><img src="img/maxwell_iesna.jpg" alt=""></a><figcaption data-i18n="know_iesna">{t("know_iesna")}</figcaption></figure>
       </div>
     </div>
+  </section>
+
+  <section id="videos">
+    <h2 data-i18n="vid_h">{t("vid_h")}</h2>
+    <p class="sub" data-i18n="vid_sub">{t("vid_sub")}</p>
+    <p style="margin:18px 0 8px;font-weight:600" data-i18n="vid_pick">{t("vid_pick")}</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <a class="btn" href="https://www.youtube.com/playlist?list=PLCWMYBXop0oM" rel="noopener">English</a>
+      <a class="btn" href="https://www.youtube.com/playlist?list=PLE4gm3tIDhqs" rel="noopener">Deutsch</a>
+      <a class="btn" href="https://www.youtube.com/playlist?list=PLDcGruabIy4g" rel="noopener">Français</a>
+      <a class="btn" href="https://www.youtube.com/playlist?list=PLJthHvQEvw-w" rel="noopener">Español</a>
+      <a class="btn" href="https://www.youtube.com/playlist?list=PLTPorKXv2WRE" rel="noopener">Italiano</a>
+      <a class="btn" href="https://www.youtube.com/playlist?list=PLYinHZLzDe_k" rel="noopener">Português</a>
+      <a class="btn" href="https://www.youtube.com/playlist?list=PLOR-Kh-zZfQM" rel="noopener">Русский</a>
+      <a class="btn" href="zh/">中文</a>
+    </div>
+    <p style="margin:18px 0 0"><a class="btn primary" href="https://www.youtube.com/@Candelabra-light" rel="noopener" data-i18n="vid_channel">{t("vid_channel")}</a></p>
+    <p class="sub" style="margin-top:14px" data-i18n="vid_note">{t("vid_note")}</p>
   </section>
 
   <section id="family">

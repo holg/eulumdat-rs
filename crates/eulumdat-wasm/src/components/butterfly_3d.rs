@@ -533,19 +533,28 @@ pub fn Butterfly3D(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                 let animate = animate_clone.clone();
 
                 move || {
+                    // The loop outlives the component (the tab is unmounted
+                    // when another one is chosen): reading a disposed signal
+                    // panics, so the loop ends here instead.
+                    let (Some(rotate), Some(drag)) = (
+                        auto_rotate.try_get_untracked(),
+                        dragging.try_get_untracked(),
+                    ) else {
+                        return;
+                    };
                     let mut r = renderer.borrow_mut();
                     r.update_theme();
 
-                    if auto_rotate.get() && !dragging.get() {
+                    if rotate && !drag {
                         if let Some(window) = web_sys::window() {
                             if let Ok(performance) = window.performance().ok_or(()) {
                                 let now = performance.now();
 
-                                if start_time.get().is_none() {
+                                if start_time.get_untracked().is_none() {
                                     set_start_time.set(Some(now));
                                 }
 
-                                let elapsed = now - start_time.get().unwrap_or(now);
+                                let elapsed = now - start_time.get_untracked().unwrap_or(now);
                                 let speed = if elapsed < 3000.0 { 0.015 } else { 0.003 };
                                 r.rotation_y += speed;
                             }

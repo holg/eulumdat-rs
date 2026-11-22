@@ -929,27 +929,30 @@ pub fn App() -> impl IntoView {
     // Only what changes is set (a signal set to the same value still
     // notifies, and a second rebuild of the tab content would leave the
     // first Light scene instance reacting to the plan after it is gone).
-    provide_context(OpenLightScene(Callback::new(
-        move |plan: eulumdat_scene::scene::ScenePlan| {
-            if view_mode.get_untracked() != ViewMode::Editor {
-                set_view_mode.set(ViewMode::Editor);
-            }
-            if active_tab.get_untracked() != Tab::SceneRtTab {
-                set_active_tab.set(Tab::SceneRtTab);
-            }
-            light_scene_plan.0.set(Some(std::sync::Arc::new(plan)));
-        },
-    )));
-    // Back from the Light scene to the designer a plan came from (true =
-    // Interior, false = Outdoor); the designer restores itself from the link.
-    provide_context(OpenDesigner(Callback::new(move |indoor: bool| {
+    let open_light_scene = Callback::new(move |plan: eulumdat_scene::scene::ScenePlan| {
         if view_mode.get_untracked() != ViewMode::Editor {
             set_view_mode.set(ViewMode::Editor);
         }
-        let tab = if indoor {
-            Tab::ZonalDesignerTab
-        } else {
-            Tab::AreaDesignerTab
+        if active_tab.get_untracked() != Tab::SceneRtTab {
+            set_active_tab.set(Tab::SceneRtTab);
+        }
+        light_scene_plan.0.set(Some(std::sync::Arc::new(plan)));
+    });
+    provide_context(OpenLightScene(open_light_scene));
+    // The Street designer is its own bundle (no contexts): it hands its
+    // layout over through `window.candelabraOpenStreetScene(json)`.
+    register_street_scene_hook(open_light_scene, ldc);
+    // Back from the Light scene to the designer a plan came from; the
+    // Interior / Outdoor designers restore themselves from their link, the
+    // Street designer keeps its state in its own bundle.
+    provide_context(OpenDesigner(Callback::new(move |designer: Designer| {
+        if view_mode.get_untracked() != ViewMode::Editor {
+            set_view_mode.set(ViewMode::Editor);
+        }
+        let tab = match designer {
+            Designer::Interior => Tab::ZonalDesignerTab,
+            Designer::Outdoor => Tab::AreaDesignerTab,
+            Designer::Street => Tab::StreetDesignTab,
         };
         if active_tab.get_untracked() != tab {
             set_active_tab.set(tab);
@@ -972,6 +975,25 @@ pub fn App() -> impl IntoView {
             });
         if ppfd_factor.get_untracked() != f {
             ppfd_factor.set(f);
+        }
+    });
+
+    // Melanopic DER (CIE S 026) of the loaded spectrum, for the Light scene's
+    // melanopic EDI at eye level; `None` when the luminaire has no spectrum.
+    let mel_der = RwSignal::new(None::<f32>);
+    provide_context(MelanopicDer(mel_der));
+    Effect::new(move |_| {
+        let doc = atla_doc.get();
+        let f = doc
+            .emitters
+            .iter()
+            .filter_map(|e| e.spectral_distribution.as_ref())
+            .next()
+            .and_then(|spd| {
+                eulumdat_scene::photometry::melanopic_der(&spd.wavelengths, &spd.values)
+            });
+        if mel_der.get_untracked() != f {
+            mel_der.set(f);
         }
     });
 
@@ -3557,11 +3579,82 @@ pub struct OpenLightScene(pub Callback<eulumdat_scene::scene::ScenePlan>);
 /// Go back from the Light scene to the Interior (`true`) or Outdoor
 /// designer (context).
 #[derive(Clone, Copy)]
-pub struct OpenDesigner(pub Callback<bool>);
+pub struct OpenDesigner(pub Callback<Designer>);
+
+/// The designer a Light scene plan came from.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Designer {
+    Interior,
+    Outdoor,
+    Street,
+}
+
+/// `window.candelabraOpenStreetScene(json)`: the Street designer bundle
+/// opens its layout (`{"layout": StreetLayout, "mf": 0.8}`) in the Light
+/// scene as a planned street, with the editor's luminaire at the same
+/// maintenance factor (so the values compare with the designer's).
+fn register_street_scene_hook(
+    open: Callback<eulumdat_scene::scene::ScenePlan>,
+    ldc: ReadSignal<Eulumdat>,
+) {
+    use wasm_bindgen::closure::Closure;
+    let hook = Closure::<dyn Fn(String)>::new(move |json: String| {
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&json) else {
+            web_sys::console::warn_1(&"[Street] unreadable layout".into());
+            return;
+        };
+        let Ok(layout) =
+            serde_json::from_value::<eulumdat::street::StreetLayout>(v["layout"].clone())
+        else {
+            web_sys::console::warn_1(&"[Street] unreadable layout".into());
+            return;
+        };
+        let mf = v["mf"].as_f64().unwrap_or(1.0).clamp(0.1, 1.0);
+        let arrangement = match layout.arrangement {
+            eulumdat::street::Arrangement::SingleSide => "single-sided",
+            eulumdat::street::Arrangement::Opposite => "opposite",
+            eulumdat::street::Arrangement::Staggered => "staggered",
+        };
+        let name = format!(
+            "{} × {:.1} m lanes · {:.0} m spacing · {arrangement}",
+            layout.num_lanes, layout.lane_width_m, layout.pole_spacing_m
+        );
+        let mut plan = eulumdat_scene::scene::plan_from_street(&layout, name);
+        // the designer's maintained values: the luminaire at MF × its flux
+        let ldt = ldc.get_untracked();
+        let flux = eulumdat::emergency::luminaire_flux_lm(&ldt);
+        if mf < 0.999 && flux > 0.0 {
+            plan.photometries
+                .push(eulumdat_scene::scene::PlanPhotometry {
+                    name: format!("{} × MF {mf:.2}", ldt.luminaire_name.trim()),
+                    ldt: eulumdat::emergency::at_flux(&ldt, mf * flux).to_ldt(),
+                });
+            for l in &mut plan.luminaires {
+                l.photometry = 1;
+            }
+            plan.note = Some(format!(
+                "Maintained values (MF {mf:.2}), like the Street designer."
+            ));
+        }
+        open.run(plan);
+    });
+    if let Some(w) = web_sys::window() {
+        let _ = js_sys::Reflect::set(
+            &w,
+            &wasm_bindgen::JsValue::from_str("candelabraOpenStreetScene"),
+            hook.as_ref(),
+        );
+    }
+    hook.forget();
+}
 
 /// lux → PPFD factor of the current spectrum (context for the Light scene).
 #[derive(Clone, Copy)]
 pub struct PpfdFactor(pub RwSignal<Option<f32>>);
+
+/// Melanopic daylight efficacy ratio of the editor's luminaire spectrum.
+#[derive(Clone, Copy)]
+pub struct MelanopicDer(pub RwSignal<Option<f32>>);
 
 /// Parse a bundled template into the lossless luminaire model.
 fn template_to_eulumdat(template: &super::templates::Template) -> Option<Eulumdat> {

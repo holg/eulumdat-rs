@@ -24,11 +24,7 @@ documentation = "https://docs.rs/eulumdat"
 # (Deko-Light, LEDVANCE, SLV LDTs, the SLV Oculus TM-33 sample, the LITESTAR
 # OXL sample, 6.6 MB) next to our own demos, and library users do not need
 # any of it. The tests run from the repository.
-exclude = [
-    "examples/wasm_benchmark.rs",
-    "benches/native_benchmark.rs",
-    "tests/",
-]
+exclude = ["examples/wasm_benchmark.rs", "benches/native_benchmark.rs", "tests/"]
 
 [features]
 # atla XML and JSON parsers ship by default — atla itself (the data model)

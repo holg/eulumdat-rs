@@ -101,9 +101,28 @@ impl PhotometricCalculations {
     }
 
     /// Calculate downward flux for C90-C270 symmetry.
+    ///
+    /// Same rule as C0-C180 over the stored planes C90…C270, with the
+    /// widths of those planes' own angles: the first `Mc` angles of the list
+    /// (C0, C5, …) are other planes, which for unequal steps (a road light
+    /// with 5° steps except around C90 / C270) weighted the rows wrongly.
     fn downward_c90_c270(ldt: &Eulumdat, arc: f64) -> f64 {
-        // Similar to C0-C180 but shifted
-        Self::downward_c0_c180(ldt, arc)
+        let stored = crate::symmetry::SymmetryHandler::stored_c_angles(ldt);
+        let mc = stored.len().min(ldt.intensities.len());
+        if mc == 0 {
+            return 0.0;
+        }
+
+        let mut sum = 0.0;
+        for i in 1..mc {
+            let delta_c = stored[i] - stored[i - 1];
+            sum += 2.0 * delta_c * Self::downward_for_plane(ldt, i - 1, arc);
+        }
+        // the last plane up to C270
+        let delta_c = 270.0 - stored[mc - 1];
+        sum += 2.0 * delta_c * Self::downward_for_plane(ldt, mc - 1, arc);
+
+        sum / 360.0
     }
 
     /// Calculate downward flux for both planes symmetry.

@@ -44,6 +44,45 @@ fn parse_shape(s: &str) -> Option<Vec<(f64, f64)>> {
     (v.len() >= 3).then_some(v)
 }
 
+/// The point of a closed outline nearest to (x, y).
+fn nearest_on_outline(poly: &[(f64, f64)], x: f64, y: f64) -> (f64, f64) {
+    let n = poly.len();
+    let mut best = (f64::INFINITY, (x, y));
+    for i in 0..n {
+        let (a, b) = (poly[i], poly[(i + 1) % n]);
+        let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+        let t =
+            (((x - a.0) * dx + (y - a.1) * dy) / (dx * dx + dy * dy).max(1e-12)).clamp(0.0, 1.0);
+        let q = (a.0 + t * dx, a.1 + t * dy);
+        let d = (q.0 - x).hypot(q.1 - y);
+        if d < best.0 {
+            best = (d, q);
+        }
+    }
+    best.1
+}
+
+/// Luminaire positions from a building model (link key `lfix`,
+/// `x:y;x:y;…` in m).
+fn parse_positions(s: &str) -> Option<Vec<(f64, f64)>> {
+    let v: Vec<(f64, f64)> = s
+        .split(';')
+        .filter_map(|p| {
+            let (a, b) = p.split_once(':')?;
+            Some((a.parse().ok()?, b.parse().ok()?))
+        })
+        .filter(|(x, y): &(f64, f64)| x.is_finite() && y.is_finite())
+        .collect();
+    (!v.is_empty()).then_some(v)
+}
+
+fn encode_positions(v: &[(f64, f64)]) -> String {
+    v.iter()
+        .map(|(x, y)| format!("{x:.2}:{y:.2}"))
+        .collect::<Vec<_>>()
+        .join(";")
+}
+
 fn encode_shape(v: &[(f64, f64)]) -> String {
     v.iter()
         .map(|(u, w)| format!("{u:.3},{w:.3}"))
@@ -272,6 +311,9 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
     // bounds (0..1), so the length / width sliders stretch it. Drawn by
     // clicking the corners on the plan.
     let room_shape = RwSignal::new(url_get("shape").and_then(|v| parse_shape(&v)));
+    // Luminaires placed as in a building model (link key `lfix`): they
+    // replace the solved grid until the user goes back to it.
+    let ifc_positions = RwSignal::new(url_get("lfix").and_then(|v| parse_positions(&v)));
     let drawing_shape = RwSignal::new(false);
     let shape_wip = RwSignal::new(Vec::<(f64, f64)>::new());
     let shape_m = move || {
@@ -408,13 +450,78 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
         if let Some(sh) = room_shape.get() {
             hash.push_str(&format!("&shape={}", encode_shape(&sh)));
         }
+        if let Some(p) = ifc_positions.get() {
+            hash.push_str(&format!("&lfix={}", encode_positions(&p)));
+        }
         set_interior_url_hash(&hash);
+    });
+
+    // ─── A room from an IFC building model ──────────────────────────────
+    let open_files = use_context::<super::app::OpenFiles>();
+    let on_ifc_room = Callback::new(move |c: super::ifc_import::IfcRoomChoice| {
+        let p = &c.plan;
+        let (l, w) = (p.length.max(0.5), p.width.max(0.5));
+        set_room_length.set(l);
+        set_room_width.set(w);
+        set_room_height.set(p.height.max(2.0));
+        // an axis-aligned rectangle needs no outline
+        let rect = p.outline.len() == 4
+            && p.outline.iter().all(|&(x, y)| {
+                (x.abs() < 0.02 || (x - p.length).abs() < 0.02)
+                    && (y.abs() < 0.02 || (y - p.width).abs() < 0.02)
+            });
+        room_shape.set((!rect).then(|| p.outline.iter().map(|&(x, y)| (x / l, y / w)).collect()));
+        lum_moves.set(Moves::default());
+        if c.luminaires {
+            // the normal luminaires (emergency ones are the emergency
+            // section's own business)
+            let normal: Vec<_> = p.luminaires.iter().filter(|m| !m.emergency).collect();
+            ifc_positions.set(Some(normal.iter().map(|m| (m.x, m.y)).collect()));
+            // mounting height = the median luminaire height
+            let mut z: Vec<f64> = normal.iter().map(|m| m.z).collect();
+            z.sort_by(f64::total_cmp);
+            if let Some(&mid) = z.get(z.len() / 2) {
+                set_suspension_length.set((p.height - mid).max(0.0));
+            }
+        } else {
+            ifc_positions.set(None);
+        }
+        if c.exits {
+            // each exit on the room's edge, a hand's width inside, facing in
+            let poly = p.outline.clone();
+            let points = p
+                .doors
+                .iter()
+                .filter(|d| d.exit)
+                .map(|d| {
+                    let (sx, sy) = nearest_on_outline(&poly, d.x, d.y);
+                    // (+ 0.0 turns -0 into 0 for the link)
+                    let facing =
+                        zonal_emergency::facing_from_walls(&poly, sx, sy).rem_euclid(360.0) + 0.0;
+                    let (fs, fc) = facing.to_radians().sin_cos();
+                    PointDraft {
+                        kind: eulumdat::emergency::EmphasisKind::Exit,
+                        x: sx + 0.1 * fc,
+                        y: sy + 0.1 * fs,
+                        facing,
+                    }
+                })
+                .collect();
+            emergency.points.set(points);
+        }
+        if let (Some((name, ldt)), Some(of)) = (c.photometry, open_files) {
+            let parts = js_sys::Array::of1(&wasm_bindgen::JsValue::from_str(&ldt));
+            if let Ok(file) = web_sys::File::new_with_str_sequence(&parts, &name) {
+                of.open(vec![file]);
+            }
+        }
     });
 
     // ─── Apply room preset ──────────────────────────────────────────────
     let apply_room_preset = move |preset: RoomPreset| {
         set_room_preset.set(preset);
         room_shape.set(None);
+        ifc_positions.set(None);
         let room = preset.to_room();
         set_room_length.set(room.length);
         set_room_width.set(room.width);
@@ -473,14 +580,29 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             Some(fixed_count.get()),
             Some(target_lpd.get()),
         );
-        // Luminaires moved by hand (only for the grid they were moved in).
+        // Luminaires from a building model instead of the solved grid.
+        let fixed = ifc_positions.get();
+        if let Some(pos) = fixed.as_ref() {
+            zr = zr.with_positions(pos, room.area());
+        }
+        // Luminaires moved by hand (only for the grid they were moved in;
+        // on top of the model's positions).
         let key = grid_key(&zr.layout);
-        zr.layout.moved = lum_moves.with(|m| {
+        let hand: Vec<(usize, f64, f64)> = lum_moves.with(|m| {
             m.for_key(&key)
                 .iter()
                 .map(|&(i, x, y)| (i, x.clamp(0.0, room.length), y.clamp(0.0, room.width)))
                 .collect()
         });
+        if fixed.is_some() {
+            for (i, x, y) in hand {
+                if let Some(m) = zr.layout.moved.get_mut(i) {
+                    *m = (i, x, y);
+                }
+            }
+        } else {
+            zr.layout.moved = hand;
+        }
 
         // PPB overlay (for heatmap view or 3D scene lighting)
         if (show_ppb.get() || show_3d.get()) && zr.layout.count > 0 {
@@ -810,6 +932,120 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
 
     // ─── Open the plan in the Light scene ─────────────────────────────────
     let open_light_scene = use_context::<super::app::OpenLightScene>();
+    // The design as an IFC4 model (feature `ifc-export`): room, luminaires
+    // with their LDT (emergency luminaires as a second type) and exits.
+    #[cfg(feature = "ifc-export")]
+    let export_ifc = move || {
+        use eulumdat_ifc::export::{room_to_ifc, ExportOptions, ExportPhotometry};
+        use eulumdat_ifc::{PlanLuminaire, PlanOpening, RoomPlan};
+        let (l, w, h) = (
+            room_length.get_untracked(),
+            room_width.get_untracked(),
+            room_height.get_untracked(),
+        );
+        let outline =
+            shape_m_untracked().unwrap_or_else(|| vec![(0.0, 0.0), (l, 0.0), (l, w), (0.0, w)]);
+        let area = Room::new(l, w, h, 0.0, 0.0)
+            .with_outline(shape_m_untracked())
+            .area();
+        let ldt = ldc.get_untracked();
+        let lum_name = {
+            let n = ldt.luminaire_name.trim();
+            if n.is_empty() {
+                "Luminaire".to_string()
+            } else {
+                n.to_string()
+            }
+        };
+        let z = (h - suspension_length.get_untracked()).max(0.0);
+        let mut luminaires: Vec<PlanLuminaire> = result
+            .with_untracked(|r| r.layout.positions())
+            .into_iter()
+            .map(|(x, y)| PlanLuminaire {
+                x,
+                y,
+                z,
+                rotation_deg: 0.0,
+                photometry: Some(0),
+                name: lum_name.clone(),
+                emergency: false,
+            })
+            .collect();
+        let mut photometries = vec![ExportPhotometry {
+            name: lum_name,
+            ldt: ldt.to_ldt(),
+        }];
+        if let Some(r) = em_result
+            .get_untracked()
+            .filter(|r| r.source.which != zonal_emergency::EmLuminaire::Room)
+        {
+            let mf = r.report.settings.maintenance_factor;
+            photometries.push(ExportPhotometry {
+                name: format!("{} (emergency)", r.source.name),
+                ldt: eulumdat::emergency::at_flux(&r.source.ldt, mf * r.source.flux).to_ldt(),
+            });
+            let ez = r.source.height.min(h);
+            luminaires.extend(r.positions.iter().map(|&(x, y, rot)| PlanLuminaire {
+                x,
+                y,
+                z: ez,
+                rotation_deg: rot,
+                photometry: Some(1),
+                name: format!("{} (emergency)", r.source.name),
+                emergency: true,
+            }));
+        }
+        let doors: Vec<PlanOpening> = emergency
+            .points
+            .get_untracked()
+            .iter()
+            .filter(|p| p.kind == eulumdat::emergency::EmphasisKind::Exit)
+            .enumerate()
+            .map(|(i, p)| PlanOpening {
+                x: p.x,
+                y: p.y,
+                width: 1.0,
+                height: 2.1,
+                sill: 0.0,
+                fire_exit: true,
+                exit: true,
+                name: format!("Exit {}", i + 1),
+            })
+            .collect();
+        let name = room_preset.get_untracked().label().to_string();
+        let plan = RoomPlan {
+            name: name.clone(),
+            length: l,
+            width: w,
+            height: h,
+            area,
+            outline,
+            luminaires,
+            doors,
+            windows: Vec::new(),
+            origin: [0.0; 3],
+        };
+        let ifc = room_to_ifc(
+            &plan,
+            &photometries,
+            &ExportOptions {
+                project: name.clone(),
+                ..ExportOptions::default()
+            },
+        );
+        let file: String = name
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() {
+                    c.to_ascii_lowercase()
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        super::file_handler::download_file(&format!("{file}.ifc"), &ifc, "application/x-step");
+    };
+
     let make_plan = move || {
         use eulumdat_scene::glam::{Vec2, Vec3};
         use eulumdat_scene::scene::{
@@ -999,6 +1235,7 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             photometries,
             emergency,
             emergency_mode,
+            street: false,
         }
     };
 
@@ -1212,6 +1449,18 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
             <div class="zonal-layout">
                 // ─── Sidebar ──────────────────────────────────────────
                 <div class="zonal-sidebar">
+                    // A room from an IFC building model
+                    <super::ifc_import::IfcImport on_apply=on_ifc_room />
+                    {move || ifc_positions.get().map(|p| view! {
+                        <div class="zonal-sidebar-section">
+                            <p class="zonal-sensors-hint">{
+                                locale.get().zonal_designer.ifc.fixed_note.replace("{n}", &p.len().to_string())
+                            }</p>
+                            <button class="zonal-move-btn" on:click=move |_| ifc_positions.set(None)>
+                                {move || locale.get().zonal_designer.ifc.back_to_grid.clone()}
+                            </button>
+                        </div>
+                    })}
                     // Luminaire info
                     <div class="zonal-sidebar-section">
                         <h4>{move || locale.get().designer.luminaire.clone()}</h4>
@@ -1482,6 +1731,17 @@ pub fn ZonalDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                 on:click=move |_| open.0.run(make_plan())
                             >{move || locale.get().ui.light_scene.open_in_light_scene.clone()}</button>
                         })}
+                        {
+                            #[cfg(feature = "ifc-export")]
+                            {
+                                view! {
+                                    <button class="zonal-share-btn"
+                                        title=move || locale.get().zonal_designer.ifc.export_ifc_tip.clone()
+                                        on:click=move |_| export_ifc()
+                                    >{move || locale.get().zonal_designer.ifc.export_ifc.clone()}</button>
+                                }
+                            }
+                        }
                         <button class="zonal-share-btn"
                             on:click=move |_| {
                                 copy_interior_url_to_clipboard();

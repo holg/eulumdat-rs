@@ -290,6 +290,7 @@ fn from_json(json: AtlaJson) -> LuminaireOpticalData {
         }),
         custom_data_items: vec![],
         alternative_lamp_sets: vec![],
+        source_ldt: None,
     }
 }
 
