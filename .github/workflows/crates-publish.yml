@@ -78,25 +78,29 @@ jobs:
 
       # ─── Tier 1: leaves with no internal deps ────────────────────────
       - name: Publish eulumdat-i18n
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-i18n --allow-dirty \
             || echo "eulumdat-i18n already published — continuing"
 
       - name: Publish eulumdat-quiz
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-quiz --allow-dirty \
             || echo "eulumdat-quiz already published — continuing"
 
       - name: Publish eulumdat-gltf-pack
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-gltf-pack --allow-dirty \
             || echo "eulumdat-gltf-pack already published — continuing"
 
       - name: Publish eulumdat-server
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-server --allow-dirty \
             || echo "eulumdat-server already published — continuing"
@@ -106,7 +110,8 @@ jobs:
 
       # ─── Tier 2: foundation library (only depends on i18n) ───────────
       - name: Publish eulumdat (core library)
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat --allow-dirty \
             || echo "eulumdat already published — continuing"
@@ -116,31 +121,36 @@ jobs:
 
       # ─── Tier 3: direct eulumdat consumers ───────────────────────────
       - name: Publish eulumdat-photweb
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-photweb --allow-dirty \
             || echo "eulumdat-photweb already published — continuing"
 
       - name: Publish eulumdat-goniosim
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-goniosim --allow-dirty \
             || echo "eulumdat-goniosim already published — continuing"
 
       - name: Publish eulumdat-typst
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-typst --allow-dirty \
             || echo "eulumdat-typst already published — continuing"
 
       - name: Publish eulumdat-ui
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-ui --allow-dirty \
             || echo "eulumdat-ui already published — continuing"
 
       - name: Publish eulumdat-plugin
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           # WASM-only crate: --no-verify because Linux can't build the
           # `wasm32-unknown-unknown` cdylib in the verify step.
@@ -152,37 +162,43 @@ jobs:
 
       # ─── Tier 4: depend on tier 3 ────────────────────────────────────
       - name: Publish eulumdat-rt
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-rt --allow-dirty \
             || echo "eulumdat-rt already published — continuing"
 
       - name: Publish eulumdat-ffi
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-ffi --allow-dirty \
             || echo "eulumdat-ffi already published — continuing"
 
       - name: Publish eulumdat-egui
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-egui --allow-dirty \
             || echo "eulumdat-egui already published — continuing"
 
       - name: Publish eulumdat-tui
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-tui --allow-dirty \
             || echo "eulumdat-tui already published — continuing"
 
       - name: Publish eulumdat-tui-quiz
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-tui-quiz --allow-dirty \
             || echo "eulumdat-tui-quiz already published — continuing"
 
       - name: Publish eulumdat-cli
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-cli --allow-dirty \
             || echo "eulumdat-cli already published — continuing"
@@ -192,7 +208,8 @@ jobs:
 
       # ─── Tier 5: WASM editor app + Python source uploads + Windows ───
       - name: Publish eulumdat-wasm
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           # Leptos app: --no-verify so the wasm32 cdylib build isn't
           # required on Linux x86_64.
@@ -200,7 +217,8 @@ jobs:
             || echo "eulumdat-wasm already published — continuing"
 
       - name: Publish eulumdat-py (source upload)
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           # PyO3 cdylib: --no-verify because verify needs Python linkage.
           # Wheels go to PyPI via .github/workflows/python-publish.yml;
@@ -209,13 +227,15 @@ jobs:
             || echo "eulumdat-py already published — continuing"
 
       - name: Publish eulumdat-quiz-py (source upload)
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           cargo publish -p eulumdat-quiz-py --allow-dirty --no-verify \
             || echo "eulumdat-quiz-py already published — continuing"
 
       - name: Publish eulumdat-windows-preview
-        env: { CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }} }
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           # Windows-only crate: --no-verify on Linux CI.
           cargo publish -p eulumdat-windows-preview --allow-dirty --no-verify \
