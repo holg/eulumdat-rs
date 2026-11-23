@@ -25,10 +25,12 @@
 
 name: Crates.io Publish
 
+# Manual only (2026-11-23): the list below does not cover every crate
+# (eulumdat-spectrum, -daylight, -scene, -tm25, -digitize and -ifc are
+# missing, and others depend on them), so a tag must not start a partial
+# publish. Releases are published crate by crate in dependency order from a
+# workstation; bring the list up to date before using this again.
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 env:

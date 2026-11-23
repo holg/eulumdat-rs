@@ -72,7 +72,7 @@ eulumdat-scene = { workspace = true, features = ["l3d", "spectrum"] }
 eulumdat-spectrum.workspace = true
 eulumdat-tm25.workspace = true
 eulumdat-typst = { workspace = true, features = ["json"] }
-eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates", version = "0.8.0" }
+eulumdat-wasm-templates = { path = "../eulumdat-wasm-templates", version = "0.8.1" }
 getrandom = { version = "0.3", features = ["wasm_js"] }
 gloo.workspace = true
 gloo-file.workspace = true

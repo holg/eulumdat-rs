@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-11-23
+
+All workspace crates are released together at 0.8.1 (several had stayed at
+0.7.0 on crates.io), and the Python packages follow.
+
+### Added
+
+- **Melanopic quantities (CIE S 026/E:2018)**: `eulumdat-spectrum` carries the
+  official melanopic action spectrum and the CIE scotopic table at 5 nm;
+  melanopic DER (illuminant A 0.4958, D65 1) and melanopic EDI. The Light
+  scene measures vertical illuminance at eye height (1.2 m, four viewing
+  directions) and reports melanopic EDI; `rt-scene` prints both.
+- **`eulumdat-ifc`** (new crate): rooms, luminaires, doors and windows from an
+  IFC model (through bimifc), `Building::plan(room)` in the designers' frame,
+  and, with the `export` feature, `room_to_ifc` with round-trip tests. The
+  `export` feature needs a bimifc-writer with spaces and light fixtures
+  (newer than 0.2.0).
+- **`eulumdat-digitize`** is published for the first time: a spectrum chart
+  image to a relative `.spd`.
+- Street designer: a `StreetLayout` becomes a Light scene plan
+  (`eulumdat_scene::scene::plan_from_street`).
+- IES LM-63 openings: round shapes are read as round EULUMDAT luminaires
+  (negative dimensions are no longer copied) and written back as circles.
+
+### Changed
+
+- The LDT ↔ ATLA round trip is exact: an ATLA document made from an LDT
+  returns that LDT while it is unchanged, and keeps what ATLA cannot hold
+  (LOR, conversion factor, tilt, symmetry, angle lists) after an edit.
+- Validation: zero luminaire dimensions are valid (W045 / W046 are no longer
+  reported); E006 compares the C-angle count with Nc; W047 is not emitted.
+- `PhotometricCalculations::downward_c90_c270` uses the stored C-angles of a
+  symmetric table (a road luminaire integrated to LOR 110 % before).
+- The scotopic table is the CIE one (it peaked at 500 nm); S/P ratios of LED
+  spectra rise by 10 to 20 %.
+
+### Fixed
+
+- `eulumdat-i18n`: `Locale::from_json` parses on a thread with a larger stack.
+  Loading a locale overflowed the 1 MB main-thread stack of Windows in debug
+  builds.
+- Clippy 1.100 (`needless_range_loop`) across the workspace.
+
 ## [0.8.0] - 2026-10-07
 
 **Computed values change in this release.** Beam and field angles now follow
