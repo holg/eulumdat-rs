@@ -384,8 +384,7 @@ mod tests {
         let (_, total) = session.progress();
         assert!(total > 0);
         // All questions should be BugRating
-        for i in 0..total {
-            let q = &session.questions[i];
+        for q in &session.questions[..total] {
             assert_eq!(q.category, Category::BugRating);
         }
     }

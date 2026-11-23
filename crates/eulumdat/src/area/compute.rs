@@ -608,9 +608,9 @@ mod tests {
 
         // Check left-right symmetry: grid[r][c] ≈ grid[r][n-1-c]
         let mut max_lr_diff = 0.0_f64;
-        for row in 0..n {
+        for cells in r.lux_grid.iter().take(n) {
             for col in 0..n / 2 {
-                let diff = (r.lux_grid[row][col] - r.lux_grid[row][n - 1 - col]).abs();
+                let diff = (cells[col] - cells[n - 1 - col]).abs();
                 max_lr_diff = max_lr_diff.max(diff);
             }
         }
@@ -658,9 +658,9 @@ mod tests {
 
         // Check LR symmetry (C90 == C270 in test_ldt)
         let mut max_lr_diff = 0.0_f64;
-        for row in 0..n {
+        for cells in r.lux_grid.iter().take(n) {
             for col in 0..n / 2 {
-                let diff = (r.lux_grid[row][col] - r.lux_grid[row][n - 1 - col]).abs();
+                let diff = (cells[col] - cells[n - 1 - col]).abs();
                 max_lr_diff = max_lr_diff.max(diff);
             }
         }

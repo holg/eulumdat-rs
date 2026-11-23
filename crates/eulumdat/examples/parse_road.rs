@@ -40,8 +40,8 @@ fn main() {
     println!();
     println!("Intensity data for G=0 (first row):");
     print!("Values:   ");
-    for i in 0..ldt.intensities.len().min(10) {
-        print!("{:>6.0} ", ldt.intensities[i][0]);
+    for plane in ldt.intensities.iter().take(10) {
+        print!("{:>6.0} ", plane[0]);
     }
     println!("...");
 
@@ -62,8 +62,8 @@ fn main() {
 
     for (g_idx, &g_angle) in ldt.g_angles.iter().take(5).enumerate() {
         print!("{:>5.1}  ", g_angle);
-        for i in 0..ldt.intensities.len().min(10) {
-            print!("{:>6.0} ", ldt.intensities[i][g_idx]);
+        for plane in ldt.intensities.iter().take(10) {
+            print!("{:>6.0} ", plane[g_idx]);
         }
         println!();
     }

@@ -245,9 +245,8 @@ fn evaluate_spacing(
     let mut sum_lux: f64 = 0.0;
     let count = (n * n) as f64;
 
-    for row in n..(2 * n) {
-        for col in n..(2 * n) {
-            let lux = result.lux_grid[row][col];
+    for row in &result.lux_grid[n..(2 * n)] {
+        for &lux in &row[n..(2 * n)] {
             if lux < min_lux {
                 min_lux = lux;
             }

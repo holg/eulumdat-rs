@@ -286,9 +286,9 @@ fn peak_and_half_peak_width(spd: &SpectralDistribution) -> (f64, f64) {
     }
     let mut peak_i = 0;
     let mut peak_v = spd.values[0];
-    for i in 1..n {
-        if spd.values[i] > peak_v {
-            peak_v = spd.values[i];
+    for (i, &v) in spd.values.iter().enumerate().take(n).skip(1) {
+        if v > peak_v {
+            peak_v = v;
             peak_i = i;
         }
     }

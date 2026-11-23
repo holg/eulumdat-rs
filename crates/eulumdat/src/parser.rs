@@ -159,9 +159,9 @@ impl Parser {
         }
 
         // Lines 27a-27j: Direct ratios for 10 room indices
-        for i in 0..10 {
+        for ratio in ldt.direct_ratios.iter_mut() {
             let dr_line = idx;
-            ldt.direct_ratios[i] = Self::parse_float_or(next_line(&mut idx)?, dr_line, 0.0)?;
+            *ratio = Self::parse_float_or(next_line(&mut idx)?, dr_line, 0.0)?;
         }
 
         // Lines 28: C-plane angles (Nc values) - read ALL C-plane angles first

@@ -792,8 +792,8 @@ Luminous intensity values in cd/klm (candelas per kilolumen).
 
     // Header row
     content.push_str("  [γ \\\\ C],");
-    for c_idx in 0..max_c {
-        content.push_str(&format!(" [{}°],", ldt.c_angles[c_idx] as i32));
+    for c_angle in &ldt.c_angles[..max_c] {
+        content.push_str(&format!(" [{}°],", *c_angle as i32));
     }
     content.push('\n');
 
@@ -1025,13 +1025,13 @@ fn generate_ugr_table_section(ldt: &Eulumdat) -> String {
         let mut row_vals = format!("  [{} × {}], ", x_str, y_str);
 
         // Crosswise values
-        for j in 0..5.min(ugr.crosswise[i].len()) {
-            row_vals.push_str(&format!("[{:.1}], ", ugr.crosswise[i][j]));
+        for v in ugr.crosswise[i].iter().take(5) {
+            row_vals.push_str(&format!("[{:.1}], ", v));
         }
 
         // Endwise values
-        for j in 0..5.min(ugr.endwise[i].len()) {
-            row_vals.push_str(&format!("[{:.1}], ", ugr.endwise[i][j]));
+        for v in ugr.endwise[i].iter().take(5) {
+            row_vals.push_str(&format!("[{:.1}], ", v));
         }
 
         // Keep trailing comma for table row

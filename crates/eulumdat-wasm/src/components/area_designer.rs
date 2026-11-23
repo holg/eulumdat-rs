@@ -2409,11 +2409,11 @@ pub fn AreaDesigner(ldc: ReadSignal<Eulumdat>) -> impl IntoView {
                                                 csv.push_str(&format!(",{:.2}", u.convert_meters((c as f64 + 0.5) * dx)));
                                             }
                                             csv.push('\n');
-                                            for row in 0..n {
+                                            for (row, cells) in r.lux_grid.iter().enumerate().take(n) {
                                                 let y = u.convert_meters((row as f64 + 0.5) * dy);
                                                 csv.push_str(&format!("{y:.2}"));
-                                                for col in 0..n {
-                                                    csv.push_str(&format!(",{:.1}", u.convert_lux(r.lux_grid[row][col])));
+                                                for lux in cells.iter().take(n) {
+                                                    csv.push_str(&format!(",{:.1}", u.convert_lux(*lux)));
                                                 }
                                                 csv.push('\n');
                                             }

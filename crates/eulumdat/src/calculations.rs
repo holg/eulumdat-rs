@@ -3138,32 +3138,32 @@ impl CuTable {
 
             // Group by ceiling reflectance
             // RC=80: indices 0-3
-            for j in 0..4 {
-                s.push_str(&format!("{:3.0}", self.values[i][j]));
+            for v in &self.values[i][0..4] {
+                s.push_str(&format!("{:3.0}", v));
             }
             s.push(' ');
 
             // RC=70: indices 4-7
-            for j in 4..8 {
-                s.push_str(&format!("{:3.0}", self.values[i][j]));
+            for v in &self.values[i][4..8] {
+                s.push_str(&format!("{:3.0}", v));
             }
             s.push(' ');
 
             // RC=50: indices 8-10
-            for j in 8..11 {
-                s.push_str(&format!("{:3.0}", self.values[i][j]));
+            for v in &self.values[i][8..11] {
+                s.push_str(&format!("{:3.0}", v));
             }
             s.push(' ');
 
             // RC=30: indices 11-13
-            for j in 11..14 {
-                s.push_str(&format!("{:3.0}", self.values[i][j]));
+            for v in &self.values[i][11..14] {
+                s.push_str(&format!("{:3.0}", v));
             }
             s.push(' ');
 
             // RC=10: indices 14-16
-            for j in 14..17 {
-                s.push_str(&format!("{:3.0}", self.values[i][j]));
+            for v in &self.values[i][14..17] {
+                s.push_str(&format!("{:3.0}", v));
             }
             s.push(' ');
 
@@ -3558,14 +3558,14 @@ impl UgrTable {
             s.push_str(&format!("X={:<3} Y={:<3} ", x_str, y_str));
 
             // Crosswise values
-            for j in 0..5 {
-                s.push_str(&format!("{:5.1}", self.crosswise[i][j]));
+            for v in &self.crosswise[i][0..5] {
+                s.push_str(&format!("{:5.1}", v));
             }
             s.push_str("  ");
 
             // Endwise values
-            for j in 0..5 {
-                s.push_str(&format!("{:5.1}", self.endwise[i][j]));
+            for v in &self.endwise[i][0..5] {
+                s.push_str(&format!("{:5.1}", v));
             }
             s.push('\n');
         }

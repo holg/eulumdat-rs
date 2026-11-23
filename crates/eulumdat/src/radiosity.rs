@@ -1009,10 +1009,10 @@ mod tests {
     fn form_factors_are_reciprocal() {
         let mesh = RoomMesh::new(4.0, 3.0, 2.5, refl(), 5);
         let ff = compute_form_factors(&mesh);
-        for i in 0..ff.n {
-            let ai = mesh.patches[i].area;
-            for j in 0..ff.n {
-                let aj = mesh.patches[j].area;
+        for (i, pi) in mesh.patches.iter().enumerate().take(ff.n) {
+            let ai = pi.area;
+            for (j, pj) in mesh.patches.iter().enumerate().take(ff.n) {
+                let aj = pj.area;
                 let lhs = ai * ff.get(i, j);
                 let rhs = aj * ff.get(j, i);
                 assert!((lhs - rhs).abs() < 1e-9, "reciprocity broke at {i},{j}");
