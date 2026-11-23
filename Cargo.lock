@@ -2407,7 +2407,9 @@ dependencies = [
 
 [[package]]
 name = "bimifc-geometry"
-version = "0.3.0"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b0f07139f0fb75361bc226b7662db5a0ea9d4617c6537dda2d59d3f0f610f08"
 dependencies = [
  "bimifc-model",
  "earcutr",
@@ -2418,7 +2420,9 @@ dependencies = [
 
 [[package]]
 name = "bimifc-model"
-version = "0.3.0"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c8e0591ede20e802731ddffa259cef5a7e0f993779f3ee850e336981afa2fe3"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -2426,10 +2430,12 @@ dependencies = [
 
 [[package]]
 name = "bimifc-parser"
-version = "0.3.0"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f644a8c70a07b323d3dffd1c298e4fdfabba73821786c68df96a369d91c0dea9"
 dependencies = [
  "bimifc-model",
- "eulumdat",
+ "eulumdat 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lexical-core",
  "memchr",
  "nom 8.0.0",
@@ -2441,7 +2447,9 @@ dependencies = [
 
 [[package]]
 name = "bimifc-writer"
-version = "0.2.0"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12bea54e51e1ef03c262dcb3047d01cd5469fcc0e332a73481bb2ae1d78cb6e7"
 dependencies = [
  "chrono",
  "uuid",
@@ -4205,12 +4213,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "eulumdat"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5e85093905186e4706af72db044bafa9d82db861bfbc7e0a3cdc33a764f277e"
+dependencies = [
+ "anyhow",
+ "libm",
+]
+
+[[package]]
 name = "eulumdat-bevy"
 version = "0.8.1"
 dependencies = [
  "bevy",
  "bytemuck",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-daylight",
  "eulumdat-goniosim",
  "eulumdat-scene",
@@ -4232,7 +4250,7 @@ version = "0.8.1"
 dependencies = [
  "anyhow",
  "clap",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-digitize",
  "eulumdat-spectrum",
  "eulumdat-tm25",
@@ -4278,7 +4296,7 @@ dependencies = [
  "egui",
  "egui_extras",
  "encoding_rs",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-i18n",
  "fontdb 0.18.0",
  "image",
@@ -4290,7 +4308,7 @@ dependencies = [
 name = "eulumdat-ffi"
 version = "0.8.1"
 dependencies = [
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-i18n",
  "thiserror 1.0.69",
  "uniffi",
@@ -4318,7 +4336,7 @@ name = "eulumdat-goniosim"
 version = "0.8.1"
 dependencies = [
  "approx 0.5.1",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-daylight",
  "eulumdat-spectrum",
  "nalgebra",
@@ -4332,7 +4350,7 @@ dependencies = [
 name = "eulumdat-harmonyos-ffi"
 version = "0.8.1"
 dependencies = [
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-photweb",
 ]
 
@@ -4353,7 +4371,7 @@ dependencies = [
  "bimifc-model",
  "bimifc-parser",
  "bimifc-writer",
- "eulumdat",
+ "eulumdat 0.8.1",
 ]
 
 [[package]]
@@ -4361,7 +4379,7 @@ name = "eulumdat-photweb"
 version = "0.8.1"
 dependencies = [
  "approx 0.5.1",
- "eulumdat",
+ "eulumdat 0.8.1",
 ]
 
 [[package]]
@@ -4369,7 +4387,7 @@ name = "eulumdat-plugin"
 version = "0.8.1"
 dependencies = [
  "console_error_panic_hook",
- "eulumdat",
+ "eulumdat 0.8.1",
  "getrandom 0.2.17",
  "serde",
  "serde_json",
@@ -4381,7 +4399,7 @@ dependencies = [
 name = "eulumdat-py"
 version = "0.8.1"
 dependencies = [
- "eulumdat",
+ "eulumdat 0.8.1",
  "pyo3",
 ]
 
@@ -4415,7 +4433,7 @@ version = "0.8.1"
 dependencies = [
  "bytemuck",
  "env_logger",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-goniosim",
  "eulumdat-scene",
  "eulumdat-spectrum",
@@ -4432,7 +4450,7 @@ name = "eulumdat-scene"
 version = "0.8.1"
 dependencies = [
  "bytemuck",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-daylight",
  "eulumdat-spectrum",
  "glam 0.32.1",
@@ -4471,7 +4489,7 @@ dependencies = [
 name = "eulumdat-tm25"
 version = "0.8.1"
 dependencies = [
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-spectrum",
  "eulumdat-typst",
  "tm25ray",
@@ -4484,7 +4502,7 @@ dependencies = [
  "anyhow",
  "clap",
  "crossterm",
- "eulumdat",
+ "eulumdat 0.8.1",
  "ratatui",
 ]
 
@@ -4494,7 +4512,7 @@ version = "0.8.1"
 dependencies = [
  "clap",
  "crossterm",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-i18n",
  "eulumdat-quiz",
  "ratatui",
@@ -4508,7 +4526,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "comemo",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-spectrum",
  "serde_json",
  "tempfile",
@@ -4523,7 +4541,7 @@ version = "0.8.1"
 dependencies = [
  "approx 0.5.1",
  "egui",
- "eulumdat",
+ "eulumdat 0.8.1",
  "serde",
  "three-d",
 ]
@@ -4534,7 +4552,7 @@ version = "0.8.1"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-daylight",
  "eulumdat-digitize",
  "eulumdat-goniosim",
@@ -4567,7 +4585,7 @@ name = "eulumdat-wasm-quiz"
 version = "0.8.1"
 dependencies = [
  "console_error_panic_hook",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-i18n",
  "eulumdat-quiz",
  "js-sys",
@@ -4582,7 +4600,7 @@ name = "eulumdat-wasm-street"
 version = "0.8.1"
 dependencies = [
  "console_error_panic_hook",
- "eulumdat",
+ "eulumdat 0.8.1",
  "eulumdat-i18n",
  "js-sys",
  "leptos",
@@ -4600,7 +4618,7 @@ dependencies = [
  "clap",
  "eframe",
  "egui",
- "eulumdat",
+ "eulumdat 0.8.1",
  "rfd",
  "serde",
  "toml 0.9.12+spec-1.1.0",
@@ -4614,7 +4632,7 @@ dependencies = [
  "anyhow",
  "embed-resource",
  "encoding_rs",
- "eulumdat",
+ "eulumdat 0.8.1",
  "log",
  "resvg 0.44.0",
  "windows 0.58.0",

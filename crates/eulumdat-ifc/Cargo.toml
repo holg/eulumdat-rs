@@ -11,19 +11,18 @@ categories = ["science"]
 
 [features]
 default = []
-# IFC export through bimifc-writer. Needs the local ../bimifc checkout
-# (`.cargo/local-siblings.toml`): bimifc-writer 0.2.0 on crates.io has no
-# spaces or light fixtures yet. The web build turns it on.
+# IFC export through bimifc-writer (0.3: spaces and light fixtures). The web
+# build turns it on.
 export = ["dep:bimifc-writer"]
 
 [dependencies]
 base64.workspace = true
 # bimifc: crates.io versions here; local builds take the ../bimifc checkout
 # through `.cargo/local-siblings.toml` (see its .example).
-bimifc-geometry = "0.3"
-bimifc-model = "0.3"
-bimifc-parser = "0.3"
-bimifc-writer = { version = "0.2", optional = true }
+bimifc-geometry = "0.3.1"
+bimifc-model = "0.3.1"
+bimifc-parser = "0.3.1"
+bimifc-writer = { version = "0.3", optional = true }
 eulumdat.workspace = true
 
 [[example]]
