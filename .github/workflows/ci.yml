@@ -27,7 +27,10 @@ jobs:
         # through the `cmake` crate. cmake-rs auto-detects Visual Studio via
         # `cc`, which does not know the VS 2026 that windows-latest
         # (windows-2025-vs2026) ships, so the generator lookup fails there.
-        os: [ubuntu-latest, macos-latest, windows-2022]
+        # ubuntu-24.04 (not ubuntu-latest): the newer image compiles with
+        # GCC 15, where KTX-Software 4.4.0 (ktx2-rw, see above) fails in
+        # basisu_kernels_sse.cpp ("Please check your compiler options").
+        os: [ubuntu-24.04, macos-latest, windows-2022]
     steps:
       - uses: actions/checkout@v4
 
@@ -53,11 +56,11 @@ jobs:
         run: cargo test --workspace --exclude eulumdat-py --exclude eulumdat-quiz-py --verbose
 
       - name: Check formatting
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: cargo fmt --all -- --check
 
       - name: Run clippy
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: cargo clippy --workspace --exclude eulumdat-py --exclude eulumdat-quiz-py -- -D warnings
 
   # Build CLI binaries for release

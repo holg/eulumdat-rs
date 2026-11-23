@@ -3059,9 +3059,30 @@ pub struct StreetCompliance {
     pub achieved: String,
 }
 
+/// Stack for parsing a locale (see [`Locale::from_json`]).
+#[cfg(not(target_arch = "wasm32"))]
+const PARSE_STACK_BYTES: usize = 16 << 20;
+
 impl Locale {
     /// Parse locale from JSON string
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        // The derived deserializer of this many nested sections needs well over
+        // 1 MB of stack in a debug build, and 1 MB is all a Windows main thread
+        // has (Linux and macOS: 8 MB). Parse on a thread with room to spare; the
+        // result comes back boxed, so only the finished value reaches the caller.
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let parsed = std::thread::scope(|scope| {
+                std::thread::Builder::new()
+                    .stack_size(PARSE_STACK_BYTES)
+                    .spawn_scoped(scope, || serde_json::from_str::<Box<Self>>(json))
+                    .ok()
+                    .and_then(|handle| handle.join().ok())
+            });
+            if let Some(result) = parsed {
+                return result.map(|locale| *locale);
+            }
+        }
         serde_json::from_str(json)
     }
 
