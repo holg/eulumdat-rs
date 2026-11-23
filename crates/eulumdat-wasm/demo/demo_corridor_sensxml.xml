@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="yes"?>
+<SensXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="./sensXML.xsd">
+<Version>4.5</Version>
+<Header>
+<Manufacturer>Candelabra demo</Manufacturer>
+<ProductName>Synthetic corridor detector</ProductName>
+<ProductGroup>Korridormelder (Demo)</ProductGroup>
+<ProductNumber>DEMO-SXCOR</ProductNumber>
+<ProductTechnology>PIR</ProductTechnology>
+<Description>Synthetic data for testing, not a product</Description>
+<Laboratory>none (synthetic)</Laboratory>
+<ReportDate>05.11.2026</ReportDate>
+</Header>
+<Sensor>
+<TotalSystemPower>0.4</TotalSystemPower>
+<MountingType>2</MountingType>
+<Quantity>2</Quantity>
+<Measurement><Type>synthetic</Type><Version>1</Version></Measurement>
+</Sensor>
+<DetectionSource n="1">
+<DetectionType>1</DetectionType>
+<NumberPolarData>3</NumberPolarData>
+<NumberGridData>0</NumberGridData>
+<ActiveGrid>0</ActiveGrid>
+<ShowRawData>1</ShowRawData>
+<SamplingDirection>0</SamplingDirection>
+<RotationAngle>0</RotationAngle>
+<PolarData n="1">
+<NumberValues>72</NumberValues>
+<AngularIncrement>5</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>355</EndAngle>
+<DistanceFromCenter>2.5</DistanceFromCenter>
+<RangeData angle="  0.000">12.00</RangeData>
+<RangeData angle="  5.000">12.05</RangeData>
+<RangeData angle=" 10.000">11.52</RangeData>
+<RangeData angle=" 15.000">7.73</RangeData>
+<RangeData angle=" 20.000">5.85</RangeData>
+<RangeData angle=" 25.000">4.73</RangeData>
+<RangeData angle=" 30.000">4.00</RangeData>
+<RangeData angle=" 35.000">3.49</RangeData>
+<RangeData angle=" 40.000">3.11</RangeData>
+<RangeData angle=" 45.000">2.83</RangeData>
+<RangeData angle=" 50.000">2.61</RangeData>
+<RangeData angle=" 55.000">2.44</RangeData>
+<RangeData angle=" 60.000">2.31</RangeData>
+<RangeData angle=" 65.000">2.21</RangeData>
+<RangeData angle=" 70.000">2.13</RangeData>
+<RangeData angle=" 75.000">2.07</RangeData>
+<RangeData angle=" 80.000">2.03</RangeData>
+<RangeData angle=" 85.000">2.01</RangeData>
+<RangeData angle=" 90.000">2.00</RangeData>
+<RangeData angle=" 95.000">2.01</RangeData>
+<RangeData angle="100.000">2.03</RangeData>
+<RangeData angle="105.000">2.07</RangeData>
+<RangeData angle="110.000">2.13</RangeData>
+<RangeData angle="115.000">2.21</RangeData>
+<RangeData angle="120.000">2.31</RangeData>
+<RangeData angle="125.000">2.44</RangeData>
+<RangeData angle="130.000">2.61</RangeData>
+<RangeData angle="135.000">2.83</RangeData>
+<RangeData angle="140.000">3.11</RangeData>
+<RangeData angle="145.000">3.49</RangeData>
+<RangeData angle="150.000">4.00</RangeData>
+<RangeData angle="155.000">4.73</RangeData>
+<RangeData angle="160.000">5.85</RangeData>
+<RangeData angle="165.000">7.73</RangeData>
+<RangeData angle="170.000">11.52</RangeData>
+<RangeData angle="175.000">12.05</RangeData>
+<RangeData angle="180.000">12.00</RangeData>
+<RangeData angle="185.000">12.05</RangeData>
+<RangeData angle="190.000">11.52</RangeData>
+<RangeData angle="195.000">7.73</RangeData>
+<RangeData angle="200.000">5.85</RangeData>
+<RangeData angle="205.000">4.73</RangeData>
+<RangeData angle="210.000">4.00</RangeData>
+<RangeData angle="215.000">3.49</RangeData>
+<RangeData angle="220.000">3.11</RangeData>
+<RangeData angle="225.000">2.83</RangeData>
+<RangeData angle="230.000">2.61</RangeData>
+<RangeData angle="235.000">2.44</RangeData>
+<RangeData angle="240.000">2.31</RangeData>
+<RangeData angle="245.000">2.21</RangeData>
+<RangeData angle="250.000">2.13</RangeData>
+<RangeData angle="255.000">2.07</RangeData>
+<RangeData angle="260.000">2.03</RangeData>
+<RangeData angle="265.000">2.01</RangeData>
+<RangeData angle="270.000">2.00</RangeData>
+<RangeData angle="275.000">2.01</RangeData>
+<RangeData angle="280.000">2.03</RangeData>
+<RangeData angle="285.000">2.07</RangeData>
+<RangeData angle="290.000">2.13</RangeData>
+<RangeData angle="295.000">2.21</RangeData>
+<RangeData angle="300.000">2.31</RangeData>
+<RangeData angle="305.000">2.44</RangeData>
+<RangeData angle="310.000">2.61</RangeData>
+<RangeData angle="315.000">2.83</RangeData>
+<RangeData angle="320.000">3.11</RangeData>
+<RangeData angle="325.000">3.49</RangeData>
+<RangeData angle="330.000">4.00</RangeData>
+<RangeData angle="335.000">4.73</RangeData>
+<RangeData angle="340.000">5.85</RangeData>
+<RangeData angle="345.000">7.73</RangeData>
+<RangeData angle="350.000">11.52</RangeData>
+<RangeData angle="355.000">12.05</RangeData>
+<PlanningData>
+<Shape>4</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Length>21.6</Length>
+<Width>3.6</Width>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="2">
+<NumberValues>72</NumberValues>
+<AngularIncrement>5</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>355</EndAngle>
+<DistanceFromCenter>3</DistanceFromCenter>
+<RangeData angle="  0.000">14.00</RangeData>
+<RangeData angle="  5.000">14.05</RangeData>
+<RangeData angle=" 10.000">12.96</RangeData>
+<RangeData angle=" 15.000">8.69</RangeData>
+<RangeData angle=" 20.000">6.58</RangeData>
+<RangeData angle=" 25.000">5.32</RangeData>
+<RangeData angle=" 30.000">4.50</RangeData>
+<RangeData angle=" 35.000">3.92</RangeData>
+<RangeData angle=" 40.000">3.50</RangeData>
+<RangeData angle=" 45.000">3.18</RangeData>
+<RangeData angle=" 50.000">2.94</RangeData>
+<RangeData angle=" 55.000">2.75</RangeData>
+<RangeData angle=" 60.000">2.60</RangeData>
+<RangeData angle=" 65.000">2.48</RangeData>
+<RangeData angle=" 70.000">2.39</RangeData>
+<RangeData angle=" 75.000">2.33</RangeData>
+<RangeData angle=" 80.000">2.28</RangeData>
+<RangeData angle=" 85.000">2.26</RangeData>
+<RangeData angle=" 90.000">2.25</RangeData>
+<RangeData angle=" 95.000">2.26</RangeData>
+<RangeData angle="100.000">2.28</RangeData>
+<RangeData angle="105.000">2.33</RangeData>
+<RangeData angle="110.000">2.39</RangeData>
+<RangeData angle="115.000">2.48</RangeData>
+<RangeData angle="120.000">2.60</RangeData>
+<RangeData angle="125.000">2.75</RangeData>
+<RangeData angle="130.000">2.94</RangeData>
+<RangeData angle="135.000">3.18</RangeData>
+<RangeData angle="140.000">3.50</RangeData>
+<RangeData angle="145.000">3.92</RangeData>
+<RangeData angle="150.000">4.50</RangeData>
+<RangeData angle="155.000">5.32</RangeData>
+<RangeData angle="160.000">6.58</RangeData>
+<RangeData angle="165.000">8.69</RangeData>
+<RangeData angle="170.000">12.96</RangeData>
+<RangeData angle="175.000">14.05</RangeData>
+<RangeData angle="180.000">14.00</RangeData>
+<RangeData angle="185.000">14.05</RangeData>
+<RangeData angle="190.000">12.96</RangeData>
+<RangeData angle="195.000">8.69</RangeData>
+<RangeData angle="200.000">6.58</RangeData>
+<RangeData angle="205.000">5.32</RangeData>
+<RangeData angle="210.000">4.50</RangeData>
+<RangeData angle="215.000">3.92</RangeData>
+<RangeData angle="220.000">3.50</RangeData>
+<RangeData angle="225.000">3.18</RangeData>
+<RangeData angle="230.000">2.94</RangeData>
+<RangeData angle="235.000">2.75</RangeData>
+<RangeData angle="240.000">2.60</RangeData>
+<RangeData angle="245.000">2.48</RangeData>
+<RangeData angle="250.000">2.39</RangeData>
+<RangeData angle="255.000">2.33</RangeData>
+<RangeData angle="260.000">2.28</RangeData>
+<RangeData angle="265.000">2.26</RangeData>
+<RangeData angle="270.000">2.25</RangeData>
+<RangeData angle="275.000">2.26</RangeData>
+<RangeData angle="280.000">2.28</RangeData>
+<RangeData angle="285.000">2.33</RangeData>
+<RangeData angle="290.000">2.39</RangeData>
+<RangeData angle="295.000">2.48</RangeData>
+<RangeData angle="300.000">2.60</RangeData>
+<RangeData angle="305.000">2.75</RangeData>
+<RangeData angle="310.000">2.94</RangeData>
+<RangeData angle="315.000">3.18</RangeData>
+<RangeData angle="320.000">3.50</RangeData>
+<RangeData angle="325.000">3.92</RangeData>
+<RangeData angle="330.000">4.50</RangeData>
+<RangeData angle="335.000">5.32</RangeData>
+<RangeData angle="340.000">6.58</RangeData>
+<RangeData angle="345.000">8.69</RangeData>
+<RangeData angle="350.000">12.96</RangeData>
+<RangeData angle="355.000">14.05</RangeData>
+<PlanningData>
+<Shape>4</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Length>25.2</Length>
+<Width>4</Width>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="3">
+<NumberValues>72</NumberValues>
+<AngularIncrement>5</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>355</EndAngle>
+<DistanceFromCenter>4</DistanceFromCenter>
+<RangeData angle="  0.000">15.00</RangeData>
+<RangeData angle="  5.000">15.06</RangeData>
+<RangeData angle=" 10.000">14.40</RangeData>
+<RangeData angle=" 15.000">9.66</RangeData>
+<RangeData angle=" 20.000">7.31</RangeData>
+<RangeData angle=" 25.000">5.92</RangeData>
+<RangeData angle=" 30.000">5.00</RangeData>
+<RangeData angle=" 35.000">4.36</RangeData>
+<RangeData angle=" 40.000">3.89</RangeData>
+<RangeData angle=" 45.000">3.54</RangeData>
+<RangeData angle=" 50.000">3.26</RangeData>
+<RangeData angle=" 55.000">3.05</RangeData>
+<RangeData angle=" 60.000">2.89</RangeData>
+<RangeData angle=" 65.000">2.76</RangeData>
+<RangeData angle=" 70.000">2.66</RangeData>
+<RangeData angle=" 75.000">2.59</RangeData>
+<RangeData angle=" 80.000">2.54</RangeData>
+<RangeData angle=" 85.000">2.51</RangeData>
+<RangeData angle=" 90.000">2.50</RangeData>
+<RangeData angle=" 95.000">2.51</RangeData>
+<RangeData angle="100.000">2.54</RangeData>
+<RangeData angle="105.000">2.59</RangeData>
+<RangeData angle="110.000">2.66</RangeData>
+<RangeData angle="115.000">2.76</RangeData>
+<RangeData angle="120.000">2.89</RangeData>
+<RangeData angle="125.000">3.05</RangeData>
+<RangeData angle="130.000">3.26</RangeData>
+<RangeData angle="135.000">3.54</RangeData>
+<RangeData angle="140.000">3.89</RangeData>
+<RangeData angle="145.000">4.36</RangeData>
+<RangeData angle="150.000">5.00</RangeData>
+<RangeData angle="155.000">5.92</RangeData>
+<RangeData angle="160.000">7.31</RangeData>
+<RangeData angle="165.000">9.66</RangeData>
+<RangeData angle="170.000">14.40</RangeData>
+<RangeData angle="175.000">15.06</RangeData>
+<RangeData angle="180.000">15.00</RangeData>
+<RangeData angle="185.000">15.06</RangeData>
+<RangeData angle="190.000">14.40</RangeData>
+<RangeData angle="195.000">9.66</RangeData>
+<RangeData angle="200.000">7.31</RangeData>
+<RangeData angle="205.000">5.92</RangeData>
+<RangeData angle="210.000">5.00</RangeData>
+<RangeData angle="215.000">4.36</RangeData>
+<RangeData angle="220.000">3.89</RangeData>
+<RangeData angle="225.000">3.54</RangeData>
+<RangeData angle="230.000">3.26</RangeData>
+<RangeData angle="235.000">3.05</RangeData>
+<RangeData angle="240.000">2.89</RangeData>
+<RangeData angle="245.000">2.76</RangeData>
+<RangeData angle="250.000">2.66</RangeData>
+<RangeData angle="255.000">2.59</RangeData>
+<RangeData angle="260.000">2.54</RangeData>
+<RangeData angle="265.000">2.51</RangeData>
+<RangeData angle="270.000">2.50</RangeData>
+<RangeData angle="275.000">2.51</RangeData>
+<RangeData angle="280.000">2.54</RangeData>
+<RangeData angle="285.000">2.59</RangeData>
+<RangeData angle="290.000">2.66</RangeData>
+<RangeData angle="295.000">2.76</RangeData>
+<RangeData angle="300.000">2.89</RangeData>
+<RangeData angle="305.000">3.05</RangeData>
+<RangeData angle="310.000">3.26</RangeData>
+<RangeData angle="315.000">3.54</RangeData>
+<RangeData angle="320.000">3.89</RangeData>
+<RangeData angle="325.000">4.36</RangeData>
+<RangeData angle="330.000">5.00</RangeData>
+<RangeData angle="335.000">5.92</RangeData>
+<RangeData angle="340.000">7.31</RangeData>
+<RangeData angle="345.000">9.66</RangeData>
+<RangeData angle="350.000">14.40</RangeData>
+<RangeData angle="355.000">15.06</RangeData>
+<PlanningData>
+<Shape>4</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Length>27</Length>
+<Width>4.5</Width>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+</DetectionSource>
+<DetectionSource n="2">
+<DetectionType>2</DetectionType>
+<NumberPolarData>3</NumberPolarData>
+<NumberGridData>0</NumberGridData>
+<ActiveGrid>0</ActiveGrid>
+<ShowRawData>1</ShowRawData>
+<SamplingDirection>0</SamplingDirection>
+<RotationAngle>0</RotationAngle>
+<PolarData n="1">
+<NumberValues>72</NumberValues>
+<AngularIncrement>5</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>355</EndAngle>
+<DistanceFromCenter>2.5</DistanceFromCenter>
+<RangeData angle="  0.000">8.00</RangeData>
+<RangeData angle="  5.000">8.03</RangeData>
+<RangeData angle=" 10.000">8.12</RangeData>
+<RangeData angle=" 15.000">5.80</RangeData>
+<RangeData angle=" 20.000">4.39</RangeData>
+<RangeData angle=" 25.000">3.55</RangeData>
+<RangeData angle=" 30.000">3.00</RangeData>
+<RangeData angle=" 35.000">2.62</RangeData>
+<RangeData angle=" 40.000">2.33</RangeData>
+<RangeData angle=" 45.000">2.12</RangeData>
+<RangeData angle=" 50.000">1.96</RangeData>
+<RangeData angle=" 55.000">1.83</RangeData>
+<RangeData angle=" 60.000">1.73</RangeData>
+<RangeData angle=" 65.000">1.66</RangeData>
+<RangeData angle=" 70.000">1.60</RangeData>
+<RangeData angle=" 75.000">1.55</RangeData>
+<RangeData angle=" 80.000">1.52</RangeData>
+<RangeData angle=" 85.000">1.51</RangeData>
+<RangeData angle=" 90.000">1.50</RangeData>
+<RangeData angle=" 95.000">1.51</RangeData>
+<RangeData angle="100.000">1.52</RangeData>
+<RangeData angle="105.000">1.55</RangeData>
+<RangeData angle="110.000">1.60</RangeData>
+<RangeData angle="115.000">1.66</RangeData>
+<RangeData angle="120.000">1.73</RangeData>
+<RangeData angle="125.000">1.83</RangeData>
+<RangeData angle="130.000">1.96</RangeData>
+<RangeData angle="135.000">2.12</RangeData>
+<RangeData angle="140.000">2.33</RangeData>
+<RangeData angle="145.000">2.62</RangeData>
+<RangeData angle="150.000">3.00</RangeData>
+<RangeData angle="155.000">3.55</RangeData>
+<RangeData angle="160.000">4.39</RangeData>
+<RangeData angle="165.000">5.80</RangeData>
+<RangeData angle="170.000">8.12</RangeData>
+<RangeData angle="175.000">8.03</RangeData>
+<RangeData angle="180.000">8.00</RangeData>
+<RangeData angle="185.000">8.03</RangeData>
+<RangeData angle="190.000">8.12</RangeData>
+<RangeData angle="195.000">5.80</RangeData>
+<RangeData angle="200.000">4.39</RangeData>
+<RangeData angle="205.000">3.55</RangeData>
+<RangeData angle="210.000">3.00</RangeData>
+<RangeData angle="215.000">2.62</RangeData>
+<RangeData angle="220.000">2.33</RangeData>
+<RangeData angle="225.000">2.12</RangeData>
+<RangeData angle="230.000">1.96</RangeData>
+<RangeData angle="235.000">1.83</RangeData>
+<RangeData angle="240.000">1.73</RangeData>
+<RangeData angle="245.000">1.66</RangeData>
+<RangeData angle="250.000">1.60</RangeData>
+<RangeData angle="255.000">1.55</RangeData>
+<RangeData angle="260.000">1.52</RangeData>
+<RangeData angle="265.000">1.51</RangeData>
+<RangeData angle="270.000">1.50</RangeData>
+<RangeData angle="275.000">1.51</RangeData>
+<RangeData angle="280.000">1.52</RangeData>
+<RangeData angle="285.000">1.55</RangeData>
+<RangeData angle="290.000">1.60</RangeData>
+<RangeData angle="295.000">1.66</RangeData>
+<RangeData angle="300.000">1.73</RangeData>
+<RangeData angle="305.000">1.83</RangeData>
+<RangeData angle="310.000">1.96</RangeData>
+<RangeData angle="315.000">2.12</RangeData>
+<RangeData angle="320.000">2.33</RangeData>
+<RangeData angle="325.000">2.62</RangeData>
+<RangeData angle="330.000">3.00</RangeData>
+<RangeData angle="335.000">3.55</RangeData>
+<RangeData angle="340.000">4.39</RangeData>
+<RangeData angle="345.000">5.80</RangeData>
+<RangeData angle="350.000">8.12</RangeData>
+<RangeData angle="355.000">8.03</RangeData>
+<PlanningData>
+<Shape>4</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Length>14.4</Length>
+<Width>2.7</Width>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="2">
+<NumberValues>72</NumberValues>
+<AngularIncrement>5</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>355</EndAngle>
+<DistanceFromCenter>3</DistanceFromCenter>
+<RangeData angle="  0.000">9.00</RangeData>
+<RangeData angle="  5.000">9.03</RangeData>
+<RangeData angle=" 10.000">9.14</RangeData>
+<RangeData angle=" 15.000">6.76</RangeData>
+<RangeData angle=" 20.000">5.12</RangeData>
+<RangeData angle=" 25.000">4.14</RangeData>
+<RangeData angle=" 30.000">3.50</RangeData>
+<RangeData angle=" 35.000">3.05</RangeData>
+<RangeData angle=" 40.000">2.72</RangeData>
+<RangeData angle=" 45.000">2.47</RangeData>
+<RangeData angle=" 50.000">2.28</RangeData>
+<RangeData angle=" 55.000">2.14</RangeData>
+<RangeData angle=" 60.000">2.02</RangeData>
+<RangeData angle=" 65.000">1.93</RangeData>
+<RangeData angle=" 70.000">1.86</RangeData>
+<RangeData angle=" 75.000">1.81</RangeData>
+<RangeData angle=" 80.000">1.78</RangeData>
+<RangeData angle=" 85.000">1.76</RangeData>
+<RangeData angle=" 90.000">1.75</RangeData>
+<RangeData angle=" 95.000">1.76</RangeData>
+<RangeData angle="100.000">1.78</RangeData>
+<RangeData angle="105.000">1.81</RangeData>
+<RangeData angle="110.000">1.86</RangeData>
+<RangeData angle="115.000">1.93</RangeData>
+<RangeData angle="120.000">2.02</RangeData>
+<RangeData angle="125.000">2.14</RangeData>
+<RangeData angle="130.000">2.28</RangeData>
+<RangeData angle="135.000">2.47</RangeData>
+<RangeData angle="140.000">2.72</RangeData>
+<RangeData angle="145.000">3.05</RangeData>
+<RangeData angle="150.000">3.50</RangeData>
+<RangeData angle="155.000">4.14</RangeData>
+<RangeData angle="160.000">5.12</RangeData>
+<RangeData angle="165.000">6.76</RangeData>
+<RangeData angle="170.000">9.14</RangeData>
+<RangeData angle="175.000">9.03</RangeData>
+<RangeData angle="180.000">9.00</RangeData>
+<RangeData angle="185.000">9.03</RangeData>
+<RangeData angle="190.000">9.14</RangeData>
+<RangeData angle="195.000">6.76</RangeData>
+<RangeData angle="200.000">5.12</RangeData>
+<RangeData angle="205.000">4.14</RangeData>
+<RangeData angle="210.000">3.50</RangeData>
+<RangeData angle="215.000">3.05</RangeData>
+<RangeData angle="220.000">2.72</RangeData>
+<RangeData angle="225.000">2.47</RangeData>
+<RangeData angle="230.000">2.28</RangeData>
+<RangeData angle="235.000">2.14</RangeData>
+<RangeData angle="240.000">2.02</RangeData>
+<RangeData angle="245.000">1.93</RangeData>
+<RangeData angle="250.000">1.86</RangeData>
+<RangeData angle="255.000">1.81</RangeData>
+<RangeData angle="260.000">1.78</RangeData>
+<RangeData angle="265.000">1.76</RangeData>
+<RangeData angle="270.000">1.75</RangeData>
+<RangeData angle="275.000">1.76</RangeData>
+<RangeData angle="280.000">1.78</RangeData>
+<RangeData angle="285.000">1.81</RangeData>
+<RangeData angle="290.000">1.86</RangeData>
+<RangeData angle="295.000">1.93</RangeData>
+<RangeData angle="300.000">2.02</RangeData>
+<RangeData angle="305.000">2.14</RangeData>
+<RangeData angle="310.000">2.28</RangeData>
+<RangeData angle="315.000">2.47</RangeData>
+<RangeData angle="320.000">2.72</RangeData>
+<RangeData angle="325.000">3.05</RangeData>
+<RangeData angle="330.000">3.50</RangeData>
+<RangeData angle="335.000">4.14</RangeData>
+<RangeData angle="340.000">5.12</RangeData>
+<RangeData angle="345.000">6.76</RangeData>
+<RangeData angle="350.000">9.14</RangeData>
+<RangeData angle="355.000">9.03</RangeData>
+<PlanningData>
+<Shape>4</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Length>16.2</Length>
+<Width>3.2</Width>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="3">
+<NumberValues>72</NumberValues>
+<AngularIncrement>5</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>355</EndAngle>
+<DistanceFromCenter>4</DistanceFromCenter>
+<RangeData angle="  0.000">10.00</RangeData>
+<RangeData angle="  5.000">10.04</RangeData>
+<RangeData angle=" 10.000">10.15</RangeData>
+<RangeData angle=" 15.000">7.73</RangeData>
+<RangeData angle=" 20.000">5.85</RangeData>
+<RangeData angle=" 25.000">4.73</RangeData>
+<RangeData angle=" 30.000">4.00</RangeData>
+<RangeData angle=" 35.000">3.49</RangeData>
+<RangeData angle=" 40.000">3.11</RangeData>
+<RangeData angle=" 45.000">2.83</RangeData>
+<RangeData angle=" 50.000">2.61</RangeData>
+<RangeData angle=" 55.000">2.44</RangeData>
+<RangeData angle=" 60.000">2.31</RangeData>
+<RangeData angle=" 65.000">2.21</RangeData>
+<RangeData angle=" 70.000">2.13</RangeData>
+<RangeData angle=" 75.000">2.07</RangeData>
+<RangeData angle=" 80.000">2.03</RangeData>
+<RangeData angle=" 85.000">2.01</RangeData>
+<RangeData angle=" 90.000">2.00</RangeData>
+<RangeData angle=" 95.000">2.01</RangeData>
+<RangeData angle="100.000">2.03</RangeData>
+<RangeData angle="105.000">2.07</RangeData>
+<RangeData angle="110.000">2.13</RangeData>
+<RangeData angle="115.000">2.21</RangeData>
+<RangeData angle="120.000">2.31</RangeData>
+<RangeData angle="125.000">2.44</RangeData>
+<RangeData angle="130.000">2.61</RangeData>
+<RangeData angle="135.000">2.83</RangeData>
+<RangeData angle="140.000">3.11</RangeData>
+<RangeData angle="145.000">3.49</RangeData>
+<RangeData angle="150.000">4.00</RangeData>
+<RangeData angle="155.000">4.73</RangeData>
+<RangeData angle="160.000">5.85</RangeData>
+<RangeData angle="165.000">7.73</RangeData>
+<RangeData angle="170.000">10.15</RangeData>
+<RangeData angle="175.000">10.04</RangeData>
+<RangeData angle="180.000">10.00</RangeData>
+<RangeData angle="185.000">10.04</RangeData>
+<RangeData angle="190.000">10.15</RangeData>
+<RangeData angle="195.000">7.73</RangeData>
+<RangeData angle="200.000">5.85</RangeData>
+<RangeData angle="205.000">4.73</RangeData>
+<RangeData angle="210.000">4.00</RangeData>
+<RangeData angle="215.000">3.49</RangeData>
+<RangeData angle="220.000">3.11</RangeData>
+<RangeData angle="225.000">2.83</RangeData>
+<RangeData angle="230.000">2.61</RangeData>
+<RangeData angle="235.000">2.44</RangeData>
+<RangeData angle="240.000">2.31</RangeData>
+<RangeData angle="245.000">2.21</RangeData>
+<RangeData angle="250.000">2.13</RangeData>
+<RangeData angle="255.000">2.07</RangeData>
+<RangeData angle="260.000">2.03</RangeData>
+<RangeData angle="265.000">2.01</RangeData>
+<RangeData angle="270.000">2.00</RangeData>
+<RangeData angle="275.000">2.01</RangeData>
+<RangeData angle="280.000">2.03</RangeData>
+<RangeData angle="285.000">2.07</RangeData>
+<RangeData angle="290.000">2.13</RangeData>
+<RangeData angle="295.000">2.21</RangeData>
+<RangeData angle="300.000">2.31</RangeData>
+<RangeData angle="305.000">2.44</RangeData>
+<RangeData angle="310.000">2.61</RangeData>
+<RangeData angle="315.000">2.83</RangeData>
+<RangeData angle="320.000">3.11</RangeData>
+<RangeData angle="325.000">3.49</RangeData>
+<RangeData angle="330.000">4.00</RangeData>
+<RangeData angle="335.000">4.73</RangeData>
+<RangeData angle="340.000">5.85</RangeData>
+<RangeData angle="345.000">7.73</RangeData>
+<RangeData angle="350.000">10.15</RangeData>
+<RangeData angle="355.000">10.04</RangeData>
+<PlanningData>
+<Shape>4</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Length>18</Length>
+<Width>3.6</Width>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+</DetectionSource>
+</SensXML>

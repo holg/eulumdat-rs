@@ -47,8 +47,12 @@ hydrate = ["leptos/hydrate"]
 # (would push the package over crates.io's 10 MiB upload cap). The
 # build-wasm-split.sh and local dev builds opt in explicitly.
 benchmark = []
-# "IFC model" export in the Interior designer (bimifc-writer from the local
-# ../bimifc checkout; build-wasm-split.sh turns it on, CI builds without).
+# Measured vendor spectra as presets of the Spectrum lab. The files are in
+# the repository's docs/SPDs and are not part of the published crate, which
+# offers the synthetic demo LED instead. build-wasm-split.sh turns it on.
+vendor-spectra = []
+# "IFC model" export in the Interior designer (bimifc-writer 0.3;
+# build-wasm-split.sh turns it on).
 ifc-export = ["eulumdat-ifc/export", "dep:uuid"]
 # Note: the historical `bevy-viewer` feature is gone. The 3D viewer
 # now lives in eulumdat-bevy and is lazy-loaded as a separate WASM

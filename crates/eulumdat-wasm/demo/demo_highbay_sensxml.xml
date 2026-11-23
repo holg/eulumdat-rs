@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="yes"?>
+<SensXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="./sensXML.xsd">
+<Version>4.5</Version>
+<Header>
+<Manufacturer>Candelabra demo</Manufacturer>
+<ProductName>Synthetic high-bay presence detector</ProductName>
+<ProductGroup>Präsenzmelder Hallen (Demo)</ProductGroup>
+<ProductNumber>DEMO-SXHB</ProductNumber>
+<ProductTechnology>PIR</ProductTechnology>
+<Description>Synthetic data for testing, not a product</Description>
+<Laboratory>none (synthetic)</Laboratory>
+<ReportDate>05.11.2026</ReportDate>
+</Header>
+<Sensor>
+<TotalSystemPower>0.6</TotalSystemPower>
+<MountingType>2</MountingType>
+<Quantity>3</Quantity>
+<Measurement><Type>synthetic</Type><Version>1</Version></Measurement>
+</Sensor>
+<DetectionSource n="1">
+<DetectionType>1</DetectionType>
+<NumberPolarData>3</NumberPolarData>
+<NumberGridData>0</NumberGridData>
+<ActiveGrid>0</ActiveGrid>
+<ShowRawData>1</ShowRawData>
+<SamplingDirection>0</SamplingDirection>
+<RotationAngle>0</RotationAngle>
+<PolarData n="1">
+<NumberValues>36</NumberValues>
+<AngularIncrement>10</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>350</EndAngle>
+<DistanceFromCenter>6</DistanceFromCenter>
+<RangeData angle="  0.000">9.45</RangeData>
+<RangeData angle=" 10.000">9.22</RangeData>
+<RangeData angle=" 20.000">8.78</RangeData>
+<RangeData angle=" 30.000">8.55</RangeData>
+<RangeData angle=" 40.000">8.78</RangeData>
+<RangeData angle=" 50.000">9.22</RangeData>
+<RangeData angle=" 60.000">9.45</RangeData>
+<RangeData angle=" 70.000">9.22</RangeData>
+<RangeData angle=" 80.000">8.78</RangeData>
+<RangeData angle=" 90.000">8.55</RangeData>
+<RangeData angle="100.000">8.78</RangeData>
+<RangeData angle="110.000">9.22</RangeData>
+<RangeData angle="120.000">9.45</RangeData>
+<RangeData angle="130.000">9.22</RangeData>
+<RangeData angle="140.000">8.78</RangeData>
+<RangeData angle="150.000">8.55</RangeData>
+<RangeData angle="160.000">8.77</RangeData>
+<RangeData angle="170.000">9.22</RangeData>
+<RangeData angle="180.000">9.45</RangeData>
+<RangeData angle="190.000">9.23</RangeData>
+<RangeData angle="200.000">8.78</RangeData>
+<RangeData angle="210.000">8.55</RangeData>
+<RangeData angle="220.000">8.77</RangeData>
+<RangeData angle="230.000">9.22</RangeData>
+<RangeData angle="240.000">9.45</RangeData>
+<RangeData angle="250.000">9.23</RangeData>
+<RangeData angle="260.000">8.78</RangeData>
+<RangeData angle="270.000">8.55</RangeData>
+<RangeData angle="280.000">8.78</RangeData>
+<RangeData angle="290.000">9.22</RangeData>
+<RangeData angle="300.000">9.45</RangeData>
+<RangeData angle="310.000">9.23</RangeData>
+<RangeData angle="320.000">8.78</RangeData>
+<RangeData angle="330.000">8.55</RangeData>
+<RangeData angle="340.000">8.78</RangeData>
+<RangeData angle="350.000">9.22</RangeData>
+<PlanningData>
+<Shape>2</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Radius>8</Radius>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="2">
+<NumberValues>36</NumberValues>
+<AngularIncrement>10</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>350</EndAngle>
+<DistanceFromCenter>10</DistanceFromCenter>
+<RangeData angle="  0.000">13.65</RangeData>
+<RangeData angle=" 10.000">13.32</RangeData>
+<RangeData angle=" 20.000">12.67</RangeData>
+<RangeData angle=" 30.000">12.35</RangeData>
+<RangeData angle=" 40.000">12.67</RangeData>
+<RangeData angle=" 50.000">13.32</RangeData>
+<RangeData angle=" 60.000">13.65</RangeData>
+<RangeData angle=" 70.000">13.32</RangeData>
+<RangeData angle=" 80.000">12.68</RangeData>
+<RangeData angle=" 90.000">12.35</RangeData>
+<RangeData angle="100.000">12.67</RangeData>
+<RangeData angle="110.000">13.32</RangeData>
+<RangeData angle="120.000">13.65</RangeData>
+<RangeData angle="130.000">13.32</RangeData>
+<RangeData angle="140.000">12.67</RangeData>
+<RangeData angle="150.000">12.35</RangeData>
+<RangeData angle="160.000">12.67</RangeData>
+<RangeData angle="170.000">13.32</RangeData>
+<RangeData angle="180.000">13.65</RangeData>
+<RangeData angle="190.000">13.33</RangeData>
+<RangeData angle="200.000">12.67</RangeData>
+<RangeData angle="210.000">12.35</RangeData>
+<RangeData angle="220.000">12.67</RangeData>
+<RangeData angle="230.000">13.32</RangeData>
+<RangeData angle="240.000">13.65</RangeData>
+<RangeData angle="250.000">13.33</RangeData>
+<RangeData angle="260.000">12.67</RangeData>
+<RangeData angle="270.000">12.35</RangeData>
+<RangeData angle="280.000">12.68</RangeData>
+<RangeData angle="290.000">13.32</RangeData>
+<RangeData angle="300.000">13.65</RangeData>
+<RangeData angle="310.000">13.33</RangeData>
+<RangeData angle="320.000">12.68</RangeData>
+<RangeData angle="330.000">12.35</RangeData>
+<RangeData angle="340.000">12.68</RangeData>
+<RangeData angle="350.000">13.32</RangeData>
+<PlanningData>
+<Shape>2</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Radius>12</Radius>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="3">
+<NumberValues>36</NumberValues>
+<AngularIncrement>10</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>350</EndAngle>
+<DistanceFromCenter>14</DistanceFromCenter>
+<RangeData angle="  0.000">15.75</RangeData>
+<RangeData angle=" 10.000">15.37</RangeData>
+<RangeData angle=" 20.000">14.62</RangeData>
+<RangeData angle=" 30.000">14.25</RangeData>
+<RangeData angle=" 40.000">14.62</RangeData>
+<RangeData angle=" 50.000">15.37</RangeData>
+<RangeData angle=" 60.000">15.75</RangeData>
+<RangeData angle=" 70.000">15.37</RangeData>
+<RangeData angle=" 80.000">14.63</RangeData>
+<RangeData angle=" 90.000">14.25</RangeData>
+<RangeData angle="100.000">14.62</RangeData>
+<RangeData angle="110.000">15.37</RangeData>
+<RangeData angle="120.000">15.75</RangeData>
+<RangeData angle="130.000">15.37</RangeData>
+<RangeData angle="140.000">14.62</RangeData>
+<RangeData angle="150.000">14.25</RangeData>
+<RangeData angle="160.000">14.62</RangeData>
+<RangeData angle="170.000">15.37</RangeData>
+<RangeData angle="180.000">15.75</RangeData>
+<RangeData angle="190.000">15.38</RangeData>
+<RangeData angle="200.000">14.62</RangeData>
+<RangeData angle="210.000">14.25</RangeData>
+<RangeData angle="220.000">14.62</RangeData>
+<RangeData angle="230.000">15.37</RangeData>
+<RangeData angle="240.000">15.75</RangeData>
+<RangeData angle="250.000">15.38</RangeData>
+<RangeData angle="260.000">14.62</RangeData>
+<RangeData angle="270.000">14.25</RangeData>
+<RangeData angle="280.000">14.63</RangeData>
+<RangeData angle="290.000">15.37</RangeData>
+<RangeData angle="300.000">15.75</RangeData>
+<RangeData angle="310.000">15.38</RangeData>
+<RangeData angle="320.000">14.63</RangeData>
+<RangeData angle="330.000">14.25</RangeData>
+<RangeData angle="340.000">14.63</RangeData>
+<RangeData angle="350.000">15.37</RangeData>
+<PlanningData>
+<Shape>2</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Radius>14</Radius>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+</DetectionSource>
+<DetectionSource n="2">
+<DetectionType>2</DetectionType>
+<NumberPolarData>3</NumberPolarData>
+<NumberGridData>0</NumberGridData>
+<ActiveGrid>0</ActiveGrid>
+<ShowRawData>1</ShowRawData>
+<SamplingDirection>0</SamplingDirection>
+<RotationAngle>0</RotationAngle>
+<PolarData n="1">
+<NumberValues>36</NumberValues>
+<AngularIncrement>10</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>350</EndAngle>
+<DistanceFromCenter>6</DistanceFromCenter>
+<RangeData angle="  0.000">4.20</RangeData>
+<RangeData angle=" 10.000">4.10</RangeData>
+<RangeData angle=" 20.000">3.90</RangeData>
+<RangeData angle=" 30.000">3.80</RangeData>
+<RangeData angle=" 40.000">3.90</RangeData>
+<RangeData angle=" 50.000">4.10</RangeData>
+<RangeData angle=" 60.000">4.20</RangeData>
+<RangeData angle=" 70.000">4.10</RangeData>
+<RangeData angle=" 80.000">3.90</RangeData>
+<RangeData angle=" 90.000">3.80</RangeData>
+<RangeData angle="100.000">3.90</RangeData>
+<RangeData angle="110.000">4.10</RangeData>
+<RangeData angle="120.000">4.20</RangeData>
+<RangeData angle="130.000">4.10</RangeData>
+<RangeData angle="140.000">3.90</RangeData>
+<RangeData angle="150.000">3.80</RangeData>
+<RangeData angle="160.000">3.90</RangeData>
+<RangeData angle="170.000">4.10</RangeData>
+<RangeData angle="180.000">4.20</RangeData>
+<RangeData angle="190.000">4.10</RangeData>
+<RangeData angle="200.000">3.90</RangeData>
+<RangeData angle="210.000">3.80</RangeData>
+<RangeData angle="220.000">3.90</RangeData>
+<RangeData angle="230.000">4.10</RangeData>
+<RangeData angle="240.000">4.20</RangeData>
+<RangeData angle="250.000">4.10</RangeData>
+<RangeData angle="260.000">3.90</RangeData>
+<RangeData angle="270.000">3.80</RangeData>
+<RangeData angle="280.000">3.90</RangeData>
+<RangeData angle="290.000">4.10</RangeData>
+<RangeData angle="300.000">4.20</RangeData>
+<RangeData angle="310.000">4.10</RangeData>
+<RangeData angle="320.000">3.90</RangeData>
+<RangeData angle="330.000">3.80</RangeData>
+<RangeData angle="340.000">3.90</RangeData>
+<RangeData angle="350.000">4.10</RangeData>
+<PlanningData>
+<Shape>2</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Radius>3.5</Radius>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="2">
+<NumberValues>36</NumberValues>
+<AngularIncrement>10</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>350</EndAngle>
+<DistanceFromCenter>10</DistanceFromCenter>
+<RangeData angle="  0.000">6.30</RangeData>
+<RangeData angle=" 10.000">6.15</RangeData>
+<RangeData angle=" 20.000">5.85</RangeData>
+<RangeData angle=" 30.000">5.70</RangeData>
+<RangeData angle=" 40.000">5.85</RangeData>
+<RangeData angle=" 50.000">6.15</RangeData>
+<RangeData angle=" 60.000">6.30</RangeData>
+<RangeData angle=" 70.000">6.15</RangeData>
+<RangeData angle=" 80.000">5.85</RangeData>
+<RangeData angle=" 90.000">5.70</RangeData>
+<RangeData angle="100.000">5.85</RangeData>
+<RangeData angle="110.000">6.15</RangeData>
+<RangeData angle="120.000">6.30</RangeData>
+<RangeData angle="130.000">6.15</RangeData>
+<RangeData angle="140.000">5.85</RangeData>
+<RangeData angle="150.000">5.70</RangeData>
+<RangeData angle="160.000">5.85</RangeData>
+<RangeData angle="170.000">6.15</RangeData>
+<RangeData angle="180.000">6.30</RangeData>
+<RangeData angle="190.000">6.15</RangeData>
+<RangeData angle="200.000">5.85</RangeData>
+<RangeData angle="210.000">5.70</RangeData>
+<RangeData angle="220.000">5.85</RangeData>
+<RangeData angle="230.000">6.15</RangeData>
+<RangeData angle="240.000">6.30</RangeData>
+<RangeData angle="250.000">6.15</RangeData>
+<RangeData angle="260.000">5.85</RangeData>
+<RangeData angle="270.000">5.70</RangeData>
+<RangeData angle="280.000">5.85</RangeData>
+<RangeData angle="290.000">6.15</RangeData>
+<RangeData angle="300.000">6.30</RangeData>
+<RangeData angle="310.000">6.15</RangeData>
+<RangeData angle="320.000">5.85</RangeData>
+<RangeData angle="330.000">5.70</RangeData>
+<RangeData angle="340.000">5.85</RangeData>
+<RangeData angle="350.000">6.15</RangeData>
+<PlanningData>
+<Shape>2</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Radius>5.5</Radius>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+<PolarData n="3">
+<NumberValues>36</NumberValues>
+<AngularIncrement>10</AngularIncrement>
+<StartAngle>0</StartAngle>
+<EndAngle>350</EndAngle>
+<DistanceFromCenter>14</DistanceFromCenter>
+<RangeData angle="  0.000">7.35</RangeData>
+<RangeData angle=" 10.000">7.17</RangeData>
+<RangeData angle=" 20.000">6.83</RangeData>
+<RangeData angle=" 30.000">6.65</RangeData>
+<RangeData angle=" 40.000">6.83</RangeData>
+<RangeData angle=" 50.000">7.17</RangeData>
+<RangeData angle=" 60.000">7.35</RangeData>
+<RangeData angle=" 70.000">7.17</RangeData>
+<RangeData angle=" 80.000">6.83</RangeData>
+<RangeData angle=" 90.000">6.65</RangeData>
+<RangeData angle="100.000">6.83</RangeData>
+<RangeData angle="110.000">7.17</RangeData>
+<RangeData angle="120.000">7.35</RangeData>
+<RangeData angle="130.000">7.17</RangeData>
+<RangeData angle="140.000">6.83</RangeData>
+<RangeData angle="150.000">6.65</RangeData>
+<RangeData angle="160.000">6.82</RangeData>
+<RangeData angle="170.000">7.17</RangeData>
+<RangeData angle="180.000">7.35</RangeData>
+<RangeData angle="190.000">7.18</RangeData>
+<RangeData angle="200.000">6.83</RangeData>
+<RangeData angle="210.000">6.65</RangeData>
+<RangeData angle="220.000">6.82</RangeData>
+<RangeData angle="230.000">7.17</RangeData>
+<RangeData angle="240.000">7.35</RangeData>
+<RangeData angle="250.000">7.18</RangeData>
+<RangeData angle="260.000">6.83</RangeData>
+<RangeData angle="270.000">6.65</RangeData>
+<RangeData angle="280.000">6.83</RangeData>
+<RangeData angle="290.000">7.17</RangeData>
+<RangeData angle="300.000">7.35</RangeData>
+<RangeData angle="310.000">7.18</RangeData>
+<RangeData angle="320.000">6.83</RangeData>
+<RangeData angle="330.000">6.65</RangeData>
+<RangeData angle="340.000">6.83</RangeData>
+<RangeData angle="350.000">7.17</RangeData>
+<PlanningData>
+<Shape>2</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Radius>6.5</Radius>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</PolarData>
+</DetectionSource>
+<DetectionSource n="3">
+<DetectionType>3</DetectionType>
+<NumberPolarData>0</NumberPolarData>
+<NumberGridData>1</NumberGridData>
+<ActiveGrid>1</ActiveGrid>
+<ShowRawData>1</ShowRawData>
+<SamplingDirection>0</SamplingDirection>
+<RotationAngle>0</RotationAngle>
+<GridData n="1">
+<NumCellsX>9</NumCellsX>
+<NumCellsY>9</NumCellsY>
+<DimCellX>1</DimCellX>
+<DimCellY>1</DimCellY>
+<DistanceFromCenter>6</DistanceFromCenter>
+<CellData x="-4.000" y="-4.000">0</CellData>
+<CellData x="-3.000" y="-4.000">0</CellData>
+<CellData x="-2.000" y="-4.000">0</CellData>
+<CellData x="-1.000" y="-4.000">0</CellData>
+<CellData x=" 0.000" y="-4.000">0</CellData>
+<CellData x=" 1.000" y="-4.000">0</CellData>
+<CellData x=" 2.000" y="-4.000">0</CellData>
+<CellData x=" 3.000" y="-4.000">0</CellData>
+<CellData x=" 4.000" y="-4.000">0</CellData>
+<CellData x="-4.000" y="-3.000">0</CellData>
+<CellData x="-3.000" y="-3.000">0</CellData>
+<CellData x="-2.000" y="-3.000">0</CellData>
+<CellData x="-1.000" y="-3.000">0</CellData>
+<CellData x=" 0.000" y="-3.000">1</CellData>
+<CellData x=" 1.000" y="-3.000">0</CellData>
+<CellData x=" 2.000" y="-3.000">0</CellData>
+<CellData x=" 3.000" y="-3.000">0</CellData>
+<CellData x=" 4.000" y="-3.000">0</CellData>
+<CellData x="-4.000" y="-2.000">0</CellData>
+<CellData x="-3.000" y="-2.000">0</CellData>
+<CellData x="-2.000" y="-2.000">1</CellData>
+<CellData x="-1.000" y="-2.000">1</CellData>
+<CellData x=" 0.000" y="-2.000">1</CellData>
+<CellData x=" 1.000" y="-2.000">1</CellData>
+<CellData x=" 2.000" y="-2.000">1</CellData>
+<CellData x=" 3.000" y="-2.000">0</CellData>
+<CellData x=" 4.000" y="-2.000">0</CellData>
+<CellData x="-4.000" y="-1.000">0</CellData>
+<CellData x="-3.000" y="-1.000">0</CellData>
+<CellData x="-2.000" y="-1.000">1</CellData>
+<CellData x="-1.000" y="-1.000">1</CellData>
+<CellData x=" 0.000" y="-1.000">1</CellData>
+<CellData x=" 1.000" y="-1.000">1</CellData>
+<CellData x=" 2.000" y="-1.000">1</CellData>
+<CellData x=" 3.000" y="-1.000">0</CellData>
+<CellData x=" 4.000" y="-1.000">0</CellData>
+<CellData x="-4.000" y=" 0.000">0</CellData>
+<CellData x="-3.000" y=" 0.000">1</CellData>
+<CellData x="-2.000" y=" 0.000">1</CellData>
+<CellData x="-1.000" y=" 0.000">1</CellData>
+<CellData x=" 0.000" y=" 0.000">1</CellData>
+<CellData x=" 1.000" y=" 0.000">1</CellData>
+<CellData x=" 2.000" y=" 0.000">1</CellData>
+<CellData x=" 3.000" y=" 0.000">1</CellData>
+<CellData x=" 4.000" y=" 0.000">0</CellData>
+<CellData x="-4.000" y=" 1.000">0</CellData>
+<CellData x="-3.000" y=" 1.000">0</CellData>
+<CellData x="-2.000" y=" 1.000">1</CellData>
+<CellData x="-1.000" y=" 1.000">1</CellData>
+<CellData x=" 0.000" y=" 1.000">1</CellData>
+<CellData x=" 1.000" y=" 1.000">1</CellData>
+<CellData x=" 2.000" y=" 1.000">1</CellData>
+<CellData x=" 3.000" y=" 1.000">0</CellData>
+<CellData x=" 4.000" y=" 1.000">0</CellData>
+<CellData x="-4.000" y=" 2.000">0</CellData>
+<CellData x="-3.000" y=" 2.000">0</CellData>
+<CellData x="-2.000" y=" 2.000">1</CellData>
+<CellData x="-1.000" y=" 2.000">1</CellData>
+<CellData x=" 0.000" y=" 2.000">1</CellData>
+<CellData x=" 1.000" y=" 2.000">1</CellData>
+<CellData x=" 2.000" y=" 2.000">1</CellData>
+<CellData x=" 3.000" y=" 2.000">0</CellData>
+<CellData x=" 4.000" y=" 2.000">0</CellData>
+<CellData x="-4.000" y=" 3.000">0</CellData>
+<CellData x="-3.000" y=" 3.000">0</CellData>
+<CellData x="-2.000" y=" 3.000">0</CellData>
+<CellData x="-1.000" y=" 3.000">0</CellData>
+<CellData x=" 0.000" y=" 3.000">1</CellData>
+<CellData x=" 1.000" y=" 3.000">0</CellData>
+<CellData x=" 2.000" y=" 3.000">0</CellData>
+<CellData x=" 3.000" y=" 3.000">0</CellData>
+<CellData x=" 4.000" y=" 3.000">0</CellData>
+<CellData x="-4.000" y=" 4.000">0</CellData>
+<CellData x="-3.000" y=" 4.000">0</CellData>
+<CellData x="-2.000" y=" 4.000">0</CellData>
+<CellData x="-1.000" y=" 4.000">0</CellData>
+<CellData x=" 0.000" y=" 4.000">0</CellData>
+<CellData x=" 1.000" y=" 4.000">0</CellData>
+<CellData x=" 2.000" y=" 4.000">0</CellData>
+<CellData x=" 3.000" y=" 4.000">0</CellData>
+<CellData x=" 4.000" y=" 4.000">0</CellData>
+<PlanningData>
+<Shape>2</Shape>
+<ScaleShape>0</ScaleShape>
+<DetectionRate>85</DetectionRate>
+<Radius>2.5</Radius>
+<StartAngle>0</StartAngle>
+<EndAngle>360</EndAngle>
+</PlanningData>
+</GridData>
+</DetectionSource>
+</SensXML>

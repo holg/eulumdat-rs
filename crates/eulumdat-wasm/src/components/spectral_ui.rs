@@ -13,10 +13,13 @@ use leptos::prelude::*;
 
 // ── Vendor SPD presets ───────────────────────────────────────────────────
 
-/// Real measured vendor SPDs, embedded at compile time. Curated to tell the
+/// Real measured vendor SPDs, embedded at compile time (feature
+/// `vendor-spectra`: the files live in the repository's `docs/SPDs`, not in
+/// the published crate, which shows the synthetic demo LED instead). Curated to tell the
 /// spectral story: a warm/cool high-CRI LED pair (Luxeon 90-CRI), the Yuji WB
 /// Day-vs-Nite pair (purpose-built for S/P demonstration), and a Signify lab
 /// spectrum. Each is parsed on demand via `eulumdat::parse_spd`.
+#[cfg(feature = "vendor-spectra")]
 pub(crate) const PRESETS: &[(&str, &str)] = &[
     (
         "Yuji WB Nite 2200K (amber, low S/P)",
@@ -47,6 +50,13 @@ pub(crate) const PRESETS: &[(&str, &str)] = &[
         include_str!("../../../../docs/SPDs/Signify/Signify bread .csv"),
     ),
 ];
+
+/// Without the vendor spectra: our own synthetic white LED (3021 K).
+#[cfg(not(feature = "vendor-spectra"))]
+pub(crate) const PRESETS: &[(&str, &str)] = &[(
+    "Demo LED 3000 K (synthetic)",
+    include_str!("../../demo/demo_led_3000k.spd"),
+)];
 
 /// A source-spectrum preset — an index into [`PRESETS`].
 #[derive(Clone, Copy, PartialEq, Eq)]

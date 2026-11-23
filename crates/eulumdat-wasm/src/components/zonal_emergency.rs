@@ -19,9 +19,8 @@ use eulumdat::Eulumdat;
 use leptos::prelude::*;
 use std::sync::{Arc, OnceLock};
 
-const DEMO_ROUTE: &str =
-    include_str!("../../../eulumdat/tests/fixtures/emergency/demo_em_route.ldt");
-const DEMO_OPEN: &str = include_str!("../../../eulumdat/tests/fixtures/emergency/demo_em_open.ldt");
+const DEMO_ROUTE: &str = include_str!("../../demo/demo_em_route.ldt");
+const DEMO_OPEN: &str = include_str!("../../demo/demo_em_open.ldt");
 
 fn demo(which: EmLuminaire) -> Option<Arc<Eulumdat>> {
     static ROUTE: OnceLock<Option<Arc<Eulumdat>>> = OnceLock::new();

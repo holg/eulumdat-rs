@@ -73,18 +73,12 @@ impl SensorFile {
 
 /// Synthetic demo sensors (our own numbers, `make_demo.py`), so a link can
 /// show the tab without anyone's product data.
-const DEMO_CEILING: &str =
-    include_str!("../../../eulumdat/tests/fixtures/sensors/demo_ceiling_360.ldt");
-const DEMO_CORRIDOR: &str =
-    include_str!("../../../eulumdat/tests/fixtures/sensors/demo_corridor.ldt");
-const DEMO_SENSXML: &[u8] =
-    include_bytes!("../../../eulumdat/tests/fixtures/sensors/demo_ceiling_sensxml.xml");
-const DEMO_SENSXML_WALL: &[u8] =
-    include_bytes!("../../../eulumdat/tests/fixtures/sensors/demo_wall_180_sensxml.xml");
-const DEMO_SENSXML_HIGHBAY: &[u8] =
-    include_bytes!("../../../eulumdat/tests/fixtures/sensors/demo_highbay_sensxml.xml");
-const DEMO_SENSXML_CORRIDOR: &[u8] =
-    include_bytes!("../../../eulumdat/tests/fixtures/sensors/demo_corridor_sensxml.xml");
+const DEMO_CEILING: &str = include_str!("../../demo/demo_ceiling_360.ldt");
+const DEMO_CORRIDOR: &str = include_str!("../../demo/demo_corridor.ldt");
+const DEMO_SENSXML: &[u8] = include_bytes!("../../demo/demo_ceiling_sensxml.xml");
+const DEMO_SENSXML_WALL: &[u8] = include_bytes!("../../demo/demo_wall_180_sensxml.xml");
+const DEMO_SENSXML_HIGHBAY: &[u8] = include_bytes!("../../demo/demo_highbay_sensxml.xml");
+const DEMO_SENSXML_CORRIDOR: &[u8] = include_bytes!("../../demo/demo_corridor_sensxml.xml");
 
 /// Names, content types and bytes of the demo sensors.
 fn demo_sensor_list() -> [(&'static str, &'static str, &'static [u8]); 6] {
