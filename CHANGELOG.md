@@ -19,9 +19,8 @@ All workspace crates are released together at 0.8.1 (several had stayed at
   directions) and reports melanopic EDI; `rt-scene` prints both.
 - **`eulumdat-ifc`** (new crate): rooms, luminaires, doors and windows from an
   IFC model (through bimifc), `Building::plan(room)` in the designers' frame,
-  and, with the `export` feature, `room_to_ifc` with round-trip tests. The
-  `export` feature needs a bimifc-writer with spaces and light fixtures
-  (newer than 0.2.0).
+  and, with the `export` feature, `room_to_ifc` with round-trip tests
+  (bimifc-writer 0.3, the first with spaces and light fixtures).
 - **`eulumdat-digitize`** is published for the first time: a spectrum chart
   image to a relative `.spd`.
 - Street designer: a `StreetLayout` becomes a Light scene plan
